@@ -6,7 +6,7 @@ demand, the indexed attach differential and held-out settled compression.
 The E01–E13 acceptance and dependency contracts below define the release exits.
 [Current assessment](RELEASE_RECONCILIATION_2026-11-25.md) ·
 [Ordered implementation](RELEASE_RECONCILIATION_2026-11-25.md#ordered-implementation-and-decision-points) ·
-[Source and review evidence](evidence/release-reconciliation-rolling-lookups-2026-11-25.json)
+[Source and review evidence](evidence/windows-indexed-cold-batched-copy-2026-11-25.json)
 
 The [current architecture](architecture/CURRENT.md) shows the implementation.
 The [source review](architecture/REVIEW.md) tests the assumptions and the
@@ -299,12 +299,13 @@ or a new representation.
 - **Mounted settlement.** Record admission, copy phase, verification,
   selector publication, retained references, provider operations and
   allocation in order. Reuse the independent client and CPU oracle.
-  The bank-spanning candidate matched the signed Win32 trace and remained
-  in private rebuild. Report source verification, preserved and re-encoded
-  payload copy, index assembly and target verification separately. Attribute
-  the first unfinished phase and concurrent backing pressure before changing
-  allocation or pacing.
-  [Latest signed replay](evidence/windows-bank-spanning-mounted-replay-2026-11-25.json)
+  The latest signed trace reached private payload copy, with 250 source
+  verification entries and 134 copy entries observed. Attribute backing
+  calls, bytes, outstanding objects and refusals to those phases. Measure
+  the dominant cost on the qualified host. Compare checked read gathering
+  against the existing verification path if source reads dominate. Choose
+  admission or allocation work when their measured cost justifies it.
+  [Signed replay and matched native control](evidence/windows-indexed-cold-batched-copy-2026-11-25.json)
 - **Useful device delivery.** Feed observed open stream ranges and
   generations to the existing owner. For read, write and collective work,
   compare CPU, cold GPU and a ready lease using identical observations.
@@ -338,7 +339,8 @@ ordinary controller stops. Then use one paired client trace to price automatic
 AMD service and a protected cohort oracle to identify compression gains.
 Plan the writable-attach differential independently with its complete-audit
 reference and a held-out file-count tier.
-[Current priorities and decisions](RELEASE_RECONCILIATION_2026-11-25.md#ordered-implementation-and-decision-points)
+[Current priorities and decisions](RELEASE_RECONCILIATION_2026-11-25.md#ordered-implementation-and-decision-points) ·
+[Next bounded work by package](RELEASE_RECONCILIATION_2026-11-25.md#package-handoffs)
 
 #### E03 and E08. Qualify ordinary AMD foreground I/O
 

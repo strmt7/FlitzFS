@@ -230,6 +230,13 @@ filesystem protection and container overhead in their own measurements.
   [UL storage traces](https://support.benchmarks.ul.com/support/solutions/articles/44002277782-storage-benchmark-tests) ·
   [MLPerf Storage v3.0](https://mlcommons.org/benchmarks/storage/) ·
   [MLCommons reference harness](https://github.com/mlcommons/storage)
+- SPECworkstation 4.0's **WPCstorage** replays captured application I/O.
+  Evaluate it after the primary Windows file-target comparison, with the
+  official workload and supported test settings. Use its measurements for
+  access performance and continue to price real protected bytes with the
+  sealed corpus. Record availability and eligibility for the target type.
+  [SPEC workstation benchmark](https://gwpg.spec.org/benchmarks/benchmark/specworkstation-4_0/) ·
+  [Official workload description](https://github.com/SPEC-GWPG-Dev/SPECgwpg-Docs/blob/main/SPECworkstation4/SPECworkstation4-Workload-Documentation.md#223-wpcstorage)
 
 ### First Windows observations
 

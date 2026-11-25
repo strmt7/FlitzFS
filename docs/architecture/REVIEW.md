@@ -2,9 +2,9 @@
 
 The [current reconciliation](../RELEASE_RECONCILIATION_2026-11-25.md)
 has the current gate and work order. The latest review inventories the
-1,089 tracked paths and traces the changed storage, AMD and advisory
+1,095 tracked paths and traces the changed storage, AMD and advisory
 boundaries against the previous reviews.
-[Current review receipt](../evidence/release-reconciliation-rolling-lookups-2026-11-25.json) ·
+[Current review receipt](../evidence/windows-indexed-cold-batched-copy-2026-11-25.json) ·
 [Previous full review](../RELEASE_RECONCILIATION_2026-11-24.md)
 
 | Component checked | Current boundary | Implementation decision |

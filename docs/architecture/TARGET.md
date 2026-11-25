@@ -129,7 +129,10 @@ Qualify three mechanisms separately before combining them:
    only covers payload replicas at its observed checkpoint. Retain an explicit
    full-audit recovery path and treat unverifiable overlap or changed external
    state as reasons to require it.
-2. Same-layout segment repair or evacuation. Copy only proven live objects,
+2. Same-layout segment repair or evacuation. First correlate the ordinary
+   candidate's phase, provider calls and allocation with client demand.
+   When waiting dominates, tune admission from that evidence. When moving
+   verified live bytes dominates, evaluate local evacuation. Copy only proven live objects,
    compare generations before publication and retire storage under existing
    reader and object pins. Measure host and provider bytes written, allocator
    metadata and live bytes moved. Retain the staged image rebuild as fallback.

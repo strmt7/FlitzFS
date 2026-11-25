@@ -1,16 +1,16 @@
 # FlitzFS repository overview
 
-The 25 November review reconciles the **1,089-file** parent `614d1bd`
-and the rolling lookup candidate. The bank-spanning copy reduced a
-fragmented fixture from 931 copy steps to 81. The new restart lookup
-recovered a group missed by the older search on two controlled inputs,
-saving 120 KiB of complete protected footprint in each case. The latest
-signed ordinary trace verified 1,027 files across three helper lifecycles.
-The plan prioritizes mounted settlement, useful automatic AMD delivery,
-held-out complete-size compression and scalable reopen.
+The 25 November review reconciles the **1,095-file** parent `ff55509`
+and the staged cold-copy candidate. The short-file replay went from
+215 copy steps to 42 with identical protected image bytes and CPU readback.
+Earlier rolling lookup controls saved 120 KiB of total protected footprint
+each. The latest signed ordinary trace verified 1,027 files across three
+helper lifecycles. Mounted settlement, useful automatic AMD delivery,
+held-out complete-size compression and scalable reopen remain the next
+product milestones.
 [Latest reconciliation](RELEASE_RECONCILIATION_2026-11-25.md) ·
-[Source and validation receipt](evidence/release-reconciliation-rolling-lookups-2026-11-25.json) ·
-[Mounted replay](evidence/windows-expanded-group-read-and-mounted-replay-2026-11-25.json)
+[Source and validation receipt](evidence/windows-indexed-cold-batched-copy-2026-11-25.json) ·
+[Earlier mounted control](evidence/windows-bank-spanning-mounted-replay-2026-11-25.json)
 
 The Radeon returned verified packed and mixed group frames through the
 SDK callback's prepared decoder path, with independent CPU readback.

@@ -53,7 +53,7 @@ Subsequent checked inactive-image releases can continue under the same
 | Phase | Work per advance | Target roots |
 | --- | --- | --- |
 | Verify source | A bounded set of independently decoded records from one checked leaf | Absent |
-| Copy | Adjacent preserved frames within one checked leaf, with writes split at each mirror bank, or one record with its own encode/rebind work | Absent |
+| Copy | Adjacent preserved or eligible short cold frames within one checked leaf, split at every mirror bank. Larger or root-replacement entries use one-record work. | Absent |
 | Build index | Up to one leaf of checked candidate headers and the resulting index pages | Absent |
 | Verify target | A bounded set of records individually compared to their source and generation | Absent |
 | Publish | Dependency barrier, two root writes/barriers, independent root reparse | Private complete candidate |
@@ -71,8 +71,13 @@ mirrors.
 Each root replacement must match the independently read source root except
 its 16-byte identity. Data-object generations remain stable and image
 publication advances by two. Compaction preserves non-root encoded payloads.
-Recompression uses the supplied CPU policy. Synchronous and staged copies
-use the same packed layout and checks.
+Recompression uses the supplied CPU policy. The staged cold policy can
+replace an eligible data encoding when its trial wins. Batched trials use
+up to one commit unit of eligible decoded input, as part of the two-unit
+logical-plus-framed budget and the quarter-leaf entry bound. Unevaluated
+records retain their cold eligibility. Synchronous and staged copies use the
+same packed layout and checks.
+[Matched short-file cold copy](evidence/windows-indexed-cold-batched-copy-2026-11-25.json)
 
 Target extent/contract drift, integrity failures and indeterminate publication
 terminally discard the attempt. Newly degraded metadata refuses publication;

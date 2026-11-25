@@ -9,19 +9,51 @@ on held-out workloads. Writable attach must also scale beyond the current
 full audit. Use one operation witness and common accounting across these
 lanes so each change can be judged at the product boundary.
 
-This review binds the **1,089 tracked files** at
-`614d1bdd0acfdf598bd8e001d07832e28fdd909e` and the rolling lookup
-candidate. Four commits changed 27 paths since the earlier 25 November
-inventory. They cover checked reopen, mirrored relocation and AMD read
-delivery. The candidate changes the in-memory search schedule and test
-fixtures. The review uses the earlier full inventory for unchanged
-components and brings each release gate forward.
-[Source inventory, checks and research](evidence/release-reconciliation-rolling-lookups-2026-11-25.json) ·
+This review binds the **1,095 tracked files** at
+`ff555097b76b491a2ce950a7e9de7c85ca8834f7` and the staged cold-copy
+candidate. Four commits changed 25 paths since the 1,089-file inventory.
+They cover checked reopen, rolling coherence, AMD read preparation and
+lookup reuse. This round traces the cold rewrite through the mounted
+controller and reconciles every release gate against the current inventory,
+prior source review and new matched evidence.
+[Current source, checks and research](evidence/windows-indexed-cold-batched-copy-2026-11-25.json) ·
+[Earlier rolling lookup review](evidence/release-reconciliation-rolling-lookups-2026-11-25.json) ·
 [Earlier batched copy review](evidence/windows-batched-staged-copy-2026-11-25.json) ·
 [Earlier packed-tail review](evidence/windows-packed-tail-continuation-2026-11-25.json) ·
 [Previous review](RELEASE_RECONCILIATION_2026-11-24.md) ·
 [Package plan](IMPLEMENTATION_PLAN.md) ·
 [Current architecture](architecture/CURRENT.md) · [Target architecture](architecture/TARGET.md)
+
+## Cold copy and inner-phase visibility
+
+The mounted file reclaimer starts a foreground-reconciling rebuild and can
+try stronger encoding on newly eligible data. Eligibility previously stopped
+the mirrored batch at every such record. The copy now keeps these short records
+in source order and prepares them within the existing one-leaf batch, with one
+commit unit of aggregate cold input and two commit units of combined logical
+and framed bytes. Larger records use one-record steps. The existing encoder
+performs the trial, smaller frames go through the paired writer and an
+independent CPU comparison of both copies precedes the next candidate step. A failed
+trial leaves that generation eligible on a later copy.
+
+The matched Windows RAM fixture created 192 files and 392 live objects.
+Copy-phase entries fell from **215 to 42**, backing read calls from **1,755 to
+1,027**, and target write calls from **1,092 to 362**. Both variants wrote
+1,130,496 bytes in that phase and produced identical 1,335,296-byte images.
+The separate 131,072-byte selector and all 192 pinned and reopened files
+verified. The colder representation saved 2,156 live payload bytes in each
+arm. A modeled torn write during private data copy retained the independently
+verified acknowledged image. The experiment measures work and exactness in
+the native session. Mounted throughput and protected size gains have their
+own acceptance runs.
+
+An ordinary WinFsp observation now reports the candidate's phase at entry to
+each reclaimer step alongside outer copy, ready, publication, pin and
+retirement outcomes. Initial candidate creation can have only an outer
+outcome. Phase counts describe step entry and accompany provider calls,
+allocation and reclaimer outcomes. Reconciliation after a ready candidate
+can begin within that step, so these counts cannot measure its elapsed time.
+[Matched cold copy and current qualification](evidence/windows-indexed-cold-batched-copy-2026-11-25.json)
 
 ## Ordinary packed follow-up
 
@@ -163,16 +195,21 @@ cached. The CPython-derived case kept its 2,420,736-byte settled footprint.
 
 ### Latest signed packed replay
 
-Once the host admitted the 4 GiB guest, the current build matched all
-6,293 Win32 operations, and independent CPU recovery verified all 1,027
-files across three helper lifecycles. The held reads and continued writes
-matched. The ordinary packed controller recorded 557 private rebuild
-advances and fifteen backing-limited outcomes. It reached neither a
-ready candidate nor selector publication in the observation. The guest
-retired its helper and mount and passed the final disposal check.
-Expose the inner copy, index and verification phases before adjusting
-pacing or allocation.
-[Matched mounted replay](evidence/windows-bank-spanning-mounted-replay-2026-11-25.json)
+The new signed guest matched all 6,293 Win32 operations and independently
+verified all 1,027 files across three helper lifecycles. The controller recorded
+385 outer copying outcomes, including 250 entries to source verification and
+134 to payload copy. The remaining outcome was candidate creation. The run
+reached payload copy and stopped before index construction or readiness.
+Backing admission limited 17 continuations. All helper processes, mounts
+and the guest retired.
+[Matched mounted replay and phase counts](evidence/windows-indexed-cold-batched-copy-2026-11-25.json)
+
+The previous signed run recorded 557 outer copying outcomes and 15 backing
+limits on the same operation witness. These counts depend on the observed
+opportunities and do not measure throughput. Source verification accounted
+for most entries in the new run, and payload copy was the unfinished phase.
+Attribute resource cost and remaining work before changing either phase.
+[Previous signed control](evidence/windows-bank-spanning-mounted-replay-2026-11-25.json)
 
 ## Reconciled release gates
 
@@ -180,7 +217,7 @@ pacing or allocation.
 | --- | --- | --- |
 | S1 · Exact artifacts | Current scoped builds bind source and SDK/CPU artifacts. Earlier real device runs identify their exact ROCm binaries. | Bind one clean Windows 11 update, signed WinFsp pair, helper, workers, CPU decoder table and backing capabilities to the acceptance run. |
 | S2 · Scale | Paged inodes, names and extents are live. Checked replica reads group adjacent frames across banks within each leaf. The complete startup walk still runs. | Verify bounded attach under a versioned authority contract. Fit and validate separate named-file curves for attach, restart, enumeration, mutation and resident memory. |
-| S3 · Space reuse | Sparse backing settled while mounted after preselection on the 1,027-file trace. Packed work continued after detach. The new callback fixture releases an already-selected packed image’s confirmed suffix in bounded continuations. | Select and settle through the ordinary mounted controller. Batched copy makes fewer calls on identical bytes in both local layouts. Use the allocation trace to identify the next cost under pinned readers, sustained churn, constrained free space and interruption. |
+| S3 · Space reuse | Preselected sparse backing settled while mounted. The ordinary packed replay reached payload copy. The native cold-copy control reduced copy advances to 42 from 215 on identical settled bytes. | Select and settle through the ordinary mounted controller. Attribute remaining verified work and idle admission before tuning pacing or allocation under churn, pins and interruption. |
 | S4 · AMD and CPU continuity | The latest installed Radeon SDK trial delivered four exact frames in two different request sizes, with independent CPU readback and confirmed worker retirement. The measured 1 MiB write shape still favors CPU. | Prove a useful automatic region for each advertised AMD role in installed-client paths. Qualify CPU availability, verified delivery and condition-based device recovery. |
 | S5 · Compression | Protected prefix selection can save an allocation pair. Two secondary-key restart controls save 122,880 complete bytes each at the same catalog size. Broader real corpus rebuild controls retained their sizes, with no catalog nominations required. AIT grouping and parity placement showed distinct effects. | Establish a held-out complete-size frontier including metadata and protection. Measure catalog recall and savings with a populated, funded search index. |
 | S6 · Autonomy | Persistent sparse advice, workload samples, yield ranking and resource admission run in the controller. | Measure learning benefit, time to settle, interference, per-volume fairness and bytes written per byte reclaimed across workloads and restart. |
@@ -201,6 +238,54 @@ pacing or allocation.
 [Release matrix](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
 
 ## Research and design decisions
+
+- **Schedule from observed interference.** HATS evaluates concurrent
+  foreground reads and compaction. AITURBO uses grouped operations to plan
+  storage I/O across requests. Their deployments differ from FlitzFS. For our
+  next step, correlate phase entry and provider operations against observed
+  client activity. Group adjacent verified work inside the current lease,
+  charge the aggregate and yield between steps. Win32 buffering documentation
+  also makes alignment a requirement for an unbuffered path. Keep the
+  supported buffered contract for this batch and qualify any new I/O mode as
+  a separate backend choice.
+  [FAST ’26 HATS](https://www.usenix.org/conference/fast26/presentation/ren) ·
+  [FAST ’26 AITURBO](https://www.usenix.org/conference/fast26/presentation/hao) ·
+  [Microsoft file buffering](https://learn.microsoft.com/en-us/windows/win32/fileio/file-buffering)
+- **Price every physical copy.** XLL demonstrates that duplication across
+  durability layers can dominate writes in its consensus-store environment.
+  Use this as a measurement hypothesis for FlitzFS. Attribute written and
+  occupied bytes to live data, mirrors or parity, index and selectors,
+  relocation, and backing allocation. Optimization, retention and protection
+  each get an explicit ledger. Consider local evacuation only if those
+  counts show whole-image movement is the remaining cost.
+  [NSDI ’26 XLL](https://www.usenix.org/conference/nsdi26/presentation/shawger)
+- **Qualify the installed AMD route.** AMD currently documents the ROCm
+  10.2.0 Windows tarball route and the standalone Windows HIP SDK 7.2.0
+  separately. Resolve the selected package, runtime DLL, compiler and device
+  capability as one measured tuple. A prepared context and stream can remove
+  setup work from the next admitted operation. Measure actual resource
+  residency and usable lead, and retire them when the evidence or demand
+  expires. Keep CPU read and write service independently available.
+  [ROCm installation](https://rocm.docs.amd.com/en/latest/install/rocm.html) ·
+  [Windows HIP SDK release notes](https://rocm.docs.amd.com/projects/install-on-windows/en/latest/about/releasenotes.html) ·
+  [HIP asynchronous execution](https://rocm.docs.amd.com/projects/HIP/en/latest/how-to/hip_runtime_api/asynchronous.html)
+- **Use an identical Windows comparison contract.** Microsoft's DiskSpd
+  2.3 notes changes to affinity and buffer defaults. Bind those choices,
+  write-buffer inputs and cache and write-through modes in the run manifest.
+  Use modes supported by every target. Verify the native NTFS compression
+  format on the completed files. SPECworkstation 4.0's WPCstorage adds
+  captured application traces as a later optional throughput and latency
+  lane. Dataset bytes and protected size come from the independent corpus
+  ledger and our full-volume accounting.
+  [DiskSpd 2.3](https://github.com/microsoft/diskspd/releases/tag/v2.3) ·
+  [DiskSpd parameters](https://github.com/microsoft/diskspd/wiki/Command-line-and-parameters) ·
+  [Microsoft compression state](https://learn.microsoft.com/en-us/windows/win32/fileio/compression-state) ·
+  [SPEC WPCstorage](https://github.com/SPEC-GWPG-Dev/SPECgwpg-Docs/blob/main/SPECworkstation4/SPECworkstation4-Workload-Documentation.md#223-wpcstorage)
+
+The current research receipt records page identity, native extraction status
+and digests. Performance results above and in the papers apply to their
+respective workloads.
+[Current research receipt](evidence/windows-indexed-cold-batched-copy-2026-11-25.json)
 
 - **Placement is a measured source of write amplification.** FAST ’26
   DOGI predicts invalidation time in log-structured storage, and WARP
@@ -390,12 +475,15 @@ before expanding the experiment.
 
 ### 1. Close ordinary mounted settlement · E02, E08, E11
 
-1. Repeat the validated signed client witness with separate inner-stage
-   counters for the source audit, payload copy, index construction,
-   target verification, publication, pin wait, retirement,
-   relocation and shortening outcomes. Record provider calls, bytes
-   moved, actual occupied allocation and the reason every funded
-   continuation stops. Qualify trace and teardown in the guest.
+1. Use the phase-entry counts to pick the next measured interval. Take
+   deltas from the controller's existing backing recorder at admitted
+   reclaimer steps. Attribute calls and bytes to source verification,
+   copy, index or publication. Bind the progress cursor and object count to
+   the candidate identity so cancellation and restart have distinct
+   outcomes. Keep aggregate counters per phase and correlate them with
+   foreground activity and the deferral at each idle boundary. Use the
+   signed witness for ordering and independent readback. Measure latency,
+   CPU and backing cost on the qualified host.
 2. On the same 1,027 live files, compare ordinary churn, a cold-work
    control and detached CPU verification. Track the selected generation,
    selector and provider identities, live bytes, reusable slots, pinned
@@ -407,9 +495,12 @@ before expanding the experiment.
    retained generations, reusable gaps or work that is still eligible.
    If bounded scheduling prevents a ready phase from progressing, test
    phase-cost prediction against foreground pressure and maximum work per
-   opportunity. If copy/rewrite or alternate capacity stays dominant,
-   prototype a generation-bound retirement ledger and local reuse in
-   shadow mode. Compare both to the checked full rebuild.
+   opportunity. If source verification dominates provider work, measure
+   verified read runs and fragmentation in `verify_quantum`. Compare bounded
+   gathering on each mirror bank with the existing adjacent-frame path and
+   keep the fault-localizing per-record fallback. If copy or alternate
+   capacity dominates, evaluate a generation-bound retirement ledger and
+   local reuse in shadow mode against the checked full rebuild.
 4. Make reuse transactional only after modeling ownership from both
    selectable roots, retained reader pins, allocation incarnation and
    provider geometry. Exercise crash cuts at allocate, transfer, verify,
@@ -509,6 +600,24 @@ before expanding the experiment.
 5. Close S1–S12 with the exact signed candidate, fault matrix and soak.
    Compile the compatibility and measured limitation evidence for the
    owner’s release decision.
+
+### Package handoffs
+
+| Package | First bounded change and evidence needed before expansion |
+| --- | --- |
+| E01 · Scale | Compare a version-bound attach summary with the full audit in shadow mode. Record would-accept, audit result, pages touched and disagreement cause. Use held-out file-count tiers and count metadata residency. |
+| E02 · Allocation | Run the normal packed settlement trace. If copying has ceased to dominate, price the next observed phase. Use checked local evacuation and a shadow retirement ledger only if movement or retained capacity is the measured floor. |
+| E03 · AMD | Measure verified-ready and cold delivery on one real grouped-read stream. Charge preparation, transfers, CPU verification, useful delivery and residency. Enroll a repeatable winning shape, then price one representative write shape and one collective job. |
+| E04 · Coherence | Run the funded catalog against a sealed family split. Count candidates retrieved, stale and negative lookups, actual savings and metadata cost versus a bounded exhaustive oracle. Grow discovery where the savings gap justifies additional index space. |
+| E05 · Candidate design | Run independently strong frames, exact reuse, protected bases and short restartable deltas against the same incumbent on held-out families. Add a representation only after locating repeatable residual bytes and bounding CPU access. |
+| E06 · Grouped encoding | Store any winning representation with versioned, bounded CPU restart points and explicit dependency ownership. Reconcile the protection and index cost before enabling it under the Windows helper. |
+| E07 · Autonomy | Use existing persistent advice to learn measured admission and yield by class. Compare against fixed policy with the same windows and write budget, including adaptation after drift or restart. Loss of advice returns to verified defaults. |
+| E08 · Windows I/O | Run the same acknowledged-operation witness through the exact signed helper and WinFsp pair. Extend Explorer, mapped I/O, concurrent rename and held-handle cases based on proven semantics and clean detach. |
+| E09 · Evolution | Freeze representative predecessor images and their independent reader. Introduce new features in unused ranges, commit only after readback and test interruption and old-writer refusal at every migration transition. |
+| E10 · Packaging | Qualify private discovery and staging on varied Windows 11 installs. Check exact SDK and driver provenance, offline CPU rescue, version conflicts, upgrade and removal. |
+| E11 · Recovery | Replay logical interruption cuts and later qualify backend flush and repair behavior for every supported medium. Verify the acknowledged operation prefix and surviving allocation authority with an independent CPU reader. |
+| E12 · Comparison | Run alternating DiskSpd and named-file cohorts on equivalent live targets, with plain and native-compressed NTFS, CPU FlitzFS and automatic AMD. Report occupied bytes, run distributions, foreground interference and pack settling. |
+| E13 · Readiness | Freeze an exact candidate after functional gates pass. Resolve discrepancies before extending soak, validate repeatability, and deliver the evidence and scope for the owner's release decision. |
 
 ### Decisions to carry into the package plan
 

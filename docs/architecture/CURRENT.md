@@ -1,10 +1,10 @@
 # Current FlitzFS architecture
 
 The diagrams trace the implementation reconciled on 25 November. They
-cover prepared AMD read delivery, mirrored copy across packed banks and
-bounded rolling lookup in the background controller.
+cover prepared AMD read delivery, mirrored cold copy across packed banks,
+phase visibility during reclaimer steps and bounded rolling lookup.
 [Release reconciliation](../RELEASE_RECONCILIATION_2026-11-25.md) ·
-[Source and validation receipt](../evidence/release-reconciliation-rolling-lookups-2026-11-25.json) ·
+[Source and validation receipt](../evidence/windows-indexed-cold-batched-copy-2026-11-25.json) ·
 [Revised architecture](TARGET.md)
 
 ## 1. Process and build boundaries
@@ -424,6 +424,9 @@ flowchart TD
     Slot -->|Admitted| Native["Native maintenance evaluates repairs, groups and reclamation"]
     Native --> Phase{"What can safely advance?"}
     Phase -->|Logical reclaim| Advance["Stage, select, or retire a range"]
+    Advance -.-> Observe["Observe candidate phase at step entry"]
+    Advance --> Copy["Private batches of preserved and short cold frames"]
+    Copy --> VerifyCandidate["Check both replicas and compare CPU bytes"]
     Phase -->|Packed move or recovery| Move["Use fresh observation and verified allocation intent"]
     Phase -->|Settled packed suffix| Tail["Recheck selectors and shorten a bounded suffix"]
     Phase -->|Cold work permitted| Screen["Screen and fund cold image work"]
@@ -458,7 +461,12 @@ Foreground activity, expiry or any transition away from confirmed shortening
 ends that continuation. The observer counts its admitted steps separately.
 It now also records each persistent-reclaimer outcome. The controller's
 idle observation indicates that no work is eligible at that decision.
+Each admitted reclaimer step can also report the phase of an existing
+paged candidate at entry. Cold-eligible short frames share the mirrored
+payload batch within a separate cold-input budget. The writer checks both
+replicas and independent CPU bytes before index construction continues.
 The fixture checks remaining work independently after detach.
+[Matched cold rewrite](../evidence/windows-indexed-cold-batched-copy-2026-11-25.json)
 [Ordinary mount observation](../evidence/windows-ordinary-reclamation-progress-2026-11-25.json)
 [Populated retirement](../evidence/windows-mounted-range-retirement-2026-11-24.json) ·
 [Packed continuation](../evidence/windows-packed-tail-continuation-2026-11-25.json) ·

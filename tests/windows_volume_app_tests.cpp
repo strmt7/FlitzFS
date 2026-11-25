@@ -2017,6 +2017,13 @@ void observe_mounted_reclamation(const MountedFileActivation& activation,StoreIo
   static_assert(steps.size()==view.file_reclamation_steps.size());
   for(std::size_t i=1;i<steps.size();++i)
     std::cout<<" step_"<<steps[i]<<'='<<view.file_reclamation_steps[i];
+  // The phase at entry to an existing candidate's reclaimer step.
+  constexpr std::array rebuild_phases{"verifying_source","copying","verifying_target","publishing",
+      "verifying_publication","ready","failed","building_index","awaiting_charge","reconciling",
+      "verifying_reconciliation","screening_compression","declined"};
+  static_assert(rebuild_phases.size()==view.file_rebuild_phases.size());
+  for(std::size_t i=0;i<rebuild_phases.size();++i)
+    std::cout<<" rebuild_"<<rebuild_phases[i]<<'='<<view.file_rebuild_phases[i];
   std::cout<<" retired=1"<<std::endl;
 #else
   (void)activation;(void)contract;(void)volume;(void)preselected;

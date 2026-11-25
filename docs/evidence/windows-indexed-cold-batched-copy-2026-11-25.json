@@ -1,0 +1,5106 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "qualification": "experimental",
+  "source": {
+    "reviewed_commit": "ff555097b76b491a2ce950a7e9de7c85ca8834f7",
+    "reviewed_tree": "d7ce4ace5122b0babcac9b5f53362071ccb7c7e4",
+    "inventory": {
+      "tracked_files": 1095,
+      "directory_entries": 30,
+      "zip_entry_bound": 1125,
+      "expanded_bytes": 19554138,
+      "archive_byte_bound": 19828210,
+      "inventory_sha256": "ebd3e078ba8a61900bfad5f18affe0b079ff9a7010ffe5aa73d51db57f474c83",
+      "files": {
+        ".github/workflows/basic-store-interruption.yml": {
+          "oid": "1bd1e649cf2a44f7be6f1a5ef311db02951d7910",
+          "bytes": 3865
+        },
+        ".github/workflows/ci.yml": {
+          "oid": "c71f0bd679b95a7451b8f7934e009a7597144fa1",
+          "bytes": 34873
+        },
+        ".github/workflows/compact-store-interruption.yml": {
+          "oid": "e5ea351b2721b5616ea6771be4d5d486c1b00f0f",
+          "bytes": 3892
+        },
+        ".github/workflows/cpu-pipeline.yml": {
+          "oid": "0472fc9eba32e434aac3f562b00921ff0dff3f73",
+          "bytes": 3698
+        },
+        ".github/workflows/dependency-audit.yml": {
+          "oid": "24bf78ef6ccee8923ec25a6162d3164a201601d0",
+          "bytes": 2236
+        },
+        ".github/workflows/digest-acceleration.yml": {
+          "oid": "5f24d0529599f9b93f6d23a4a4cf079937c66b3f",
+          "bytes": 3464
+        },
+        ".github/workflows/durability-evidence.yml": {
+          "oid": "95344bab22340303d2c816f8d97be94674ab5c14",
+          "bytes": 1942
+        },
+        ".github/workflows/extent-reference.yml": {
+          "oid": "8b34736a809bbd03bb6c7633fc2d9a1adcb001de",
+          "bytes": 3162
+        },
+        ".github/workflows/hip-compile.yml": {
+          "oid": "1deaf84e8f9a9cb74c344a1503b72ed1ac12206a",
+          "bytes": 8742
+        },
+        ".github/workflows/hosted-research.yml": {
+          "oid": "1e24b23d22d37cf484587e51cc24258326d3732a",
+          "bytes": 5291
+        },
+        ".github/workflows/native-store-comparison.yml": {
+          "oid": "7383de3306f30a21b8b5fd363446c850dec31dd6",
+          "bytes": 5140
+        },
+        ".github/workflows/portable-cpu.yml": {
+          "oid": "bdef0a5d7a357d5c09aba86daccc01ded51f3842",
+          "bytes": 4257
+        },
+        ".github/workflows/ram-host.yml": {
+          "oid": "fe8814e95155ac66f396cca2a5f3b2c6a81950ac",
+          "bytes": 15545
+        },
+        ".github/workflows/recovery-regression.yml": {
+          "oid": "0fd5fb3736f16aebfd5b326cae25c6f58e0ad5fb",
+          "bytes": 2419
+        },
+        ".github/workflows/retirement-reference.yml": {
+          "oid": "decbf1b841b6f558ede6b80a5896d1bc12cbf52d",
+          "bytes": 14993
+        },
+        ".github/workflows/semantic-routing.yml": {
+          "oid": "27f5434b687c295cba14549f31a50b3fd34ca8da",
+          "bytes": 3720
+        },
+        ".github/workflows/source-evidence.yml": {
+          "oid": "0d6e6df1d003a37101d3a1536f2d51285d035f6f",
+          "bytes": 2325
+        },
+        ".github/workflows/store-interruption.yml": {
+          "oid": "b6433406f6f03f7e9f80d4e8d91cbdf9a6a4588d",
+          "bytes": 4157
+        },
+        ".github/workflows/volume-app.yml": {
+          "oid": "b3abd5864811169de175f059283b6f97952620c7",
+          "bytes": 5558
+        },
+        ".gitignore": {
+          "oid": "dfef72ef9923d756ad3d476393bd9da2a8a622b0",
+          "bytes": 106
+        },
+        "AGENTS.md": {
+          "oid": "dfaa31655855c24ea911f8115ea37df20c54885a",
+          "bytes": 20560
+        },
+        "CMakeLists.txt": {
+          "oid": "fb1861938e34ccf1bc070f31ac14aa9dae8cb494",
+          "bytes": 97484
+        },
+        "CONTRIBUTING.md": {
+          "oid": "25f4d06216c0171b21b3db911e6f9b295e6b8306",
+          "bytes": 839
+        },
+        "LICENSE": {
+          "oid": "0ad25db4bd1d86c452db3f9602ccdbe172438f52",
+          "bytes": 34523
+        },
+        "README.md": {
+          "oid": "b0a7b084ed2cc31fac90a47ff0adcae726971fe5",
+          "bytes": 4393
+        },
+        "cmake/StageWindowsAsanRuntime.cmake": {
+          "oid": "ed312a539358fdbca2a2a1fdd1f4f8a5c4ba4d38",
+          "bytes": 3257
+        },
+        "cmake/WindowsAsanRuntime.cmake": {
+          "oid": "9d44b0a1bcb21618245861127a5ae9647ac59012",
+          "bytes": 3611
+        },
+        "docs/ADAPTER_IDENTITY.md": {
+          "oid": "d4ffefa38dabd4efeaaf3b8a32c42b7075fae675",
+          "bytes": 2831
+        },
+        "docs/ADAPTIVE_LZ4_EXECUTION.md": {
+          "oid": "d97c9021184c32898f33a0cb6060e42692f5a017",
+          "bytes": 7419
+        },
+        "docs/ADVISORY_HELPER.md": {
+          "oid": "6739d08b14510208d05bee84296e9f4b6b86e67c",
+          "bytes": 5626
+        },
+        "docs/ADVISORY_REBUILD.md": {
+          "oid": "a0d063b2cd04bc3aee4103f5ec1d3f8e89884600",
+          "bytes": 7081
+        },
+        "docs/AMD_RUNTIME_DISCOVERY.md": {
+          "oid": "793d5e95cf046b12a6d4a06663a8a4e86d164bb0",
+          "bytes": 22718
+        },
+        "docs/ARCHITECTURE.md": {
+          "oid": "93ac8afc793327e8b0d0c615c2fd0b68badc1e51",
+          "bytes": 7849
+        },
+        "docs/ASYNC_LZ4_CONTROLLER.md": {
+          "oid": "d7264186f5213eeb4c86fedda5d8a822c1f71f24",
+          "bytes": 3251
+        },
+        "docs/ASYNC_NATIVE_WRITE_PLAN.md": {
+          "oid": "c4c25c07a8776608058e0297f8087e579263abd4",
+          "bytes": 3469
+        },
+        "docs/AUTOMATIC_GROUP_MAINTENANCE.md": {
+          "oid": "21c036a87d5dfa082d10e9a4b7c145b1b94772c8",
+          "bytes": 19600
+        },
+        "docs/AUTONOMOUS_MAINTENANCE.md": {
+          "oid": "87149d5a9b3323460b13c3f1835458949e074897",
+          "bytes": 10546
+        },
+        "docs/BENCHMARK_PROTOCOL.md": {
+          "oid": "fbb4b5a118cb0ad638f2a81be5920a72793cbeef",
+          "bytes": 28934
+        },
+        "docs/CATALOG_MANIFEST.md": {
+          "oid": "da4b1433e6bb5ece5522ca6d77413d7420261a73",
+          "bytes": 5496
+        },
+        "docs/COLD_COMPRESSION_RESEARCH.md": {
+          "oid": "5dc01c7e69849f70411a216063bdb7302ce5f1fd",
+          "bytes": 15950
+        },
+        "docs/COMPACTED_COPY.md": {
+          "oid": "04263f02fbd69b97794ca5d06c60b44af4ba7495",
+          "bytes": 9159
+        },
+        "docs/COMPACT_CHECKPOINT_METADATA.md": {
+          "oid": "fb18cc7faf5be8d3afcf59aa46c9641fbee12649",
+          "bytes": 16218
+        },
+        "docs/COMPRESSION_PROBES.md": {
+          "oid": "3fd6c608897a943635e05337b4422e8af68f3776",
+          "bytes": 4046
+        },
+        "docs/COMPRESSION_STRATEGY.md": {
+          "oid": "11620e46cd7d22ff568050d6093264cf7bfb436c",
+          "bytes": 8114
+        },
+        "docs/CPU_DIGEST_ACCELERATION.md": {
+          "oid": "650d03d9ecb0ff88cbef413001fea74c710c5c0d",
+          "bytes": 11307
+        },
+        "docs/CPU_LZ4_WORKER.md": {
+          "oid": "ce56eaf3e38d99162df9da5e6a3fb5005ebaed5e",
+          "bytes": 7820
+        },
+        "docs/CPU_PIPELINE.md": {
+          "oid": "6150ffa3eb0e6f934b4d453c4aab823b9091407e",
+          "bytes": 6254
+        },
+        "docs/CRASH_RECOVERY_PROBE.md": {
+          "oid": "56b45b173b33d2de29f41e7ead351025087a0c5a",
+          "bytes": 4609
+        },
+        "docs/DEPENDENCY_AUDIT.md": {
+          "oid": "9a4734dadf6b975fce7df8118d9ca28e490e8182",
+          "bytes": 11732
+        },
+        "docs/DEVELOPMENT_PLAN.json": {
+          "oid": "c6e2479f42d2a177c7e8dd22ea4b208035e1093c",
+          "bytes": 129580
+        },
+        "docs/DEVELOPMENT_PLAN.md": {
+          "oid": "655057190f890393b782a019c3cd55fe65f45d3e",
+          "bytes": 57314
+        },
+        "docs/DEVELOPMENT_STATE.json": {
+          "oid": "34cb3871fa5ac4ba0a3884dcbaf747a84eac443b",
+          "bytes": 187960
+        },
+        "docs/DIRECTORY_NAME_INDEX.md": {
+          "oid": "4176081de57c84c1ee1b440e6495b5de55f9d6ea",
+          "bytes": 5998
+        },
+        "docs/EXTENT_CODECS.md": {
+          "oid": "81bafb08430fc0bc02e8efe0c99c64f123117601",
+          "bytes": 3980
+        },
+        "docs/FLZIP_READONLY.md": {
+          "oid": "dbe4bf8d635523066141f1d56c5bbaee31c2f9d3",
+          "bytes": 10673
+        },
+        "docs/FORMAT-v1.md": {
+          "oid": "6c0958fa83d1a94a38ecadbf61d0edd81c4369a7",
+          "bytes": 35152
+        },
+        "docs/GPU_CODEC_CANDIDATES.md": {
+          "oid": "acf253f227f5ce574c6fd8fa6da72c0f5815b89b",
+          "bytes": 6758
+        },
+        "docs/GPU_DRIVER_RUNTIME_PLAN.md": {
+          "oid": "e4fd18fcbd5fc0b129aa942be4b4a59ced441f15",
+          "bytes": 3896
+        },
+        "docs/GPU_DRIVER_WORKER.md": {
+          "oid": "ba9df0c2c48e3544ac7812c7137bfc586aefb67f",
+          "bytes": 7468
+        },
+        "docs/GPU_LZ4_CPU_VERIFY.md": {
+          "oid": "ae2d6bbde1bda7ac3024fa45f7a24ef676841eff",
+          "bytes": 2992
+        },
+        "docs/GPU_LZ4_KERNEL_REVIEW.md": {
+          "oid": "3ae67c1aee71d0859ff2e3e0c388829e4e99d025",
+          "bytes": 6468
+        },
+        "docs/GPU_LZ4_LAYOUT.md": {
+          "oid": "1f2f6f6b9137e5b2fd88cd096c94e3157cc971ae",
+          "bytes": 3552
+        },
+        "docs/GPU_LZ4_SLAB.md": {
+          "oid": "ffa064f1428b0f23b5d1185076698cd0f2dd51f1",
+          "bytes": 3987
+        },
+        "docs/GPU_MATCH_CONTROLLER.md": {
+          "oid": "0ad4f1ea792d734d7af5e72b26c6e7deae20c24a",
+          "bytes": 2741
+        },
+        "docs/GPU_MEMORY_OBSERVATION.md": {
+          "oid": "1a6293a82a5d9cd26d979401145b5d756b94265a",
+          "bytes": 7224
+        },
+        "docs/GPU_NODE_PROOF.md": {
+          "oid": "5d10ac278e4778e4279f64c95ca785e10ad1054e",
+          "bytes": 10527
+        },
+        "docs/GPU_PHASE_PROFILE.md": {
+          "oid": "dce4e700339b5b70f1be2a6cd274aff3345bd5a1",
+          "bytes": 8870
+        },
+        "docs/GPU_RECOVERY.md": {
+          "oid": "4a26d2965c561f63be684bf242e110280306cf89",
+          "bytes": 16437
+        },
+        "docs/GPU_RESOURCE_ENVELOPE.md": {
+          "oid": "61dd86372fcd11d7589e91cc9f927134290d579c",
+          "bytes": 9139
+        },
+        "docs/GPU_WORKER_CONTROLLER.md": {
+          "oid": "e49bfc87ab7509c8a2700cb9b346b37cfc70f998",
+          "bytes": 8876
+        },
+        "docs/HIPCOMP_BOUNDED_ENTRY.md": {
+          "oid": "fdc53b7c25c8e5f5162d994b4fc999803e7e7692",
+          "bytes": 6320
+        },
+        "docs/HIPCOMP_MODULE_LINK.md": {
+          "oid": "b7ee5a975cc57c216180230261166ccaf1361419",
+          "bytes": 4161
+        },
+        "docs/HIPCOMP_NATIVE_SYNC.md": {
+          "oid": "8e1a416b21e14f38c20c873d3b2b44a6121617de",
+          "bytes": 5346
+        },
+        "docs/HIPCOMP_OFFLINE.md": {
+          "oid": "614ebd907e3b00a1e37cab93c6edf7315c1f2276",
+          "bytes": 8308
+        },
+        "docs/HIP_API_BINDING.md": {
+          "oid": "460eba19b63def975128a651b4fac5dd6150e601",
+          "bytes": 5686
+        },
+        "docs/HIP_BATCH_PLAN.md": {
+          "oid": "4ed5142038629bbb4cd1f84da00b372bbd94b60a",
+          "bytes": 25820
+        },
+        "docs/HIP_BATCH_VALIDATION.md": {
+          "oid": "bfd1f3840fa9b0a60cb2970cb4021eb53157a5bb",
+          "bytes": 6011
+        },
+        "docs/HIP_IDENTITY_METADATA.md": {
+          "oid": "7c48df531ebd86e591db4f65b28604a6a03a7686",
+          "bytes": 4316
+        },
+        "docs/HIP_LZ4_COMPUTE.md": {
+          "oid": "f5fd77a9b2152dc7d152103b254cc1f80f47a365",
+          "bytes": 5536
+        },
+        "docs/HIP_LZ4_RUNTIME.md": {
+          "oid": "42caf5733a42e47fe4b35e3257a81d4a5abe99ac",
+          "bytes": 11584
+        },
+        "docs/HIP_PRIORITY_CAPABILITY.md": {
+          "oid": "c7d5968bd37848582d0dec2eba7f1bda2b6d15af",
+          "bytes": 3514
+        },
+        "docs/HIP_RUNTIME_WORKER.md": {
+          "oid": "5881e5362a28f9f796f3b94a2bcac6dc6427aa2a",
+          "bytes": 18397
+        },
+        "docs/HIP_WARP_SYNC_PROBE.md": {
+          "oid": "0e1e1e12c31fe70545f5ae5e31e105a5ff197321",
+          "bytes": 4676
+        },
+        "docs/HOSTED_ROUTING.md": {
+          "oid": "31a9ba33619f6bc7f924fe73e9dd3ce258c7fa73",
+          "bytes": 10092
+        },
+        "docs/HOST_INDEPENDENCE.md": {
+          "oid": "af9b34087661054759126b8b58045cdcc9a4d7eb",
+          "bytes": 16504
+        },
+        "docs/HOST_RAM_SOURCES.json": {
+          "oid": "c6248ff8b3a43f0ab9801a16aa5d53e1cf174eec",
+          "bytes": 4064
+        },
+        "docs/HOST_RAM_TESTING.md": {
+          "oid": "70bec01bcff32fe501f5b1d22b40b0f5854d77b7",
+          "bytes": 8373
+        },
+        "docs/HOST_RAM_VALIDATION.json": {
+          "oid": "d302f26f2fbfe0bd7b435867d4a742cbf6d7166b",
+          "bytes": 11120
+        },
+        "docs/IMPLEMENTATION_PLAN.md": {
+          "oid": "f392a21629bf7aed9460fcbd9163566cfb70c099",
+          "bytes": 165326
+        },
+        "docs/INDEXED_NATIVE_VOLUME.md": {
+          "oid": "63a6ed76c24ea1c39370c9dc7c495d63ee56afd9",
+          "bytes": 58592
+        },
+        "docs/INODE_RECORD_NAMESPACE.md": {
+          "oid": "49f87f21d66161add48e64d20bee64561089bbe0",
+          "bytes": 6561
+        },
+        "docs/LIVE_MOUNT_PROBE.md": {
+          "oid": "d608d7acafc00a8fb407a284bf40d107bda4cc63",
+          "bytes": 10418
+        },
+        "docs/LZ4_WORKER_FRAMES.md": {
+          "oid": "8536ddec32b6561db11f472193839b6516488ef8",
+          "bytes": 6598
+        },
+        "docs/MANAGED_PAGED_VOLUMES.md": {
+          "oid": "521a59146472aa0dd4bd516a48feab5d84846c3b",
+          "bytes": 9917
+        },
+        "docs/MATCH_PROPOSALS.md": {
+          "oid": "5e7bba716b74f115b2cd1acb0b37357561375d87",
+          "bytes": 9378
+        },
+        "docs/MIRRORED_PAYLOADS.md": {
+          "oid": "642b09a343ce77d9f0357a17e8959ada39fa77f0",
+          "bytes": 15628
+        },
+        "docs/MOUNT_PROCESS_ISOLATION.md": {
+          "oid": "6a43ef8e5ecc3b7c801da28b60fca25cb2872658",
+          "bytes": 19467
+        },
+        "docs/NATIVE_ALLOCATED_EVENTS.md": {
+          "oid": "1d6b40a6fac91198a4db1e0b8f524aae40940560",
+          "bytes": 10900
+        },
+        "docs/NATIVE_ALLOCATION.md": {
+          "oid": "2c38a650ef3566d0cce918696526bf9d27134b22",
+          "bytes": 10616
+        },
+        "docs/NATIVE_AMD_LZ4_READ.md": {
+          "oid": "bf9b167d816861abdfd5971e90cb6171ba8c58de",
+          "bytes": 39498
+        },
+        "docs/NATIVE_BASIC_METADATA.md": {
+          "oid": "4af976eabf9e72c72ebc5ff2c059ea004b436a73",
+          "bytes": 15434
+        },
+        "docs/NATIVE_CLEANUP_METADATA.md": {
+          "oid": "6541b0808b380053a977174361fc6198282533f3",
+          "bytes": 9498
+        },
+        "docs/NATIVE_CODEC_PLAN.md": {
+          "oid": "509a087b3d194ee352fcde905240960f21276e28",
+          "bytes": 4678
+        },
+        "docs/NATIVE_CODEC_VALIDATION.md": {
+          "oid": "a52a2d8fa32b17c7ff510afd3d5a940f4337ec4c",
+          "bytes": 4797
+        },
+        "docs/NATIVE_CREATE_OPEN.md": {
+          "oid": "cb0275a7d965e055cfd04f9174bd09ea90412b3e",
+          "bytes": 10426
+        },
+        "docs/NATIVE_FAST_INGESTION.md": {
+          "oid": "c73fb9515585e987618522e0712ade160c64134c",
+          "bytes": 9389
+        },
+        "docs/NATIVE_FILESYSTEM.md": {
+          "oid": "ef172838a32a3d4797ff720dcd85ddb69d7d1bf6",
+          "bytes": 23387
+        },
+        "docs/NATIVE_FILE_LIFETIME.md": {
+          "oid": "2e4d7d9dc099187c3573fadbb202107584322c1d",
+          "bytes": 11609
+        },
+        "docs/NATIVE_FILE_SESSION.md": {
+          "oid": "12c1ec17467d701a4e8d31b4e285ea9e6a615423",
+          "bytes": 16808
+        },
+        "docs/NATIVE_FLUSH.md": {
+          "oid": "11cab64d2dfa04d2f8dc7f9349e9b8f6cef06bad",
+          "bytes": 8515
+        },
+        "docs/NATIVE_GPU_RAM_PROBE.md": {
+          "oid": "80d8830c98b3ad6150c692b0b7f956351b587b23",
+          "bytes": 12318
+        },
+        "docs/NATIVE_INITIAL_DELETE.md": {
+          "oid": "9c87431351391df307198cbf1e7a3fc398a25d77",
+          "bytes": 11979
+        },
+        "docs/NATIVE_INODE_IO.md": {
+          "oid": "3394bdfb8d1703789bf8e461a3d7c465d3009f36",
+          "bytes": 8914
+        },
+        "docs/NATIVE_LZ4_COMPOSITION.md": {
+          "oid": "34e06500cc10325c2eef39cfdf3b084f33ef676d",
+          "bytes": 5256
+        },
+        "docs/NATIVE_MUTATION_METADATA.md": {
+          "oid": "628600de12d716331d0fa3ff3ad95e4bb1f39639",
+          "bytes": 9420
+        },
+        "docs/NATIVE_MUTATION_RESULTS.md": {
+          "oid": "0ea679d498b5d83e551e4c8e3507231b60d80c56",
+          "bytes": 8997
+        },
+        "docs/NATIVE_OVERWRITE.md": {
+          "oid": "a1539567ed327038b38ba109c8d9219c8e2a65b6",
+          "bytes": 11163
+        },
+        "docs/NATIVE_PAGED_BACKEND.md": {
+          "oid": "87b37ebd670ef1f5a26da936f3f513e828ea9ca2",
+          "bytes": 7623
+        },
+        "docs/NATIVE_PAGED_MAINTENANCE.md": {
+          "oid": "83da7f2fe26aa9beec0f580e6081b7a01aaadfd0",
+          "bytes": 5727
+        },
+        "docs/NATIVE_PROVISIONAL_OPEN.md": {
+          "oid": "45f972e877d5f26f6a56225c9bf8cd2d85b1d3f4",
+          "bytes": 10579
+        },
+        "docs/NATIVE_SECURITY.md": {
+          "oid": "38244b33eee51299f161a84c1e0517f471239397",
+          "bytes": 22924
+        },
+        "docs/NATIVE_STORE_MEASUREMENTS.md": {
+          "oid": "435a83ef65b7531f4a66fbff5aa711aa29f08f6e",
+          "bytes": 5562
+        },
+        "docs/NATIVE_UNIFORM_WRITE.md": {
+          "oid": "f03f5c3cd8a8bd12abf8d14d3cfbc57b021a701a",
+          "bytes": 9125
+        },
+        "docs/NATIVE_WINDOWS_IO.md": {
+          "oid": "8eac86ac4c6ea732992e752fb1af9c6a2dca45b6",
+          "bytes": 11553
+        },
+        "docs/NATIVE_WINDOWS_LZ4_ADVICE.md": {
+          "oid": "958fa83d6654d4818c22937e36b5cbc612716a0d",
+          "bytes": 13533
+        },
+        "docs/NATIVE_WINDOWS_PROJECTION.md": {
+          "oid": "189991af721aa6e25a387e9127315557c1efb277",
+          "bytes": 10110
+        },
+        "docs/NATIVE_WRITABLE_ADAPTER.md": {
+          "oid": "e8fd18eea267d74c2bb6d1b69af6beedb8da6d71",
+          "bytes": 29073
+        },
+        "docs/OBJECT_STORE_FORMAT.md": {
+          "oid": "83cbee749bccec487b1c50e6df192e4ef4eb6ce4",
+          "bytes": 22881
+        },
+        "docs/OPTIMIZATION_BUDGET.md": {
+          "oid": "55885f124f62485cfe98a22ea558b9cedd5ab3a6",
+          "bytes": 10629
+        },
+        "docs/OPTIMIZATION_STATE.md": {
+          "oid": "f6fd3cb5b7069abacbf63325382efc51e885b48e",
+          "bytes": 34103
+        },
+        "docs/OWNED_DEFERRED_WRITES.md": {
+          "oid": "d0101e72f780f6203df4763074014b2985b87970",
+          "bytes": 33976
+        },
+        "docs/PAGED_OBJECT_STORE.md": {
+          "oid": "d687240f97b56db3d6118fc898c3183beb1e0d6f",
+          "bytes": 17499
+        },
+        "docs/PERSISTENCE_MODEL.md": {
+          "oid": "58a61f0572bd379a072e33f27520c8d451b701f2",
+          "bytes": 6562
+        },
+        "docs/PERSISTENT_VOLUME_FILE.md": {
+          "oid": "94e17f5a6f1a2217d9d480bb733d02947311d14d",
+          "bytes": 39428
+        },
+        "docs/PROCESS_ISOLATION.md": {
+          "oid": "815e5cd16eb624b531e2d87d4bc7b1c9bd4b05d8",
+          "bytes": 5567
+        },
+        "docs/README.md": {
+          "oid": "56ad012690bbb3ef5903239bfa2a50c0d4279db3",
+          "bytes": 1513
+        },
+        "docs/RECOMPRESSION.md": {
+          "oid": "0650a25b25554c589c50a225d74cf0e290488d7c",
+          "bytes": 11885
+        },
+        "docs/RECOMPRESSION_FEEDBACK.md": {
+          "oid": "3a1fa8bfbad22c139d0c40e2364d800e979a6283",
+          "bytes": 4831
+        },
+        "docs/RELEASE_EXECUTION_PLAN.md": {
+          "oid": "2680acce07d6b8dad8d0e7479e657754ca8bcfa8",
+          "bytes": 43798
+        },
+        "docs/RELEASE_READINESS.md": {
+          "oid": "96c387b681bdef95329c5058305e4f4a47e77ace",
+          "bytes": 17438
+        },
+        "docs/RELEASE_RECONCILIATION_2026-11-24.md": {
+          "oid": "11e4b0c1ebb3e1240bba8cd9fa039ea3cee0c4ae",
+          "bytes": 45908
+        },
+        "docs/RELEASE_RECONCILIATION_2026-11-25.md": {
+          "oid": "e3d0362ea5dbf2a4e6f68e66036ac92f814d1c45",
+          "bytes": 38454
+        },
+        "docs/REPLICATED_CHECKPOINTS.md": {
+          "oid": "91c6ce65b93571812ec0838ccf907ec025f58bff",
+          "bytes": 8909
+        },
+        "docs/REPOSITORY_ASSESSMENT.md": {
+          "oid": "ca5bebb3883b53cd96102b4a2c53498fbeb7fe5e",
+          "bytes": 20742
+        },
+        "docs/REPOSITORY_OVERVIEW.md": {
+          "oid": "087450914b7fa3adfd7cb01347fc4e43565bd5bc",
+          "bytes": 56313
+        },
+        "docs/RESEARCH_2026-11-07.md": {
+          "oid": "d3c267d2bea0280f59018d46319670e1249fd809",
+          "bytes": 8504
+        },
+        "docs/RESILIENT_STORE_DESIGN.md": {
+          "oid": "bb7ea9f68a9a6d35f18e8b7c1709965718afc865",
+          "bytes": 12655
+        },
+        "docs/RETIREMENT_REFERENCE.md": {
+          "oid": "60f0471b8445a2164c0fcba6c573a1de5f2e1605",
+          "bytes": 9862
+        },
+        "docs/ROADMAP.md": {
+          "oid": "323118d47e389a0345db815f3a4d73bc32d98568",
+          "bytes": 93526
+        },
+        "docs/SAFETY.md": {
+          "oid": "ba43dd03d116b81c864d63abde8cccfea001e65c",
+          "bytes": 103685
+        },
+        "docs/SEALED_INDEXED_IMAGE.md": {
+          "oid": "e1845d27b9dae454485690e6dc8e6e8909980475",
+          "bytes": 17830
+        },
+        "docs/SESSION_LIFECYCLE.md": {
+          "oid": "0e09f64b489bac730c4efb2aa21c0a11f077e917",
+          "bytes": 4481
+        },
+        "docs/SHARED_BASE_GROUPS.md": {
+          "oid": "5fa1e2941bc8c602fae428b7eae2654fd3cc89aa",
+          "bytes": 16128
+        },
+        "docs/SHARED_EXTENTS.md": {
+          "oid": "746ea079c89d9f1b097dc913a6e1ecb40e149d1a",
+          "bytes": 5720
+        },
+        "docs/SOURCE_SNAPSHOT.md": {
+          "oid": "3b4a1df73aed582db86c8a4e386aca9f58d922c7",
+          "bytes": 1874
+        },
+        "docs/STAGED_PAGED_REBUILD.md": {
+          "oid": "fb73b154a52b3d4b70e203a736a56d96fb193a36",
+          "bytes": 16620
+        },
+        "docs/STORE_RESUME_AND_INTERRUPTION.md": {
+          "oid": "85679bc1fe4f1c7697d06b6de4746e547739553f",
+          "bytes": 16607
+        },
+        "docs/SYSTEM_RUNTIME_METADATA.md": {
+          "oid": "d0b8681d640525b776ff2b2d05748dbf5924c732",
+          "bytes": 3672
+        },
+        "docs/UNIFORM_GPU_CALIBRATION.md": {
+          "oid": "0cdb2b534af9ecaa497f5c3fdc0a9ce719156e7d",
+          "bytes": 5746
+        },
+        "docs/UNIFORM_LZ4_CONTROLLER.md": {
+          "oid": "d690859d110f935cabb61c03587683b4cee61e37",
+          "bytes": 4424
+        },
+        "docs/UNIFORM_LZ4_REUSE.md": {
+          "oid": "aa179d69f35ca80491b86776a651fbd2867120c1",
+          "bytes": 15808
+        },
+        "docs/UNIFORM_LZ4_RUNTIME.md": {
+          "oid": "ba29a4adc220f0cf8a2fa20197bd036e99f0a601",
+          "bytes": 7092
+        },
+        "docs/UNIFORM_LZ4_SWEEP.md": {
+          "oid": "9be1ad15d9096e37bb94c8b182e3f2995ed4ea3d",
+          "bytes": 8710
+        },
+        "docs/UNIFORM_LZ4_SWEEP_PROFILE.md": {
+          "oid": "e0df7bd15f392c4cef93a514eb506b80b7db5d4a",
+          "bytes": 13331
+        },
+        "docs/VALIDATION.md": {
+          "oid": "75fd25ef4201ff80d08b12759610cb7c74dab327",
+          "bytes": 72047
+        },
+        "docs/VOLUME_HEAD.md": {
+          "oid": "371244a72b9bb2b8e485aa5785ab301ff9cafcf7",
+          "bytes": 8444
+        },
+        "docs/VOLUME_HEAD_VALIDATION.md": {
+          "oid": "eb0276af3bdf4ccfe77681445d962eb9fc382b03",
+          "bytes": 2772
+        },
+        "docs/VOLUME_SESSION.md": {
+          "oid": "3fed1b228b285bec0e0cead632a67fca5318e385",
+          "bytes": 11477
+        },
+        "docs/WINDOWS_ARCHITECTURE.md": {
+          "oid": "762528bf1e9edf787234c61e1a4ead87469dd48d",
+          "bytes": 15528
+        },
+        "docs/WINDOWS_BACKGROUND_MAINTENANCE.md": {
+          "oid": "62e2a15a0448e66dee42b962ac6f9ccb3b6bfc38",
+          "bytes": 7744
+        },
+        "docs/WINDOWS_MEMORY_VOLUME_FACTORY.md": {
+          "oid": "4cf0d591ad4e1756d703494f774c0cbd8fa51dd1",
+          "bytes": 19591
+        },
+        "docs/WINDOWS_NATIVE_METADATA.md": {
+          "oid": "9be14f13783bcf0bcef4ef479bb35333dfbe8c07",
+          "bytes": 8967
+        },
+        "docs/WINDOWS_OWNERSHIP_SOURCES.json": {
+          "oid": "1faae04d4f9e3f1fa7b15ead9c6ee98b2332e3f0",
+          "bytes": 5693
+        },
+        "docs/WINDOWS_PRODUCT.md": {
+          "oid": "c4459c264c236cbb849025a331561d3cbe72fb01",
+          "bytes": 5534
+        },
+        "docs/WINDOWS_SPACE_REPORTING.md": {
+          "oid": "a4200dc3ccccfb1f73dbcf0f0e87c2f69d5b0b12",
+          "bytes": 12055
+        },
+        "docs/WINDOWS_VOLUME_APP.md": {
+          "oid": "9e1636cf23045dfbb0a0a19fab51f78b5fd49c49",
+          "bytes": 20953
+        },
+        "docs/WINDOWS_VOLUME_BACKENDS.md": {
+          "oid": "4efdad9a404f3aab17ac1a0c92c505077975c2d6",
+          "bytes": 3955
+        },
+        "docs/WINFSP_CALLBACKS.md": {
+          "oid": "e0a54070f91a9a158f7b5d5fd778877162e8f518",
+          "bytes": 10654
+        },
+        "docs/WINFSP_ORIGIN_GUARD.md": {
+          "oid": "ad17db0c9ae4401f1871c2708ebc634e3404422b",
+          "bytes": 6584
+        },
+        "docs/WINFSP_OWNED_CONTROLLER.md": {
+          "oid": "b7f1f6e36ad8143961472049180e711d69dd3d54",
+          "bytes": 22895
+        },
+        "docs/WINFSP_PAGED_VOLUMES.md": {
+          "oid": "2f892b1a8dadf6ba7149d326654f3e0834a6d91d",
+          "bytes": 8327
+        },
+        "docs/WINFSP_READONLY_MEMORY.md": {
+          "oid": "103bebdc8ffda6e99057c429bb274cab9e0f4f63",
+          "bytes": 4136
+        },
+        "docs/WORKER_CHANNEL.md": {
+          "oid": "aaf11fe7880c25d6a6f90aac061dc30115af7e16",
+          "bytes": 44867
+        },
+        "docs/WORKER_CHANNEL_VALIDATION.md": {
+          "oid": "291386e9d443ff56ee4843df6b4e2bf55181403d",
+          "bytes": 5022
+        },
+        "docs/WORKLOAD_ACCOUNTING.md": {
+          "oid": "2e90e341b9ea11530f8fa64b4774af5ac6d7622f",
+          "bytes": 6379
+        },
+        "docs/WORKLOAD_HELPER.md": {
+          "oid": "c5ace95d3486bf3a8ed78bb52498dc13475d61ae",
+          "bytes": 4855
+        },
+        "docs/WRITABLE_MOUNT_TRIAL.md": {
+          "oid": "94c8e840f4c4acfaad1c8069caf28657d2db8849",
+          "bytes": 21850
+        },
+        "docs/architecture/ADAPTIVE_STORAGE_EXECUTION.md": {
+          "oid": "aec378ac4e8073a0b39596799d082ad7f2303b75",
+          "bytes": 42658
+        },
+        "docs/architecture/CURRENT.md": {
+          "oid": "9c5e0f096d703dc48e5064797d208996237d7ea1",
+          "bytes": 31970
+        },
+        "docs/architecture/REVIEW.md": {
+          "oid": "b8cf2a1655464ec74b7e01f99711246e79217983",
+          "bytes": 19650
+        },
+        "docs/architecture/TARGET.md": {
+          "oid": "9975ee978edeb1f9a1a5e5eeeb05ac5e39044d45",
+          "bytes": 26036
+        },
+        "docs/development/README.md": {
+          "oid": "061bf2ac0f6b9bf757f0ce8aecf5e372e86d2395",
+          "bytes": 3258
+        },
+        "docs/development/building.md": {
+          "oid": "7121dae4c1a815c7b187ccc17e85f8bdfd55ec43",
+          "bytes": 4860
+        },
+        "docs/development/documentation.md": {
+          "oid": "40e03e2be6c459e97ed10f29ba684939d831cc81",
+          "bytes": 3166
+        },
+        "docs/evidence/adaptive-transport-38e1f080.json": {
+          "oid": "96966919f1ba804bfdc27c58dcf792f3aa6a1f21",
+          "bytes": 7031
+        },
+        "docs/evidence/advisory-helper-9977674.json": {
+          "oid": "93266488947425e2a32d307ab4bc209263a95598",
+          "bytes": 69043
+        },
+        "docs/evidence/advisory-helper-sources-745d023.json": {
+          "oid": "ecf418e951bfdcbfa0e2bf4eac553e6323037613",
+          "bytes": 3163
+        },
+        "docs/evidence/advisory-rebuild-745d023.json": {
+          "oid": "200c68d834891f2ce005e70736b20a26280172a1",
+          "bytes": 38321
+        },
+        "docs/evidence/advisory-rebuild-sources-053ade8.json": {
+          "oid": "479ee35eaf6b4628f96cb1ad0cb9385a667116ac",
+          "bytes": 12518
+        },
+        "docs/evidence/aitdcc2026-cold-rewrite-2026-11-22.json": {
+          "oid": "35c415d29089ab32da0226472fe0bc4efe64868d",
+          "bytes": 32708
+        },
+        "docs/evidence/aitdcc2026-compression-baseline-2026-11-22.json": {
+          "oid": "9f0a0415191b49bb54a9c2baa4722c49f7a4d150",
+          "bytes": 73638
+        },
+        "docs/evidence/amd-adaptive-packed-xor-2026-11-19.json": {
+          "oid": "b69e31ef8958a97945ba5a2cb21de61905a84f66",
+          "bytes": 76303
+        },
+        "docs/evidence/amd-anchor-batch-2026-11-18.json": {
+          "oid": "7cd63f88628e78bc0b0572e884edad3f3b9af02b",
+          "bytes": 17203
+        },
+        "docs/evidence/amd-anchor-cohorts-2026-11-18.json": {
+          "oid": "076b71f837457aaccf841a5afdfcbbf9f0511edc",
+          "bytes": 18059
+        },
+        "docs/evidence/amd-anchor-collective-2026-11-18.json": {
+          "oid": "7dc82ce51695bcad188df58ff14c0c270431ec82",
+          "bytes": 18317
+        },
+        "docs/evidence/amd-anchor-phases-2026-11-18.json": {
+          "oid": "d5a4e898ff990b781733b6b0a2db12072c59cb38",
+          "bytes": 12195
+        },
+        "docs/evidence/amd-anchor-pinned-trial-2026-11-18.json": {
+          "oid": "1826af348249837a8c4322f08c47bb7d6b43c9b4",
+          "bytes": 7955
+        },
+        "docs/evidence/amd-anchor-queue-phases-2026-11-18.json": {
+          "oid": "e65f1942870ced9da2f55a03eba6ce1d45134fe0",
+          "bytes": 31127
+        },
+        "docs/evidence/amd-anchor-reply-verification-2026-11-18.json": {
+          "oid": "2ce79e365fc7a6d6908a87540b9bc61ecd155b58",
+          "bytes": 22004
+        },
+        "docs/evidence/amd-anchor-snapshot-2026-11-18.json": {
+          "oid": "b775eb448e98991dd0cc78f850f97371abccb6fd",
+          "bytes": 27485
+        },
+        "docs/evidence/amd-anchor-stream-setup-2026-11-19.json": {
+          "oid": "b3e11d2909c16391bf097604463eb056607ec752",
+          "bytes": 25144
+        },
+        "docs/evidence/amd-anchor-streamed-prep-2026-11-18.json": {
+          "oid": "fd25b94213d637b053ae5599d9994aff19eea44a",
+          "bytes": 6359
+        },
+        "docs/evidence/amd-anchor-sweep-2026-11-18.json": {
+          "oid": "7155377bfb1ff8e5131cd1b4809b27e25bd088be",
+          "bytes": 12825
+        },
+        "docs/evidence/amd-anchor-transfers-2026-11-18.json": {
+          "oid": "c3333efd61ee36bef6cb7e0ee97843f47aed8b63",
+          "bytes": 33211
+        },
+        "docs/evidence/amd-budget-sampler-2026-11-18.json": {
+          "oid": "78308aa169e5bbb0d06e1d2d580a7e13fdb900c5",
+          "bytes": 34682
+        },
+        "docs/evidence/amd-coalesced-copy-verification-2026-11-20.json": {
+          "oid": "5d6ee83d963b3403143d006dfc9a0be76c10088a",
+          "bytes": 18993
+        },
+        "docs/evidence/amd-direct-sparse-xor-2026-11-19.json": {
+          "oid": "1ee55aea6d23249ff6df9c6297971565efdfb7a3",
+          "bytes": 40145
+        },
+        "docs/evidence/amd-discovered-anchor-2026-11-18.json": {
+          "oid": "de06ebe99f8695929ed247629415b322a92e6103",
+          "bytes": 14732
+        },
+        "docs/evidence/amd-fresh-completion-observation-2026-11-21.json": {
+          "oid": "b0a403b38c3298906e42c7a9fceec45c7f1d28f3",
+          "bytes": 7008
+        },
+        "docs/evidence/amd-full-reference-pricing-2026-11-19.json": {
+          "oid": "8d93bb9babcb928515e3f10deba17b15e535c9be",
+          "bytes": 60083
+        },
+        "docs/evidence/amd-installed-recovery-2026-11-18.json": {
+          "oid": "61c3356ce8039f1c7b7ffdff91ead55a152935ae",
+          "bytes": 8257
+        },
+        "docs/evidence/amd-installed-reference-profile-2026-11-20.json": {
+          "oid": "e063be80c8429b136d43318135945a4320fb9255",
+          "bytes": 13576
+        },
+        "docs/evidence/amd-maintenance-parity-2026-11-19.json": {
+          "oid": "4bbdd3c9cdaa44e259b5a8622024027fa266f9a8",
+          "bytes": 29094
+        },
+        "docs/evidence/amd-measured-batch-sizing-2026-11-21.json": {
+          "oid": "c0e1f073a0308134f88b34446dc8953538abebfc",
+          "bytes": 7082
+        },
+        "docs/evidence/amd-mixed-codec-selection-2026-11-19.json": {
+          "oid": "3f2ce14af08127c7d3ae8c7bda7fe4ff04f46fc4",
+          "bytes": 73299
+        },
+        "docs/evidence/amd-modular-delta-2026-11-19.json": {
+          "oid": "ecff27efc7ade1f5e8933b672c8b04d8bef41c2e",
+          "bytes": 34090
+        },
+        "docs/evidence/amd-multiwindow-maintenance-2026-11-19.json": {
+          "oid": "e9547bead5603b7c14bcc0d2bfd6b977997525a6",
+          "bytes": 14452
+        },
+        "docs/evidence/amd-owned-group-batch-2026-11-18.json": {
+          "oid": "ec55ef6b5e7fc6e883c201b85f2fc46766a8bb66",
+          "bytes": 12528
+        },
+        "docs/evidence/amd-owned-group-search-2026-11-18.json": {
+          "oid": "4b0508751879abba68eef336defe5bbef4d86531",
+          "bytes": 14941
+        },
+        "docs/evidence/amd-packed-xor-batch-2026-11-19.json": {
+          "oid": "4dab409c6d8f15c036acebc579756f6f356d2863",
+          "bytes": 16712
+        },
+        "docs/evidence/amd-packed-xor-verdicts-2026-11-19.json": {
+          "oid": "6d0215a2433210a89724f6896a41f0d6420eed14",
+          "bytes": 9057
+        },
+        "docs/evidence/amd-partial-dispatch-groups-2026-11-20.json": {
+          "oid": "1b7791ca6ff55f0178620ec6c59bbcef5e122163",
+          "bytes": 6274
+        },
+        "docs/evidence/amd-prepared-sweep-2026-11-22.json": {
+          "oid": "62823fe530c2294169a290f8f6b62f23c3792766",
+          "bytes": 16850
+        },
+        "docs/evidence/amd-recovery-qualification-2026-11-21.json": {
+          "oid": "26c8aa9f12482b5600e4a084fcc6fa094b66b123",
+          "bytes": 4762
+        },
+        "docs/evidence/amd-reopened-paired-sealed-read-2026-11-23.json": {
+          "oid": "edb6e3500d458cb66a0b13666429b9f5bb22f2d8",
+          "bytes": 6310
+        },
+        "docs/evidence/amd-retired-replies-2026-11-22.json": {
+          "oid": "9335a711f7dc3cd8ed5d06bbca39539cb3a15f73",
+          "bytes": 7771
+        },
+        "docs/evidence/amd-route-2026-11-17.json": {
+          "oid": "58c4d679a2e4f9f20d6e01e651555aebbf700d93",
+          "bytes": 19768
+        },
+        "docs/evidence/amd-same-stream-transfers-2026-11-20.json": {
+          "oid": "0098e1110d2bb7ba295ab09d4b6f778255645f4b",
+          "bytes": 17140
+        },
+        "docs/evidence/amd-sampled-bias-2026-11-19.json": {
+          "oid": "4f8be5c6e2a4241449ae2e8dc311fcbf0be31765",
+          "bytes": 45819
+        },
+        "docs/evidence/amd-sparse-device-readback-2026-11-19.json": {
+          "oid": "4159d78d550ec34d1f47a4547f3bbf8f4582e36c",
+          "bytes": 59114
+        },
+        "docs/evidence/amd-topology-reuse-2026-11-18.json": {
+          "oid": "b52f6bceec8b2c83f2617f89131eef8f6fc94ce2",
+          "bytes": 27382
+        },
+        "docs/evidence/amd-uniform-request-batching-2026-11-21.json": {
+          "oid": "354f30bf46f583261e3123d6b122faad4e090e7d",
+          "bytes": 7870
+        },
+        "docs/evidence/amd-verified-foreground-2026-11-19.json": {
+          "oid": "dda2fe5349d29dcf7b7f5e95d49f0f2c6787f5c9",
+          "bytes": 20549
+        },
+        "docs/evidence/amd-wide-copy-dispatch-2026-11-20.json": {
+          "oid": "de81930b277f2af7b6135d75916143b1be1820f7",
+          "bytes": 27149
+        },
+        "docs/evidence/amd-wide-packed-xor-2026-11-19.json": {
+          "oid": "a51f585efddb1399caa3cfd15fd58ac65627167b",
+          "bytes": 13449
+        },
+        "docs/evidence/amd-word-copy-search-2026-11-20.json": {
+          "oid": "54b33d9c2f3161f072cc3c7b5de6935f308c9cff",
+          "bytes": 31657
+        },
+        "docs/evidence/architecture-reconciliation-2026-11-21.json": {
+          "oid": "16a8a5486857d9099753389a91eb5c0537e091d1",
+          "bytes": 34584
+        },
+        "docs/evidence/architecture-research-2026-11-09.json": {
+          "oid": "ff2cc65a6d1ab8f29101c37d7f102cfbbc85f31c",
+          "bytes": 5165
+        },
+        "docs/evidence/asynchronous-lz4-f08e6b8.json": {
+          "oid": "115705d358011a04bb4dcea535a5433f94acbc53",
+          "bytes": 6448
+        },
+        "docs/evidence/automatic-group-maintenance-2026-11-15.json": {
+          "oid": "8ab5e0b1a5bd8b321e33567c01a204407074ca93",
+          "bytes": 34657
+        },
+        "docs/evidence/automatic-indexed-discovery-2026-11-18.json": {
+          "oid": "5f267cdaf836f41c7d0541a1a4ba1ddfb61bec5c",
+          "bytes": 12131
+        },
+        "docs/evidence/automatic-memory-sealing-2026-11-23.json": {
+          "oid": "7c1298ae81caa6ef6499a086c5e543aeab7821c8",
+          "bytes": 10883
+        },
+        "docs/evidence/backing-maintenance-admission-2026-11-22.json": {
+          "oid": "ababd36f3a38de9b69eaefa09b15194b21367bbe",
+          "bytes": 5932
+        },
+        "docs/evidence/batched-lz4-capture-2026-11-22.json": {
+          "oid": "847dee5b32cbecce3516642556cb22dadec93b34",
+          "bytes": 12835
+        },
+        "docs/evidence/cmake-4.5.0-review.json": {
+          "oid": "9d87ec029b390d53f401db10da5460e9ccf6206a",
+          "bytes": 1962
+        },
+        "docs/evidence/cold-compression-source-review-2026-11-15.json": {
+          "oid": "eb8115650934235b231cd60a854b6ccfa7fcafb3",
+          "bytes": 5368
+        },
+        "docs/evidence/collective-yield-ranking-2026-11-22.json": {
+          "oid": "a54e6e4400a202001174c9c3b75c3802ab6d87d8",
+          "bytes": 31990
+        },
+        "docs/evidence/commit-identity-map-2026-11-20.tsv": {
+          "oid": "22fe7182f01f49f0d125b99f2eed0ae1ee92a660",
+          "bytes": 37173
+        },
+        "docs/evidence/cooperative-hybrid-preparation-2026-11-22.json": {
+          "oid": "9945aec510781defc2467b23cb4ddb7742e010a7",
+          "bytes": 12655
+        },
+        "docs/evidence/cooperative-indexed-shared-base-2026-11-18.json": {
+          "oid": "8853f45e9876dc7ddbc2d81b88fe99185e96628a",
+          "bytes": 16580
+        },
+        "docs/evidence/cpu-amd-modular-parity-2026-11-19.json": {
+          "oid": "d084c9d322da014d62b02feefa2e561339251f40",
+          "bytes": 34997
+        },
+        "docs/evidence/cpu-full-reference-pricing-2026-11-19.json": {
+          "oid": "b81ef8f0f87ed100056bc7dbb4e9c162dd287c0a",
+          "bytes": 61764
+        },
+        "docs/evidence/cpu-lz4-checkout-fixture-09b7a56.json": {
+          "oid": "7478b9e0c080fd8bbc002fd44aa574b5c16e4367",
+          "bytes": 5326
+        },
+        "docs/evidence/cpu-lz4-index-fixture-4797903.json": {
+          "oid": "6f152fbc0b61397e93fb1afaeca2528c5e77c57b",
+          "bytes": 5412
+        },
+        "docs/evidence/cpu-lz4-source-fixture-fea9fc6.json": {
+          "oid": "c22b47a3df7645d1dd4ede09134c5b1cea0f5813",
+          "bytes": 5728
+        },
+        "docs/evidence/cpu-lz4-worker-94ec882.json": {
+          "oid": "468bf83b8df95c2c6fc35ed84fec6d7da71f399e",
+          "bytes": 24815
+        },
+        "docs/evidence/deferred-fingerprint-b1a7aea-test-failure.json": {
+          "oid": "95ff877030bb16590224beb02e8c6f0b3ec48eee",
+          "bytes": 971
+        },
+        "docs/evidence/deferred-hybrid-placement-2026-11-22.json": {
+          "oid": "76664dd92a550b8e0fc74bfa4aab14ca120927a5",
+          "bytes": 5905
+        },
+        "docs/evidence/deferred-native-sdk-1a38b7a-failure.json": {
+          "oid": "a21d7606bc6c1e01d94a57a61d2e7e204154f060",
+          "bytes": 733
+        },
+        "docs/evidence/deferred-native-sdk-b1a7aea-failure.json": {
+          "oid": "237cef221da3e3a5cc9400856a014fcf4ea16678",
+          "bytes": 740
+        },
+        "docs/evidence/demand-locked-memory-2026-11-18.json": {
+          "oid": "bc4706fe7864d7f4f88439f54f4573bfb75a2e85",
+          "bytes": 15960
+        },
+        "docs/evidence/dense-cross-group-2026-11-23.json": {
+          "oid": "c2cc6e830a8234eeeec580e75fa6618c13f246cb",
+          "bytes": 7665
+        },
+        "docs/evidence/dense-tail-reclamation-2026-11-23.json": {
+          "oid": "30e5e721b6de2a4d7f4d5813cabce877154bc1b6",
+          "bytes": 15898
+        },
+        "docs/evidence/dense-volume-backing-2026-11-23.json": {
+          "oid": "fbc1b64d24e4cd63a8bc83e7992508006521db3d",
+          "bytes": 11657
+        },
+        "docs/evidence/direct-amd-anchor-2026-11-18.json": {
+          "oid": "b09ec3807ef7bc54f927179464f481bb6d260418",
+          "bytes": 20163
+        },
+        "docs/evidence/directory-name-index-2026-11-15.json": {
+          "oid": "c383eb2c2e53721145743abbd3092cb363af59cd",
+          "bytes": 26211
+        },
+        "docs/evidence/documentation-structure-2026-11-14.json": {
+          "oid": "4cb8be2a136567b1f4547e41853ba4bff82da896",
+          "bytes": 5585
+        },
+        "docs/evidence/extended-actors-9dd6a98.json": {
+          "oid": "52d6993c7242b0b802a482cb2db3c054d2abbb9d",
+          "bytes": 32829
+        },
+        "docs/evidence/finite-amd-exchange-2026-11-18.json": {
+          "oid": "eac724f40e00b07c9eff881f166b448a65c3cf10",
+          "bytes": 14677
+        },
+        "docs/evidence/folded-hybrid-workspace-2026-11-22.json": {
+          "oid": "4a19b58f45b4c48667095dd661166aa1e52a9895",
+          "bytes": 16081
+        },
+        "docs/evidence/funded-helper-99d5365.json": {
+          "oid": "7d93d781960bf4a188c7dc6cb349d6212192a0b1",
+          "bytes": 85607
+        },
+        "docs/evidence/funded-helper-sources-5db3ae7.json": {
+          "oid": "f60fefa1fec365a99817dc1f84ce7ea208dd01aa",
+          "bytes": 3370
+        },
+        "docs/evidence/funded-paged-coherence-2026-11-19.json": {
+          "oid": "9ee032f4a330f87f5bbe54d8f7d5f207fab8c8da",
+          "bytes": 5551
+        },
+        "docs/evidence/git-identity-migration-2026-11-20.json": {
+          "oid": "0f340122fda651a12584b3108a815df18afec5b4",
+          "bytes": 2228
+        },
+        "docs/evidence/gpu-admission-04d884b.json": {
+          "oid": "2d99c72ca0993d0fc297f5f35e966166cc1b3d13",
+          "bytes": 5021
+        },
+        "docs/evidence/gpu-codec-navigation-905a4d3.json": {
+          "oid": "d51979b0ce65c294b48d8101199a72a0b45a5679",
+          "bytes": 48248
+        },
+        "docs/evidence/gpu-codec-sources-99d5365.json": {
+          "oid": "f3935e21df8ca06fbc27daa85a7f3c2fdec3e73a",
+          "bytes": 6050
+        },
+        "docs/evidence/gpu-internal-decode-9028be3.json": {
+          "oid": "d6dd446731b66cb9b986255d1597af0b90bf7e9e",
+          "bytes": 2971
+        },
+        "docs/evidence/gpu-lz4-cpu-86bc830.json": {
+          "oid": "a7cd89352d2f5a3f053cf4dcaab4e55cc1a2fa7d",
+          "bytes": 15614
+        },
+        "docs/evidence/gpu-lz4-layout-0879cce.json": {
+          "oid": "91c2bc5592c74bf20f077b180f2dc14b75f9470e",
+          "bytes": 22113
+        },
+        "docs/evidence/gpu-lz4-object-1d20f40.json": {
+          "oid": "d54572fef487f01186b2164d6a466f4496660af4",
+          "bytes": 20495
+        },
+        "docs/evidence/gpu-lz4-offline-df51d8c.json": {
+          "oid": "50ccbf0aa569295789038d924c456d9775f50142",
+          "bytes": 63544
+        },
+        "docs/evidence/gpu-lz4-slab-38229d1.json": {
+          "oid": "ce41d3d079974213d35eaeeafe57e46b1e7c1a2b",
+          "bytes": 8259
+        },
+        "docs/evidence/gpu-memory-observation-bc6d18d.json": {
+          "oid": "5cf58953476073a875b3e7e625c4311cdcca2348",
+          "bytes": 2251
+        },
+        "docs/evidence/gpu-memory-research-9028be3.json": {
+          "oid": "9d34bd25de83d14d64f3c9ea6a59a807fe8a8082",
+          "bytes": 3556
+        },
+        "docs/evidence/gpu-node-proof-96cb919.json": {
+          "oid": "6aac2fe39e99e3bb8830e3be103b14104309d3ec",
+          "bytes": 3936
+        },
+        "docs/evidence/gpu-priority-sources-5eaa07a.json": {
+          "oid": "8d835d90d749623e41d1f3c67e4887f4e55e6a83",
+          "bytes": 10198
+        },
+        "docs/evidence/gpu-profile-99be6a2.json": {
+          "oid": "9ae11e8513641f956edf420428c6af85d6723b31",
+          "bytes": 9562
+        },
+        "docs/evidence/gpu-profile-source-66c86a1.json": {
+          "oid": "4e172272ccbad954d376a020272064a0c2c93ca0",
+          "bytes": 2767
+        },
+        "docs/evidence/gpu-resource-research-a8fa579.json": {
+          "oid": "4af92dd6de710a97f252c5d7ac052b8dcc6f5d3c",
+          "bytes": 6167
+        },
+        "docs/evidence/gpu-slab-b6a9b4e.json": {
+          "oid": "292d3ce3c656b812c3a1fb36894bfefb9521b707",
+          "bytes": 28314
+        },
+        "docs/evidence/handle-accounting-fbd9dd8.json": {
+          "oid": "813da3b4ccd0bf9d6e753ced0373477945513a25",
+          "bytes": 2785
+        },
+        "docs/evidence/helper-allocation-sources-9977674.json": {
+          "oid": "8699dbc9b9e1ba99de9f72496021bb48c21d13f1",
+          "bytes": 3318
+        },
+        "docs/evidence/helper-allocator-a892bfa.json": {
+          "oid": "aa341cedc0afef86a3188e1109662defd7bb01e3",
+          "bytes": 3572
+        },
+        "docs/evidence/helper-file-selection-2026-11-21.json": {
+          "oid": "7676284b9061a5352a716527e86962b9b1830cf8",
+          "bytes": 16268
+        },
+        "docs/evidence/hip-compile-b64f86e.json": {
+          "oid": "9cbbef323a99ac1434586205a8ed9e63144bb592",
+          "bytes": 792
+        },
+        "docs/evidence/hip-lz4-compute-df8b08e.json": {
+          "oid": "fe4a59553741993e8ee07f736fed47453cdb844a",
+          "bytes": 43169
+        },
+        "docs/evidence/hip-lz4-compute-first-failure-4dda4fe.json": {
+          "oid": "a11a60d985f8bb8159a1d4df25b2bcccfd591a8d",
+          "bytes": 1827
+        },
+        "docs/evidence/hip-lz4-runtime-979cd512.json": {
+          "oid": "926486de16bd277f88acd1f691c1273017e6745a",
+          "bytes": 12519
+        },
+        "docs/evidence/hip-node-refusal-2026-11-11.json": {
+          "oid": "3ceb3dbd21251d75a69f7d629fdddad6b5c75b61",
+          "bytes": 2473
+        },
+        "docs/evidence/hip-warp-offline-af2f714.json": {
+          "oid": "b21f8fd3a92dc72c63cb2051ed74134089c99d9e",
+          "bytes": 8217
+        },
+        "docs/evidence/hip-warp-source-ab37c4a.json": {
+          "oid": "080bef88b5e9ce6ef31d668a9af87421bce242e7",
+          "bytes": 2704
+        },
+        "docs/evidence/hip-warp-stable-2fdd01c.json": {
+          "oid": "0f6f5a6eb80f94783a499af6a267ba710c339626",
+          "bytes": 8608
+        },
+        "docs/evidence/hipcomp-bounded-entry-857d5c9.json": {
+          "oid": "acb42e3a03e1a998d20f76ed5137f22a5817c52e",
+          "bytes": 8084
+        },
+        "docs/evidence/hipcomp-module-link-c86559b.json": {
+          "oid": "b904eb9b41e9827c4ba80a323c53d76f58b76524",
+          "bytes": 11598
+        },
+        "docs/evidence/hipcomp-native-sync-09c4fca.json": {
+          "oid": "dc1601dbeb4fe1c18f6b41d2865114980147a3fc",
+          "bytes": 26613
+        },
+        "docs/evidence/hosted-durability-research-740a12d.json": {
+          "oid": "d6ef303fef8969c40301d5279c2a05a6de931706",
+          "bytes": 3808
+        },
+        "docs/evidence/identified-coherence-selection-2026-11-21.json": {
+          "oid": "22a7bb0e7bc7b5f82b453d92f6c79745b2b2f27e",
+          "bytes": 2930
+        },
+        "docs/evidence/indexed-assembled-base-reuse-2026-11-20.json": {
+          "oid": "706ed6cce2de36caafeee0da554d73fa787a4a19",
+          "bytes": 13800
+        },
+        "docs/evidence/indexed-audit-page-cache-2026-11-22.json": {
+          "oid": "a8fe4375325fd34d57694e2ff34d5ef30f89336c",
+          "bytes": 43078
+        },
+        "docs/evidence/indexed-audit-reuse-2026-11-20.json": {
+          "oid": "532f695438f3078c1b052ad98c852901a1929c2f",
+          "bytes": 25525
+        },
+        "docs/evidence/indexed-background-compaction-2026-11-18.json": {
+          "oid": "d8b33de7ffe9baf24f9b94dacab425ad4d9d5844",
+          "bytes": 19923
+        },
+        "docs/evidence/indexed-capacity-repair-rotation-2026-11-20.json": {
+          "oid": "6ed650d76557e8f07439f2b8e598caa88052ed84",
+          "bytes": 14333
+        },
+        "docs/evidence/indexed-change-discovery-2026-11-20.json": {
+          "oid": "d233cd4bcbba991f193027da8fea69726915a6cc",
+          "bytes": 9759
+        },
+        "docs/evidence/indexed-coherence-alternates-2026-11-21.json": {
+          "oid": "b5185bcb5c6802db10466712945cf4b93b4047dc",
+          "bytes": 5878
+        },
+        "docs/evidence/indexed-coherence-compact-pages-2026-11-21.json": {
+          "oid": "573e778774b4df92781f23ae096c7711a0652a21",
+          "bytes": 12368
+        },
+        "docs/evidence/indexed-coherence-lookup-pages-2026-11-25.json": {
+          "oid": "aca386b2e995ea70aea00a89f3e11111534ea3dc",
+          "bytes": 14969
+        },
+        "docs/evidence/indexed-coherence-range-reads-2026-11-21.json": {
+          "oid": "a3eef777c4ce559182adba33f1c21af71b921b6e",
+          "bytes": 9278
+        },
+        "docs/evidence/indexed-coherence-reclamation-2026-11-21.json": {
+          "oid": "b4f05d6a0ceb82f4f39c735c093237a79d09f227",
+          "bytes": 8508
+        },
+        "docs/evidence/indexed-cold-coverage-2026-11-20.json": {
+          "oid": "096adfbe04a148d73538f7ed18c1093a237af032",
+          "bytes": 8240
+        },
+        "docs/evidence/indexed-cold-encoding-2026-11-20.json": {
+          "oid": "68467a7929b13ac7493a1fb496dc01e4d4c1a3a6",
+          "bytes": 12533
+        },
+        "docs/evidence/indexed-compaction-idle-credit-2026-11-19.json": {
+          "oid": "d281558e53a0aa46fdfbfa29e45f02f2a3c5603e",
+          "bytes": 20805
+        },
+        "docs/evidence/indexed-compaction-reconciliation-2026-11-19.json": {
+          "oid": "ea9e863a59cdc112f017fb4d4282eaa41a9d098b",
+          "bytes": 17079
+        },
+        "docs/evidence/indexed-cross-window-packing-2026-11-21.json": {
+          "oid": "40659f9b79d47d5c685cfb23b728fd8292dd74ec",
+          "bytes": 21108
+        },
+        "docs/evidence/indexed-decoded-reopen-runs-2026-11-25.json": {
+          "oid": "b3e5902f4505ccc252a1f137198e178969c7add8",
+          "bytes": 22226
+        },
+        "docs/evidence/indexed-direct-short-packing-2026-11-20.json": {
+          "oid": "f2a9f44673e88acf40e62c0683584dbc98767bab",
+          "bytes": 18434
+        },
+        "docs/evidence/indexed-directory-backfill-2026-11-20.json": {
+          "oid": "c66862689a9498dc6ea206eee396b7edc1ceb0f7",
+          "bytes": 8571
+        },
+        "docs/evidence/indexed-directory-bounds-2026-11-20.json": {
+          "oid": "987c33c47611ecd0bf993572861e12b5fb666ec8",
+          "bytes": 9435
+        },
+        "docs/evidence/indexed-directory-query-2026-11-21.json": {
+          "oid": "7bc1419f95a273ca62968e2f10aca80643a6c4e5",
+          "bytes": 14573
+        },
+        "docs/evidence/indexed-durable-scrub-2026-11-20.json": {
+          "oid": "fb7551cf90f1bdd647e0e3a3abe4923997905200",
+          "bytes": 9697
+        },
+        "docs/evidence/indexed-fenced-read-runs-2026-11-25.json": {
+          "oid": "9e4fc3c661c643eeb287ed0cdfc26928c71b4ad5",
+          "bytes": 23738
+        },
+        "docs/evidence/indexed-fenced-stored-recheck-2026-11-22.json": {
+          "oid": "7285d4c1cfc09fe89438c9d36830d79938495dee",
+          "bytes": 48445
+        },
+        "docs/evidence/indexed-flush-root-reuse-2026-11-22.json": {
+          "oid": "e077e292e2304a8a85b94a5aa9ea5f48ef3e344e",
+          "bytes": 8121
+        },
+        "docs/evidence/indexed-full-startup-repair-2026-11-20.json": {
+          "oid": "edcdfea1a9482bb8471ec4766f1c41cedffba175",
+          "bytes": 11337
+        },
+        "docs/evidence/indexed-group-profitability-2026-11-20.json": {
+          "oid": "0b76449644dd4a1c5b0d98a0b977d48153890c61",
+          "bytes": 13205
+        },
+        "docs/evidence/indexed-grouped-audit-2026-11-20.json": {
+          "oid": "435331bf9d85babb04fff28bb3c74a27efbf84ae",
+          "bytes": 24717
+        },
+        "docs/evidence/indexed-live-payload-repair-2026-11-20.json": {
+          "oid": "4480cd8fbb8978f6e18a6564c8e64e5d92738c35",
+          "bytes": 17402
+        },
+        "docs/evidence/indexed-lz4-deferred-2026-11-18.json": {
+          "oid": "2e2a7abc56011fa8cbe258e9e6efeb700b9b9f64",
+          "bytes": 15351
+        },
+        "docs/evidence/indexed-managed-winfsp-2026-11-18.json": {
+          "oid": "1ada76bfc8d970efdb5c172c12eeb21e01c553ef",
+          "bytes": 12088
+        },
+        "docs/evidence/indexed-modular-delta-2026-11-19.json": {
+          "oid": "7b8cf928afdcdf7235afec2e32089cef771bda70",
+          "bytes": 21794
+        },
+        "docs/evidence/indexed-name-page-inventory-2026-11-23.json": {
+          "oid": "17ccaa22825908d5837be7bb76b713b37012614a",
+          "bytes": 20101
+        },
+        "docs/evidence/indexed-namespace-range-2026-11-23.json": {
+          "oid": "915a65a7ae2595ea6573e1be3030300ec1360029",
+          "bytes": 17689
+        },
+        "docs/evidence/indexed-overlap-batch-2026-11-19.json": {
+          "oid": "d81226d02d807b33dff50a81ac05ccff39079571",
+          "bytes": 26685
+        },
+        "docs/evidence/indexed-owned-windows-2026-11-18.json": {
+          "oid": "05449c0e2f43454f7e4afbd01f4d7e52a5c51cb1",
+          "bytes": 17674
+        },
+        "docs/evidence/indexed-packed-small-extents-2026-11-20.json": {
+          "oid": "d73f1d45825e9c98aa2221859e7b5708bd08affe",
+          "bytes": 28642
+        },
+        "docs/evidence/indexed-packed-xor-2026-11-19.json": {
+          "oid": "4617f8140b41c6f4a00aee9b5a18743a56a7ab84",
+          "bytes": 14693
+        },
+        "docs/evidence/indexed-payload-scrub-2026-11-20.json": {
+          "oid": "dadcdf91e07cb378aca1a8f2a666115ba6ac6538",
+          "bytes": 11698
+        },
+        "docs/evidence/indexed-prefix-extension-2026-11-22.json": {
+          "oid": "07ff0e2f833a93f84aec9d3a8891fe61457af921",
+          "bytes": 15466
+        },
+        "docs/evidence/indexed-prefixed-zstd-2026-11-20.json": {
+          "oid": "66957e5dee41268338f983dd2bea4eb94e593687",
+          "bytes": 27093
+        },
+        "docs/evidence/indexed-ready-amd-reads-2026-11-22.json": {
+          "oid": "634f0d8b86f5fa2ccd020124d428c59a11d21c7b",
+          "bytes": 16487
+        },
+        "docs/evidence/indexed-record-read-coalescing-2026-11-23.json": {
+          "oid": "8d7699d5252ac2c1f8b5afc5f4a989d800d6bd6f",
+          "bytes": 53054
+        },
+        "docs/evidence/indexed-reopen-single-pass-audit-2026-11-20.json": {
+          "oid": "9631b2a1ca934d951bdd2dec7162aadd23a64ec7",
+          "bytes": 12139
+        },
+        "docs/evidence/indexed-representative-retention-2026-11-19.json": {
+          "oid": "028181440825bf617e19b02e7afc4f32a2d82c66",
+          "bytes": 5285
+        },
+        "docs/evidence/indexed-retained-anchor-reads-2026-11-20.json": {
+          "oid": "2165b6a34bd6f9f376e41acc1010dfae45bd93f0",
+          "bytes": 14993
+        },
+        "docs/evidence/indexed-retained-packing-similarity-2026-11-22.json": {
+          "oid": "70b9f91fbb69d7e7f485a4b6961cc2dc06ade83b",
+          "bytes": 63688
+        },
+        "docs/evidence/indexed-retained-reopen-2026-11-20.json": {
+          "oid": "6cd92e5c7aaf084f8d577b07080f8531acdb4ced",
+          "bytes": 15070
+        },
+        "docs/evidence/indexed-scale-reopen-2026-11-20.json": {
+          "oid": "a1c208136112c0a5dd18f277520c27c962fb9158",
+          "bytes": 14991
+        },
+        "docs/evidence/indexed-scoped-read-metadata-2026-11-20.json": {
+          "oid": "f7e4f16dcc378d56deb1a66fd03669718a956ef0",
+          "bytes": 29834
+        },
+        "docs/evidence/indexed-scrub-checkpoint-2026-11-23.json": {
+          "oid": "e847f164e61b9d6ac38e8b46d5a906516d76c47d",
+          "bytes": 18658
+        },
+        "docs/evidence/indexed-section-references-2026-11-20.json": {
+          "oid": "bc93773bbfc78baf2f363b64bd1b8e14652da08f",
+          "bytes": 21043
+        },
+        "docs/evidence/indexed-shared-base-2026-11-18.json": {
+          "oid": "cf8038f3c34c7638f1083b65a6aea111bbe5f020",
+          "bytes": 20052
+        },
+        "docs/evidence/indexed-shifted-coherence-2026-11-25.json": {
+          "oid": "0605bf38a16095b4547101aaa55d221ad2d1af9f",
+          "bytes": 17063
+        },
+        "docs/evidence/indexed-sparse-xor-2026-11-19.json": {
+          "oid": "8d597538d4ca11c2e3708d85ddc9eec91590ffc9",
+          "bytes": 38729
+        },
+        "docs/evidence/indexed-staged-reference-choice-2026-11-20.json": {
+          "oid": "069db53f2af509430f6427d8e9aee62fee748311",
+          "bytes": 24025
+        },
+        "docs/evidence/indexed-startup-repair-2026-11-20.json": {
+          "oid": "39f74b9852c717b9fbe43957692e38ea3006ac54",
+          "bytes": 7758
+        },
+        "docs/evidence/indexed-uneven-short-packing-2026-11-21.json": {
+          "oid": "45c52341207dd959591be525cd01c354aeddeede",
+          "bytes": 16982
+        },
+        "docs/evidence/inode-record-namespace-2026-11-15.json": {
+          "oid": "bef4c519b04e28c4e340d49ae83bf7209348df6c",
+          "bytes": 86302
+        },
+        "docs/evidence/installed-amd-routing-2026-11-18.json": {
+          "oid": "511e840613518c889560b0672b394eff92dd5221",
+          "bytes": 19848
+        },
+        "docs/evidence/installed-amd-shared-base-2026-11-18.json": {
+          "oid": "17fa0ba2e49f2c1c0ca8ed23038d952e361d2661",
+          "bytes": 21728
+        },
+        "docs/evidence/installed-native-amd-read-2026-11-22.json": {
+          "oid": "e674252ed3c59094e039fb5686fb20da5afeae85",
+          "bytes": 12904
+        },
+        "docs/evidence/live-hybrid-selection-2026-11-22.json": {
+          "oid": "4edbd9a44fcccbea74235caf582b2c1cccc12417",
+          "bytes": 11374
+        },
+        "docs/evidence/local-native-shared-2026-11-15.json": {
+          "oid": "7a588a73c32325496c458f2b4a4ef9f463894189",
+          "bytes": 11677
+        },
+        "docs/evidence/local-native-shared-minimum-2026-11-15.json": {
+          "oid": "5d810f60794ca09d7bb74acb3bb8c9d42e88c270",
+          "bytes": 11780
+        },
+        "docs/evidence/local-paged-store-2026-11-15.json": {
+          "oid": "72d1c669eaf5be63039eb63c1f597becb5540dce",
+          "bytes": 15253
+        },
+        "docs/evidence/lz4-runtime-admission-d3073fe.json": {
+          "oid": "cc20ae04da253ddb39de95466edfb2bb7bbd6f3d",
+          "bytes": 8394
+        },
+        "docs/evidence/lz4-runtime-build-dfe94ac.json": {
+          "oid": "92991a4417c8f550ee9408b7322d8bf146866737",
+          "bytes": 8719
+        },
+        "docs/evidence/lz4-runtime-packaging-516e4e9.json": {
+          "oid": "9bf486cfa66c689b4d61fb75c15661fcd4e48c9f",
+          "bytes": 17252
+        },
+        "docs/evidence/lz4-worker-frames-959606a.json": {
+          "oid": "c770bebd59dafd2e34f28ed5c415d7b56fbd806e",
+          "bytes": 7155
+        },
+        "docs/evidence/managed-coherence-catalog-ranges-2026-11-21.json": {
+          "oid": "86875e84334b9e9d434c104cc515593a64794b22",
+          "bytes": 3035
+        },
+        "docs/evidence/managed-paged-volume-2026-11-15.json": {
+          "oid": "24ed8f57a8e682e9947365038cd75bac8bb430ba",
+          "bytes": 53725
+        },
+        "docs/evidence/memory-volume-factory-2026-11-17.json": {
+          "oid": "1979da2e0acf96410e48ffa7db642f80403f4e39",
+          "bytes": 53745
+        },
+        "docs/evidence/mirrored-payloads-2026-11-15.json": {
+          "oid": "a06beedab8fa03a075c72bf61f5d6d106c72c105",
+          "bytes": 27101
+        },
+        "docs/evidence/modular-coherence-catalog-2026-11-19.json": {
+          "oid": "fb46314ade2637acccdb57a8ce739db3f024a41c",
+          "bytes": 16068
+        },
+        "docs/evidence/mount-source-isolation-8122bf5.json": {
+          "oid": "fb65c2587dd9b61227e7172658b387f10856d90c",
+          "bytes": 14254
+        },
+        "docs/evidence/mount-source-isolation-research-343acaa.json": {
+          "oid": "a1149180a9ef37f6901f1c0805382a0e252b1130",
+          "bytes": 2883
+        },
+        "docs/evidence/native-amd-lz4-ipc-2026-11-22.json": {
+          "oid": "c4d139f9497fa4503560546011811fe188f1a72d",
+          "bytes": 9043
+        },
+        "docs/evidence/native-amd-lz4-read-2026-11-22.json": {
+          "oid": "76976893f9da3f4c9366dff1bc5276444ec04be4",
+          "bytes": 18267
+        },
+        "docs/evidence/native-amd-read-lifecycle-2026-11-22.json": {
+          "oid": "dda7cf45d54fc595a418ededbf90941cb17d86ac",
+          "bytes": 37731
+        },
+        "docs/evidence/native-anchor-wait-qualification-2026-11-19.json": {
+          "oid": "143c50b6350482c1ddefafd90a73a28321fbad98",
+          "bytes": 77149
+        },
+        "docs/evidence/native-async-write-research-2026-11-14.json": {
+          "oid": "13a25d0f01baedbb710e673b9c5b85799aa9d483",
+          "bytes": 4539
+        },
+        "docs/evidence/native-directory-pages-2026-11-17.json": {
+          "oid": "4aaf3e6699dbb842f3d3ab39cac31c9d88fe4c5b",
+          "bytes": 6787
+        },
+        "docs/evidence/native-directory-verification-2026-11-17.json": {
+          "oid": "01041f59a19d4c9093804b9342349cba4db07403",
+          "bytes": 7329
+        },
+        "docs/evidence/native-fast-build-8685f12.json": {
+          "oid": "058481e4035c3de5c2e5eabf6a12eff2ac32c636",
+          "bytes": 806
+        },
+        "docs/evidence/native-fast-ingestion-0d96d90.json": {
+          "oid": "7d1e898190d168401764fb24ac8592a110e0d5c1",
+          "bytes": 7534
+        },
+        "docs/evidence/native-gpu-budget-controller-2026-11-18.json": {
+          "oid": "968447116a9e39b09508883dad84c0e20b65b6eb",
+          "bytes": 10802
+        },
+        "docs/evidence/native-gpu-ram-645a1d1.json": {
+          "oid": "f19fce65af4c55db498ba3b6de5fb9cd510eeb4c",
+          "bytes": 7223
+        },
+        "docs/evidence/native-hybrid-backing-2026-11-22.json": {
+          "oid": "17b84a03c34f4de10d891826055fe801a103f330",
+          "bytes": 21510
+        },
+        "docs/evidence/native-indexed-inode-io-2026-11-18.json": {
+          "oid": "630cf45f9ab02c83b00fb3288381d1e7fddefa6e",
+          "bytes": 4948
+        },
+        "docs/evidence/native-indexed-lifetimes-2026-11-18.json": {
+          "oid": "4f9f21317389511b05a1170b9875c6f032ee8b22",
+          "bytes": 9647
+        },
+        "docs/evidence/native-indexed-volume-2026-11-17.json": {
+          "oid": "3fadbe727044b4e7aa2ef057e7bba87fe07e8a72",
+          "bytes": 10691
+        },
+        "docs/evidence/native-indexed-writer-2026-11-18.json": {
+          "oid": "916b85a9b80a9144c767188ed983cb508ee2b1d5",
+          "bytes": 11587
+        },
+        "docs/evidence/native-inode-lz4-3a797a3.json": {
+          "oid": "518df5bbd04bf29f59218140666e987fca35780f",
+          "bytes": 2144
+        },
+        "docs/evidence/native-inode-serialization-2026-11-17.json": {
+          "oid": "c762c63646bb4138b241c40db427365def29b7d1",
+          "bytes": 10069
+        },
+        "docs/evidence/native-lz4-advice-acceptance-2026-11-19.json": {
+          "oid": "d72c1efac4d3567aa25906d624f42fb0436e9363",
+          "bytes": 23359
+        },
+        "docs/evidence/native-lz4-composition-a047952.json": {
+          "oid": "5f2c994cd6afcf40b1974faa1e0d1029213129a7",
+          "bytes": 12892
+        },
+        "docs/evidence/native-name-index-2026-11-17.json": {
+          "oid": "6fc6dba2e4fecf61026cce7f4a100bf88f7b27d1",
+          "bytes": 6560
+        },
+        "docs/evidence/native-paged-backend-2026-11-15.json": {
+          "oid": "33f7f143b23d2bb59c272132e6041d9e943fb0ca",
+          "bytes": 77274
+        },
+        "docs/evidence/native-paged-maintenance-2026-11-15.json": {
+          "oid": "eb06fba98a033219b29a3bb16d8f68d31a6611a3",
+          "bytes": 28675
+        },
+        "docs/evidence/native-path-lookup-2026-11-17.json": {
+          "oid": "fd37c19be7b0ff350e9d01577937acf271eea4a1",
+          "bytes": 6832
+        },
+        "docs/evidence/native-reused-dispatch-3b7a6c9.json": {
+          "oid": "ca0328a85104682e4dd518b900df9d9a4425c27a",
+          "bytes": 11819
+        },
+        "docs/evidence/native-scoped-read-2026-11-17.json": {
+          "oid": "baa5e14665085893601dbf28cfe382cafa7efacd",
+          "bytes": 7025
+        },
+        "docs/evidence/native-uniform-path-be5c284.json": {
+          "oid": "9cff404e9633a8203ac4fd42763bedc293be3107",
+          "bytes": 1215
+        },
+        "docs/evidence/optimization-budget-5db3ae7.json": {
+          "oid": "f21311d090d341c39900f0167942a7d6343b1d5f",
+          "bytes": 60873
+        },
+        "docs/evidence/optimization-budget-sources-5b58568.json": {
+          "oid": "ae260bee800d9a06e747c497291ba3bc3e81e412",
+          "bytes": 2894
+        },
+        "docs/evidence/optimization-state-c30d01c.json": {
+          "oid": "64f3dbb8cb044f50121fd3c34f2059ab8b05dc80",
+          "bytes": 6296
+        },
+        "docs/evidence/optimization-state-source-b3e9048.json": {
+          "oid": "17b9d63ee13d85704f40ec4c7cd5cbed7627ba5e",
+          "bytes": 4769
+        },
+        "docs/evidence/ordered-actors-6dac1f1.json": {
+          "oid": "ee3f86c032cdeb668ae9845d14cf73e8468c8e2c",
+          "bytes": 13861
+        },
+        "docs/evidence/origin-fixture-ad9be7a.json": {
+          "oid": "a5c03250b254e4edbdaa8613df84249e3049277c",
+          "bytes": 2178
+        },
+        "docs/evidence/origin-guard-053ade8.json": {
+          "oid": "c9c499b1ccb1c9b0edc3a14027957b5168ce796f",
+          "bytes": 39733
+        },
+        "docs/evidence/origin-sources-fa9fe90.json": {
+          "oid": "fe99072e4bc808bec1b06e0af621e50beea19dc5",
+          "bytes": 26962
+        },
+        "docs/evidence/owned-amd-read-ahead-2026-11-22.json": {
+          "oid": "98228074812691fb9b727f0c7c66dbd9d15505f2",
+          "bytes": 7982
+        },
+        "docs/evidence/owned-deferred-7ef0dd3-build-failure.json": {
+          "oid": "ebf9e5c3b954620b86b45eab73996f8cdbb97459",
+          "bytes": 947
+        },
+        "docs/evidence/owned-deferred-a4ad516.json": {
+          "oid": "92d62b3aab45d8c65308fec5fec3aa880b2a9264",
+          "bytes": 11445
+        },
+        "docs/evidence/owned-deferred-cpu-94af72c.json": {
+          "oid": "18303e981eb749d8b5eef47b689289217b60f094",
+          "bytes": 9010
+        },
+        "docs/evidence/owned-deferred-gpu-94aaa2a.json": {
+          "oid": "6d12a903e77d2a0a6caff9ad4efaafaad5d2d482",
+          "bytes": 18430
+        },
+        "docs/evidence/owned-service-comparison-d384b6c.json": {
+          "oid": "1ac2f55a3b2d2ba0e1639ed07d562d7de070ef84",
+          "bytes": 24250
+        },
+        "docs/evidence/owned-winfsp-controller-2026-11-16.json": {
+          "oid": "c5417b553b29443e6b0fe72b143daf6cfcf52349",
+          "bytes": 47081
+        },
+        "docs/evidence/owned-writable-lifetime-2026-11-18.json": {
+          "oid": "f9f95079a493c9886ea0b5b29f2521699b66133f",
+          "bytes": 19861
+        },
+        "docs/evidence/owner-gui-38229d1.json": {
+          "oid": "0ad413af73721072b54250dd5bd0d599185b49da",
+          "bytes": 7997
+        },
+        "docs/evidence/packed-rebuild-accounting-2026-11-18.json": {
+          "oid": "f8f1ea09773b2c9a4a239dccfccaebd2c2d9bc72",
+          "bytes": 20489
+        },
+        "docs/evidence/packed-xor-tile-reference-2026-11-19.json": {
+          "oid": "7ccd226a5ac4408897effda31f8eceda5650292b",
+          "bytes": 27159
+        },
+        "docs/evidence/paged-coherence-catalog-2026-11-19.json": {
+          "oid": "88d5d1ed7b8e292479c42f9c327558188ebc95bb",
+          "bytes": 6695
+        },
+        "docs/evidence/paged-winfsp-2026-11-15.json": {
+          "oid": "d4e230b8d751db7bc74609edcb9e11e713470db1",
+          "bytes": 60661
+        },
+        "docs/evidence/paged-write-accounting-2026-11-17.json": {
+          "oid": "fdbb5737716a8f79b963d12a199de7b6c3cb3fc2",
+          "bytes": 12058
+        },
+        "docs/evidence/paired-range-reader-wake-2026-11-20.json": {
+          "oid": "0c2eaf8f273021a5ea2728b1bb0cde05714e2d5b",
+          "bytes": 5609
+        },
+        "docs/evidence/paired-sealed-placement-2026-11-23.json": {
+          "oid": "3c415ef20d8ce2f3382441e6c155d54fb3c11198",
+          "bytes": 10104
+        },
+        "docs/evidence/persistent-indexed-discovery-2026-11-18.json": {
+          "oid": "2f2a8d263b0a08298e6eebb6a064ef34f9d02c40",
+          "bytes": 7855
+        },
+        "docs/evidence/pinned-provider-indexed-lz4-read-2026-11-22.json": {
+          "oid": "8d2d96101817f1db4b16804eaf78475c5759b5b5",
+          "bytes": 16568
+        },
+        "docs/evidence/positioned-volume-io-2026-11-22.json": {
+          "oid": "db5eeb1542009bbced420dd00c10363d578127dc",
+          "bytes": 16365
+        },
+        "docs/evidence/prepared-amd-lz4-reads-2026-11-22.json": {
+          "oid": "b90aaa19cc3e5e32dce16e9baa27b2cf395b50d8",
+          "bytes": 14675
+        },
+        "docs/evidence/prepared-read-metadata-2026-11-22.json": {
+          "oid": "81e70ed8ee8d81cf9164a5512601df5a0893a1f6",
+          "bytes": 9676
+        },
+        "docs/evidence/priority-capability-b2cf989.json": {
+          "oid": "a1ee6e7ad4d57f0bf9065974dc0d1975c6099bfd",
+          "bytes": 3472
+        },
+        "docs/evidence/process-events-9dd6a98.json": {
+          "oid": "1ba996d34f74d926f52f82d690157af41398d248",
+          "bytes": 17822
+        },
+        "docs/evidence/projected-coherence-catalog-2026-11-19.json": {
+          "oid": "aa2354bd9633c3307342b33207a353578450052f",
+          "bytes": 13837
+        },
+        "docs/evidence/projected-xor-discovery-2026-11-19.json": {
+          "oid": "1f71db34dba3141b79028cf997999dd55ec7a484",
+          "bytes": 12313
+        },
+        "docs/evidence/public-revision-reads-2026-11-19.json": {
+          "oid": "b641c2d26b28dda18f600818b27be6d42178032f",
+          "bytes": 54666
+        },
+        "docs/evidence/ram-actors-fa9fe90.json": {
+          "oid": "d82e75ef57492dbd9fa8b009910f8ee7c9989bfd",
+          "bytes": 23165
+        },
+        "docs/evidence/read-ahead-demand-recovery-2026-11-22.json": {
+          "oid": "0226c3fb657e8646bbcf5c7749da5a6766f487c3",
+          "bytes": 13639
+        },
+        "docs/evidence/read-capture-lease-2026-11-22.json": {
+          "oid": "eeef642b9dcf7ad4ddd7d8ab78e57a3ff74aa0b9",
+          "bytes": 10414
+        },
+        "docs/evidence/release-execution-reconciliation-2026-11-23.json": {
+          "oid": "7bbe474586184090750e5773f88672e5e1f641ef",
+          "bytes": 20515
+        },
+        "docs/evidence/release-execution-review-2026-11-20.json": {
+          "oid": "e3175b15e1f852a441473fafeed97999ee8b74a6",
+          "bytes": 5048
+        },
+        "docs/evidence/release-path-review-2026-11-23.json": {
+          "oid": "e156d5e788f2f669c9dae3a2380288dcca888e3b",
+          "bytes": 20635
+        },
+        "docs/evidence/release-plan-refresh-2026-11-23.json": {
+          "oid": "8d63d5a9f5ab69bd8cfe57e707372cd9c8e46e9b",
+          "bytes": 14492
+        },
+        "docs/evidence/release-plan-review-2026-11-15.json": {
+          "oid": "39ee360d69cd702ecdc25fb6b34b9eaee22849f7",
+          "bytes": 126012
+        },
+        "docs/evidence/release-reconciliation-2026-11-21.json": {
+          "oid": "331726bf118a557f0be3c6346454313a414415d2",
+          "bytes": 25730
+        },
+        "docs/evidence/release-reconciliation-2026-11-24.json": {
+          "oid": "8169f42c1136dfae513959aa14966d8f057bd398",
+          "bytes": 14211
+        },
+        "docs/evidence/release-reconciliation-attachment-2026-11-21.json": {
+          "oid": "4e85c151cfe9050c899d79c3a147583592826b61",
+          "bytes": 28956
+        },
+        "docs/evidence/release-reconciliation-indexed-handle-2026-11-22.json": {
+          "oid": "f7d118181f047941b757f56caaeaf1d2b52f1944",
+          "bytes": 29557
+        },
+        "docs/evidence/release-reconciliation-rolling-lookups-2026-11-25.json": {
+          "oid": "9f3c38bfb0f48b99b84384d86d5864a451aee168",
+          "bytes": 31284
+        },
+        "docs/evidence/reopened-reclamation-2026-11-21.json": {
+          "oid": "61892d3c6ef3a553bc9f5725e6139eddb9ddbf3a",
+          "bytes": 6106
+        },
+        "docs/evidence/repository-review-2026-11-17.json": {
+          "oid": "bca83508915b69999ef42082269d528bc12dad4c",
+          "bytes": 35435
+        },
+        "docs/evidence/retirement-failure-d1e66f6.json": {
+          "oid": "fd0960fa4aabfca5be8bd3b3736072602d33e1ad",
+          "bytes": 1994
+        },
+        "docs/evidence/retirement-preparation-497066c.json": {
+          "oid": "32bb9079b7a7099e4f991b3548f377f09c71a99f",
+          "bytes": 4366
+        },
+        "docs/evidence/retirement-reference-ab37c4a.json": {
+          "oid": "6bdada609d0cb1b1e7319718d05e83ffb09c284d",
+          "bytes": 20014
+        },
+        "docs/evidence/retirement-research-b2cf989.json": {
+          "oid": "8c5f48e7b31ef4907f28f81176ae782f981ce119",
+          "bytes": 3068
+        },
+        "docs/evidence/retirement-source-fixture-400f74c.json": {
+          "oid": "8b093c98e76222283039d4893edef1327a22d060",
+          "bytes": 1898
+        },
+        "docs/evidence/rocm-compatibility-df8b08e.json": {
+          "oid": "9c778c80d23352319d04385e47507fe0ad9a50cc",
+          "bytes": 21509
+        },
+        "docs/evidence/runtime-inventory-c8e69f9.json": {
+          "oid": "3966918b78874df7e07216e145a182c588490557",
+          "bytes": 2977
+        },
+        "docs/evidence/sampled-xor-reference-2026-11-19.json": {
+          "oid": "f0885c15596508ad912252e1c5021cafb5c7fdd1",
+          "bytes": 30727
+        },
+        "docs/evidence/screened-cold-compaction-2026-11-20.json": {
+          "oid": "e281986fd9ad76018cdb2a3bd75d8c1ea7fe1c09",
+          "bytes": 11434
+        },
+        "docs/evidence/sealed-amd-read-captures-2026-11-23.json": {
+          "oid": "8d219ed10361e3b42a28c3217605c650aee2aa75",
+          "bytes": 7139
+        },
+        "docs/evidence/sealed-indexed-images-2026-11-22.json": {
+          "oid": "8116c95776bbba13bd9952e98f45cd227c9ee6c8",
+          "bytes": 32531
+        },
+        "docs/evidence/sequential-read-ahead-2026-11-22.json": {
+          "oid": "d7ab86fb0834e8b633558f08eef4277e4c150aec",
+          "bytes": 11162
+        },
+        "docs/evidence/shared-base-groups-2026-11-15.json": {
+          "oid": "38c7e10da2b26aad0ef948578be8e1ae0f8a4db9",
+          "bytes": 33810
+        },
+        "docs/evidence/shifted-indexed-groups-2026-11-18.json": {
+          "oid": "90ba707909030d1e815e693ea2377fb8217dbec6",
+          "bytes": 12316
+        },
+        "docs/evidence/source-actor-research-b6a9b4e.json": {
+          "oid": "4f5e37b26b749f0401312851bdfb8a5efb0801f1",
+          "bytes": 13130
+        },
+        "docs/evidence/source-archive-2026-11-17.json": {
+          "oid": "c47f87f95eab3d0032c2ab87762035021fbfcd1b",
+          "bytes": 4041
+        },
+        "docs/evidence/source-package-count-94ec882.json": {
+          "oid": "d721b56a3cce3ddcaa6d2dd61df66b4ae19e2031",
+          "bytes": 931
+        },
+        "docs/evidence/source-snapshot-2a75759.json": {
+          "oid": "8fc899cb937cd36302e865f88a0e4377734567c8",
+          "bytes": 5239
+        },
+        "docs/evidence/sparse-reference-cost-2026-11-19.json": {
+          "oid": "6dffd55d2e7e18a66860856bc81d640a09adb7f3",
+          "bytes": 67789
+        },
+        "docs/evidence/staged-paged-rebuild-2026-11-15.json": {
+          "oid": "8aa98d340cff12ab934069a555a2d70a974c04ce",
+          "bytes": 27874
+        },
+        "docs/evidence/staged-shared-base-2026-11-15.json": {
+          "oid": "5a6a8bf544675b15c814543c2567fa31057c76fa",
+          "bytes": 32960
+        },
+        "docs/evidence/uniform-calibration-fd59778-failure.json": {
+          "oid": "2969df3699e8df808f3153c3cba2dd14ab861ea5",
+          "bytes": 935
+        },
+        "docs/evidence/uniform-controller-4d1ef00.json": {
+          "oid": "15e6d51a6289a9adc5fe640befa6709d08afd07f",
+          "bytes": 2863
+        },
+        "docs/evidence/uniform-gpu-native-7e87bb4.json": {
+          "oid": "ba90a26d99c63bf747b6be77168ac58828a7b6bc",
+          "bytes": 17153
+        },
+        "docs/evidence/uniform-lz4-f8c0d05.json": {
+          "oid": "59d02e841228be9a4f5bc0b29f4ee8158da5fe2c",
+          "bytes": 4059
+        },
+        "docs/evidence/uniform-reuse-92d326e-fixture-failure.json": {
+          "oid": "f066c4fef5ef90475128e68997fe4921cb51212e",
+          "bytes": 1117
+        },
+        "docs/evidence/uniform-reuse-d33efd6.json": {
+          "oid": "2feda15ceccc15521e9e8f058172756c53a82cf9",
+          "bytes": 20267
+        },
+        "docs/evidence/uniform-sweep-847423f-failure.json": {
+          "oid": "815f3508c28047bb787bf7aa49e995956c490c18",
+          "bytes": 18482
+        },
+        "docs/evidence/uniform-sweep-profile-11fbf07.json": {
+          "oid": "1290ed038c3db0c119a16e8e0e52150a41026fa4",
+          "bytes": 24297
+        },
+        "docs/evidence/uniform-sweep-profile-dc26fc3-fixture-failure.json": {
+          "oid": "5adb98dc7ab15bc1ebb59cc13f6d0bfe9dde9e93",
+          "bytes": 2233
+        },
+        "docs/evidence/uniform-sweep-research-2026-11-14.json": {
+          "oid": "04045a2b58e40eec2d5af22c14182d92e3e8f220",
+          "bytes": 16894
+        },
+        "docs/evidence/uniform-worker-c96115e.json": {
+          "oid": "d8a140440948bc69c3ed7736a5d354d0b96e15ba",
+          "bytes": 7659
+        },
+        "docs/evidence/verified-device-copy-refinement-2026-11-19.json": {
+          "oid": "ed9d1a9ca435c767f74b63bca65f7bd96c8073ff",
+          "bytes": 103302
+        },
+        "docs/evidence/volatile-paired-workspace-2026-11-23.json": {
+          "oid": "cc385cff7b921ad5b463dca440be2e28de2d2180",
+          "bytes": 20004
+        },
+        "docs/evidence/volume-app-3eedfc7.json": {
+          "oid": "dd105a6d92aa32971600802d29dcad4225543333",
+          "bytes": 1106
+        },
+        "docs/evidence/volume-app-477e688.json": {
+          "oid": "27d75dee00ea179c0627fd5e5146a1bb9432d8a0",
+          "bytes": 2428
+        },
+        "docs/evidence/volume-app-58fa7c3.json": {
+          "oid": "31ee381ed375e6d2b951403bfc5faf8566aaf109",
+          "bytes": 1402
+        },
+        "docs/evidence/volume-app-5bdd166.json": {
+          "oid": "3e2f6d62c00e2ea7a8f61e2a9dad62ff8b86c05c",
+          "bytes": 1179
+        },
+        "docs/evidence/volume-app-7996266.json": {
+          "oid": "c286103f02c693f2c76d2e53b228317bdbb64336",
+          "bytes": 1155
+        },
+        "docs/evidence/volume-app-8540b35.json": {
+          "oid": "63a16f75e0b063a512772c2fc1a9f450daf7d27a",
+          "bytes": 1451
+        },
+        "docs/evidence/volume-app-e743108.json": {
+          "oid": "06e69deed9c3ca0333695ed6cc4fc300fd843ea7",
+          "bytes": 1194
+        },
+        "docs/evidence/volume-app-f4928c2.json": {
+          "oid": "faf3aee1908cdc5c851593eb2280dcc905c46248",
+          "bytes": 6768
+        },
+        "docs/evidence/volume-file-extent-2026-11-22.json": {
+          "oid": "c0098d044d32fbbb2b4652e9f0342b79c61fd6c9",
+          "bytes": 9597
+        },
+        "docs/evidence/windows-adaptive-amd-launch-2026-11-20.json": {
+          "oid": "89d4ca97eb27da1beb9b84378a0c9bae9d4851fe",
+          "bytes": 6673
+        },
+        "docs/evidence/windows-amd-cpu-overlap-2026-11-20.json": {
+          "oid": "e3b246a6cbf0c0dbca03b0dab6798f80e1e530f4",
+          "bytes": 14224
+        },
+        "docs/evidence/windows-amd-detached-write-trials-2026-11-23.json": {
+          "oid": "c3418b6f568650609b45592a828ddd9ccd95151b",
+          "bytes": 18476
+        },
+        "docs/evidence/windows-amd-device-readiness-2026-11-20.json": {
+          "oid": "a414894ea85efbb73a5541ad0e895a100632deee",
+          "bytes": 10737
+        },
+        "docs/evidence/windows-amd-foreground-activation-2026-11-21.json": {
+          "oid": "1b6bc677b754cb212a75ca9238a32a80eef27790",
+          "bytes": 6627
+        },
+        "docs/evidence/windows-amd-foreground-worker-boundary-2026-11-22.json": {
+          "oid": "22d6beb0942941943b29f44171f5dbcef231d49f",
+          "bytes": 11288
+        },
+        "docs/evidence/windows-amd-full-batch-overlap-2026-11-21.json": {
+          "oid": "9723f22bf17f7aa008172c3366f78bc9b6318e47",
+          "bytes": 19752
+        },
+        "docs/evidence/windows-amd-full-measured-window-2026-11-22.json": {
+          "oid": "5c6c58c039313ae426018c94650922b7a892399b",
+          "bytes": 8440
+        },
+        "docs/evidence/windows-amd-group-budget-freshness-2026-11-24.json": {
+          "oid": "868535de1b24ac31abbe5226ed4da6d397fcb19c",
+          "bytes": 22369
+        },
+        "docs/evidence/windows-amd-group-exchange-phases-2026-11-24.json": {
+          "oid": "b04e856bee99dc13284cfa106a13db39f712cb6f",
+          "bytes": 24663
+        },
+        "docs/evidence/windows-amd-group-read-admission-2026-11-24.json": {
+          "oid": "37e2c8194507a90813a0699cac6d423434697fbf",
+          "bytes": 6600
+        },
+        "docs/evidence/windows-amd-group-startup-admission-2026-11-25.json": {
+          "oid": "8fb439718172b34d1117c5b392b63d80a8c0b824",
+          "bytes": 12765
+        },
+        "docs/evidence/windows-amd-group-supervisor-comparison-2026-11-24.json": {
+          "oid": "78530313e0c954e1715b7e28627e3df8c5ed2cd1",
+          "bytes": 9034
+        },
+        "docs/evidence/windows-amd-grouped-write-replay-2026-11-23.json": {
+          "oid": "d5b2f921520c3d20a8c918ed184e4a00347fc451",
+          "bytes": 14167
+        },
+        "docs/evidence/windows-amd-mixed-width-live-2026-11-25.json": {
+          "oid": "d68450676665b99140a3f196c5c940c886661068",
+          "bytes": 3279
+        },
+        "docs/evidence/windows-amd-native-file-policy-2026-11-23.json": {
+          "oid": "f85c416fd4f3b669b41d25c3712809330dd80367",
+          "bytes": 47486
+        },
+        "docs/evidence/windows-amd-route-pressure-recovery-2026-11-20.json": {
+          "oid": "ef329550458e8e928cf93a859667840d131e8d43",
+          "bytes": 7963
+        },
+        "docs/evidence/windows-amd-stream-copy-2026-11-23.json": {
+          "oid": "0f4c545a82fc9ba988f67cc152e60eae7e80e858",
+          "bytes": 40382
+        },
+        "docs/evidence/windows-amd-sweep-deadline-2026-11-23.json": {
+          "oid": "c4dcbcb21240e43830988108dac664c36e4a9f22",
+          "bytes": 15923
+        },
+        "docs/evidence/windows-amd-sweep-input-order-2026-11-23.json": {
+          "oid": "6ca55b807cae929f66c347ef5be84b1a3e840754",
+          "bytes": 25754
+        },
+        "docs/evidence/windows-amd-sweep-timeline-2026-11-23.json": {
+          "oid": "65acfa0b1ea4dcf453cb18abf19684755afa073e",
+          "bytes": 27101
+        },
+        "docs/evidence/windows-amd-variable-group-demand-2026-11-25.json": {
+          "oid": "3f8b6965c61371cf129908e66cd7d06d176e84ef",
+          "bytes": 13805
+        },
+        "docs/evidence/windows-amd-write-geometry-calibration-2026-11-24.json": {
+          "oid": "e4f9bca06e88694358572d91d5933c7e446b512c",
+          "bytes": 13350
+        },
+        "docs/evidence/windows-anchor-copy-prefix-2026-11-23.json": {
+          "oid": "725fd7d195fefbf3a5e700c47cbca8597ba2a5fe",
+          "bytes": 6519
+        },
+        "docs/evidence/windows-asan-launch-regressions-2026-11-18.json": {
+          "oid": "5305bde94cf98657f4bf33ec9a49e6578e6fd4c7",
+          "bytes": 9841
+        },
+        "docs/evidence/windows-asan-preflight-2026-11-18.json": {
+          "oid": "c58c022e7a180e101135d1cea9d127e6d28d6c6d",
+          "bytes": 9773
+        },
+        "docs/evidence/windows-asan-restoration-2026-11-18.json": {
+          "oid": "7c2eb0c6e51dbf438a694f02c1520dafc5db85a8",
+          "bytes": 11194
+        },
+        "docs/evidence/windows-background-maintenance-2026-11-15.json": {
+          "oid": "f42e1a1777e7acfb24a6256d8dfb7a6a81a022c3",
+          "bytes": 72498
+        },
+        "docs/evidence/windows-backing-binding-2026-11-22.json": {
+          "oid": "8f0419fa53fe737837400e28e59235d8ec0a6036",
+          "bytes": 12980
+        },
+        "docs/evidence/windows-backing-lifetime-2026-11-22.json": {
+          "oid": "990fb4f58da2c6fd210be87efdea0d5598c09fbd",
+          "bytes": 6112
+        },
+        "docs/evidence/windows-backing-media-2026-11-22.json": {
+          "oid": "d185e9003238b42edb7989afa40e33bb97909082",
+          "bytes": 7104
+        },
+        "docs/evidence/windows-bank-spanning-mounted-replay-2026-11-25.json": {
+          "oid": "4a4a3ac122dad2050fd2d0a841af77c145fe219d",
+          "bytes": 6896
+        },
+        "docs/evidence/windows-bank-spanning-rebuild-2026-11-25.json": {
+          "oid": "cc9c53cd14170a45339e1e31b9543133907e384b",
+          "bytes": 25061
+        },
+        "docs/evidence/windows-bank-spanning-verification-2026-11-25.json": {
+          "oid": "be146785c0a3486efff31379daf4ba512d87fcce",
+          "bytes": 23861
+        },
+        "docs/evidence/windows-batched-staged-copy-2026-11-25.json": {
+          "oid": "40f3184fb6cad08067195ef371489252e169fba5",
+          "bytes": 34664
+        },
+        "docs/evidence/windows-catalog-compaction-2026-11-19.json": {
+          "oid": "380f4f61f5857c0922df9fe136ca62ef7057175d",
+          "bytes": 10506
+        },
+        "docs/evidence/windows-catalog-provisioning-2026-11-19.json": {
+          "oid": "3001ab6eae54897cb09634015c058fec19cfcef6",
+          "bytes": 15563
+        },
+        "docs/evidence/windows-collective-cold-order-2026-11-24.json": {
+          "oid": "6d02927cb478c73b3e6cbcecd2d5a1da28181627",
+          "bytes": 24209
+        },
+        "docs/evidence/windows-collective-dense-readback-2026-11-24.json": {
+          "oid": "9b6f2e20345e93798445d6395f612a41f27679df",
+          "bytes": 33120
+        },
+        "docs/evidence/windows-collective-dense-xor-2026-11-24.json": {
+          "oid": "8938aad9763ffbedb1931877e6454b6e588ccdda",
+          "bytes": 23260
+        },
+        "docs/evidence/windows-collective-startup-sizing-2026-11-23.json": {
+          "oid": "bd25a39754b414bc779f3635cc9c98288cf5b962",
+          "bytes": 36500
+        },
+        "docs/evidence/windows-controller-arriving-write-bursts-2026-11-24.json": {
+          "oid": "63aa6a9c1097666af2e55889fc9fe248e69c6e6c",
+          "bytes": 14535
+        },
+        "docs/evidence/windows-controller-separate-request-admission-2026-11-24.json": {
+          "oid": "288030c5b71ed3330ec67bd2ec5ef52d6b828c75",
+          "bytes": 15850
+        },
+        "docs/evidence/windows-ctest-forwarded-launch-2026-11-18.json": {
+          "oid": "a2667899af379bc68edef904a1db0e1c46683c1c",
+          "bytes": 5538
+        },
+        "docs/evidence/windows-expanded-group-read-and-mounted-replay-2026-11-25.json": {
+          "oid": "7bdbeaf9bab50997771a7626fb28111f44362c4c",
+          "bytes": 18591
+        },
+        "docs/evidence/windows-finishable-worker-bursts-2026-11-24.json": {
+          "oid": "358ab69b0502327cfbe72d5be4c58cbf7f5a463b",
+          "bytes": 11194
+        },
+        "docs/evidence/windows-group-read-stream-binding-2026-11-25.json": {
+          "oid": "2a34b9eb85d9d32289b08d37db7977fc31a2d2da",
+          "bytes": 13192
+        },
+        "docs/evidence/windows-indexed-name-profile-2026-11-20.json": {
+          "oid": "b30bed6a02df9bcc61208462f41ff3dcf70c2bed",
+          "bytes": 17410
+        },
+        "docs/evidence/windows-lz4-advice-25ea952.json": {
+          "oid": "9e2d7a7a1a82a1f829bf4f3f92592139470a4c8f",
+          "bytes": 18995
+        },
+        "docs/evidence/windows-lz4-oracle-7153ed1.json": {
+          "oid": "d3a2efa2788311b73ad17abeb0ae44cc0070158f",
+          "bytes": 4553
+        },
+        "docs/evidence/windows-lz4-source-review.json": {
+          "oid": "dd8b51dbf23b0dc587326de5255f2acfbfc60b98",
+          "bytes": 1079
+        },
+        "docs/evidence/windows-maintenance-opportunities-2026-11-19.json": {
+          "oid": "62bc7ba8e239eb059e5117a39bf5a610d6f8c6a0",
+          "bytes": 31496
+        },
+        "docs/evidence/windows-mixed-collective-setup-2026-11-24.json": {
+          "oid": "041ec45c7ee32ea74c6f1411baa5202a485ccac4",
+          "bytes": 12592
+        },
+        "docs/evidence/windows-mixed-group-reads-2026-11-24.json": {
+          "oid": "bda56117f3c4d6b41661f28f3f07aa947ae79d1d",
+          "bytes": 7228
+        },
+        "docs/evidence/windows-mixed-size-resident-worker-2026-11-24.json": {
+          "oid": "84aec4c5d790755fea34163efb9a934dc7c0404f",
+          "bytes": 19315
+        },
+        "docs/evidence/windows-mounted-mixed-flush-recovery-2026-11-23.json": {
+          "oid": "af05723fa982f2b4e38f705fad908682231bcc48",
+          "bytes": 23595
+        },
+        "docs/evidence/windows-mounted-packed-handoff-2026-11-23.json": {
+          "oid": "d9172ea6ee2f1b458709bcf1e2a21773dd082d43",
+          "bytes": 38739
+        },
+        "docs/evidence/windows-mounted-packed-retirement-2026-11-23.json": {
+          "oid": "1570e8b6ccb4497bed97373c2968d579a5ab58eb",
+          "bytes": 30742
+        },
+        "docs/evidence/windows-mounted-range-retirement-2026-11-24.json": {
+          "oid": "08e575e61e7247d6c8a6e44e415a62ece70fb951",
+          "bytes": 32368
+        },
+        "docs/evidence/windows-mounted-repeated-reclamation-2026-11-23.json": {
+          "oid": "db61888e06e0f9ef004499f0e959f945c824dc4d",
+          "bytes": 33949
+        },
+        "docs/evidence/windows-native-arriving-write-burst-2026-11-24.json": {
+          "oid": "71f65598ea9a2f2c0d6de966bad5792644ccbe61",
+          "bytes": 13919
+        },
+        "docs/evidence/windows-native-cpu-sampling-amd-resume-2026-11-20.json": {
+          "oid": "9cbad03d9799e6326a7395f04628e71377891183",
+          "bytes": 21799
+        },
+        "docs/evidence/windows-ordinary-amd-capture-groups-2026-11-23.json": {
+          "oid": "1556ebccd507a4ea247d8e436dd8c0387e61aa37",
+          "bytes": 22113
+        },
+        "docs/evidence/windows-ordinary-amd-cpu-replay-2026-11-23.json": {
+          "oid": "4a51eb2b3e823bc5b6aa5940d853a260703ddd77",
+          "bytes": 18828
+        },
+        "docs/evidence/windows-ordinary-amd-write-demand-2026-11-23.json": {
+          "oid": "36f7f4ed5ca4e0efb5250a2dee8148506083969b",
+          "bytes": 30078
+        },
+        "docs/evidence/windows-ordinary-reclamation-progress-2026-11-25.json": {
+          "oid": "073eff4f7f6870cb13203bec56f6e6025f010562",
+          "bytes": 23588
+        },
+        "docs/evidence/windows-owner-amd-write-pairs-2026-11-23.json": {
+          "oid": "5fb68510c12e4b567431fea1c79923016143d417",
+          "bytes": 39923
+        },
+        "docs/evidence/windows-packed-explorer-2026-11-23.json": {
+          "oid": "66a55ff571b74bc33e1685ed031a2b15968c561d",
+          "bytes": 19134
+        },
+        "docs/evidence/windows-packed-tail-continuation-2026-11-25.json": {
+          "oid": "136b37aa8da97a3243b8748a1fa2984f89b29b64",
+          "bytes": 192766
+        },
+        "docs/evidence/windows-populated-client-trace-2026-11-24.json": {
+          "oid": "257ba6cad9013b4e565c00c128f2693299ff3432",
+          "bytes": 14543
+        },
+        "docs/evidence/windows-prepared-gpu-windows-2026-11-23.json": {
+          "oid": "49dfb404752d70f7c2beccaf66f890cfd00ce92b",
+          "bytes": 17843
+        },
+        "docs/evidence/windows-prepared-group-reads-2026-11-24.json": {
+          "oid": "9e801571e514c9a067fc687cf8787ce087197f3a",
+          "bytes": 8124
+        },
+        "docs/evidence/windows-prepared-group-worker-2026-11-24.json": {
+          "oid": "1b41b2f17b207ba62b5ef1b6db80060ca987b774",
+          "bytes": 7023
+        },
+        "docs/evidence/windows-prepared-worker-requests-2026-11-24.json": {
+          "oid": "ff7b6602480fbe37d8b3723d42040d98ade6392e",
+          "bytes": 20850
+        },
+        "docs/evidence/windows-protected-prefix-banks-2026-11-24.json": {
+          "oid": "e900b1f19b64da23bc68a7ba6680e98be56c661b",
+          "bytes": 26226
+        },
+        "docs/evidence/windows-rebuild-verification-reads-2026-11-25.json": {
+          "oid": "6829229da36a74f43ac1b77b764ed990ea01a417",
+          "bytes": 20231
+        },
+        "docs/evidence/windows-resident-native-write-replay-2026-11-24.json": {
+          "oid": "7685e3532f48752201f97a64f0a81777219db3c6",
+          "bytes": 8599
+        },
+        "docs/evidence/windows-retained-volume-remount-2026-11-18.json": {
+          "oid": "4ff55db414371e20f5ecb270c583328017fe3f7d",
+          "bytes": 19862
+        },
+        "docs/evidence/windows-rocm-10.2-qualification-2026-11-20.json": {
+          "oid": "bb86d7a53ba3ceeb93f0e5f3adb78255db91463e",
+          "bytes": 15142
+        },
+        "docs/evidence/windows-sparse-volume-reclamation-2026-11-19.json": {
+          "oid": "67fa765eae5c3cd57476874a0796390f669930a6",
+          "bytes": 16049
+        },
+        "docs/evidence/windows-staged-reclamation-reads-2026-11-24.json": {
+          "oid": "ab250f6ca9362699421008199f1fe3df372f4ba2",
+          "bytes": 18303
+        },
+        "docs/evidence/windows-tray-attachment-2026-11-18.json": {
+          "oid": "c8bf0a02f1ed4188e7e6e216ad8de97a2cabcee5",
+          "bytes": 20644
+        },
+        "docs/evidence/windows-unattended-asan-2026-11-18.json": {
+          "oid": "28a83bae414ac23495adf939bc7b3a50e0679585",
+          "bytes": 11069
+        },
+        "docs/evidence/windows-volume-file-attachment-2026-11-19.json": {
+          "oid": "cd85bdd39c3e76b6c08152e9ce28d902f21e564e",
+          "bytes": 9774
+        },
+        "docs/evidence/windows-volume-file-recovery-2026-11-19.json": {
+          "oid": "119118c5e02424c9e0f3e38f8fc3a24a7c3989b5",
+          "bytes": 11054
+        },
+        "docs/evidence/windows11-attached-storage-profile-2026-11-23.json": {
+          "oid": "1e07db036e6f8cd103102afa15827787ba04d37a",
+          "bytes": 14476
+        },
+        "docs/evidence/windows11-inflight-publication-cuts-2026-11-21.json": {
+          "oid": "cbdad98463ca8c3d04279fc5574bbf3ba06c3fb5",
+          "bytes": 11684
+        },
+        "docs/evidence/windows11-mounted-mapped-publication-cuts-2026-11-22.json": {
+          "oid": "96a55fcec126b8c176cd0d6fa00af94506453c45",
+          "bytes": 14914
+        },
+        "docs/evidence/windows11-mounted-metadata-publication-cuts-2026-11-22.json": {
+          "oid": "eb3eb2283e96ed48f7b2ad5c4e75b90778c567c0",
+          "bytes": 28595
+        },
+        "docs/evidence/windows11-mounted-paired-sealing-2026-11-23.json": {
+          "oid": "ddf6b9437fced0844ebc1379f2eda8bf05138617",
+          "bytes": 26139
+        },
+        "docs/evidence/windows11-mounted-post-flush-recovery-2026-11-21.json": {
+          "oid": "5c64aa4f4c9d40550f805b953cb4b7d733dae3fa",
+          "bytes": 12997
+        },
+        "docs/evidence/windows11-mounted-selector-publication-cuts-2026-11-22.json": {
+          "oid": "c723713f0f2b26e92a015248640b9949849c3061",
+          "bytes": 14755
+        },
+        "docs/evidence/windows11-mounted-volume-activation-2026-11-21.json": {
+          "oid": "8d2494c083dc3f0be7140d15ac17afe7d92a10b9",
+          "bytes": 10197
+        },
+        "docs/evidence/windows11-overwrite-rename-recovery-2026-11-22.json": {
+          "oid": "b6aef691226c0c4b29da29af2d850606850b4dec",
+          "bytes": 20758
+        },
+        "docs/evidence/windows11-populated-mount-access-time-2026-11-21.json": {
+          "oid": "615e0cacb79e41cf3e42b0a92ec3c8141cb465cb",
+          "bytes": 16451
+        },
+        "docs/evidence/windows11-sandbox-memory-mount-2026-11-18.json": {
+          "oid": "a3d160ca4dccb3c88a3aeafdf05296dced85a787",
+          "bytes": 4541
+        },
+        "docs/evidence/windows11-sandbox-mounted-tray-2026-11-18.json": {
+          "oid": "2ac1c494c0b504579353f247b1f580e7efd24ecd",
+          "bytes": 11586
+        },
+        "docs/evidence/windows11-stable-winfsp-2.2-2026-11-20.json": {
+          "oid": "edd8fa2d31eb421908e48bb7c7ab8ed792a4de8d",
+          "bytes": 20622
+        },
+        "docs/evidence/winfsp-disposable-readonly-700cdb3.json": {
+          "oid": "e01b26cf227dc5ed756026b7396209e6b9ffa428",
+          "bytes": 3309
+        },
+        "docs/evidence/winfsp-disposable-writable-700cdb3.json": {
+          "oid": "533018b14dcde002ce204d0ed2e4d495b71091d7",
+          "bytes": 5883
+        },
+        "docs/evidence/winfsp-driver-staging-2026-11-17.json": {
+          "oid": "d83a3b6943118e82189cb244c336d3aa831f6788",
+          "bytes": 3684
+        },
+        "docs/evidence/winfsp-indexed-startup-audit-2026-11-20.json": {
+          "oid": "282522851297fa95f16d5f8f7d26238cc94ce683",
+          "bytes": 16625
+        },
+        "docs/evidence/winfsp-readonly-memory-2026-11-17.json": {
+          "oid": "4d5f63fbd9860179ee83f006de6a4065301e95ea",
+          "bytes": 16809
+        },
+        "docs/evidence/workload-accounting-14cfb12.json": {
+          "oid": "91a98958091e697faa1fe442b99f0cd1c9d69877",
+          "bytes": 69764
+        },
+        "docs/evidence/workload-accounting-sources-a892bfa.json": {
+          "oid": "ec628da9130355a26f2d9250c5e82cb2de5385e1",
+          "bytes": 4430
+        },
+        "docs/evidence/workload-helper-5b58568.json": {
+          "oid": "48e5a18cd4abde7e51de8f2520d2ab7c0f470af6",
+          "bytes": 85954
+        },
+        "docs/evidence/workload-helper-sources-14cfb12.json": {
+          "oid": "268a4c8fa6ac3da84e735b026f99838382d9d2dc",
+          "bytes": 3907
+        },
+        "docs/reference/README.md": {
+          "oid": "ad6cf414ed2cf664b23d0426a46c04e8aa89332a",
+          "bytes": 4736
+        },
+        "docs/reference/catalog.md": {
+          "oid": "82b5e90480bb77e6fed56dbebc45b01e4150a212",
+          "bytes": 7339
+        },
+        "docs/research/README.md": {
+          "oid": "c5ec221469acdb5ac4c566658ca53f2cad2e485c",
+          "bytes": 1282
+        },
+        "docs/users/features.md": {
+          "oid": "b7279bd08d2f5eadae7240652f1d6a0a60f71d10",
+          "bytes": 1851
+        },
+        "docs/users/getting-started.md": {
+          "oid": "8654ea49e473044b7706444e97f90a2e30a04aee",
+          "bytes": 2049
+        },
+        "docs/users/troubleshooting.md": {
+          "oid": "797dffd6449c8aebcb7c3ae067cc436807caccd6",
+          "bytes": 1753
+        },
+        "docs/validation/README.md": {
+          "oid": "b10f438982b9f645b0d240befc9f73eedddd9730",
+          "bytes": 2975
+        },
+        "evidence/native-store-comparison-20956633.json": {
+          "oid": "304b5603e7ef3bb982557633d382d78c6ea2623f",
+          "bytes": 9275
+        },
+        "evidence/native-store-comparison-56475dae.json": {
+          "oid": "ff78f89a69fe23421fe2262f0d7995a7769ffebb",
+          "bytes": 6774
+        },
+        "include/flitzfs/catalog.hpp": {
+          "oid": "ac3b619e4a4662fed5374ac446de921d7d768ec4",
+          "bytes": 2804
+        },
+        "include/flitzfs/catalog_error.hpp": {
+          "oid": "85ed844cc3519eb4cda757e3e66634831493686e",
+          "bytes": 520
+        },
+        "include/flitzfs/catalog_manifest.hpp": {
+          "oid": "aa7cf4d563aabe20c5cfb5d79eb7a7d9784bd7c1",
+          "bytes": 1065
+        },
+        "include/flitzfs/compression_probe.hpp": {
+          "oid": "2a361bb88d3b590b1d06bfe251424bb683401151",
+          "bytes": 2742
+        },
+        "include/flitzfs/container.hpp": {
+          "oid": "f18867afd22ca7c8e34787c5d65eb93bd499e598",
+          "bytes": 3554
+        },
+        "include/flitzfs/directory_order.hpp": {
+          "oid": "f852e36e36663cdae549e76da0c452482b22039b",
+          "bytes": 896
+        },
+        "include/flitzfs/gpu_anchor_kernel_api.hpp": {
+          "oid": "d0a89968e6e12380f91874195eef8045cc9b69c1",
+          "bytes": 3921
+        },
+        "include/flitzfs/gpu_anchor_match.hpp": {
+          "oid": "acb5cad0d83c8e8a92ad6541bb5b64d7034556f5",
+          "bytes": 10810
+        },
+        "include/flitzfs/gpu_batch.hpp": {
+          "oid": "5740606af6378f903f9e69422929d39f610d9cf9",
+          "bytes": 5565
+        },
+        "include/flitzfs/gpu_kernel_api.hpp": {
+          "oid": "8697e665270a3fcda97a0393d32fd23967f37e69",
+          "bytes": 1555
+        },
+        "include/flitzfs/gpu_lz4_layout.hpp": {
+          "oid": "ac4402b3f434a4574c7b3a47e8186b6fbc231301",
+          "bytes": 3720
+        },
+        "include/flitzfs/gpu_lz4_slab.hpp": {
+          "oid": "707d0a4e371d98850fe79124d070c4f81a51fe24",
+          "bytes": 1092
+        },
+        "include/flitzfs/gpu_lz4_uniform.hpp": {
+          "oid": "fa3f1fe0f5ce75b316d33474693ab7e09e6ab209",
+          "bytes": 4626
+        },
+        "include/flitzfs/gpu_lz4_verify.hpp": {
+          "oid": "ed67ce5c5703371d73f4b28f23c648f162685344",
+          "bytes": 735
+        },
+        "include/flitzfs/gpu_lz4_window.hpp": {
+          "oid": "9767be03b1933429b960b7d256fe84d124e7b938",
+          "bytes": 2884
+        },
+        "include/flitzfs/gpu_match.hpp": {
+          "oid": "0e842fd2919701cdf7ad2b99dc7cdcec57295a7a",
+          "bytes": 1234
+        },
+        "include/flitzfs/gpu_match_kernel_api.hpp": {
+          "oid": "d8e13ab08f9e3b6ced4770bcafe5a76a1d3d7a67",
+          "bytes": 1030
+        },
+        "include/flitzfs/gpu_match_layout.hpp": {
+          "oid": "0a73628dbf11943653b3837e3a74208c01edf05d",
+          "bytes": 2008
+        },
+        "include/flitzfs/gpu_match_protocol.hpp": {
+          "oid": "558b0178bb6f3238439f29f0ac8c763cfd1d1dc8",
+          "bytes": 2565
+        },
+        "include/flitzfs/gpu_protocol.hpp": {
+          "oid": "eb05a21c86623b19bacf4008c6c7b78b6e3bcb66",
+          "bytes": 875
+        },
+        "include/flitzfs/gpu_recovery.hpp": {
+          "oid": "493e7ea5ae041197d17450a728ae42f350af8dd2",
+          "bytes": 4923
+        },
+        "include/flitzfs/indexed_coherence.hpp": {
+          "oid": "6f37f91509c64ad21189f0d5a248609d87f2605e",
+          "bytes": 6399
+        },
+        "include/flitzfs/lz4_worker_wire.hpp": {
+          "oid": "56960b7f45aa043e6528f4ab3d2b843a902e982c",
+          "bytes": 2947
+        },
+        "include/flitzfs/match_worker_wire.hpp": {
+          "oid": "3cfc4f377f8d2d7bf6ae2406b8c8e3ece4cd65e1",
+          "bytes": 1110
+        },
+        "include/flitzfs/mount_plan.hpp": {
+          "oid": "3bf401c84bba1c24d24dd0b58d83395e18f9fbf6",
+          "bytes": 868
+        },
+        "include/flitzfs/native_filesystem.hpp": {
+          "oid": "0f63ef598a79092f972649e63033d8cb53864d50",
+          "bytes": 43248
+        },
+        "include/flitzfs/native_hybrid_backing.hpp": {
+          "oid": "63a93138c2c5fb0a200f1d841e4ebe11acfa8baf",
+          "bytes": 5127
+        },
+        "include/flitzfs/native_maintenance.hpp": {
+          "oid": "44703ca993093dab945bd34f612f287ac80d2cc5",
+          "bytes": 4268
+        },
+        "include/flitzfs/native_session.hpp": {
+          "oid": "84ce8ec0ffe0a3dd2b938b72068d68e7b28407b2",
+          "bytes": 35888
+        },
+        "include/flitzfs/native_volume_file.hpp": {
+          "oid": "f9e8928e6c3d96c3af33163d60e0f3a2e343dddc",
+          "bytes": 5783
+        },
+        "include/flitzfs/object_store.hpp": {
+          "oid": "6756b582b36b7cd2ff963dbed9abe5770f321422",
+          "bytes": 14657
+        },
+        "include/flitzfs/optimization_state.hpp": {
+          "oid": "6afa1b59f27655b98e2c85e7386fc19ce92e65a1",
+          "bytes": 7484
+        },
+        "include/flitzfs/paged_store.hpp": {
+          "oid": "937af694bc1102baf0326efe7aa030bd2be25972",
+          "bytes": 20489
+        },
+        "include/flitzfs/process_budget.hpp": {
+          "oid": "4fa3c1b96d5c177941f6d6fb571dae4c6c78d2b8",
+          "bytes": 1632
+        },
+        "include/flitzfs/projection.hpp": {
+          "oid": "3dab748bdcfd2c1ed353c173cc4380d68501565d",
+          "bytes": 3079
+        },
+        "include/flitzfs/read_only_file.hpp": {
+          "oid": "4c2df6e3643569ca3000d881604cf4987355f7a4",
+          "bytes": 1393
+        },
+        "include/flitzfs/uniform_lz4_batch.hpp": {
+          "oid": "7045ee6ad1fa2d1c59114956bd9e471c8cfc90fd",
+          "bytes": 3550
+        },
+        "include/flitzfs/uniform_lz4_sweep.hpp": {
+          "oid": "ae81f3ce908a473c254157eeed5ebcc146e04e40",
+          "bytes": 4753
+        },
+        "include/flitzfs/uniform_lz4_wire.hpp": {
+          "oid": "4367d84f112314f9b360b6dd1b4fd3fff21f7543",
+          "bytes": 3682
+        },
+        "include/flitzfs/volume_head.hpp": {
+          "oid": "9211320155a21fc188222b0aeacb48bf7703261e",
+          "bytes": 5476
+        },
+        "include/flitzfs/windows_path.hpp": {
+          "oid": "194ee4249d15a8c84174970da0fc6b61568b3aed",
+          "bytes": 385
+        },
+        "include/flitzfs/worker_wire.hpp": {
+          "oid": "44968ad3d6b68116b4803b95ce42f8eeb296fecb",
+          "bytes": 2375
+        },
+        "resources/brand/README.md": {
+          "oid": "0f3c13c985ef353736ce560bc4131dbb7d49d96e",
+          "bytes": 1146
+        },
+        "resources/brand/flitzfs-logo-dark.png": {
+          "oid": "a41bbcf12f17a3de26ea64c9b05a049ec94ff73e",
+          "bytes": 173300
+        },
+        "resources/brand/flitzfs-logo-dark.svg": {
+          "oid": "93133d18bb56b11a93405a3ac81d2bc18a427789",
+          "bytes": 223618
+        },
+        "resources/brand/flitzfs-logo-typed.png": {
+          "oid": "4844d874ba1a73803e859df3e0389a11d16e9e93",
+          "bytes": 184685
+        },
+        "resources/brand/flitzfs-logo.svg": {
+          "oid": "063c121575f8b6d23e9d773c84df92b8f75a6713",
+          "bytes": 223570
+        },
+        "resources/brand/flitzfs-symbol.png": {
+          "oid": "dbf9e871f593c658b59db3b42f18643ec0020ed0",
+          "bytes": 164687
+        },
+        "resources/brand/provenance.json": {
+          "oid": "cae06b08fa763ff0cb155e351826fff6a16d20d6",
+          "bytes": 3679
+        },
+        "src/catalog.cpp": {
+          "oid": "e1d4185f4d10d104236ae4d87b4501e65f7986f7",
+          "bytes": 6885
+        },
+        "src/catalog_manifest.cpp": {
+          "oid": "5b0b7565beff34832ab8f1bc9766fb4ec782429a",
+          "bytes": 4541
+        },
+        "src/cli.cpp": {
+          "oid": "588a6ec55cab28cf6f26400a2529f47c9d3dd85a",
+          "bytes": 9380
+        },
+        "src/compression_probe.cpp": {
+          "oid": "c5fa538c0d35ff13ca9cd9f7d781cd69be49add7",
+          "bytes": 5058
+        },
+        "src/container.cpp": {
+          "oid": "36a1b2d9bd915b540fb4399663705c83c990c894",
+          "bytes": 19675
+        },
+        "src/dense_volume_backing.cpp": {
+          "oid": "592bbcad2b703e2fe6d181d091064eff784e5a7c",
+          "bytes": 48440
+        },
+        "src/dense_volume_backing.hpp": {
+          "oid": "de6245d20cf8f87b0d862052b56e7707d62d22e5",
+          "bytes": 2085
+        },
+        "src/extent_codec.cpp": {
+          "oid": "ba5075d89fb05435b55e213248140618a5f2f643",
+          "bytes": 11399
+        },
+        "src/extent_codec.hpp": {
+          "oid": "88b9d21697091251fa63c95df8bb4c54891dc615",
+          "bytes": 1122
+        },
+        "src/folded_checkpoint.hpp": {
+          "oid": "83d7a723828881b2e5243038fdff0998f9d04f25",
+          "bytes": 881
+        },
+        "src/gpu/decode_kernel.hip": {
+          "oid": "167f132f8f165083333c873a2b814c1d806afb4c",
+          "bytes": 28090
+        },
+        "src/gpu/decode_kernel.hpp": {
+          "oid": "7abf94912c27e582762040a855d8920bcddff2cb",
+          "bytes": 4902
+        },
+        "src/gpu/native_group_decode.hpp": {
+          "oid": "1e3c62b6ccea00918bb8bab226b29db953568d20",
+          "bytes": 6828
+        },
+        "src/gpu/native_lz4_decode.hip": {
+          "oid": "b6d8bc320ff68287355591bd5e338b6546167054",
+          "bytes": 3192
+        },
+        "src/gpu/native_lz4_decode_api.hpp": {
+          "oid": "c03266c30ea2edf5052880f54dc73242b04959e0",
+          "bytes": 649
+        },
+        "src/gpu/native_lz4_decode_layout.hpp": {
+          "oid": "864afb607b2805c7acfffc9486c7fe69a0d388cb",
+          "bytes": 2827
+        },
+        "src/gpu_batch.cpp": {
+          "oid": "1d93d84c9b3b267607ce71e06665bb2ca208469d",
+          "bytes": 10297
+        },
+        "src/gpu_lz4_slab.cpp": {
+          "oid": "7d9b5eadfdcf781145f46a5f0c1f92cd268f4a25",
+          "bytes": 4541
+        },
+        "src/gpu_lz4_verify.cpp": {
+          "oid": "b3c4fb7c9c486cab503b7e7665a2bb3684ffb8ed",
+          "bytes": 2027
+        },
+        "src/gpu_lz4_window.cpp": {
+          "oid": "5e828a2b8e47faf01001a0222f7ac3631200b32c",
+          "bytes": 6602
+        },
+        "src/gpu_match.cpp": {
+          "oid": "84a5f9ab4022b93f02b7758dbb9649a189d8ab45",
+          "bytes": 3379
+        },
+        "src/gpu_recovery.cpp": {
+          "oid": "204cbf0dc3a49e2ded897df74572e368d0264150",
+          "bytes": 8232
+        },
+        "src/gpu_request_id.hpp": {
+          "oid": "da5b6176eee93cfcf07ccaca39974090ab2f34c7",
+          "bytes": 266
+        },
+        "src/indexed_coherence.cpp": {
+          "oid": "8c95ab1b7ab600013d2705276691d5d42f65f4a9",
+          "bytes": 21130
+        },
+        "src/indexed_names.cpp": {
+          "oid": "013ad25861f96213ea55d48bfce0e7fb5945fb42",
+          "bytes": 4649
+        },
+        "src/indexed_names.hpp": {
+          "oid": "8d0b4e2f2aaef3f6cb3b9e0aced1fbb0593b4484",
+          "bytes": 946
+        },
+        "src/indexed_ordinal_ranges.inc": {
+          "oid": "fda46209ed43705e0732fcefb3bcc9483a97587e",
+          "bytes": 3591
+        },
+        "src/lz4_worker_wire.cpp": {
+          "oid": "c19617492a91f0a229fbdbd5a690d1fc999faf9f",
+          "bytes": 10298
+        },
+        "src/match_worker_wire.cpp": {
+          "oid": "1c5e77c6e881b2ab63c2a0ede8852d91805afde3",
+          "bytes": 5076
+        },
+        "src/mount_plan.cpp": {
+          "oid": "4f9c7e5840828a2eeb46f98cdd27d290b66bcacc",
+          "bytes": 1009
+        },
+        "src/native_capture.hpp": {
+          "oid": "24001aa1dd03e06730b1f7f7fdba3f9655f51d87",
+          "bytes": 2663
+        },
+        "src/native_filesystem.cpp": {
+          "oid": "27013a2048254a134c1ca3f734942d0569974f59",
+          "bytes": 172022
+        },
+        "src/native_group_anchor.cpp": {
+          "oid": "a892fae360e7710104f40db1dbe8c6330df19526",
+          "bytes": 42178
+        },
+        "src/native_group_anchor.hpp": {
+          "oid": "c69ca5b9185eb860a90e41ff5d495277715e258c",
+          "bytes": 8268
+        },
+        "src/native_group_codec.cpp": {
+          "oid": "8b2f5b10fd5b54701c4d12e9dc4bf0c7e5d7b5ed",
+          "bytes": 50684
+        },
+        "src/native_group_codec.hpp": {
+          "oid": "d49379159a38ed6a8b3a52bbfbe5a77bed810ac3",
+          "bytes": 7296
+        },
+        "src/native_group_lz4.cpp": {
+          "oid": "b76c17bcf928eb4b7d29b9608e04dec6685ccefd",
+          "bytes": 4195
+        },
+        "src/native_group_lz4.hpp": {
+          "oid": "82e3f6a40f38a918ca1f07c242f27088ff8c0057",
+          "bytes": 878
+        },
+        "src/native_group_read.cpp": {
+          "oid": "f7b6a8dd319ae0c80c5fed94fbc2adfa2464fd09",
+          "bytes": 2487
+        },
+        "src/native_group_read.hpp": {
+          "oid": "b9ad637ae3ae9b4af647bacfbdaf73b8227b53fb",
+          "bytes": 3068
+        },
+        "src/native_group_read_wire.cpp": {
+          "oid": "c50f375eca04035154d12d97dc514792b7754aec",
+          "bytes": 10966
+        },
+        "src/native_group_read_wire.hpp": {
+          "oid": "21d83e4c1ef8a885aead7aeb096bc4b3e7ee2e3d",
+          "bytes": 1860
+        },
+        "src/native_hybrid_backing.cpp": {
+          "oid": "d74bc427bdff71b668a95e6b0e691502e1d175c1",
+          "bytes": 29574
+        },
+        "src/native_indexed_volume.cpp": {
+          "oid": "b79cbedda7bea36d39b82e5ad13963e24158c84a",
+          "bytes": 131615
+        },
+        "src/native_indexed_volume.hpp": {
+          "oid": "dfeb83be32fa72b5d2087c2bf2161b5828d6d28a",
+          "bytes": 14128
+        },
+        "src/native_lz4_decode.cpp": {
+          "oid": "87d13bf4b229791612cba08b5de6d5a121f3600e",
+          "bytes": 3686
+        },
+        "src/native_lz4_decode.hpp": {
+          "oid": "5d39bf68703d1c9dab8633b3d5967703e2a28098",
+          "bytes": 1389
+        },
+        "src/native_lz4_decode_wire.cpp": {
+          "oid": "e03d08bccecff0372dfc2b3a5b48497a5b5c86d2",
+          "bytes": 11702
+        },
+        "src/native_lz4_decode_wire.hpp": {
+          "oid": "9b105786d84333290f6c5632dfd74a26e191cf75",
+          "bytes": 2936
+        },
+        "src/native_lz4_read.hpp": {
+          "oid": "3704537388fbf46d788a0fdcc3c061a2cd8efa3f",
+          "bytes": 1474
+        },
+        "src/native_maintenance.cpp": {
+          "oid": "e2188794a77031061d6dd3569e29e19e1988be0f",
+          "bytes": 75023
+        },
+        "src/native_maintenance_source.hpp": {
+          "oid": "dc6e968ba9ac5772dc9597d175960d727a197d52",
+          "bytes": 3269
+        },
+        "src/native_name_index.cpp": {
+          "oid": "1c98075096baad9d93e169a185789b154dfd2cdf",
+          "bytes": 31032
+        },
+        "src/native_name_index.hpp": {
+          "oid": "2223060ef1c8a2538640e9b908a8b10d6fa81bac",
+          "bytes": 4886
+        },
+        "src/native_object_storage.hpp": {
+          "oid": "073ff7f3fb77fcde8a775dc15db02f443a028a30",
+          "bytes": 9952
+        },
+        "src/native_security.cpp": {
+          "oid": "ede78a6acc295389265566d8c53edbd988284fd1",
+          "bytes": 2112
+        },
+        "src/native_session.cpp": {
+          "oid": "2a7ff7418e10f0fa1e446ad80c94d4c66d755a78",
+          "bytes": 122800
+        },
+        "src/native_volume_file.cpp": {
+          "oid": "cb88799e47dbb2da2929102d76738c9631a182c4",
+          "bytes": 41272
+        },
+        "src/native_volume_file_reclaimer.hpp": {
+          "oid": "a25c05ec7453e2ab7c735d6de692086037dce76b",
+          "bytes": 3857
+        },
+        "src/object_store.cpp": {
+          "oid": "06940a4eff4fbe9b6b8ede4f8025e638e6f21b8f",
+          "bytes": 48301
+        },
+        "src/optimization_feature_wire.hpp": {
+          "oid": "1930e744fe5e9ee801b26ceceb583f56857bf308",
+          "bytes": 592
+        },
+        "src/optimization_state.cpp": {
+          "oid": "8596df7d9b80ca7076106751955ac59fdaada1a6",
+          "bytes": 35670
+        },
+        "src/paged_store.cpp": {
+          "oid": "9c774aa052155a2dfba95573cdcddcbd6502f843",
+          "bytes": 146204
+        },
+        "src/process_budget.cpp": {
+          "oid": "6aad50d29389d0abcb8dffcdc0634c80e40e36bb",
+          "bytes": 2780
+        },
+        "src/projection.cpp": {
+          "oid": "10a01a764ab0353f61b2d981e61ffee49ea3cf06",
+          "bytes": 7717
+        },
+        "src/protected_stripe_image.cpp": {
+          "oid": "3bee69ce64f6d176dcbb4448142a8c9c615e7ad3",
+          "bytes": 20306
+        },
+        "src/protected_stripe_image.hpp": {
+          "oid": "094d66315a0333cc82ea9f9fa750e91bebf7d56f",
+          "bytes": 3662
+        },
+        "src/read_only_file.cpp": {
+          "oid": "3a366b94f911e454c5c35f405b053a58baca0bb0",
+          "bytes": 6110
+        },
+        "src/record_digest.cpp": {
+          "oid": "a526d4b1444c6f44e9e64c71ca7dedb81e9aa1f6",
+          "bytes": 561
+        },
+        "src/record_digest.hpp": {
+          "oid": "7533d2d546569143ca851e616a65b658b1c06ac8",
+          "bytes": 344
+        },
+        "src/repeat_bytes.hpp": {
+          "oid": "8f879c38e0933cced06154569b8689ac5d5f59f4",
+          "bytes": 821
+        },
+        "src/store_codec.cpp": {
+          "oid": "bdc6e94325259f6a25b2ae7064ab2d3014abc65b",
+          "bytes": 23317
+        },
+        "src/store_codec.hpp": {
+          "oid": "7310a637811bb7768c9e070e0ed379336d7cdbeb",
+          "bytes": 3701
+        },
+        "src/store_file.cpp": {
+          "oid": "28d1d6018cc6f842439ac3185ffc04e3cc96d996",
+          "bytes": 34821
+        },
+        "src/store_file.hpp": {
+          "oid": "84c02c1ef35b63a9754542a0607c3b0e58036401",
+          "bytes": 3321
+        },
+        "src/store_read_scope.hpp": {
+          "oid": "eb860f6a70e8732d4d7ca67b1d019bff8c9fbcf9",
+          "bytes": 1270
+        },
+        "src/uniform_lz4_batch.cpp": {
+          "oid": "1ecd8e141838c6ae7ffd8907f085469e532d517f",
+          "bytes": 7507
+        },
+        "src/uniform_lz4_wire.cpp": {
+          "oid": "31c43b390ce4ae40ba1d3ef056256381d0363830",
+          "bytes": 15328
+        },
+        "src/volume_head.cpp": {
+          "oid": "7bbd421fbe0e24abccce9734beb49773156dc4cb",
+          "bytes": 26540
+        },
+        "src/windows/anchor_batch_profile.hpp": {
+          "oid": "e558ce6efffda3b79ddb34792a01777d9d593c2c",
+          "bytes": 6573
+        },
+        "src/windows/anchor_sweep_profile.hpp": {
+          "oid": "38c7896c4920c076cfa808af88d439d5cb3f7720",
+          "bytes": 2878
+        },
+        "src/windows/bounded_process.cpp": {
+          "oid": "4da569b38248e32aaa9f99be9060747c2222366e",
+          "bytes": 9749
+        },
+        "src/windows/bounded_process.hpp": {
+          "oid": "491950e77d45977be39b9d13085a05178f9575f7",
+          "bytes": 2943
+        },
+        "src/windows/gpu_budget.cpp": {
+          "oid": "2f654fd270ca32413be13feb995183e82a8bd5e6",
+          "bytes": 4047
+        },
+        "src/windows/gpu_budget.hpp": {
+          "oid": "98c35251d3dd4f3572feac905f6a2794428f8b7d",
+          "bytes": 2051
+        },
+        "src/windows/gpu_device_readiness.cpp": {
+          "oid": "d7eae03bf82fe9b31edb3527b01a58b56e050214",
+          "bytes": 4351
+        },
+        "src/windows/gpu_device_readiness.hpp": {
+          "oid": "bc695d0eabf4a5b2f469f139a1bdc1e420e0820b",
+          "bytes": 1142
+        },
+        "src/windows/gpu_lz4_worker_controller.cpp": {
+          "oid": "4d9c30c635bf0ae04bef514490f3a29f3d88bfce",
+          "bytes": 6887
+        },
+        "src/windows/gpu_lz4_worker_controller.hpp": {
+          "oid": "e0d5362ccceefb9b38c60b1be878724f8ff58fdc",
+          "bytes": 2730
+        },
+        "src/windows/gpu_match_worker_controller.cpp": {
+          "oid": "af0e3dc1ad8b3a91f8755b8f6f98958cf7db4686",
+          "bytes": 6370
+        },
+        "src/windows/gpu_match_worker_controller.hpp": {
+          "oid": "ccce9c58a720ca748fd50892dea0c758d7be9254",
+          "bytes": 2569
+        },
+        "src/windows/gpu_topology.cpp": {
+          "oid": "d103ae4534e1ed1276ece5e973a371b80f39dc6c",
+          "bytes": 8356
+        },
+        "src/windows/gpu_topology.hpp": {
+          "oid": "7c6abda40b8c2a3283ac30163ea0de90789a5167",
+          "bytes": 2679
+        },
+        "src/windows/gpu_worker_common.cpp": {
+          "oid": "36276729e80b17c120f6b48fca8e8c1f619355f7",
+          "bytes": 2996
+        },
+        "src/windows/gpu_worker_common.hpp": {
+          "oid": "d52981a1aeb376cb8a1ca79b8cefb5598c14eacb",
+          "bytes": 493
+        },
+        "src/windows/gpu_worker_controller.cpp": {
+          "oid": "04e56509305bfce08c166f2abec2fb0ff0b8a898",
+          "bytes": 6843
+        },
+        "src/windows/gpu_worker_controller.hpp": {
+          "oid": "d0a5a2d0abb4f45f2a699f798dd6030b57d8ba1c",
+          "bytes": 3015
+        },
+        "src/windows/hip_api.hpp": {
+          "oid": "1448d2d03706cc09b746e7d225f9f2986554e7e5",
+          "bytes": 6352
+        },
+        "src/windows/hip_decode_worker.cpp": {
+          "oid": "a84ae74057bbcd96b7c765bff17fa3e077119efa",
+          "bytes": 33716
+        },
+        "src/windows/hip_decode_worker.hpp": {
+          "oid": "a15dd2a7fcba34db622aa5189298a1e2497bb06a",
+          "bytes": 1900
+        },
+        "src/windows/hip_device_resources.hpp": {
+          "oid": "dd9a11b523f14e56271cc858f1ac2aba3a231a88",
+          "bytes": 1419
+        },
+        "src/windows/hip_identity_wire.hpp": {
+          "oid": "492b9775da0acaadcd9d187b9f08c931b5a22cab",
+          "bytes": 3687
+        },
+        "src/windows/hip_lz4_compute.cpp": {
+          "oid": "904c29c368f78aaa77ab03cb0e71d968556f690f",
+          "bytes": 2782
+        },
+        "src/windows/hip_lz4_compute.hpp": {
+          "oid": "56b459105720843059cb119c943d3e084283324b",
+          "bytes": 11930
+        },
+        "src/windows/hip_memory_wire.hpp": {
+          "oid": "6550037c349037a4468d8bc17f8d9722490a7fd5",
+          "bytes": 5635
+        },
+        "src/windows/hip_module_verification.cpp": {
+          "oid": "352246d47b85cb6dff5d7c1aca30b88871fbe390",
+          "bytes": 6454
+        },
+        "src/windows/hip_module_verification.hpp": {
+          "oid": "4632e029720b1b942faa9342070001a318980686",
+          "bytes": 3118
+        },
+        "src/windows/hip_phase_profile.hpp": {
+          "oid": "95289d5a89f7ee0b2a4edbe85bf083f5130d47e9",
+          "bytes": 10693
+        },
+        "src/windows/hip_route_binding.hpp": {
+          "oid": "1a2b92a23684081309bb7e5806c8352107ce3f92",
+          "bytes": 2516
+        },
+        "src/windows/hip_route_discovery.cpp": {
+          "oid": "14f14090ff3cbd2593a951b7f24f14a128f9ceac",
+          "bytes": 30675
+        },
+        "src/windows/hip_route_discovery.hpp": {
+          "oid": "8ee391d5d53283796f755c18c6d1e0694b30ec3a",
+          "bytes": 5640
+        },
+        "src/windows/hip_uniform_lz4_compute.cpp": {
+          "oid": "8eb241d79c430e0b84b5d92f3d66fad10126f8d7",
+          "bytes": 23855
+        },
+        "src/windows/hip_uniform_lz4_compute.hpp": {
+          "oid": "bf763377987e7b4588c14793881021fc45c4d66d",
+          "bytes": 10866
+        },
+        "src/windows/hip_uniform_lz4_reuse.hpp": {
+          "oid": "143d65c0b5921c8e20f0cc1cea78f2d917803232",
+          "bytes": 13363
+        },
+        "src/windows/hip_worker_budget.hpp": {
+          "oid": "e0000260d248f1a6316be592c477ceb543c9e86a",
+          "bytes": 4032
+        },
+        "src/windows/hip_worker_exit.hpp": {
+          "oid": "70a387f9b7fbf961b668edd08a2c9af056191eae",
+          "bytes": 5850
+        },
+        "src/windows/hip_worker_main.cpp": {
+          "oid": "436e4cd969a17508dbe958bc0094a0a2d2fb787e",
+          "bytes": 58820
+        },
+        "src/windows/maintenance_backing.hpp": {
+          "oid": "e4444deced2899cb6eb6e896c0d8a2eec3bbb028",
+          "bytes": 3911
+        },
+        "src/windows/maintenance_host.cpp": {
+          "oid": "a480799ceff9793317fbc0f976cf871500a6a8b8",
+          "bytes": 8099
+        },
+        "src/windows/maintenance_host.hpp": {
+          "oid": "4d643bed1a03bc23313d61fc1097cbd606441b8f",
+          "bytes": 2915
+        },
+        "src/windows/memory_volume.cpp": {
+          "oid": "6620a3672184e7864a10a04f058cb91a9ac3237a",
+          "bytes": 15004
+        },
+        "src/windows/memory_volume.hpp": {
+          "oid": "88547f81ae1a099b330b73c3a066e54319c1e3ab",
+          "bytes": 2441
+        },
+        "src/windows/memory_volume_factory.cpp": {
+          "oid": "d71f85eef87be57e4b73c87b41c0b9aed36cde42",
+          "bytes": 15164
+        },
+        "src/windows/memory_volume_factory.hpp": {
+          "oid": "4b379bf3e97b59bc3e986d2fa124b679359431af",
+          "bytes": 3843
+        },
+        "src/windows/native_amd_write_policy.cpp": {
+          "oid": "2316305abdad0ce28dfa4831b9deba31104b0e35",
+          "bytes": 29911
+        },
+        "src/windows/native_amd_write_policy.hpp": {
+          "oid": "b4ac0c40f405064814339848c56f9dd6dd494cf2",
+          "bytes": 6266
+        },
+        "src/windows/native_anchor_launch.hpp": {
+          "oid": "faee73871da623cef6c087205d646e447b4856eb",
+          "bytes": 1908
+        },
+        "src/windows/native_anchor_search.cpp": {
+          "oid": "e3ef7679f87bfbc7dcb23fe31dd0bb974bca9e3e",
+          "bytes": 40265
+        },
+        "src/windows/native_anchor_search.hpp": {
+          "oid": "fb1326c7a10b5c5b8571a20fa74c3260077804da",
+          "bytes": 5855
+        },
+        "src/windows/native_cleanup.cpp": {
+          "oid": "a77e2f850754182b6b529cb7ebb33cc2238715d2",
+          "bytes": 2468
+        },
+        "src/windows/native_cleanup.hpp": {
+          "oid": "e48d06ffc23e94ef7078b49648a99a5bda2d0fe0",
+          "bytes": 1167
+        },
+        "src/windows/native_close.cpp": {
+          "oid": "b18675dc1dd25ed3d4ba5bf332d389f15666b5e4",
+          "bytes": 302
+        },
+        "src/windows/native_close.hpp": {
+          "oid": "7ac0191d68284880642428ea281f5acf6d2e2e40",
+          "bytes": 453
+        },
+        "src/windows/native_deferred_write.cpp": {
+          "oid": "045d315252bcb7e8204206cfbcc85d8566d4f14e",
+          "bytes": 17069
+        },
+        "src/windows/native_deferred_write.hpp": {
+          "oid": "2a37aaa02a4bbf7925ab57aa38aba422899b250c",
+          "bytes": 6253
+        },
+        "src/windows/native_file_info.cpp": {
+          "oid": "ee104629f975e8db899ecb2e830d1bc38e6e0a41",
+          "bytes": 9182
+        },
+        "src/windows/native_file_info.hpp": {
+          "oid": "a2a217366f8220163979ab018ac59cb0c02b5822",
+          "bytes": 2554
+        },
+        "src/windows/native_lz4_read_worker.cpp": {
+          "oid": "a5a549d4653504112b7614a8d1dbe6ce414b7ee6",
+          "bytes": 21391
+        },
+        "src/windows/native_lz4_read_worker.hpp": {
+          "oid": "71f67af25dc9b5b1cbae4da779fc70eee215543f",
+          "bytes": 3788
+        },
+        "src/windows/native_uniform_write.cpp": {
+          "oid": "ff57f902f85e02412915f49f4097c3470b3c65ee",
+          "bytes": 13277
+        },
+        "src/windows/native_uniform_write.hpp": {
+          "oid": "c314f3c51bc93b11d1a28cc3f50bf8d4dcd23ada",
+          "bytes": 5783
+        },
+        "src/windows/native_windows_boundary.hpp": {
+          "oid": "f2d4549e6dc315dc65c77602ba421c87492564a2",
+          "bytes": 2528
+        },
+        "src/windows/positioned_file_io.hpp": {
+          "oid": "8d5e626c8e55ce0cea5f843f312a671ce11c07a7",
+          "bytes": 3584
+        },
+        "src/windows/uniform_lz4_profile.hpp": {
+          "oid": "feda68b665caa8ec2c244a727f3cf11c6acae614",
+          "bytes": 4881
+        },
+        "src/windows/uniform_lz4_sweep_profile.hpp": {
+          "oid": "e66a382dac043b0302ca34e7d4e25a201dd47f60",
+          "bytes": 8309
+        },
+        "src/windows/uniform_lz4_sweep_trace.hpp": {
+          "oid": "6e669a8df1e2d439443fd19dd66a9fe7d6524d8c",
+          "bytes": 5611
+        },
+        "src/windows/uniform_lz4_worker_controller.cpp": {
+          "oid": "0ca8af213bd8188added955b1457a7fe89892224",
+          "bytes": 11110
+        },
+        "src/windows/uniform_lz4_worker_controller.hpp": {
+          "oid": "e9e4570c6dfbc0b5dc96ed482a424e514a3a6c0c",
+          "bytes": 3880
+        },
+        "src/windows/volume_app.cpp": {
+          "oid": "b5585156fd27091e58cdca94ef315733197d31ab",
+          "bytes": 21571
+        },
+        "src/windows/volume_app.manifest": {
+          "oid": "6ff695446d7b0338eca8fde5813c9be4a4f18bda",
+          "bytes": 908
+        },
+        "src/windows/volume_app_winfsp.cpp": {
+          "oid": "8a58279971803b332b4abdd3bcc8023589d0ca9e",
+          "bytes": 6288
+        },
+        "src/windows/volume_app_winfsp.hpp": {
+          "oid": "6828db8118f465fab79fc388d4d9f29ccaa5f91b",
+          "bytes": 459
+        },
+        "src/windows/volume_attachment.hpp": {
+          "oid": "962ed335f2f64239f63cb443ab421f541718fd2b",
+          "bytes": 1210
+        },
+        "src/windows/volume_controller.cpp": {
+          "oid": "84edb910754f9ddbc2eb71a021e8c6764124d8be",
+          "bytes": 13635
+        },
+        "src/windows/volume_controller.hpp": {
+          "oid": "baece8c8906adad4781c95e92cf6227b35cf3e89",
+          "bytes": 3123
+        },
+        "src/windows/volume_directory_pin.hpp": {
+          "oid": "f910e160b378bcf197add6bd65b64a1b5a7d66ff",
+          "bytes": 2030
+        },
+        "src/windows/volume_file_lifetime.hpp": {
+          "oid": "3b3ab9bf3e19745e17bdaa99bc3f91a0e5afe533",
+          "bytes": 1147
+        },
+        "src/windows/volume_model.cpp": {
+          "oid": "ef9548d3d0caf4f3db3590237f365747ae7a31b8",
+          "bytes": 8855
+        },
+        "src/windows/volume_model.hpp": {
+          "oid": "f64fb8f8b139ab01116274e822a16a850a7c05ca",
+          "bytes": 2593
+        },
+        "src/windows/winfsp_controller.cpp": {
+          "oid": "b284aa9a0e6b59827dbdd6bec4b9b4d379d2b812",
+          "bytes": 62003
+        },
+        "src/windows/winfsp_controller.hpp": {
+          "oid": "6be414f50aea2ccda1e1de373217ae5f428d19f2",
+          "bytes": 4581
+        },
+        "src/windows/winfsp_memory_volume.cpp": {
+          "oid": "e98f78b72dd0601cfff2733672252faca75a5ec0",
+          "bytes": 4550
+        },
+        "src/windows/winfsp_memory_volume.hpp": {
+          "oid": "c4d94eb8a4815f680b4268fd27a683668a54aba2",
+          "bytes": 2122
+        },
+        "src/windows/winfsp_native.cpp": {
+          "oid": "8017c4c9a2fc1883918f12913c99f2aaca772a44",
+          "bytes": 109532
+        },
+        "src/windows/winfsp_native.hpp": {
+          "oid": "f99608372211d5cdbb8071bfbdb0c47666ba9524",
+          "bytes": 15491
+        },
+        "src/windows/winfsp_origin.hpp": {
+          "oid": "b95cf29f781341d7c4a8f061fe39f141bdfffcae",
+          "bytes": 1210
+        },
+        "src/windows/winfsp_readonly.cpp": {
+          "oid": "fb5c5f368b9e9c542c805591dff346419c6e1289",
+          "bytes": 20884
+        },
+        "src/windows/winfsp_readonly.hpp": {
+          "oid": "8b279fff735a0c5b2663f834460c414a1c0cb2b6",
+          "bytes": 1521
+        },
+        "src/windows/winfsp_session.cpp": {
+          "oid": "c183922d9ce359cc9f5f50450a76db943ff26ff2",
+          "bytes": 10741
+        },
+        "src/windows/winfsp_session.hpp": {
+          "oid": "9f154764f318a41efe00af10f6a26dea0cd509a9",
+          "bytes": 5898
+        },
+        "src/windows/winfsp_volume_attachment.cpp": {
+          "oid": "2a6679721afdc30b6281059c3c4eba6275e4556b",
+          "bytes": 8176
+        },
+        "src/windows/winfsp_volume_attachment.hpp": {
+          "oid": "b40c16d6bd160c4191929f903c2a6213323410eb",
+          "bytes": 1356
+        },
+        "src/windows/worker_exchange.cpp": {
+          "oid": "8169c1a494a79cf4ebdab147d813a60775b07cc5",
+          "bytes": 52699
+        },
+        "src/windows/worker_exchange.hpp": {
+          "oid": "d7531f0203996afa76a7ddceefa998bf144edfd6",
+          "bytes": 13264
+        },
+        "src/windows_path.cpp": {
+          "oid": "5ed71596126937c1f1012296916f21f8d30055d9",
+          "bytes": 2423
+        },
+        "src/worker_wire.cpp": {
+          "oid": "33f29baac68e6ec62d5c2cf005936d8e48f0f8e9",
+          "bytes": 6894
+        },
+        "src/zstd_frame.hpp": {
+          "oid": "1aead9f403bcb70b6e8e444eb00ee14af5708bdf",
+          "bytes": 454
+        },
+        "tests/anchor_search_fixture.hpp": {
+          "oid": "f8b3b9b955662e7b0a7e55d0bf272b9510b966ff",
+          "bytes": 12374
+        },
+        "tests/blake3_masked_dispatch.c": {
+          "oid": "c82b7c87febbf9bb08e14b8cc3d32298c7b25f3f",
+          "bytes": 656
+        },
+        "tests/blake3_vectors.hpp": {
+          "oid": "d28efb341b600fd10362efe8e5757153e51c303b",
+          "bytes": 2840
+        },
+        "tests/dense_file_fixture.hpp": {
+          "oid": "98824ad089f2ab7196e0feda707fe1953e22f924",
+          "bytes": 2444
+        },
+        "tests/extent_codec_fixture.hpp": {
+          "oid": "8142d12ac16c1816853a9f76b5a489f37a424077",
+          "bytes": 9397
+        },
+        "tests/extent_codec_oracle_tail.inc": {
+          "oid": "0199e17d435cd97bb5091be264361511a69d43cc",
+          "bytes": 3115
+        },
+        "tests/fixtures/empty.flcatalog": {
+          "oid": "1c76a12142c9eaca919531a1772e8c6d5352423b",
+          "bytes": 20
+        },
+        "tests/fixtures/traversal.flcatalog": {
+          "oid": "fdfbf1a9592151243c437124b9652437cddaad0d",
+          "bytes": 44
+        },
+        "tests/gpu_probe_budget.hpp": {
+          "oid": "f9977680a38b5c6a707dac77d9442e0459cad19c",
+          "bytes": 3032
+        },
+        "tests/hosted_digest_limits.hpp": {
+          "oid": "cacfe5d9c4dcc10daf61510afffb184527db9e5b",
+          "bytes": 1602
+        },
+        "tests/locked_ram_fixture.hpp": {
+          "oid": "3bee4476cedab99c13c5a78ab2e71e9c4ca9f9f4",
+          "bytes": 6080
+        },
+        "tests/native_corpus_fixture.hpp": {
+          "oid": "aec667a206a160632994af0164fe6d8f368af05f",
+          "bytes": 1753
+        },
+        "tests/native_fs_fixture.hpp": {
+          "oid": "d0481ab20e4384819b7f37cc3f7411c45288b850",
+          "bytes": 10747
+        },
+        "tests/native_lz4_fixture.hpp": {
+          "oid": "2ea576cdecf1a2308964b3ca0e0da2c4c15d4d7b",
+          "bytes": 1592
+        },
+        "tests/native_security_fixture.hpp": {
+          "oid": "a18003c3d425e8091e7643524a5928cd4998f374",
+          "bytes": 1358
+        },
+        "tests/native_windows_fixture.hpp": {
+          "oid": "fa6ad31afd481befb92c7abb6d3e99b2861eaa25",
+          "bytes": 6168
+        },
+        "tests/paused_capture_backing.hpp": {
+          "oid": "16e9db338e0e3e68f69eb3e864056dad3ea858da",
+          "bytes": 2556
+        },
+        "tests/ram_client_channel.hpp": {
+          "oid": "fb64af5de3ffac04eb8ae353a94965c3250d0baf",
+          "bytes": 4235
+        },
+        "tests/ram_client_protocol.hpp": {
+          "oid": "0367e040c4c824b74d8958fb980dc45925cfb8ab",
+          "bytes": 2106
+        },
+        "tests/rocm_compile/CMakeLists.txt": {
+          "oid": "c5c77c137cc6ec013e9c596a12a151d417bbbd28",
+          "bytes": 21133
+        },
+        "tests/rocm_compile/api_probe.cpp": {
+          "oid": "ba2489b9314e158254b8b0b848320d277bcbea1a",
+          "bytes": 13963
+        },
+        "tests/rocm_compile/cpu_lz4_probe.cpp": {
+          "oid": "916f658c58f440d61de5a2026886de7fdbfeab6e",
+          "bytes": 1519
+        },
+        "tests/rocm_compile/deferred_native_fixture.hpp": {
+          "oid": "a8b82ce85e060b8adb08a3b875f5faa9fc4d2037",
+          "bytes": 16598
+        },
+        "tests/rocm_compile/hardware_probe.cpp": {
+          "oid": "992737cdff22fc38f2c5ab4b0c922f14bb8fd6a0",
+          "bytes": 23718
+        },
+        "tests/rocm_compile/header_probe.cpp": {
+          "oid": "4f23f83ab03dd1714be893701be76bcde745c413",
+          "bytes": 1297
+        },
+        "tests/rocm_compile/hipcomp_lz4_api.hpp": {
+          "oid": "86d7509852454d2e4fec2001c8d9d0ddbfe2734f",
+          "bytes": 1682
+        },
+        "tests/rocm_compile/hipcomp_lz4_contract.hpp": {
+          "oid": "08907da5c497e2f5cd5e5e4d41e85409f460f884",
+          "bytes": 3165
+        },
+        "tests/rocm_compile/hipcomp_lz4_entry.hip": {
+          "oid": "23cdc3d524a5ac5ac98629f9d8074c5170d2ef9e",
+          "bytes": 3640
+        },
+        "tests/rocm_compile/hipcomp_lz4_module.cpp": {
+          "oid": "2bf2cc5344f188b4865e362ee4b5a0d885ea4540",
+          "bytes": 526
+        },
+        "tests/rocm_compile/hipcomp_lz4_source.json": {
+          "oid": "16efb7b0e7b74a0923144a52acdcf4e62150c609",
+          "bytes": 23889
+        },
+        "tests/rocm_compile/hipcomp_uniform_lz4_api.hpp": {
+          "oid": "9b0cbc018990c6daca33807bfef4378c90cbe53e",
+          "bytes": 815
+        },
+        "tests/rocm_compile/hipcomp_uniform_lz4_module.cpp": {
+          "oid": "523af810343025119614b3a0e07e52f755a36c57",
+          "bytes": 527
+        },
+        "tests/rocm_compile/kernel_module.cpp": {
+          "oid": "66a175dc0443962f957a395f333d71b2bf505d06",
+          "bytes": 6655
+        },
+        "tests/rocm_compile/lz4_compute_probe.cpp": {
+          "oid": "b2e9c836620ddaab4a45f3a5cfb78b21a663723a",
+          "bytes": 19853
+        },
+        "tests/rocm_compile/lz4_native_storage_fixture.hpp": {
+          "oid": "f15bf2aa6cc3bbf0caffaae3ceead4a2601d4bf9",
+          "bytes": 8178
+        },
+        "tests/rocm_compile/lz4_runtime_probe.cpp": {
+          "oid": "a5168c54a11c428465963fd7f4ea3727d3e668e5",
+          "bytes": 103250
+        },
+        "tests/rocm_compile/native_lz4_decode_module.cpp": {
+          "oid": "e38efe49ac256d43f94c8a47c98e14a423bf8e87",
+          "bytes": 1229
+        },
+        "tests/rocm_compile/native_lz4_decode_probe.cpp": {
+          "oid": "1587de9f270f27d665715da4dd39ad31765c21aa",
+          "bytes": 16918
+        },
+        "tests/rocm_compile/previous_hip_api.hpp": {
+          "oid": "e8f78c76a1b6b44759a1ea5ed6d236bdafd3384e",
+          "bytes": 5083
+        },
+        "tests/rocm_compile/system_module_probe.cpp": {
+          "oid": "7db6aa60d1e5fa6d83bfb7daec9a37799bec2f98",
+          "bytes": 5732
+        },
+        "tests/rocm_compile/uniform_lz4_compute_probe.cpp": {
+          "oid": "1326c3e58d44af0ff341a90febb18b5e03fc00cd",
+          "bytes": 46314
+        },
+        "tests/rocm_compile/warp_sync_probe.hip": {
+          "oid": "0705e743dcf9bec07f1e250b042edc84162d9d8c",
+          "bytes": 1670
+        },
+        "tests/rocm_compile/worker_probe.cpp": {
+          "oid": "2c965848af62b3f09309057480e2cb6b85dabbd1",
+          "bytes": 11002
+        },
+        "tests/store_comparison.cpp": {
+          "oid": "ca0f3d325fe06ae3c948bcc349f0d466b285ecfe",
+          "bytes": 5871
+        },
+        "tests/store_crash_probe.cpp": {
+          "oid": "610ba6cbea4b5c14773f04582fb471f695754d4f",
+          "bytes": 28471
+        },
+        "tests/store_reference/CMakeLists.txt": {
+          "oid": "b49bc984e8f3ac195822a1b9fdc455f8a8e6b5db",
+          "bytes": 1488
+        },
+        "tests/supervised_source_fixture.hpp": {
+          "oid": "6d7ae40bb327c0ab1315308dd534a20520f44637",
+          "bytes": 10798
+        },
+        "tests/test_admission.cpp": {
+          "oid": "ff614dbaa76b8dc7b83610bacd876edc33855afd",
+          "bytes": 5034
+        },
+        "tests/test_bounded_process.cpp": {
+          "oid": "49e75c28293e2c204ef7079bcd04710f02a1b183",
+          "bytes": 20361
+        },
+        "tests/test_catalog.cpp": {
+          "oid": "cd60da4518f107308e212816aec0bd83a5d6a8c8",
+          "bytes": 10104
+        },
+        "tests/test_catalog_manifest.cpp": {
+          "oid": "95ee39d68825357d1edd1e81da5cd71c4ad7e108",
+          "bytes": 7467
+        },
+        "tests/test_compact_checkpoints.cpp": {
+          "oid": "81aac3f8e11f36ee62f883b4e1f826774c7cab57",
+          "bytes": 16341
+        },
+        "tests/test_compression_probe.cpp": {
+          "oid": "abade72f12ba8f3dd6a1835aaa8df564acdc0176",
+          "bytes": 9326
+        },
+        "tests/test_container.cpp": {
+          "oid": "02aa17b4114ddeb9813cd37606ffe9c42e084b72",
+          "bytes": 20293
+        },
+        "tests/test_digest_dispatch.cpp": {
+          "oid": "ea5008f68b0decd250ec9224176dd98308a02876",
+          "bytes": 10495
+        },
+        "tests/test_durability_model.cpp": {
+          "oid": "ad6e508dd72e9e4d594ae3f1969557829451b7ac",
+          "bytes": 11504
+        },
+        "tests/test_extent_codec.cpp": {
+          "oid": "86a6fb7dc30af9d78207d1b7a5495be9cd3df15a",
+          "bytes": 7438
+        },
+        "tests/test_gpu_anchor_match.cpp": {
+          "oid": "c48018877f269ff972706b556cf67a62c659349d",
+          "bytes": 50368
+        },
+        "tests/test_gpu_batch.cpp": {
+          "oid": "4a42c022b4f0db7caa7d3c61da48fd2dd44f3c01",
+          "bytes": 17214
+        },
+        "tests/test_gpu_lz4_entry.cpp": {
+          "oid": "768d040e4414df2c8fdf33873383eb893445958f",
+          "bytes": 6566
+        },
+        "tests/test_gpu_lz4_layout.cpp": {
+          "oid": "4356b591c03e465996373218f2040145a264dbe4",
+          "bytes": 6845
+        },
+        "tests/test_gpu_lz4_slab.cpp": {
+          "oid": "f9ec78558f71617a86777379066fdbb5e3be8cff",
+          "bytes": 9742
+        },
+        "tests/test_gpu_lz4_verify.cpp": {
+          "oid": "da89b9b3391da50bc33e5e4c32c3499c9fd90fab",
+          "bytes": 7078
+        },
+        "tests/test_gpu_lz4_window.cpp": {
+          "oid": "ab56500e65cd59931e15759877a1907749ad210f",
+          "bytes": 14943
+        },
+        "tests/test_gpu_match.cpp": {
+          "oid": "5933e05888d831f96daa3cbf8b773c6a1a8669fa",
+          "bytes": 8809
+        },
+        "tests/test_gpu_match_layout.cpp": {
+          "oid": "82e6a9ae091c104cf5359f853a579d61853c31e8",
+          "bytes": 4807
+        },
+        "tests/test_gpu_match_recovery.cpp": {
+          "oid": "6a859cf6977b4b55982851eff567459b7b1f660b",
+          "bytes": 2930
+        },
+        "tests/test_gpu_recovery.cpp": {
+          "oid": "d5d0aaf5a9d584b3ab757c977e0c0816008f558f",
+          "bytes": 14578
+        },
+        "tests/test_gpu_topology.cpp": {
+          "oid": "754918eb1403f1be05c6b3820b8d5e00fe6ebd0f",
+          "bytes": 2109
+        },
+        "tests/test_hip_identity_wire.cpp": {
+          "oid": "389a78633df683b874b073a7cf12dac408bae1df",
+          "bytes": 4923
+        },
+        "tests/test_hip_memory_wire.cpp": {
+          "oid": "ab0aee3c1865f31ebe6ea1a97d09023e2430b828",
+          "bytes": 6588
+        },
+        "tests/test_hip_phase_profile.cpp": {
+          "oid": "5e40a33f26c8cfb0f1c240451a3d567e2ae663ec",
+          "bytes": 17491
+        },
+        "tests/test_hip_worker_budget.cpp": {
+          "oid": "9937995c9d6194ae40ca88ac063d4dba25d80295",
+          "bytes": 7220
+        },
+        "tests/test_hip_worker_exit.cpp": {
+          "oid": "b362180fe465130be0f7f5ebfebb617eec1fc987",
+          "bytes": 2711
+        },
+        "tests/test_lz4_worker_wire.cpp": {
+          "oid": "71855c1ae1e3816936c62a387c7e83b3caae4f47",
+          "bytes": 11589
+        },
+        "tests/test_match_worker_wire.cpp": {
+          "oid": "3fda2b0c7647c1a9a1859047bd2db820121f3721",
+          "bytes": 3829
+        },
+        "tests/test_mirrored_payloads.cpp": {
+          "oid": "e72e268eb6b2519bbd05b08c9b3a437d09c83632",
+          "bytes": 60860
+        },
+        "tests/test_mount_plan.cpp": {
+          "oid": "fd26531721d42c8c277184cfc80107d523d04041",
+          "bytes": 2000
+        },
+        "tests/test_native_allocated_events.cpp": {
+          "oid": "346abd4369d14d0faef62e3f1bf26896dfd302b0",
+          "bytes": 19068
+        },
+        "tests/test_native_allocated_events_sdk.cpp": {
+          "oid": "2e2e8f54774af849d5a73e02f386b2d55c1f9d3d",
+          "bytes": 11566
+        },
+        "tests/test_native_allocation.cpp": {
+          "oid": "d3c7af33a4aab9e026a360258e9cf2fb83047b4a",
+          "bytes": 20777
+        },
+        "tests/test_native_basic.cpp": {
+          "oid": "62364b6b056442305744a8d650e0c4b98d7082c8",
+          "bytes": 22556
+        },
+        "tests/test_native_cleanup.cpp": {
+          "oid": "f0810bb65d89d35d47ac3b67159faae12b11e64e",
+          "bytes": 15459
+        },
+        "tests/test_native_cleanup_sdk.cpp": {
+          "oid": "df4d252279eba0f1a739d9f2027aabc1fff77330",
+          "bytes": 8525
+        },
+        "tests/test_native_create.cpp": {
+          "oid": "8edaeb8eb49b6e83574b50716e29337463750d31",
+          "bytes": 19086
+        },
+        "tests/test_native_deferred_write_sdk.cpp": {
+          "oid": "97d50e2e0ea567597e9f7eb7b061e7981f9a04bb",
+          "bytes": 110135
+        },
+        "tests/test_native_file_info_sdk.cpp": {
+          "oid": "562bd48487f56fb8b26235692062685a17c72828",
+          "bytes": 33756
+        },
+        "tests/test_native_filesystem.cpp": {
+          "oid": "d73e7abb7a55a4aec8181bf1a89543b737dc5c37",
+          "bytes": 40950
+        },
+        "tests/test_native_flush.cpp": {
+          "oid": "7ce83d8b4c6dce3156c859e2001eba1e39e6f2fe",
+          "bytes": 20940
+        },
+        "tests/test_native_global_disposition.cpp": {
+          "oid": "3e9ab9ded71d40d30466e1f8f597e152494bbcb8",
+          "bytes": 9761
+        },
+        "tests/test_native_group_maintenance.cpp": {
+          "oid": "576b9e723512632bd4f5f26bbd76e65e02dcc217",
+          "bytes": 220641
+        },
+        "tests/test_native_indexed_volume.cpp": {
+          "oid": "a12a75706c04eced859663a9040744141816d9e6",
+          "bytes": 99562
+        },
+        "tests/test_native_initial_delete.cpp": {
+          "oid": "1a9e8f4bfabdca41a98fca05d9778c2cc992b9ca",
+          "bytes": 20906
+        },
+        "tests/test_native_initial_delete_sdk.cpp": {
+          "oid": "0969014350bb10ff12b4f79ad8da258c610bfc0b",
+          "bytes": 9177
+        },
+        "tests/test_native_inode_io.cpp": {
+          "oid": "17784ae51b310047cb31c6cfe3cd18e088a91717",
+          "bytes": 14189
+        },
+        "tests/test_native_lifetime.cpp": {
+          "oid": "7d259d2cdfa39461a7db86aae344154f6395d90f",
+          "bytes": 24291
+        },
+        "tests/test_native_lz4_decode.cpp": {
+          "oid": "2e1c56d65cff36cbb4c34df869e92cd435c52789",
+          "bytes": 13005
+        },
+        "tests/test_native_mutation_metadata.cpp": {
+          "oid": "e83fb8f03936f55bd5b363bc9c8bd65bb767cafa",
+          "bytes": 17536
+        },
+        "tests/test_native_mutation_result.cpp": {
+          "oid": "b8130fc68bc4511fcd5dc8f1a102db0685a41ddc",
+          "bytes": 11635
+        },
+        "tests/test_native_name_index.cpp": {
+          "oid": "d2ee1e7df44e28a45b112b5d221bc96ac71aa7ae",
+          "bytes": 14622
+        },
+        "tests/test_native_overwrite.cpp": {
+          "oid": "2bfb0fa000702e2a84adca4ada500e290928c5fa",
+          "bytes": 15841
+        },
+        "tests/test_native_paged_backend.cpp": {
+          "oid": "e715a725e2ec684e0679240ccfc516c0f2a165ae",
+          "bytes": 48253
+        },
+        "tests/test_native_projection.cpp": {
+          "oid": "a8bee0e7a0a3516f199b4b7a95a865e3d46b0fea",
+          "bytes": 11963
+        },
+        "tests/test_native_provisional.cpp": {
+          "oid": "34d8a2b5ed768cf2c5e02c4b700aaf205f2a07e2",
+          "bytes": 16239
+        },
+        "tests/test_native_provisional_sdk.cpp": {
+          "oid": "48941a237c53388c5b9c65d918f94d9846256fbd",
+          "bytes": 9108
+        },
+        "tests/test_native_security.cpp": {
+          "oid": "28928e8c5b6499609bef22db5f28be669df8f469",
+          "bytes": 19057
+        },
+        "tests/test_native_security_windows.cpp": {
+          "oid": "ebc5cad5c2fa0b7b6d85e92c1e59e8e18a212a99",
+          "bytes": 10055
+        },
+        "tests/test_native_session.cpp": {
+          "oid": "8ecfa23e268aca70cc4424f4bf28a0320479a2b8",
+          "bytes": 28187
+        },
+        "tests/test_native_shared_base.cpp": {
+          "oid": "a19b874de343edd920d60f5836d49bf3da5bbcc4",
+          "bytes": 83679
+        },
+        "tests/test_native_shared_extents.cpp": {
+          "oid": "f18c31d64a5b8be3c8289824affe9bc0dc4b19a1",
+          "bytes": 15187
+        },
+        "tests/test_native_uniform_write_sdk.cpp": {
+          "oid": "8afaac3247567c05e3f9085c43411e02c0cc1f55",
+          "bytes": 16735
+        },
+        "tests/test_native_volume_file.cpp": {
+          "oid": "b6538e024df9cb5d00bb3eee8450f86a2040cb6b",
+          "bytes": 143053
+        },
+        "tests/test_native_workload.cpp": {
+          "oid": "55c199f4be62c34204de6c8d35fe64b2f7d31905",
+          "bytes": 10701
+        },
+        "tests/test_object_store.cpp": {
+          "oid": "8e64be74ee7c99e1a350ea3ab0c223af2a93f044",
+          "bytes": 63636
+        },
+        "tests/test_object_store_file.cpp": {
+          "oid": "668e97108dfcbefe1dd6d6a0de892b0600b1eb8c",
+          "bytes": 11940
+        },
+        "tests/test_optimization_budget.cpp": {
+          "oid": "b51c03f4ba2e2a436a206c592b99160b44c07ebc",
+          "bytes": 22308
+        },
+        "tests/test_optimization_state.cpp": {
+          "oid": "436b3808c0921ac2275aa34306e5a5b1e2cce6ae",
+          "bytes": 45622
+        },
+        "tests/test_paged_store.cpp": {
+          "oid": "fe839c83ea5c7028181edd266bf8c625bd2e2b86",
+          "bytes": 36417
+        },
+        "tests/test_paged_volume.cpp": {
+          "oid": "090a9c00502998da8371adfc4f4401ac079eb460",
+          "bytes": 16490
+        },
+        "tests/test_process_budget.cpp": {
+          "oid": "8e06908b5f2a0c9463397139a6219380f5c837eb",
+          "bytes": 5155
+        },
+        "tests/test_projection.cpp": {
+          "oid": "ce4d430c05b8452138dfb63ff90a7a9c05bb0726",
+          "bytes": 4954
+        },
+        "tests/test_protected_indexed_image.cpp": {
+          "oid": "f806465581e22e750dd8f8783f1e2ee8594e717b",
+          "bytes": 53056
+        },
+        "tests/test_ram_client_protocol.cpp": {
+          "oid": "611f60eb1f07b37517417b0fe69958378cb036d7",
+          "bytes": 3376
+        },
+        "tests/test_staged_paged_rebuild.cpp": {
+          "oid": "b4d3bad7fca3b2222a4793edc8c58024b011404f",
+          "bytes": 27335
+        },
+        "tests/test_staged_shared_base.cpp": {
+          "oid": "9b67d3c41c15c7df25117fc9428171544093d66f",
+          "bytes": 30082
+        },
+        "tests/test_store_codec.cpp": {
+          "oid": "7db5bb4f7b8839792d14d3d22ca3683dafb03bd9",
+          "bytes": 11871
+        },
+        "tests/test_store_fast.cpp": {
+          "oid": "d9ecccc8e9375c4913e568add2d3b58fe9310863",
+          "bytes": 20678
+        },
+        "tests/test_uniform_lz4_profile.cpp": {
+          "oid": "e80cb54be259a728d0ea158bdc7c3f8846cbb772",
+          "bytes": 4263
+        },
+        "tests/test_uniform_lz4_sweep.cpp": {
+          "oid": "1a61b38ffb34af3f0a70051f69061d3a2c87f1be",
+          "bytes": 11813
+        },
+        "tests/test_uniform_lz4_sweep_profile.cpp": {
+          "oid": "3a27b33ca8a15dedcb9432cb93682bb74c099bf9",
+          "bytes": 12105
+        },
+        "tests/test_uniform_lz4_wire.cpp": {
+          "oid": "95fd1e1de795b6d6475779fafde7432a099770e2",
+          "bytes": 9142
+        },
+        "tests/test_volume_head.cpp": {
+          "oid": "41eadf5acde81621459bda5768200ec3a345df2a",
+          "bytes": 24587
+        },
+        "tests/test_volume_session.cpp": {
+          "oid": "83c95b6d80e81608e0f3133df6689534c5352883",
+          "bytes": 34849
+        },
+        "tests/test_windows_gpu_budget.cpp": {
+          "oid": "189c3728d6c7d77409859be897eec98d73213a74",
+          "bytes": 8042
+        },
+        "tests/test_windows_path.cpp": {
+          "oid": "e15f412bdca48beba94585b31c191a6ecd1e3428",
+          "bytes": 2781
+        },
+        "tests/test_winfsp_callbacks.cpp": {
+          "oid": "67d59f4d3f8ce0d1620cdca63073b49c46495e7d",
+          "bytes": 23376
+        },
+        "tests/test_winfsp_controller.cpp": {
+          "oid": "5a543aeafa0f3f8676a95a20adf6164eae9da2df",
+          "bytes": 320032
+        },
+        "tests/test_winfsp_native.cpp": {
+          "oid": "d64b1baf6427ad5718a9daa236e53a7356ac1d48",
+          "bytes": 33134
+        },
+        "tests/test_winfsp_native_session.cpp": {
+          "oid": "077a47bea270abd87694b13edf659948c88f05a8",
+          "bytes": 15081
+        },
+        "tests/test_winfsp_origin.cpp": {
+          "oid": "7d7a9f057e48a40d64759f7e8e374cd551006e07",
+          "bytes": 9062
+        },
+        "tests/test_winfsp_paged.cpp": {
+          "oid": "cdca4904d28d2406844c368e5dbe8b59ac16a3ec",
+          "bytes": 77541
+        },
+        "tests/test_winfsp_session.cpp": {
+          "oid": "302c6a8fc39152a8248e3e8597dcf3d4c2e64b74",
+          "bytes": 13273
+        },
+        "tests/test_worker_exchange.cpp": {
+          "oid": "561ad55304118beb6ec96d3f68024904a8bfe37e",
+          "bytes": 127416
+        },
+        "tests/test_worker_wire.cpp": {
+          "oid": "23a52f9ac68d8370639cf02a9c1e3ba6c6193668",
+          "bytes": 7507
+        },
+        "tests/volume_range_fixture.hpp": {
+          "oid": "55d71d28a5159ee6f61de26f8a1c65e1b4b21a0f",
+          "bytes": 4062
+        },
+        "tests/win_hip_route_probe.cpp": {
+          "oid": "57360334e140cf0745f60da9c4df0b3aea53aa93",
+          "bytes": 9781
+        },
+        "tests/windows_app_budget.hpp": {
+          "oid": "87041f7bbb4d11af4fa01947483a173826e05291",
+          "bytes": 8540
+        },
+        "tests/windows_gpu_ram_probe.cpp": {
+          "oid": "446e54c6c9b18b034bf2553c74882c4e7d04ebf6",
+          "bytes": 23388
+        },
+        "tests/windows_ram_probe.cpp": {
+          "oid": "195d2546fe20bde471a0e80f2b43915ec68b4259",
+          "bytes": 14099
+        },
+        "tests/windows_volume_app_tests.cpp": {
+          "oid": "05c1eb24ff36ce8d5c9f9402a34e1e0f44ff9265",
+          "bytes": 133155
+        },
+        "tests/windows_volume_attachment_tests.cpp": {
+          "oid": "bbb597a6f2af0b91578334b286b35c1738e71a1f",
+          "bytes": 31271
+        },
+        "tests/winfsp_mount_probe.cpp": {
+          "oid": "3049bc59dd2af32e0b091c38cabeba8c5b33dd82",
+          "bytes": 47666
+        },
+        "tests/winfsp_write_probe.cpp": {
+          "oid": "fb1674596a8a91f9a0dd0c9d4d22713f9e72f4a6",
+          "bytes": 141293
+        },
+        "third_party/blake3/LICENSE_A2": {
+          "oid": "d512ca94d0ca6bf6a7272b16c83f51b7045902ca",
+          "bytes": 11361
+        },
+        "third_party/blake3/LICENSE_A2LLVM": {
+          "oid": "8d11bec0e86f88276b155cd3214a3de45cdafeb7",
+          "bytes": 12267
+        },
+        "third_party/blake3/LICENSE_CC0": {
+          "oid": "0e259d42c996742e9e3cba14c677129b2c1b6311",
+          "bytes": 7048
+        },
+        "third_party/blake3/c/blake3.c": {
+          "oid": "00f91f444922df7c8e7b5ff69343852cbbf4c613",
+          "bytes": 28945
+        },
+        "third_party/blake3/c/blake3.h": {
+          "oid": "c5b799870ad392890e33478629788919a8e89930",
+          "bytes": 2923
+        },
+        "third_party/blake3/c/blake3_avx2.c": {
+          "oid": "381e7c422f33c75c3a8aeb06e4e2e7e6be56e396",
+          "bytes": 12452
+        },
+        "third_party/blake3/c/blake3_avx2_x86-64_windows_msvc.asm": {
+          "oid": "352298edd2e8af288122b4d396b2a55847f42c96",
+          "bytes": 65948
+        },
+        "third_party/blake3/c/blake3_avx512.c": {
+          "oid": "f88a32d312b106ee975336751367bbd6cba4ce5c",
+          "bytes": 54592
+        },
+        "third_party/blake3/c/blake3_avx512_x86-64_windows_msvc.asm": {
+          "oid": "b19efbaaeb362f6237c8bd220a4068e5ea1005ba",
+          "bytes": 91605
+        },
+        "third_party/blake3/c/blake3_dispatch.c": {
+          "oid": "14dfbbe0c8f385296adf691643481b87e8768522",
+          "bytes": 9189
+        },
+        "third_party/blake3/c/blake3_impl.h": {
+          "oid": "88e71e41e90f3f3cca4d39f19d50e74325fb5ce2",
+          "bytes": 12054
+        },
+        "third_party/blake3/c/blake3_portable.c": {
+          "oid": "062dd1b47fb6424f4d3db4c6edd2f90efcb92973",
+          "bytes": 5889
+        },
+        "third_party/blake3/c/blake3_sse2.c": {
+          "oid": "691e1c6806cce42be54c0e4c03b79c25797550c5",
+          "bytes": 21005
+        },
+        "third_party/blake3/c/blake3_sse2_x86-64_windows_msvc.asm": {
+          "oid": "507502f11a80b3b05eb50a55e1535ecf3c96ed58",
+          "bytes": 70982
+        },
+        "third_party/blake3/c/blake3_sse41.c": {
+          "oid": "4653a856fe6c44de291387cdd24ecd76fec1a0ae",
+          "bytes": 20813
+        },
+        "third_party/blake3/c/blake3_sse41_x86-64_windows_msvc.asm": {
+          "oid": "8966c7b84406e98792af7e63d53d9bb49a7ad8ef",
+          "bytes": 63194
+        },
+        "third_party/blake3/provenance.json": {
+          "oid": "8e06f9a52e31d056d942e86ac4d32c4730cd98a3",
+          "bytes": 3286
+        },
+        "third_party/blake3/test_vectors/test_vectors.json": {
+          "oid": "f6da91792c6cdf5c6a0f6dad01803045bb204a68",
+          "bytes": 31922
+        },
+        "third_party/unicode-license.txt": {
+          "oid": "56da58912807030b451a4700687d5bd02c72d6ed",
+          "bytes": 1995
+        },
+        "tools/ci/bind_installed_amd_package.py": {
+          "oid": "7abc26dce2ab1421dba9bf314ffafcfd04756f84",
+          "bytes": 17268
+        },
+        "tools/ci/build_digest_comparison.ps1": {
+          "oid": "ab14e82173ee2124bc731a880cb84050caacc26c",
+          "bytes": 2347
+        },
+        "tools/ci/build_linux_codecs.py": {
+          "oid": "2383aff0dd9176c365e9a4713697a4b334c2c383",
+          "bytes": 4124
+        },
+        "tools/ci/build_store_crash_probe.py": {
+          "oid": "721d9b472c0d72d11f409acabc010186e891c2d1",
+          "bytes": 1843
+        },
+        "tools/ci/build_windows_native.ps1": {
+          "oid": "026138ef6b522f6479042faf34b9383162aecd60",
+          "bytes": 5935
+        },
+        "tools/ci/check_portable_cpu.py": {
+          "oid": "0fc37f25eab31b633ae42556f6edaf15197b0545",
+          "bytes": 18368
+        },
+        "tools/ci/check_volume_app.py": {
+          "oid": "49b6d4376800f8e5247230b71ae8b11ee4b90e19",
+          "bytes": 6044
+        },
+        "tools/ci/compare_cpu_pipeline.py": {
+          "oid": "8b522693dc2009cdd215b13926b5c3fd2252c0d1",
+          "bytes": 7534
+        },
+        "tools/ci/compare_digest_acceleration.py": {
+          "oid": "f83db46d980e8fb49511eef3050a07a1838702ca",
+          "bytes": 10075
+        },
+        "tools/ci/compare_native_store.py": {
+          "oid": "4279ee4814e4bc11195d8004dab88a845d99c495",
+          "bytes": 6891
+        },
+        "tools/ci/compile_hip_candidate.py": {
+          "oid": "975941d44db2753788d6fcc9b6a64803bce0dcfd",
+          "bytes": 5697
+        },
+        "tools/ci/dependency_audit.py": {
+          "oid": "97e6269cf6a48b4ce89e5813594da6257d9ebbe0",
+          "bytes": 9705
+        },
+        "tools/ci/extract_extent_codec_oracle.py": {
+          "oid": "fef53a481a55b3bd330e458e51c75f7e7b230f78",
+          "bytes": 3383
+        },
+        "tools/ci/hip_runtime_exports.py": {
+          "oid": "812d46c47bec475b247d73d7aec1b007f343d439",
+          "bytes": 4506
+        },
+        "tools/ci/hipcomp_lz4_entry.py": {
+          "oid": "3e20f8e04ad6af6802a0946e83f96a05a74efd77",
+          "bytes": 8278
+        },
+        "tools/ci/hipcomp_native_sync.py": {
+          "oid": "c82fe2fc76e7482e559280f0adb7cce629963c6c",
+          "bytes": 9944
+        },
+        "tools/ci/hosted_research.py": {
+          "oid": "c9a7c534d48f2eb662e059ad7157cb1fb279d57f",
+          "bytes": 34658
+        },
+        "tools/ci/hosted_semantic.py": {
+          "oid": "d020665dc6a4ab6fb83b41c1ccbf9614690a1a8b",
+          "bytes": 32226
+        },
+        "tools/ci/prepare_hosted_tools.py": {
+          "oid": "035b39dde9eb75f652e16d10098b6d0b6f3a3022",
+          "bytes": 16062
+        },
+        "tools/ci/prepare_winfsp_sdk.ps1": {
+          "oid": "c1eb987bae6267a2e51a0238e9410ef7aa732ece",
+          "bytes": 12259
+        },
+        "tools/ci/probe_store_interruptions.py": {
+          "oid": "469cc805a3771d721fa31731bca9aed304c3ffde",
+          "bytes": 25580
+        },
+        "tools/ci/provision_disposable_winfsp.ps1": {
+          "oid": "4fb2efeeca049010ed675562adc20174ea28d10d",
+          "bytes": 6618
+        },
+        "tools/ci/qualify_hipcomp_candidate.py": {
+          "oid": "77f2ef6847ed5bf2316ea6bf23863ade2117ec1c",
+          "bytes": 21167
+        },
+        "tools/ci/qualify_lz4_store_baseline.py": {
+          "oid": "a1e0526de91e6156d5605507e4dc5ee133589bc5",
+          "bytes": 4522
+        },
+        "tools/ci/qualify_rocm_sdk.py": {
+          "oid": "05c0d38b103dccaeec25e8365111c81f01cd5716",
+          "bytes": 83525
+        },
+        "tools/ci/qualify_warp_sync.py": {
+          "oid": "07858dbcd43611d1efc97315a6ea3cb289aef5a0",
+          "bytes": 8279
+        },
+        "tools/ci/retirement_reference.py": {
+          "oid": "2187bb689d9967d83f7a884f104fe3d2f5ac37bd",
+          "bytes": 23992
+        },
+        "tools/ci/review_crawl_capture.py": {
+          "oid": "161686056a7041055f22a6976f68e8089fcd3023",
+          "bytes": 4800
+        },
+        "tools/ci/source_inventory.py": {
+          "oid": "4894ce54a501e3aaf909dbffb14685430f91cd6a",
+          "bytes": 6311
+        },
+        "tools/ci/stage_hip_worker_bundle.py": {
+          "oid": "3a8164fcd041363f066a208f01449005211d5c7d",
+          "bytes": 5206
+        },
+        "tools/ci/stage_lz4_runtime_bundle.py": {
+          "oid": "1233308ae6a13445514459257282056d84cc634f",
+          "bytes": 7271
+        },
+        "tools/ci/stage_lz4_worker_decoder.py": {
+          "oid": "c6099a9a29612317e73f3dec32e75e65d7170119",
+          "bytes": 4237
+        },
+        "tools/ci/test_bind_installed_amd_package.py": {
+          "oid": "d8dc59b7a627c783d278a687fb43963329dfa858",
+          "bytes": 18343
+        },
+        "tools/ci/test_digest_comparison_reports.py": {
+          "oid": "3dc97d526f6a8b024a1881dc41d71dbba7890a6b",
+          "bytes": 2437
+        },
+        "tools/ci/test_hip_runtime_exports.py": {
+          "oid": "12858092564bcc98b4d7e5004607c78940ece1dd",
+          "bytes": 3902
+        },
+        "tools/ci/test_hipcomp_candidate.py": {
+          "oid": "49078f4f12da0044a994024fb3357a558aa79805",
+          "bytes": 17163
+        },
+        "tools/ci/test_hipcomp_lz4_entry.py": {
+          "oid": "fd669617876697ced3eb233e82d6e1efedf6bb99",
+          "bytes": 8272
+        },
+        "tools/ci/test_hipcomp_native_sync.py": {
+          "oid": "f41fe2e200d71210ee4df59edbd2551591e31008",
+          "bytes": 4848
+        },
+        "tools/ci/test_hosted_research_scope.py": {
+          "oid": "dd15a089174128300e51e96ff7bd040bcb344716",
+          "bytes": 10979
+        },
+        "tools/ci/test_hosted_semantic.py": {
+          "oid": "85b7e31c238e2cb2e8c28690f4787ee5c1362d8a",
+          "bytes": 16816
+        },
+        "tools/ci/test_hosted_tools.py": {
+          "oid": "cd10d08f6ccc43e85f2431eff5666d32fb7803b2",
+          "bytes": 6541
+        },
+        "tools/ci/test_lz4_runtime_bundle.py": {
+          "oid": "51f510eb95d72585d55706a38494df252c39bbc0",
+          "bytes": 6470
+        },
+        "tools/ci/test_lz4_worker_decoder.py": {
+          "oid": "8988a7763a492f3b636f00df09f9a5f0522ba62e",
+          "bytes": 9473
+        },
+        "tools/ci/test_portable_job_lifecycle.py": {
+          "oid": "6d63d7cc0f459d3dd09e868a5ada7857264d1b95",
+          "bytes": 2475
+        },
+        "tools/ci/test_retirement_reference.py": {
+          "oid": "d92c811ee0d2e1993fe00d75783ed4bbe4309a79",
+          "bytes": 13652
+        },
+        "tools/ci/test_source_inventory.py": {
+          "oid": "e94ca39c9d17f830b58854ae5fc9062eeaea9ae2",
+          "bytes": 5639
+        },
+        "tools/ci/test_store_interruption_reports.py": {
+          "oid": "4d7b8b467d80c94ebf6a160fda4e3707bdc0d8fc",
+          "bytes": 11365
+        },
+        "tools/ci/test_warp_sync_probe.py": {
+          "oid": "47861fbf970c3121b026162d2b070ef18d469dd7",
+          "bytes": 5385
+        },
+        "tools/ci/test_windows_space_reports.py": {
+          "oid": "31bc07217ee3ca77597539ba8bfbe4f3eecfaa0b",
+          "bytes": 6533
+        },
+        "tools/ci/test_windows_write_probe.py": {
+          "oid": "8c8144bf4c23c6b9b8e152ca7addbecefd26bc55",
+          "bytes": 16184
+        },
+        "tools/ci/verify_blake3_sources.py": {
+          "oid": "6c6bc211f2d1e642875082fc46f1e37595e9e7d3",
+          "bytes": 4121
+        },
+        "tools/ci/verify_filesystem_scope.py": {
+          "oid": "9c5105792cc838fe7ea026dd795d76ccacd39f3e",
+          "bytes": 1693
+        },
+        "tools/ci/verify_windows_space_reports.py": {
+          "oid": "409b6b98fada7ddae4db0cc7a71fe21aff8d6ab3",
+          "bytes": 11538
+        },
+        "tools/ci/verify_windows_write_probe.py": {
+          "oid": "cc2a3a660fd63bfd8ce9525be47acb8f3524aeb4",
+          "bytes": 14768
+        },
+        "tools/ci/workflow_diagnostics.py": {
+          "oid": "f62a3c2172da5b112080216caf482b8b70ed05ad",
+          "bytes": 7257
+        },
+        "tools/dev/aitdcc2026-corpus.json": {
+          "oid": "ad8b6a0e50c837770dc43bf9e9de1be37bdffe11",
+          "bytes": 3524
+        },
+        "tools/dev/semantic_search.py": {
+          "oid": "ff3f263ccd7a4beef3fbf5f2cd818ad1dcb0d4bd",
+          "bytes": 10106
+        },
+        "tools/dev/stage_aitdcc2026.py": {
+          "oid": "8038908858eb89f376a4b3ac8534b2a84a4f07b6",
+          "bytes": 2389
+        },
+        "tools/dev/stage_native_lz4_decode.py": {
+          "oid": "38a71274b447f8c57edc4fcc476e61319a02d0ad",
+          "bytes": 2268
+        },
+        "tools/dev/test_windows_asan_staging.py": {
+          "oid": "9f42d909ca12a4e7d39c2cc297fb312992db0f3c",
+          "bytes": 6512
+        },
+        "tools/dev/test_windows_run.py": {
+          "oid": "c4115d937ba6e4f1363201b59842906ace1432de",
+          "bytes": 3759
+        },
+        "tools/dev/verify_mounted_client_trace.py": {
+          "oid": "adc60404d410dd507b3983d69054fc8d5ef7b083",
+          "bytes": 5188
+        },
+        "tools/dev/windows_run.py": {
+          "oid": "73dc7edd90b8dbe582b25655d1b529c7701b65dd",
+          "bytes": 18355
+        },
+        "tools/rocm-sdk-lock.json": {
+          "oid": "f2e046fe408556e2496524f77b0be096ddfc3618",
+          "bytes": 806
+        },
+        "tools/winfsp-retirement-sdk-lock.json": {
+          "oid": "0025dc6f9faedc910680b268ddf8b2fe36c09fc8",
+          "bytes": 617
+        },
+        "tools/winfsp-sdk-lock.json": {
+          "oid": "56f532cb2ab9fa51fe1ef25ac4d90e9ec1052af0",
+          "bytes": 550
+        },
+        "tools/winfsp-stable-sdk-lock.json": {
+          "oid": "0394b2b13540d4801cdb8c4b462919163f59742a",
+          "bytes": 616
+        }
+      },
+      "directories": [
+        ".github",
+        ".github/workflows",
+        "cmake",
+        "docs",
+        "docs/architecture",
+        "docs/development",
+        "docs/evidence",
+        "docs/reference",
+        "docs/research",
+        "docs/users",
+        "docs/validation",
+        "evidence",
+        "include",
+        "include/flitzfs",
+        "resources",
+        "resources/brand",
+        "src",
+        "src/gpu",
+        "src/windows",
+        "tests",
+        "tests/fixtures",
+        "tests/rocm_compile",
+        "tests/store_reference",
+        "third_party",
+        "third_party/blake3",
+        "third_party/blake3/c",
+        "third_party/blake3/test_vectors",
+        "tools",
+        "tools/ci",
+        "tools/dev"
+      ]
+    },
+    "previous_review": "614d1bdd0acfdf598bd8e001d07832e28fdd909e",
+    "new_commits": [
+      "ff555097b76b491a2ce950a7e9de7c85ca8834f7",
+      "bfb09115c9c8297d46703517196d5b7b83ae0015",
+      "2d1acbae104a3819d1420187bcb3e1b4e687d25c",
+      "e360b468a6aad686b3f1c3291c4d9f65f46acbba"
+    ],
+    "modified_paths_since_review": [
+      "docs/DEVELOPMENT_PLAN.json",
+      "docs/DEVELOPMENT_STATE.json",
+      "docs/IMPLEMENTATION_PLAN.md",
+      "docs/INDEXED_NATIVE_VOLUME.md",
+      "docs/NATIVE_AMD_LZ4_READ.md",
+      "docs/RELEASE_EXECUTION_PLAN.md",
+      "docs/RELEASE_RECONCILIATION_2026-11-25.md",
+      "docs/REPOSITORY_OVERVIEW.md",
+      "docs/STAGED_PAGED_REBUILD.md",
+      "docs/architecture/CURRENT.md",
+      "docs/architecture/REVIEW.md",
+      "docs/architecture/TARGET.md",
+      "docs/evidence/indexed-coherence-lookup-pages-2026-11-25.json",
+      "docs/evidence/release-reconciliation-rolling-lookups-2026-11-25.json",
+      "docs/evidence/windows-amd-mixed-width-live-2026-11-25.json",
+      "docs/evidence/windows-amd-variable-group-demand-2026-11-25.json",
+      "docs/evidence/windows-bank-spanning-mounted-replay-2026-11-25.json",
+      "docs/evidence/windows-bank-spanning-verification-2026-11-25.json",
+      "include/flitzfs/paged_store.hpp",
+      "src/native_maintenance.cpp",
+      "src/paged_store.cpp",
+      "src/windows/winfsp_native.cpp",
+      "tests/test_native_group_maintenance.cpp",
+      "tests/test_staged_paged_rebuild.cpp",
+      "tests/test_winfsp_paged.cpp"
+    ],
+    "control": {
+      "parent": "ff555097b76b491a2ce950a7e9de7c85ca8834f7",
+      "base_tree": "d7ce4ace5122b0babcac9b5f53362071ccb7c7e4",
+      "tree": "9981da89e025dedbaecdb71eaed7c526821ff4eb",
+      "elements": [
+        {
+          "path": "include/flitzfs/native_session.hpp",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "919fd0134f58cf898c00e33f19c9c9e2c9533351",
+          "bytes": 35977
+        },
+        {
+          "path": "src/native_session.cpp",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "a430516f5d83c33b24a60f7909d9c8aadda98b37",
+          "bytes": 123129
+        },
+        {
+          "path": "tests/test_native_group_maintenance.cpp",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "9b2e1b824adc533253a469edec01402bd5f660c7",
+          "bytes": 224620
+        }
+      ]
+    },
+    "candidate": {
+      "parent": "ff555097b76b491a2ce950a7e9de7c85ca8834f7",
+      "base_tree": "d7ce4ace5122b0babcac9b5f53362071ccb7c7e4",
+      "tree": "59c8b570b1c9be823c3d35a6458139c5b22c8076",
+      "elements": [
+        {
+          "path": "CMakeLists.txt",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "b1901782938980bc83778887f2ba86af3b4062ca",
+          "bytes": 97753
+        },
+        {
+          "path": "include/flitzfs/native_session.hpp",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "919fd0134f58cf898c00e33f19c9c9e2c9533351",
+          "bytes": 35977
+        },
+        {
+          "path": "src/native_session.cpp",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "a430516f5d83c33b24a60f7909d9c8aadda98b37",
+          "bytes": 123129
+        },
+        {
+          "path": "src/paged_store.cpp",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "a6f38cf1d3fbfd7bca338843bfb7a6a9b64d6d51",
+          "bytes": 146548
+        },
+        {
+          "path": "src/windows/winfsp_controller.cpp",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "4069fa2b48c99120ef9eae04c2de04ecdc6a0f13",
+          "bytes": 62361
+        },
+        {
+          "path": "src/windows/winfsp_controller.hpp",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "f7548cc7af620e1b63c60c3376d67f081c07ac0b",
+          "bytes": 4688
+        },
+        {
+          "path": "src/windows/winfsp_native.cpp",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "52a555e353572d7d75e612deab432c0f621cd038",
+          "bytes": 109656
+        },
+        {
+          "path": "src/windows/winfsp_native.hpp",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "99e0ceafd43252b87935b344006cf26fd8cdfbbb",
+          "bytes": 15607
+        },
+        {
+          "path": "tests/test_native_group_maintenance.cpp",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "59792ad086f486b27ab067aefd01eb9c62d77d6c",
+          "bytes": 227064
+        },
+        {
+          "path": "tests/windows_volume_app_tests.cpp",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "b6fde1d10750dafc6faa1a6ee17fa89d40abcdcb",
+          "bytes": 133694
+        }
+      ]
+    }
+  },
+  "fixture": {
+    "workload": "192 short files from deterministic vocabulary stream, mirrored 4 KiB isolation contract",
+    "foreground": "automatic Zstandard level 1",
+    "mode": "reconcile_foreground",
+    "before": {
+      "files": 192,
+      "objects": 392,
+      "copy_steps": 215,
+      "copy_reads": 1755,
+      "copy_writes": 1092,
+      "copy_write_bytes": 1130496,
+      "source_payload": 1030838,
+      "target_payload": 1028682,
+      "target_extent": 1335296,
+      "selector_extent": 131072,
+      "exact_cpu": 1,
+      "blake3": "bf7818e29d89412718e836a85834513bbedf1631b12bd4af5a7b5e11c3103015"
+    },
+    "after": {
+      "files": 192,
+      "objects": 392,
+      "copy_steps": 42,
+      "copy_reads": 1027,
+      "copy_writes": 362,
+      "copy_write_bytes": 1130496,
+      "source_payload": 1030838,
+      "target_payload": 1028682,
+      "target_extent": 1335296,
+      "selector_extent": 131072,
+      "exact_cpu": 1,
+      "blake3": "bf7818e29d89412718e836a85834513bbedf1631b12bd4af5a7b5e11c3103015"
+    },
+    "logical_scope": "CPU image, retained source and independent selector reopen",
+    "modeled_torn_private_write_old_data_verified": true,
+    "counts_only": true
+  },
+  "validation": {
+    "release": {
+      "exit_code": 0,
+      "peak_job_bytes": 118132736,
+      "physical_available_bytes": 10267893760,
+      "memory_bytes": 749731840,
+      "exit_confirmed": true,
+      "inherited_error_mode": 32771,
+      "residual_children": 0,
+      "tree_retired": true,
+      "supervisor_sha256": "ae62c0b137fb59ab97ebfde2ceda80f61276b4b96231291431ba2f1178298ccd",
+      "log_sha256": "41e170afd02b6bd42948ec225da23a825528eddd47211a4201b0a2c60a98a465",
+      "ctest_details_sha256": "9de77d2a06939d43daebcaeea0d4a24c0df010a482f1e6ec2833ae9e76407c72"
+    },
+    "raw_initial": {
+      "exit_code": 8,
+      "peak_job_bytes": 37535744,
+      "physical_available_bytes": 8157618176,
+      "memory_bytes": 387973120,
+      "exit_confirmed": true,
+      "inherited_error_mode": 32771,
+      "residual_children": 0,
+      "tree_retired": true,
+      "supervisor_sha256": "1b08ed37bd4551af26ae505cc7ad42dedb74716dc89b7c9b20bf36d1016151af",
+      "log_sha256": "eb42646aa071b3ea3329ad34c02ab6b68a83465be304a15d99d2e83863444206"
+    },
+    "raw_retry": {
+      "exit_code": 0,
+      "peak_job_bytes": 58093568,
+      "physical_available_bytes": 28343906304,
+      "memory_bytes": 1503657984,
+      "exit_confirmed": true,
+      "inherited_error_mode": 32771,
+      "residual_children": 0,
+      "tree_retired": true,
+      "supervisor_sha256": "d5f02e547dbfd8cb369879a6a63e161ddb6901872c85f286695bdf4c830adf7d",
+      "log_sha256": "4d574ead6d3c8cad7ffcad4f1197cdadd6da846f5d1913853cb40b59b06a623f"
+    },
+    "asan_initial_build": {
+      "exit_code": 1,
+      "peak_job_bytes": 598798336,
+      "physical_available_bytes": 7866257408,
+      "memory_bytes": 598736896,
+      "exit_confirmed": true,
+      "inherited_error_mode": 32771,
+      "residual_children": 4,
+      "tree_retired": true,
+      "supervisor_sha256": "e259fbe5618e3d178648043f14f23b3f0639509261e8acaedaa01d3e9d4ae8de",
+      "log_sha256": "f61edc2ab3af1434a25a864804e7cca6a71a593e1846a4716316b5004e01ab0c"
+    },
+    "asan_retry_build": {
+      "exit_code": 0,
+      "peak_job_bytes": 715321344,
+      "physical_available_bytes": 28173455360,
+      "memory_bytes": 2389704704,
+      "exit_confirmed": true,
+      "inherited_error_mode": 32771,
+      "residual_children": 1,
+      "tree_retired": true,
+      "supervisor_sha256": "5875f060abbc30229d5c1d9e0b07785a8ffd9b85fc16195f7e705c63c1fce22f",
+      "log_sha256": "b292700e163df87386fce332c9b5de188b202d2b4db0dc91546d2dfc1bd97e3c"
+    },
+    "asan": {
+      "exit_code": 0,
+      "peak_job_bytes": 440315904,
+      "physical_available_bytes": 25254572032,
+      "memory_bytes": 1747976192,
+      "exit_confirmed": true,
+      "inherited_error_mode": 32771,
+      "residual_children": 0,
+      "tree_retired": true,
+      "supervisor_sha256": "4f277a028e4d6b8dc5788bcf87714cbf43b6c4ae434ca39c55eacebff30f0374",
+      "log_sha256": "d25ab276c3593fbd2d2804ced5d4e791cf31bd72147231305b517e95db735c92",
+      "runtime_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed",
+      "ctest_details_sha256": "358a8b3893c96e5df728fc222faf8b995b8e492c6dcbb50e11f2dd106ee49cab"
+    }
+  },
+  "mounted": {
+    "scope": "signed disposable correctness only",
+    "status": "completed",
+    "supervisor": {
+      "exit_code": 0,
+      "peak_job_bytes": 47763456,
+      "physical_available_bytes": 29772697600,
+      "memory_bytes": 2124414976,
+      "exit_confirmed": true,
+      "inherited_error_mode": 32771,
+      "residual_children": 0,
+      "tree_retired": true,
+      "supervisor_sha256": "b8867b93ee264b7a14adb9aad46310611606e37419b2fede875822d3b7f6da9c",
+      "log_sha256": "d907b327e67686193178111fed8caa7f62509a84129153ed35fc7dd85bd0fecf"
+    },
+    "trace": {
+      "sha256": "a819bc8c0ba49580f45c3985470cbf88f3934aa3ac88cb910c4b72b72a984af1",
+      "bytes": 1134259,
+      "records": 6293,
+      "files": 1027,
+      "logical_bytes": 2291854,
+      "cycles": 3,
+      "independent_population_blake3": "24b7b9b2afa3ee9c8043d757ccb4229c4321e8af5352b9800d6a599b8b70faa4",
+      "counts": {
+        "conflicting_open": 1,
+        "cpu_verified": 3,
+        "create": 1030,
+        "enumerate": 3,
+        "flush": 1077,
+        "flush_cached": 3,
+        "flush_mapped": 4,
+        "flush_view": 4,
+        "held_read": 3,
+        "lookup_deleted": 2,
+        "mkdir": 1,
+        "overwrite_open": 1,
+        "range_read": 3,
+        "read": 3076,
+        "rename_replace": 1,
+        "unlink": 2,
+        "write": 1079
+      }
+    },
+    "previous_controller": {
+      "allocated_before": 832962560,
+      "allocated_after": 834011136,
+      "allocated_while_attached": 834797568,
+      "eof_while_attached": 834011136,
+      "quiescent": 0,
+      "preselected": 0,
+      "quanta": 69,
+      "continued_compaction": 493,
+      "publications": 0,
+      "continued_range_retirement": 0,
+      "continued_packed_tail": 0,
+      "compaction_failures": 0,
+      "disabled": 0,
+      "host_state": 1,
+      "backing_limited": 15,
+      "read_calls": 5458,
+      "read_bytes": 7096119,
+      "write_calls": 1268,
+      "write_bytes": 1828142,
+      "flush_calls": 0,
+      "phase_idle": 0,
+      "phase_scanning": 0,
+      "phase_candidates": 0,
+      "phase_preparing": 64,
+      "phase_publishing": 0,
+      "phase_deferred": 5,
+      "phase_failed": 0,
+      "deferral_none": 64,
+      "deferral_observation": 5,
+      "deferral_foreground": 0,
+      "deferral_cpu": 0,
+      "deferral_memory": 0,
+      "deferral_duty": 0,
+      "deferral_other_maintenance": 0,
+      "deferral_capacity": 0,
+      "step_copying": 557,
+      "step_ready": 0,
+      "step_published": 0,
+      "step_retiring": 0,
+      "step_pinned": 0,
+      "step_failed": 0,
+      "retired": 1
+    },
+    "candidate_controller": {
+      "allocated_before": 845807616,
+      "allocated_after": 849608704,
+      "allocated_while_attached": 849739776,
+      "eof_while_attached": 849608704,
+      "quiescent": 0,
+      "preselected": 0,
+      "quanta": 62,
+      "continued_compaction": 331,
+      "publications": 0,
+      "continued_range_retirement": 0,
+      "continued_packed_tail": 0,
+      "compaction_failures": 0,
+      "disabled": 0,
+      "host_state": 1,
+      "backing_limited": 17,
+      "read_calls": 6024,
+      "read_bytes": 11496334,
+      "write_calls": 410,
+      "write_bytes": 6402956,
+      "flush_calls": 0,
+      "phase_idle": 0,
+      "phase_scanning": 0,
+      "phase_candidates": 0,
+      "phase_preparing": 54,
+      "phase_publishing": 0,
+      "phase_deferred": 8,
+      "phase_failed": 0,
+      "deferral_none": 54,
+      "deferral_observation": 8,
+      "deferral_foreground": 0,
+      "deferral_cpu": 0,
+      "deferral_memory": 0,
+      "deferral_duty": 0,
+      "deferral_other_maintenance": 0,
+      "deferral_capacity": 0,
+      "step_copying": 385,
+      "step_ready": 0,
+      "step_published": 0,
+      "step_retiring": 0,
+      "step_pinned": 0,
+      "step_failed": 0,
+      "rebuild_verifying_source": 250,
+      "rebuild_copying": 134,
+      "rebuild_verifying_target": 0,
+      "rebuild_publishing": 0,
+      "rebuild_verifying_publication": 0,
+      "rebuild_ready": 0,
+      "rebuild_failed": 0,
+      "rebuild_building_index": 0,
+      "rebuild_awaiting_charge": 0,
+      "rebuild_reconciling": 0,
+      "rebuild_verifying_reconciliation": 0,
+      "rebuild_screening_compression": 0,
+      "rebuild_declined": 0,
+      "retired": 1
+    },
+    "completion": {
+      "backing": "packed",
+      "cycles": 3,
+      "delete_regrow": 2,
+      "continued_writes": 1,
+      "both_leases_retired": 1
+    },
+    "windows": {
+      "caption": "Microsoft Windows 11 Enterprise",
+      "version": "10.0.26100",
+      "build": "26100",
+      "session": 0,
+      "ram_mib": 4094,
+      "available_mib": 3065,
+      "explorer_sessions": []
+    },
+    "guest_memory_mib": 4096,
+    "host_available_at_admission_bytes": 29754183680,
+    "host_reserve_bytes": 4294967296,
+    "verified_signed_dependencies": 6,
+    "artifacts": {
+      "flitzfs_volume_app.exe": "dcbacb764672f755cba91463fe41cf551566154e45d91d4c20ab20fced48ae82",
+      "flitzfs_volume_app_tests.exe": "d83bb9487028e14554c69f034c5de13cebda2d9d5dac82a60ec3bef5096530d2",
+      "flitzfs_volume_attachment_tests.exe": "b38e38775c2252d9c8ea68ea10dff33fb58314dd43f2cb65d0519f545aab6dfd",
+      "winfsp-x64.dll": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+      "winfsp-x64.sys": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+      "msvcp140.dll": "59d325227321d52b9a523ea401ce6787a5d59f78229a0ff3a6f124e5d3445685",
+      "msvcp140_atomic_wait.dll": "8b10c6bd4c3c427ce7c8be96ef0fef0f8187bc236962be62a03caef834b37dcd",
+      "vcruntime140.dll": "eb1ee979bf02324712346e5bdbfc59c785388bc50d18cc2688aae4b0734915a0",
+      "vcruntime140_1.dll": "a14b4a42a2c6df04d6d53a8340816023d953406f7f3d94996c7cab30c414ff63"
+    },
+    "signed_result_sha256": "77e2f753d0a54e844a911b77b45c8c5b477e765a9999bd469ef1ad4d322aa736",
+    "manifest_sha256": "2f0f181e157ae9824827130d23a191b9c0c1f395161f637b14c7aebf9864b085",
+    "final_guest_inventory_clear": true,
+    "remaining_mounts": 0,
+    "fixture_app_processes_remaining": 0
+  },
+  "routing": {
+    "receipt_sha256": "77a1d6395822ec127e015b903d45729b0a8e9d6f3a28d9b3632d2e67ab0a4101",
+    "native_sha256": "2749a4bb8d4f8813b0624e7e70da1dc8bf999571713cbbc7039e4842c1e29477",
+    "actual_searches": 1
+  },
+  "online_research": [
+    {
+      "receipt_sha256": "b5629e7a02415f76f85224daabaee2e96f6251534451eab2c68aad5177d48866",
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "pages": [
+        {
+          "name": "fast26-hats",
+          "url": "https://www.usenix.org/conference/fast26/presentation/ren",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "markdown_bytes": 10391,
+          "markdown_sha256": "6c31ae6db8f62821180c6215ec6f8bc2ddfa62e2e50d558854908d4a2a2da718",
+          "capture_sha256": "c70ea3133f56020f0553071fc617be3247853125bbc2afb848552236c5b3a227",
+          "error": "",
+          "failure_category": ""
+        },
+        {
+          "name": "win32-buffering",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/fileio/file-buffering",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "markdown_bytes": 27477,
+          "markdown_sha256": "8c7df8b9311f38ee5a706876f9c5a822390399b03b46cb43854c0f075f087091",
+          "capture_sha256": "34e4a74657479a63a880b4b0a721ba141b527d48ff2cd884852f75b8768e6198",
+          "error": "",
+          "failure_category": ""
+        },
+        {
+          "name": "fast26-grouped-io",
+          "url": "https://www.usenix.org/conference/fast26/presentation/hao",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "markdown_bytes": 10512,
+          "markdown_sha256": "820a9ee444cf22d9cde18168f00dc9668867c5b646e2707343e36515b38fe3c8",
+          "capture_sha256": "4e141a455a0310252f94eb5f2288a68c4d4de50b03a1188e982f2a60dfad46f8",
+          "error": "",
+          "failure_category": ""
+        }
+      ]
+    },
+    {
+      "receipt_sha256": "17f10a109b93964a9f8590216e20c2bf88d45d2454a8af80030739cfe9ccc026",
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "pages": [
+        {
+          "name": "xll",
+          "url": "https://www.usenix.org/conference/nsdi26/presentation/shawger",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "markdown_bytes": 8836,
+          "markdown_sha256": "690441a6f74b9072f40c7be048f631b89e74051b9c46d493858f18f190c9999c",
+          "capture_sha256": "d98f9083aa78f7585415b6bf7ea9d7b01f772467f2b443adb2f36fbd90e349b5",
+          "error": "",
+          "failure_category": ""
+        },
+        {
+          "name": "diskspd-releases",
+          "url": "https://github.com/microsoft/diskspd/releases",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "markdown_bytes": 20962,
+          "markdown_sha256": "f14fd0238788c301d60382649f066a04f0540ade1aa7ead603e4fb5fdbfdae04",
+          "capture_sha256": "1911e6c4d7f5aa817c7733eb411aea7621fddc0661aa8fcab857be1f5979f624",
+          "error": "",
+          "failure_category": ""
+        },
+        {
+          "name": "diskspd-parameters",
+          "url": "https://github.com/microsoft/diskspd/wiki/Command-line-and-parameters",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "markdown_bytes": 28213,
+          "markdown_sha256": "22c5032f30512bbf572a236f884cf0613e420c217dcc52b1a1ab5e48d95fe3d8",
+          "capture_sha256": "2f2ab15fe724b9ba30095fa0314bd7b087657b4334d10ff42546bc4d83fb9bb0",
+          "error": "",
+          "failure_category": ""
+        },
+        {
+          "name": "specworkstation",
+          "url": "https://gwpg.spec.org/benchmarks/benchmark/specworkstation-4_0/",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "markdown_bytes": 23433,
+          "markdown_sha256": "d2459bd1b4aa776b4c29ee4ec4b1257e54076c0b47f3e59b880c543f68fba6a5",
+          "capture_sha256": "99f96ac61c1000152f0cc06e3b151263c277f46f963700c984518d6b1c06ecf9",
+          "error": "",
+          "failure_category": ""
+        },
+        {
+          "name": "rocm-paths",
+          "url": "https://rocm.docs.amd.com/en/latest/install/rocm.html",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "markdown_bytes": 225407,
+          "markdown_sha256": "41df16185cfb67ea60406bc8d817e7e74289f35268c6b4f5f9e3a6622d8fd029",
+          "capture_sha256": "70c306e3c3fc8a3bfec1018910aeedd3f6d1a09cbe1e1d069daead62f66339de",
+          "error": "",
+          "failure_category": ""
+        },
+        {
+          "name": "hip-windows-requirements",
+          "url": "https://rocm.docs.amd.com/projects/install-on-windows/en/latest/reference/system-requirements.html",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "markdown_bytes": 9282,
+          "markdown_sha256": "1308840c706894114b51bd5e9a761963a1dac920bd46a1ec54b3dd57055e1d18",
+          "capture_sha256": "c5fdd9b2ae5cbe449513dff4e760c016e156b1fb5616c3e95ab4bba36b7dd086",
+          "error": "",
+          "failure_category": ""
+        },
+        {
+          "name": "ntfs-compression",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/fileio/compression-state",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "markdown_bytes": 19802,
+          "markdown_sha256": "e974daeccb546410cea8a472ca9f793c6f2206e7fc66ee921499a001bbae6bb6",
+          "capture_sha256": "61c4e6a9dcdb436dbf3f1f3d7473f3a4aaae42ac299bf1d598f319578d97e057",
+          "error": "",
+          "failure_category": ""
+        }
+      ]
+    },
+    {
+      "receipt_sha256": "ac4f60d0c4e3ed784b89ece3fa845ad4ec9793b08315708b31a4d1745c962ed9",
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "pages": [
+        {
+          "name": "spec-workload",
+          "url": "https://github.com/SPEC-GWPG-Dev/SPECgwpg-Docs/blob/main/SPECworkstation4/SPECworkstation4-Workload-Documentation.md",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "markdown_bytes": 47824,
+          "markdown_sha256": "7522c6de6417eb50a197aa662072cf98f9f3fe5114939808ceff9a2078db6ddf",
+          "capture_sha256": "7ade5f86681274dd9bdf0a840f82f64c5363fd714085380d924e49d6e9925a68",
+          "error": "",
+          "failure_category": ""
+        },
+        {
+          "name": "hip-async",
+          "url": "https://rocm.docs.amd.com/projects/HIP/en/latest/how-to/hip_runtime_api/asynchronous.html",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "markdown_bytes": 48031,
+          "markdown_sha256": "f759d4daf5591e906a8a97078b14f50a10685a36abccd66ca36182ac34581488",
+          "capture_sha256": "163cabc5491ddf289fff49979d4fd302dc9e6e304c5f6dc0c5f4365886cb7dae",
+          "error": "",
+          "failure_category": ""
+        },
+        {
+          "name": "hip-sdk-release",
+          "url": "https://rocm.docs.amd.com/projects/install-on-windows/en/latest/about/releasenotes.html",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "markdown_bytes": 8475,
+          "markdown_sha256": "d024e28cf80b387e10361fecf1c1ca965c94b4788fab2ba6864922352f949f06",
+          "capture_sha256": "1ce4ec2fc027f6a39b525e161b70851894dfe13f33316dd10843b37a090596d8",
+          "error": "",
+          "failure_category": ""
+        }
+      ]
+    }
+  ],
+  "release_gates_open": [
+    "S1",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S6",
+    "S7",
+    "S8",
+    "S9",
+    "S10",
+    "S11",
+    "S12"
+  ],
+  "remaining_effort_person_weeks": [
+    59,
+    127
+  ],
+  "unqualified": [
+    "installed-host AMD performance",
+    "real-device power interruption",
+    "enterprise release",
+    "held-out occupied-size superiority"
+  ],
+  "documentation_validation": {
+    "plan_packages": 13,
+    "numbered_steps": 156,
+    "release_gates": 12,
+    "resolved_relative_links": 541,
+    "source_tree_verified": true,
+    "json_duplicate_keys": 0,
+    "exact_runtime_files": 10,
+    "matched_client_operations": 6293,
+    "diagrams": {
+      "docs/architecture/CURRENT.md": [
+        "flowchart-v2",
+        "stateDiagram",
+        "sequence",
+        "flowchart-v2",
+        "flowchart-v2",
+        "sequence",
+        "flowchart-v2",
+        "flowchart-v2",
+        "flowchart-v2",
+        "sequence",
+        "flowchart-v2",
+        "flowchart-v2",
+        "flowchart-v2",
+        "sequence",
+        "flowchart-v2"
+      ],
+      "docs/architecture/TARGET.md": [
+        "flowchart-v2",
+        "sequence",
+        "stateDiagram",
+        "flowchart-v2",
+        "flowchart-v2",
+        "flowchart-v2"
+      ]
+    }
+  }
+}

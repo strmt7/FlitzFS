@@ -234,7 +234,8 @@ class NativeFileSession final {
   // Cached funding and source checks. The screened copy still needs freshly
   // admitted idle work and a durable reservation before it writes a candidate.
   bool idle_cold_compaction_pending() const noexcept;
-  // Inspect the staged phase and source token without backing I/O.
+  // Observe the current matching idle paged candidate without backing I/O.
+  std::optional<PagedRewriteProgress> idle_compaction_progress() const noexcept;
   bool idle_compaction_preparation_pending() const noexcept;
   // Requires a ready idle candidate and a separate quiet publication window.
   // An empty result indicates measured savings did not justify a handoff.

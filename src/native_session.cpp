@@ -1451,20 +1451,27 @@ bool NativeFileSession::begin_idle_compaction_impl(std::shared_ptr<StoreByteIo> 
   return true;
 }
 
+std::optional<PagedRewriteProgress> NativeFileSession::idle_compaction_progress() const noexcept {
+  if(poisoned() || !impl_->recompression || !impl_->recompression->idle)return std::nullopt;
+  const auto* work=std::get_if<PagedObjectStoreWriter::Rewrite>(&impl_->recompression->work);
+  if(!work || !impl_->writer.matches_paged_recompression(*work))return std::nullopt;
+  return work->progress();
+}
+
 bool NativeFileSession::idle_compaction_preparation_pending() const noexcept {
   if(poisoned())return false;
   if(!impl_->recompression)
     return impl_->persistent_reclaimer && impl_->persistent_reclaimer->seal_preparation_pending(*this);
-  if(!impl_->recompression->idle)return false;
-  const auto* work=std::get_if<PagedObjectStoreWriter::Rewrite>(&impl_->recompression->work);
-  if(!work || !impl_->writer.matches_paged_recompression(*work))return false;
+  const auto progress=idle_compaction_progress();
+  if(!progress)return false;
   using Phase=PagedRewritePhase;
-  const auto phase=work->progress().phase;
+  const auto phase=progress->phase;
   return phase==Phase::verifying_source || phase==Phase::copying || phase==Phase::building_index ||
       phase==Phase::verifying_target || phase==Phase::verifying_publication ||
       phase==Phase::screening_compression ||
       phase==Phase::reconciling || phase==Phase::verifying_reconciliation ||
-      (phase==Phase::ready && !impl_->writer.paged_recompression_ready(*work));
+      (phase==Phase::ready && !impl_->writer.paged_recompression_ready(
+          std::get<PagedObjectStoreWriter::Rewrite>(impl_->recompression->work)));
 }
 
 std::optional<StoreRecompressionInput> NativeFileSession::next_recompression_input() const {

@@ -53,6 +53,113 @@ struct Fixture {
     require(snapshot.read("f"+std::to_string(i),0,kNativeExtentBytes)==family(i),"automatic grouping changed bytes");snapshot.verify_all();}
 };
 
+void indexed_cold_batch_copy() {
+  if(!store_zstd_available()) {
+    std::cout<<"indexed_cold_copy skipped=zstd_unavailable\n";
+    return;
+  }
+  constexpr StoreCompressionOptions foreground{StoreCompressionMode::automatic,1,true};
+  constexpr std::size_t file_count=192,file_bytes=3072;
+  const PagedStoreLimits limits{kStoreMaxPhysicalBytes};
+  const auto corpus=cold_test_payload();
+  Fixture f(4096,0,true,foreground);
+  const auto path=[](std::size_t number){return "short-"+std::to_string(number);};
+  const auto content=[&](std::size_t number){return std::span(corpus).subspan(number*file_bytes,file_bytes);};
+  for(std::size_t i=0;i<file_count;++i) {
+    const auto bytes=content(i);
+    put(*f.session,path(i),Bytes(bytes.begin(),bytes.end()));
+  }
+  const auto retained=f.session->snapshot();
+  const auto source_objects=PagedObjectStoreSnapshot::open(f.image,limits);
+  const auto source=source_objects.info();
+  const auto records=source_objects.list_page(0,static_cast<std::size_t>(source.objects));
+  const auto cold_begin=std::find_if(records.begin(),records.end(),[](const auto& record) {
+    return record.id>detail::kNativeIndexedDataObject;
+  });
+  require(cold_begin!=records.end(),"short-file cold copy has no data records");
+  const auto first_cold=static_cast<std::uint64_t>(std::distance(records.begin(),cold_begin));
+  const auto target=ram(4096);
+  require(!f.session->idle_compaction_progress(),"no idle copy should be visible before staging");
+  using Progress=NativeFileSession::RecompressionProgress;
+  {
+    Fixture cut(image(f.head->stable,4096),image(f.image->stable,4096),foreground);
+    const auto interrupted=ram(4096);
+    require(cut.session->begin_idle_compaction(interrupted,id(5),PagedRewriteMode::reconcile_foreground),
+        "interrupted cold rewrite did not start");
+    for(unsigned i=0;i<4000;++i) {
+      const auto progress=cut.session->idle_compaction_progress();
+      require(progress.has_value(),"interrupted cold rewrite lost its progress");
+      if(progress->phase==PagedRewritePhase::copying && progress->completed_in_phase>=first_cold)break;
+      require(cut.session->advance_recompression()==Progress::copying,"cold rewrite skipped its private copy");
+    }
+    const auto progress=cut.session->idle_compaction_progress();
+    require(progress && progress->phase==PagedRewritePhase::copying && progress->completed_in_phase>=first_cold &&
+        progress->completed_in_phase<records.size() &&
+        records[static_cast<std::size_t>(progress->completed_in_phase)].id<2*detail::kNativeIndexedDataObject,
+        "cold rewrite did not reach its private data copy");
+    interrupted->fail_at=interrupted->calls;
+    interrupted->failure=1;
+    rejects([&]{(void)cut.session->advance_recompression();},"torn cold batch did not fail");
+    ++faults;
+    require(!cut.session->idle_compaction_progress(),"failed cold batch survived");
+    const auto old_image=image(cut.image->stable,4096);
+    const auto old=NativeVolumeHeadView::open(image(cut.head->stable,4096),id(90),
+        [&](const auto& key)->std::shared_ptr<StoreByteIo>{return key==id(1)?old_image:nullptr;});
+    const auto first=content(0);
+    require(old.info().selection.image_identity==id(1) &&
+        old.filesystem().read(path(0),0,file_bytes)==Bytes(first.begin(),first.end()),
+        "private cold batch failure changed acknowledged selection or data");
+    old.filesystem().verify_all();
+  }
+  require(f.session->begin_idle_compaction(target,id(5),PagedRewriteMode::reconcile_foreground),
+      "short-file cold rewrite did not start");
+  std::uint64_t copy_steps=0,copy_reads=0,copy_writes=0,copy_write_bytes=0;
+  auto result=Progress::copying;
+  for(unsigned i=0;i<4000 && result==Progress::copying;++i) {
+    const auto progress=f.session->idle_compaction_progress();
+    require(progress.has_value(),"staged idle copy lost its progress");
+    const auto reads=f.image->read_calls+target->read_calls;
+    const auto writes=target->writes;
+    const auto written=target->write_bytes;
+    result=f.session->advance_recompression();
+    if(progress->phase==PagedRewritePhase::copying) {
+      ++copy_steps;
+      copy_reads+=f.image->read_calls+target->read_calls-reads;
+      copy_writes+=target->writes-writes;
+      copy_write_bytes+=target->write_bytes-written;
+    }
+  }
+  require(result==Progress::ready,"short-file cold rewrite never became ready");
+  require(copy_steps<file_count/2,"eligible short files bypassed bounded batch copy");
+  require(f.session->publish_idle_recompression().has_value(),"short-file cold rewrite did not publish");
+  require(!f.session->idle_compaction_progress(),"published candidate was still reported as active");
+  const auto target_objects=PagedObjectStoreSnapshot::open(target,limits).info();
+  require(target_objects.objects==source.objects && target_objects.stored_payload_bytes<source.stored_payload_bytes,
+      "cold copy did not reduce preserved object payloads");
+  const auto reopened=NativeVolumeHeadView::open(f.head,id(90),
+      [&](const auto& key)->std::shared_ptr<StoreByteIo>{return key==id(5)?target:key==id(1)?f.image:nullptr;});
+  require(reopened.info().selection.image_identity==id(5),"CPU reopen did not select the cold copy");
+  reopened.filesystem().verify_all();
+  retained.verify_all();
+  for(std::size_t i=0;i<file_count;++i) {
+    const auto bytes=content(i);
+    const Bytes expected(bytes.begin(),bytes.end());
+    require(reopened.filesystem().read(path(i),0,file_bytes)==expected,"CPU reopen changed short-file data");
+    require(retained.read(path(i),0,file_bytes)==expected,"cold copy changed pinned source data");
+  }
+  std::cout<<"indexed_cold_copy files="<<file_count<<" objects="<<target_objects.objects
+      <<" copy_steps="<<copy_steps<<" copy_reads="<<copy_reads<<" copy_writes="<<copy_writes
+      <<" copy_write_bytes="<<copy_write_bytes<<" source_payload="<<source.stored_payload_bytes
+      <<" target_payload="<<target_objects.stored_payload_bytes<<" target_extent="<<target->extent()
+      <<" selector_extent="<<f.head->extent()<<" exact_cpu=1 blake3=";
+  constexpr std::string_view hex="0123456789abcdef";
+  for(const auto value:detail::record_digest(target->live)) {
+    const auto byte=std::to_integer<unsigned>(value);
+    std::cout<<hex[byte>>4]<<hex[byte&15U];
+  }
+  std::cout<<'\n';
+}
+
 void indexed_candidate_yield_order() {
   if(!store_zstd_available())return;
   constexpr StoreCompressionOptions compression{StoreCompressionMode::automatic,3,true};
@@ -3616,7 +3723,9 @@ void indexed_scan_checkpoint_faults() {
 }
 }
 int main(int argc,char** argv){try{
-  if(argc==2 && std::string_view(argv[1])=="--indexed-resume") {
+  if(argc==2 && std::string_view(argv[1])=="--indexed-cold-copy") {
+    indexed_cold_batch_copy();
+  } else if(argc==2 && std::string_view(argv[1])=="--indexed-resume") {
     persistent_indexed_scan();
     retain_distant_indexed_candidate();
     retain_distant_indexed_candidate(true);

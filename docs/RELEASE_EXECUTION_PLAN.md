@@ -1,14 +1,14 @@
 # FlitzFS stable release execution plan
 
-The 25 November review reconciles the 1,089-path parent
-`614d1bdd0acfdf598bd8e001d07832e28fdd909e` and the rolling lookup candidate.
+The latest 25 November review reconciles the 1,095-path parent
+`ff555097b76b491a2ce950a7e9de7c85ca8834f7` and the bounded cold-copy candidate.
 The previous populated retirement and signed replay remain controls for
-the next mounted qualification. The implementation order identifies where
-settlement, AMD, complete compression and startup evidence can each change
-the product direction.
+the next mounted qualification. The implementation order pairs mounted
+settlement with measured AMD delivery, protected compression and scalable
+writable attach.
 [Current reconciliation](RELEASE_RECONCILIATION_2026-11-25.md) ·
 [Ordered milestones](RELEASE_RECONCILIATION_2026-11-25.md#ordered-implementation-and-decision-points) ·
-[Source and validation receipt](evidence/release-reconciliation-rolling-lookups-2026-11-25.json) ·
+[Source and validation receipt](evidence/windows-indexed-cold-batched-copy-2026-11-25.json) ·
 [Previous mounted receipt](evidence/windows-mounted-range-retirement-2026-11-24.json)
 Use the [repository overview](REPOSITORY_OVERVIEW.md) for the product snapshot,
 the [current architecture](architecture/CURRENT.md) and [target architecture](architecture/TARGET.md)
@@ -494,8 +494,12 @@ reconciliation fixture. Batched mirrored copy further reduces calls and
 advances with unchanged image bytes on two source layouts. The populated
 runs compare mounted observation with detached reclamation. Both detached
 owners published compact images and independently verified all bytes. The
-current signed guest stopped at memory admission before the client launched.
-[Current copy evidence](evidence/windows-batched-staged-copy-2026-11-25.json)
+latest signed replay matched all 6,293 operations and verified 1,027 files.
+The phase-entry counts show 250 source verification steps and 134 payload
+copy steps. Selection and settlement remain open. The matched native cold
+copy reduced 215 copy steps to 42 with identical rebuilt bytes. Attribute
+the next change to resource cost and remaining work.
+[Signed replay and matched native control](evidence/windows-indexed-cold-batched-copy-2026-11-25.json) ·
 [Staged reclamation evidence](evidence/windows-staged-reclamation-reads-2026-11-24.json)
 
 The controller now continues checked inactive-image release within the same

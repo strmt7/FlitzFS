@@ -1468,16 +1468,17 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
   bool copy_mirrored_prefix(std::span<const Entry> leaf) {
     if(reencode || retention || build.folded || !build.next.mirrored)return false;
     const auto limit=(std::min)(leaf.size(),(std::max)(std::size_t{1},leaf_capacity(original)/4));
-    std::uint64_t work_left=2*kStoreCommitUnit;
+    std::uint64_t work_left=2*kStoreCommitUnit,cold_left=kStoreCommitUnit;
     std::size_t selected=0,frame_bytes=0;
-    // Preserve stream order and bound the complete per-step decode work.
-    // The paired stream writer splits the batch at every physical bank.
+    // Keep source order and cap both decoded work and input to the cold encoder.
+    // The single-record path handles larger entries. The writer splits at bank boundaries.
     for(const auto& entry:leaf.first(limit)) {
       const auto size=record_header_bytes+entry.stored;
       const auto work=std::uint64_t{entry.logical}+size;
-      if((entry.id==1 && !replacement.empty()) || cold_copy_candidate(entry) ||
-          work>work_left)break;
+      const auto cold_work=cold_copy_candidate(entry)?entry.logical:0;
+      if((entry.id==1 && !replacement.empty()) || work>work_left || cold_work>cold_left)break;
       work_left-=work;
+      cold_left-=cold_work;
       frame_bytes+=size;
       ++selected;
     }
@@ -1493,7 +1494,11 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
     for(const auto& entry:sources) {
       auto source=read_record(original,entry);
       decoded.push_back(decode_record(original,entry,source.header,source.payload));
-      auto prepared=prepare_rebuilt_object(build.next,entry,std::move(source),decoded.back(),target->encoder,false);
+      const bool improve=cold_copy_candidate(entry);
+      bool evaluated=false;
+      auto prepared=prepare_rebuilt_object(build.next,entry,std::move(source),decoded.back(),
+          target->encoder,false,improve?&evaluated:nullptr);
+      if(improve && !evaluated)cold_through=(std::min)(cold_through,entry.generation-1);
       destinations.push_back(prepared.entry);
       frames.insert(frames.end(),prepared.header.begin(),prepared.header.end());
       frames.insert(frames.end(),prepared.payload.begin(),prepared.payload.end());
