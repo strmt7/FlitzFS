@@ -28,6 +28,7 @@
     "latest_group_startup_admission": "docs/evidence/windows-amd-group-startup-admission-2026-11-25.json",
     "latest_group_read_stream_binding": "docs/evidence/windows-group-read-stream-binding-2026-11-25.json",
     "latest_prepared_mixed_device_readback": "docs/evidence/windows-expanded-group-read-and-mounted-replay-2026-11-25.json",
+    "latest_group_width_admission": "docs/evidence/windows-amd-variable-group-demand-2026-11-25.json",
     "latest_protected_size_evidence": "docs/evidence/windows-collective-cold-order-2026-11-24.json",
     "latest_persistent_shift_evidence": "docs/evidence/release-reconciliation-rolling-lookups-2026-11-25.json",
     "initial_rolling_key_evidence": "docs/evidence/indexed-shifted-coherence-2026-11-25.json",

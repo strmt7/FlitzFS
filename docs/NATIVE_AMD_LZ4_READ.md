@@ -151,6 +151,18 @@ independent records reset the grouped history. If a wider capture declines
 device submission, the controller drops the optional work and demand reads
 decode on CPU.
 
+Adjacent reads from the same grouped stream can supply timing observations
+at different request widths. The estimate uses the shorter of two observed
+gaps from grouped reads. Ordinary same-width observations remain available
+independently. A seek breaks adjacency. The existing resource grant, verified
+input, stream revision and checkpoint still govern preparation and delivery.
+In the matched SDK fixture, demand for one, three and two extents retained
+47 ms of measured lead in the codec-enabled run and qualified a four-extent
+forecast. The CPU verified every byte through subsequent three-extent and
+one-extent callbacks. The device trial deferred at the existing live GPU
+load check.
+[Mixed-width demand and validation](evidence/windows-amd-variable-group-demand-2026-11-25.json)
+
 The live Radeon SDK fixture used one prepared exchange for four mixed
 grouped extents and delivered them across two reads. It retained the
 result through an unrelated callback, refused a late result, verified

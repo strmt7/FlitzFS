@@ -94,6 +94,14 @@ automatic path with matched CPU controls. Attribute the packed controller's
 remaining work to the inner rebuild phases before choosing the next fix.
 [Signed replay and Radeon evidence](evidence/windows-expanded-group-read-and-mounted-replay-2026-11-25.json)
 
+The grouped read controller now carries two adjacent grouped-read timing
+observations across changes in request width. The matched SDK fixture
+qualified four frames and delivered them in 3- and 1-extent reads with
+exact independent CPU recovery. The live variant deferred with 98.4% peak
+GPU-engine use. Continue the matched ready-versus-CPU comparison when
+the device is available.
+[Mixed-width admission evidence](evidence/windows-amd-variable-group-demand-2026-11-25.json)
+
 The new copy path groups preserved records across physical banks while
 retaining a checked leaf and CPU work bound. It cut the copy steps from
 931 to 81 and writes from 4,656 to 1,278 on the fragmented medium-record

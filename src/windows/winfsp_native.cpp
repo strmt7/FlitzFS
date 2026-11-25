@@ -216,7 +216,7 @@ NativeWindowsIoOutcome success() noexcept{return {STATUS_SUCCESS,false};}
 }
 struct WinFspNativeWritable::Impl {
   struct ReadHistory {
-    std::uint64_t end=0,completed_ms=0,idle_before_ms=0;
+    std::uint64_t end=0,completed_ms=0,idle_before_ms=0,group_idle_before_ms=0;
     std::uint32_t bytes=0,consecutive_group_bytes=0;
   };
   struct Slot {
@@ -722,7 +722,7 @@ struct WinFspNativeWritable::Impl {
     auto prepared=prepared_read.target.token==slot.token?std::exchange(prepared_read,PreparedRead{}):PreparedRead{};
     const auto start_ms=GetTickCount64();
     const bool adjacent=previous.bytes && previous.end==offset;
-    const auto idle=adjacent && previous.bytes==length && previous.completed_ms && start_ms>previous.completed_ms?
+    const auto idle=adjacent && previous.completed_ms && start_ms>previous.completed_ms?
         start_ms-previous.completed_ms:0;
     const bool has_prepared=adjacent && prepared.pending() && prepared.target.token==slot.token;
     const auto prior_hits=has_prepared?prepared.consumed():0;
@@ -743,7 +743,10 @@ struct WinFspNativeWritable::Impl {
     const auto completed_ms=GetTickCount64();
     const auto group_bytes=groups.tiled?static_cast<std::uint32_t>((std::min)(
         std::uint64_t{kNativeMaxReadBytes},std::uint64_t{adjacent?previous.consecutive_group_bytes:0}+length)):0;
-    slot.last_read={end,completed_ms,idle,length,group_bytes};
+    const auto same_width_idle=previous.bytes==length?idle:0;
+    // Keep samples from adjacent grouped reads even when the width changes.
+    const auto group_idle=previous.consecutive_group_bytes && groups.tiled?idle:0;
+    slot.last_read={end,completed_ms,same_width_idle,group_idle,length,group_bytes};
     if(has_prepared && prepared.pending() &&
         (end<=prepared.target.offset || end-prepared.target.offset<prepared.target.bytes)) {
       prepared_read=std::move(prepared);
@@ -754,8 +757,10 @@ struct WinFspNativeWritable::Impl {
       const auto remaining=length-gap;
       const auto frames=(remaining+kNativeExtentBytes-1)/kNativeExtentBytes;
       const auto window=static_cast<std::uint32_t>(frames*kNativeExtentBytes);
+      const auto lead=(std::max)((std::min)(same_width_idle,previous.idle_before_ms),
+          (std::min)(group_idle,previous.group_idle_before_ms));
       if(window<=maximum-end-gap)read_ahead=ReadAhead{slot.token,end+gap,window,completed_ms,
-          (std::min)(idle,previous.idle_before_ms),demand_cost,groups.tiled,group_bytes};
+          lead,demand_cost,groups.tiled,group_bytes};
     }
     return bytes;
   }

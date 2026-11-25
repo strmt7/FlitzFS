@@ -234,6 +234,9 @@ Read the [indexed namespace contract](INODE_RECORD_NAMESPACE.md), the
    observations separated by first-use state. Use the previous public timeline
    and the new failure stages to investigate long later windows and failures. If transfer cost remains minor, prioritize useful work per
    dispatch and reusable preparation under the existing finite owner.
+   Include unequal adjacent request sizes so the matched trace tests the
+   actual grouped-read lead estimator.
+   [Mixed-width SDK evidence](evidence/windows-amd-variable-group-demand-2026-11-25.json)
 4. Bind the measured route to exact helper/runtime/module, adapter identity,
    role, transfer mode, input class, full exchange bound and resource margins.
    Decide conservatively with fresh CPU load, physical and commit headroom,

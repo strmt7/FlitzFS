@@ -70,6 +70,14 @@
     "mounted_packed_attachment": "Bounded signed guest recovery and continued writes verified, with a 1,024-file packed recovery fixture. Sustained populated settlement and current-client qualification remain open.",
     "automatic_foreground_amd": "Identical captured writes can be replayed on CPU and Radeon. Finite prepared bursts and shape-specific calibration are implemented. The Radeon delivered four prepared grouped extents across two SDK reads. The measured 1 MiB write shape prefers CPU, and useful automatic mounted AMD qualification remains open.",
     "latest_prepared_group_read_evidence": "docs/evidence/windows-expanded-group-read-and-mounted-replay-2026-11-25.json",
+    "variable_group_read_forecast": {
+      "evidence": "docs/evidence/windows-amd-variable-group-demand-2026-11-25.json",
+      "request_widths_extents": [1, 3, 2],
+      "forecast_frames": {"parent": 2, "candidate": 4},
+      "codec_enabled_observed_lead_ms": {"parent": 0, "candidate": 47},
+      "verified_sdk_delivery_sizes": [3, 1],
+      "live_candidate_launch": "Deferred by the device load preflight."
+    },
     "latest_indexed_reopen_evidence": "docs/evidence/windows-bank-spanning-verification-2026-11-25.json",
     "incremental_admission": "Grouping checked reads across mirror banks in both reopen audits reduced backing calls from 72,492 to 60,452 for 16,384 short files and from 33,754 to 21,564 for 2,640 CPython files. Incremental writable authority still needs a shadow ownership differential."
   },
