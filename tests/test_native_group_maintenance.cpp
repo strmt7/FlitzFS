@@ -2036,6 +2036,34 @@ void continued_preparation_admission() {
   require(complete.published_groups==1,"Fresh observation did not publish prepared group");
   f.verify(8);
 }
+void rejected_observation_drops_duty_delay() {
+  Fixture f(4096,32,true);
+  NativeMaintenancePolicy policy;
+  policy.work_share_ppm=1;
+  NativeGroupMaintenance controller(*f.session,policy);
+  auto observed=f.clock.next();
+  auto progress=controller.advance(observed,observed.captured_ms);
+  // Each new sample earns one nanosecond of credit. Reach a real duty
+  // deferral without relying on host scheduling or a long wall-clock wait.
+  for(unsigned i=0;i<64 && progress.deferral!=Defer::duty && controller.pending();++i) {
+    ++observed.sequence;
+    ++observed.captured_ms;
+    progress=controller.advance(observed,observed.captured_ms);
+  }
+  require(progress.deferral==Defer::duty && progress.next_opportunity_delay_ms,
+      "The fixture did not establish an outstanding duty estimate");
+  const auto reads=f.image->read_calls,writes=f.image->calls;
+  const auto stale=controller.advance(observed,observed.captured_ms);
+  require(stale.deferral==Defer::observation && !stale.next_opportunity_delay_ms,
+      "Rejected observation retained a previous duty delay");
+  ++observed.sequence;
+  ++observed.captured_ms;
+  const auto fresh=controller.advance(observed,observed.captured_ms);
+  require(fresh.deferral==Defer::duty && fresh.next_opportunity_delay_ms &&
+      f.image->read_calls==reads && f.image->calls==writes,
+      "Reporting a refused observation erased outstanding duty credit");
+  std::cout<<"observation_retry stale_delay_cleared=1 remaining_duty_preserved=1 backing_io=0\n";
+}
 void negative_cache_and_incompressible() {
   Fixture f(4096,2);const auto snapshot=f.session->snapshot();
   const std::array<NativeExtentSelection,2> keys{{{snapshot.stat("f0").inode,0},{snapshot.stat("f1").inode,0}}};
@@ -3866,6 +3894,7 @@ int main(int argc,char** argv){try{
         StoreCompressionOptions{StoreCompressionMode::automatic,6,true},true,sections);
   } else if(argc==1) {
     for(auto unit:{4096U,65536U}){automatic_and_extension(unit);publication_faults(unit);}
+    rejected_observation_drops_duty_delay();
     admission();continued_preparation_admission();negative_cache_and_incompressible();ownership_and_pressure();
     foreground_change_during_preparation();
   } else throw std::invalid_argument("unknown group maintenance test mode");

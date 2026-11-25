@@ -177,8 +177,52 @@ controller now bounds a group-duty recheck by the existing sampling
 cadence. It still applies the pacing cost for completed work and requires
 new CPU, memory and foreground admission before any subsequent step.
 The focused control failed with the earlier scheduling rule and passed
-with the change. The paced candidate's signed replay stopped at host memory admission.
+with the change. The paced candidate's initial attempt stopped at host memory
+admission. A subsequent admitted run exercised the exact published build.
 [Signed replay and duty-sampling evidence](evidence/windows-packed-settlement-credit-2026-11-25.json)
+
+### Paced replay and an observation-scoped retry
+
+The paced build matched all 6,293 trace records and independently verified
+all 1,027 live files. Occupied backing fell from
+824,311,808 to 7,208,960 bytes while mounted.
+After stop, detached CPU reopen retained 6,488,064 bytes at the same
+epoch with zero further reclamation. No maintenance step failed.
+The last observed state refused its telemetry and still carried a
+166,958 ms duty recommendation from an earlier step.
+
+Each group advance now clears its prior recommendation before checking
+the observation. A newly calculated duty shortfall can supply a fresh
+delay. The deterministic regression preserves unpaid credit and checks
+that an observation refusal performs no backing work. Codec-enabled,
+raw-only and AddressSanitizer checks passed. The corrected signed
+candidate is staged under the guest's normal memory admission.
+[Mounted, CPU and Radeon evidence](evidence/windows-maintenance-retry-delay-2026-11-25.json)
+
+The physical Radeon on the installed host returned two independently
+verified frames through the owned Windows SDK callback controller on a
+sealed packed fixture. CPU service handled demand that superseded an
+in-flight device request. The stop path canceled a separate flight,
+retired the worker and owner, and left the selected volume ready for
+independent CPU verification. This covers actual AMD grouped decode and CPU
+continuity in the SDK path. Installed mounted performance is still open.
+[Mounted, CPU and Radeon evidence](evidence/windows-maintenance-retry-delay-2026-11-25.json)
+
+### Protected-size control
+
+Trying a same-length substitution within the active packing window
+left occupied bytes unchanged on the shuffled 12-file control, the
+24-file CPython revision cohort and the 2026 AITDCC I–P testing set.
+The image and selector sizes matched and CPU readback stayed exact.
+The production ranking remains in place. A separate 65-file fixture
+with a retained related extent and a fitting unrelated peer also
+published no packed group. Use the complete protected cost of competing
+retained candidates to size that opportunity before promoting a
+different selection rule.
+[Mounted, CPU and Radeon evidence](evidence/windows-maintenance-retry-delay-2026-11-25.json) ·
+[AIT Data Compression Challenge 2026](https://aitdcc.github.io/) ·
+[Dataset and canonical digests](https://aitdcc.github.io/dataset.html) ·
+[The 2026 Algorithmic Information Theory Data Compression Challenge](https://arxiv.org/abs/2606.17712)
 
 ## Ordinary packed follow-up
 
@@ -342,8 +386,8 @@ Attribute resource cost and remaining work before changing either phase.
 | --- | --- | --- |
 | S1 · Exact artifacts | Current scoped builds bind source and SDK/CPU artifacts. Earlier real device runs identify their exact ROCm binaries. | Bind one clean Windows 11 update, signed WinFsp pair, helper, workers, CPU decoder table and backing capabilities to the acceptance run. |
 | S2 · Scale | Paged inodes, names and extents are live. Checked replica reads group adjacent frames across banks within each leaf. The complete startup walk still runs. | Verify bounded attach under a versioned authority contract. Fit and validate separate named-file curves for attach, restart, enumeration, mutation and resident memory. |
-| S3 · Space reuse | The corrected signed replay released backing allocation while mounted, recorded zero maintenance failures and independently verified all 1,027 files. Full controller quiescence remains open. | Replay the paced candidate under fresh memory admission and require controller quiescence. Qualify repeated settled allocation under churn, retained readers, pressure and interruption. |
-| S4 · AMD and CPU continuity | The latest recorded installed Radeon SDK trial delivered four exact frames in two different request sizes, with independent CPU readback and confirmed worker retirement. The measured 1 MiB write shape still favors CPU. | Prove a useful automatic region for each advertised AMD role in installed-client paths. Qualify CPU availability, verified delivery and condition-based device recovery. |
+| S3 · Space reuse | The paced signed replay released allocated bytes while mounted, recorded zero failures and independently verified all 1,027 files. A stale retry estimate was isolated and fixed in a focused regression. | Replay the corrected observation-delay build to quiescence when the guest admission reserve is available. Verify repeated allocation settlement under churn, retained readers, pressure and interruption. |
+| S4 · AMD and CPU continuity | Real Radeon SDK callback trials served four mixed frames. The sealed packed controller now also delivered two exact device frames, recovered superseded demand on CPU and confirmed worker retirement. | Prove a useful automatic region for each advertised AMD role in installed-client paths. Qualify CPU availability, verified delivery and condition-based device recovery. |
 | S5 · Compression | Protected prefix selection can save an allocation pair. Two secondary-key restart controls save 122,880 complete bytes each at the same catalog size. Broader real corpus rebuild controls retained their sizes, with no catalog nominations required. AIT grouping and parity placement showed distinct effects. | Establish a held-out complete-size frontier including metadata and protection. Measure catalog recall and savings with a populated, funded search index. |
 | S6 · Autonomy | Persistent sparse advice, workload samples, yield ranking and resource admission run in the controller. | Measure learning benefit, time to settle, interference, per-volume fairness and bytes written per byte reclaimed across workloads and restart. |
 | S7 · Windows experience | The helper and WinFsp own memory and supported file-backed volumes. Signed guests exercised external clients and verified reopen. | Qualify Explorer and independent apps with the signed candidate. Cover sharing, mapped and cached I/O, names, metadata, repair and clean teardown. |
@@ -634,7 +678,7 @@ before expanding the experiment.
 
 | Priority | First deliverable | Decision before expanding |
 | --- | --- | --- |
-| 1 · Mounted allocation | Run the frozen paced controller through selection, actual occupied-byte release and quiescence | If any failure remains, isolate the first write fence. If the trace settles, use the cost ledger to decide whether local reuse or pacing earns the next change. |
+| 1 · Mounted allocation | Run the corrected observation-delay controller through selection, allocation release and quiescence | If any failure remains, isolate the first write fence. If the trace settles, use the cost ledger to decide whether local reuse or pacing earns the next change. |
 | 2 · Real AMD service and CPU continuity | One repeatable installed-client read shape that consumes verified device bytes, paired with CPU and cold device runs | Promote that shape only with a complete-path win. Use its largest measured cost to choose the next write or collective improvement. |
 | 3 · Compression that changes occupied size | Protected complete-volume profiles and oracle recall on held-out families | Keep the nondominated candidates in size and verified access. Choose an additional representation only when it improves an observed weak cohort. |
 | 4 · Writable reopen at scale | Shadow authority decision beside the full audit and an independently validated scaling model | Fix the largest measured metadata cost. Authorize incremental attachment only when all authority and recovery invariants hold. |
@@ -642,7 +686,7 @@ before expanding the experiment.
 
 ### 1. Close ordinary mounted settlement · E02, E08, E11
 
-1. Replay the paced candidate under fresh memory admission and require controller quiescence.
+1. Replay the corrected observation-delay build to quiescence when the guest admission reserve is available.
    Match all 6,293 trace records and the successful flushes. Require ordinary
    publication, lower occupied bytes while mounted, zero failed
    maintenance steps and actual controller quiescence. Verify all 1,027
@@ -773,7 +817,7 @@ before expanding the experiment.
 | Package | First bounded change and evidence needed before expansion |
 | --- | --- |
 | E01 · Scale | Compare a version-bound attach summary with the full audit in shadow mode. Record would-accept, audit result, pages touched and disagreement cause. Use held-out file-count tiers and count metadata residency. |
-| E02 · Allocation | Replay the paced candidate under fresh memory admission and require controller quiescence. Use phase costs to choose local evacuation or admission changes once ordinary settlement is verified. |
+| E02 · Allocation | Replay the corrected observation-delay build to quiescence when the guest admission reserve is available. Use phase costs to choose local evacuation or admission changes once ordinary settlement is verified. |
 | E03 · AMD | Measure verified-ready and cold delivery on one real grouped-read stream. Charge preparation, transfers, CPU verification, useful delivery and residency. Enroll a repeatable winning shape, then price one representative write shape and one collective job. |
 | E04 · Coherence | Run the funded catalog against a sealed family split. Count candidates retrieved, stale and negative lookups, actual savings and metadata cost versus a bounded exhaustive oracle. Grow discovery where the savings gap justifies additional index space. |
 | E05 · Candidate design | Run independently strong frames, exact reuse, protected bases and short restartable deltas against the same incumbent on held-out families. Add a representation only after locating repeatable residual bytes and bounding CPU access. |

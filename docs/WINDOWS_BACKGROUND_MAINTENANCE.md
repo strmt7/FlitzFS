@@ -67,7 +67,11 @@ duty therefore rechecks at the existing CPU sampling cadence if the
 estimate takes longer. The outer elapsed-work deadline still applies.
 Each check can defer again for contention, insufficient memory or an
 unpaid balance. Unrelated retry deadlines keep their original timing.
-[Signed replay and duty-sampling evidence](evidence/windows-packed-settlement-credit-2026-11-25.json)
+Every group advance clears the previous retry recommendation before
+validating the observation. A refusal can report its own deferral
+without extending an earlier duty estimate. The accumulated duty stays
+with the same group controller and receives only fresh earned credit.
+[Mounted, CPU and Radeon evidence](evidence/windows-maintenance-retry-delay-2026-11-25.json)
 [Windows system timing](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getsystemtimes) ·
 [Processor groups](https://learn.microsoft.com/windows/win32/procthread/processor-groups) ·
 [Native sampling and AMD recovery evidence](evidence/windows-native-cpu-sampling-amd-resume-2026-11-20.json)

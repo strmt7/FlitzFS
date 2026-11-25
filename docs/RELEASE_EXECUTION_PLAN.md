@@ -504,8 +504,11 @@ Two regressions independently cover the stale write grant and cold-seal
 staging. The corrected signed replay released allocation from
 838,205,440 to 6,717,440 bytes while mounted with
 zero maintenance failures. Independent CPU reopen verified the same
-1,027 files. The paced candidate's signed replay stopped at host memory admission. Replay the paced candidate under fresh memory admission and require controller quiescence.
-[Signed replay and duty-sampling evidence](evidence/windows-packed-settlement-credit-2026-11-25.json)
+1,027 files. The paced signed replay also verified the same trace with
+zero failures. Its final telemetry refusal retained an old duty delay.
+The corrected build clears stale recommendations and preserves the duty
+balance. The signed rerun remains staged.
+[Mounted, CPU and Radeon evidence](evidence/windows-maintenance-retry-delay-2026-11-25.json)
 [Packed maintenance fixes](evidence/windows-packed-admission-and-sealing-2026-11-25.json) ·
 [Signed packed publication and backing release](evidence/windows-maintenance-reference-refresh-2026-11-25.json) ·
 [Source-audit control](evidence/windows-mirrored-source-audit-2026-11-25.json) ·

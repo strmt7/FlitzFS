@@ -300,11 +300,12 @@ or a new representation.
   allocation while mounted, encountered zero maintenance failures and
   independently verified all 1,027 files. The controller's duty sampling
   now gives group work a way to accumulate fresh CPU-window credit.
-  The paced candidate's signed replay stopped at host memory admission.
-  Replay the paced candidate under fresh memory admission and require controller quiescence.
+  The paced replay completed and isolated a stale retry recommendation.
+  Require quiescence from the corrected observation-delay build under
+  the normal guest admission reserve.
   Use the measured phase, time and allocation ledger to choose between
   tuning eligibility and local reuse.
-  [Signed replay and duty-sampling evidence](evidence/windows-packed-settlement-credit-2026-11-25.json)
+  [Mounted, CPU and Radeon evidence](evidence/windows-maintenance-retry-delay-2026-11-25.json)
 - **Useful device delivery.** Feed observed open stream ranges and
   generations to the existing owner. For read, write and collective work,
   compare CPU, cold GPU and a ready lease using identical observations.

@@ -336,7 +336,7 @@ pairs and the cleared anchor pair have settled. Subsequent physical writes
 use the backing provider's latest admitted extent. Optional sealing reserves
 and prices the whole aligned workspace that contains the fitted image.
 [Packed admission and cold-sealing evidence](../evidence/windows-packed-admission-and-sealing-2026-11-25.json) ·
-[Corrected signed replay](../evidence/windows-packed-settlement-credit-2026-11-25.json)
+[Corrected signed replay and scheduling evidence](../evidence/windows-maintenance-retry-delay-2026-11-25.json)
 
 ```mermaid
 sequenceDiagram

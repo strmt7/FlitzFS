@@ -1297,6 +1297,9 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
   if(!impl_)return {Phase::failed};auto& p=*impl_;
   p.state.search_window_ready=false;
   p.state.search_batch_ready=false;
+  // A retry recommendation describes this observation only. An early
+  // refusal carries no prior duty deadline forward.
+  p.state.next_opportunity_delay_ms=0;
   const auto source=p.source.lock();
   if(p.stopped || !source || !source->writer || !source->terminal || *source->terminal || source->writer->poisoned()) {
     p.reset_index();p.state.phase=Phase::failed;return p.progress();
@@ -1349,7 +1352,7 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
   const bool reclaiming=source->coherence_pending();
   if(!discovering && !reclaiming) {
     if(source->group_append_shortfall(image,writer.recompression_generation()))return p.defer(Defer::capacity);
-    p.state.phase=Phase::idle;p.state.deferral=Defer::none;p.state.next_opportunity_delay_ms=0;return p.progress();
+    p.state.phase=Phase::idle;p.state.deferral=Defer::none;return p.progress();
   }
   if(observed.foreground_pending)return p.defer(Defer::foreground);
   if(resources->cpu_busy)return p.defer(Defer::cpu);
@@ -1366,7 +1369,7 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
   auto credit=fraction(elapsed_ns,p.policy.work_share_ppm);
   if(credit>=p.debt){credit-=p.debt;p.debt=0;}else {p.debt-=credit;credit=0;}
   const auto burst=(std::max)(std::uint64_t(1000000),add(p.predicted,p.predicted));
-  p.tokens=(std::min)(burst,add(p.tokens,credit));p.state.next_opportunity_delay_ms=0;
+  p.tokens=(std::min)(burst,add(p.tokens,credit));
   if(p.debt || p.tokens<p.predicted) {
     const auto missing=add(p.debt,p.predicted>p.tokens?p.predicted-p.tokens:0);
     p.state.next_opportunity_delay_ms=missing/p.policy.work_share_ppm+(missing%p.policy.work_share_ppm!=0);

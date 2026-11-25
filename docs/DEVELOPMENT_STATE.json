@@ -26,18 +26,18 @@
     "packed_tail_continuation_evidence": "docs/evidence/windows-packed-tail-continuation-2026-11-25.json",
     "packed_model_continued_truncations": 4,
     "packed_model_continued_release_bytes": 12845056,
-    "ordinary_mounted_reclamation_evidence": "docs/evidence/windows-packed-settlement-credit-2026-11-25.json",
-    "previous_ordinary_mounted_reclamation_evidence": "docs/evidence/windows-maintenance-reference-refresh-2026-11-25.json",
+    "ordinary_mounted_reclamation_evidence": "docs/evidence/windows-maintenance-retry-delay-2026-11-25.json",
+    "previous_ordinary_mounted_reclamation_evidence": "docs/evidence/windows-packed-settlement-credit-2026-11-25.json",
     "ordinary_mounted_copy_steps": 984,
     "ordinary_mounted_candidate_phase_entries": {"verifying_source": 250, "copying": 253, "building_index": 40, "verifying_target": 220, "publishing": 1, "verifying_publication": 220, "ready": 1},
     "ordinary_mounted_last_candidate_entry": {"phase": "ready", "cursor": 2111, "objects": 2111},
-    "ordinary_mounted_backing_limited_observations": 11,
+    "ordinary_mounted_backing_limited_observations": 14,
     "ordinary_mounted_publications": 1,
-    "ordinary_mounted_allocation": {"before": 838205440, "while_attached": 6717440, "detached_verified": 6488064},
+    "ordinary_mounted_allocation": {"before": 824311808, "while_attached": 7208960, "detached_verified": 6488064},
     "ordinary_mounted_maintenance_failures": 0,
     "ordinary_mounted_reported_quiescence": false,
     "ordinary_detached_verified_allocated_bytes": 6488064,
-    "ordinary_detached_verification_evidence": "docs/evidence/windows-packed-settlement-credit-2026-11-25.json",
+    "ordinary_detached_verification_evidence": "docs/evidence/windows-maintenance-retry-delay-2026-11-25.json",
     "mirrored_rebuild_target_verification_calls_before": 2370,
     "mirrored_rebuild_target_verification_calls_after": 1020,
     "batched_staged_copy_evidence": "docs/evidence/windows-batched-staged-copy-2026-11-25.json",
@@ -51,8 +51,9 @@
     "bank_spanning_copy_target_writes": {"before": 4656, "after": 1278},
     "bank_spanning_verification_evidence": "docs/evidence/windows-bank-spanning-verification-2026-11-25.json",
     "fragmented_target_reads_per_audit": {"before": 4564, "after": 1342},
-    "next": "Replay the paced candidate under fresh memory admission and require controller quiescence.",
-    "ordinary_mounted_duty_deferrals": 211
+    "next": "Replay the corrected observation-delay build to quiescence when the guest admission reserve is available.",
+    "ordinary_mounted_duty_deferrals": 113,
+    "paced_final_observation": {"deferral": "observation", "inherited_delay_ms": 166958}
   },
   "packed_admission_and_sealing": {
     "evidence": "docs/evidence/windows-packed-admission-and-sealing-2026-11-25.json",
@@ -107,9 +108,9 @@
     "remaining_effort_person_weeks": [59, 127],
     "estimate_confidence": "low",
     "immediate_trace": "docs/RELEASE_EXECUTION_PLAN.md#next-integrated-qualification",
-    "current_runtime_tree": "f0ed0f5a8fb42027f23321598f198ad5606f75f3",
-    "current_runtime_verification": "Focused Windows codec-enabled and raw-only tests passed. Direct AddressSanitizer controller and RAM file-provider tests also passed. The paced candidate's signed replay stopped at host memory admission.",
-    "prior_verified_runtime_tree": "efdec5fd0abd1265242bd0b6c8ecbaa0a2e80e79",
+    "current_runtime_tree": "6aab356f84b3d2b8085bf1252ca97ec64c203363",
+    "current_runtime_verification": "Scoped Windows codec-enabled, raw-only and AddressSanitizer tests passed. Corrected signed observation-delay replay is staged.",
+    "prior_verified_runtime_tree": "f0ed0f5a8fb42027f23321598f198ad5606f75f3",
     "latest_reviewed_commit": "ff555097b76b491a2ce950a7e9de7c85ca8834f7",
     "latest_reviewed_tree": "d7ce4ace5122b0babcac9b5f53362071ccb7c7e4",
     "latest_reviewed_tracked_files": 1095,
@@ -135,7 +136,9 @@
     "latest_indexed_reopen_evidence": "docs/evidence/windows-bank-spanning-verification-2026-11-25.json",
     "incremental_admission": "Grouping checked reads across mirror banks in both reopen audits reduced backing calls from 72,492 to 60,452 for 16,384 short files and from 33,754 to 21,564 for 2,640 CPython files. Incremental writable authority still needs a shadow ownership differential.",
     "implementation_packets": "docs/RELEASE_RECONCILIATION_2026-11-25.md#implementation-packets-and-exit-decisions",
-    "latest_mounted_credit_sampling": "docs/evidence/windows-packed-settlement-credit-2026-11-25.json"
+    "latest_mounted_credit_sampling": "docs/evidence/windows-packed-settlement-credit-2026-11-25.json",
+    "latest_retry_delay_evidence": "docs/evidence/windows-maintenance-retry-delay-2026-11-25.json",
+    "latest_sealed_packed_Radeon_evidence": "docs/evidence/windows-maintenance-retry-delay-2026-11-25.json"
   },
   "collective_cold_order": {
     "evidence": "docs/evidence/windows-collective-cold-order-2026-11-24.json",
@@ -1971,7 +1974,7 @@
   ],
   "next_implementation": {
     "contract": "docs/IMPLEMENTATION_PLAN.md",
-    "next": "Replay the paced candidate under fresh memory admission and require controller quiescence. Then compare consumed AMD reads on matched client demand, test protected savings on held-out families and keep the writable-attach ownership differential.",
+    "next": "Replay the corrected observation-delay build to quiescence when the guest admission reserve is available. Qualify mounted AMD delivery, price full protected sizes for retained candidate alternatives and keep the checked attach differential.",
     "sequence": "docs/RELEASE_RECONCILIATION_2026-11-25.md#implementation-packets-and-exit-decisions",
     "steps": [
       "E02.5",
