@@ -1,0 +1,664 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "qualification": "development",
+  "release_qualified": false,
+  "scope": "Windows SDK rebuild and recovery checks, signed guest mounted correctness and allocation, and live Radeon prepared callback verification.",
+  "source": {
+    "parent": "427e30204afe2c8e181f929ab54504dec389b2ee",
+    "parent_tree": "3777675f11644ad1970547d2539ce3398b7f34bb",
+    "candidate_runtime_tree": "45a0553bf0a1d05c646738b5557e253748fce884",
+    "changed_blobs": [
+      {
+        "path": "src/paged_store.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "6d244f317ffde3b83adab0b51c0223951511ea85",
+        "bytes": 139017
+      },
+      {
+        "path": "src/windows/winfsp_controller.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "52e286d4516d9ba2d0dc372426105c89900a13b0",
+        "bytes": 61902
+      },
+      {
+        "path": "src/windows/winfsp_controller.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "6be414f50aea2ccda1e1de373217ae5f428d19f2",
+        "bytes": 4581
+      },
+      {
+        "path": "src/windows/winfsp_native.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "362b9def0e17858df340947b0ff0a1f6168c789e",
+        "bytes": 108174
+      },
+      {
+        "path": "src/windows/winfsp_native.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "580c7d2ff9afcbdeb5f68a4ea52181e21f3d204a",
+        "bytes": 15306
+      },
+      {
+        "path": "tests/test_staged_paged_rebuild.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "b48d4c363302bf0dbe1942cc9123e9507a0e8a27",
+        "bytes": 17287
+      },
+      {
+        "path": "tests/windows_volume_app_tests.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "05c1eb24ff36ce8d5c9f9402a34e1e0f44ff9265",
+        "bytes": 133155
+      }
+    ],
+    "patch_sha256": "556359aa3cb9c170cde6e02612c5bb25416cb8ebc8e46337f2b2223238e907e0"
+  },
+  "checked_rebuild": {
+    "profiles": [
+      {
+        "before": 23,
+        "after": 23,
+        "layout": 0,
+        "unit": 4096,
+        "reencode": 0,
+        "verification_batches": 0,
+        "maximum_step_io_bytes": 196992
+      },
+      {
+        "before": 23,
+        "after": 21,
+        "layout": 0,
+        "unit": 4096,
+        "reencode": 1,
+        "verification_batches": 2,
+        "maximum_step_io_bytes": 147456
+      },
+      {
+        "before": 23,
+        "after": 23,
+        "layout": 0,
+        "unit": 65536,
+        "reencode": 0,
+        "verification_batches": 0,
+        "maximum_step_io_bytes": 196992
+      },
+      {
+        "before": 23,
+        "after": 21,
+        "layout": 0,
+        "unit": 65536,
+        "reencode": 1,
+        "verification_batches": 2,
+        "maximum_step_io_bytes": 147456
+      },
+      {
+        "before": 43,
+        "after": 31,
+        "layout": 1,
+        "unit": 4096,
+        "reencode": 0,
+        "verification_batches": 3,
+        "maximum_step_io_bytes": 196992
+      },
+      {
+        "before": 43,
+        "after": 27,
+        "layout": 1,
+        "unit": 4096,
+        "reencode": 1,
+        "verification_batches": 5,
+        "maximum_step_io_bytes": 147456
+      },
+      {
+        "before": 43,
+        "after": 31,
+        "layout": 1,
+        "unit": 65536,
+        "reencode": 0,
+        "verification_batches": 3,
+        "maximum_step_io_bytes": 196992
+      },
+      {
+        "before": 43,
+        "after": 27,
+        "layout": 1,
+        "unit": 65536,
+        "reencode": 1,
+        "verification_batches": 5,
+        "maximum_step_io_bytes": 147456
+      },
+      {
+        "before": 51,
+        "after": 33,
+        "layout": 2,
+        "unit": 4096,
+        "reencode": 0,
+        "verification_batches": 3,
+        "maximum_step_io_bytes": 196992
+      },
+      {
+        "before": 51,
+        "after": 29,
+        "layout": 2,
+        "unit": 4096,
+        "reencode": 1,
+        "verification_batches": 5,
+        "maximum_step_io_bytes": 147456
+      },
+      {
+        "before": 51,
+        "after": 33,
+        "layout": 2,
+        "unit": 65536,
+        "reencode": 0,
+        "verification_batches": 3,
+        "maximum_step_io_bytes": 196992
+      },
+      {
+        "before": 51,
+        "after": 29,
+        "layout": 2,
+        "unit": 65536,
+        "reencode": 1,
+        "verification_batches": 5,
+        "maximum_step_io_bytes": 147456
+      }
+    ],
+    "write_and_barrier_cuts": 1413,
+    "large_object_observed_alone_in_each_verify_phase": true,
+    "each_record_still_compared": true,
+    "wire_change": false,
+    "baseline": {
+      "receipt_sha256": "2c6766c64906ccafb8c4b1c9724368b372a78dca5b501abf239a9f028fdda56d",
+      "output_sha256": "43c4d912f48f6d90028f47f495c91bc430bd8c8dbcba2af4f101638bd6f19fe9",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 17555456,
+      "memory_bytes": 696254464,
+      "cpu_percent": 18,
+      "creation_time_job": true,
+      "inherited_error_mode": 32771
+    },
+    "candidate": {
+      "receipt_sha256": "3b4ffff0fb275b4128bf9228ae4b2c47891f028cbde2ecd113b2f60ac957cafe",
+      "output_sha256": "7485f8091e8a589bb732f3865d68cb7f12ecde8290c2f049db7db01d246bc7a0",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 18612224,
+      "memory_bytes": 3122659328,
+      "cpu_percent": 20,
+      "creation_time_job": true,
+      "inherited_error_mode": 32771
+    }
+  },
+  "ordinary_packed_mount": {
+    "mounted": {
+      "allocated_before": 825360384,
+      "allocated_after": 826802176,
+      "allocated_while_attached": 827195392,
+      "eof_while_attached": 826802176,
+      "quiescent": 0,
+      "preselected": 0,
+      "quanta": 80,
+      "continued_compaction": 584,
+      "publications": 0,
+      "continued_range_retirement": 0,
+      "continued_packed_tail": 0,
+      "compaction_failures": 0,
+      "disabled": 0,
+      "host_state": 1,
+      "backing_limited": 3,
+      "read_calls": 6227,
+      "read_bytes": 8378782,
+      "write_calls": 1694,
+      "write_bytes": 2443494,
+      "flush_calls": 0,
+      "phase_idle": 0,
+      "phase_scanning": 0,
+      "phase_candidates": 0,
+      "phase_preparing": 78,
+      "phase_publishing": 0,
+      "phase_deferred": 2,
+      "phase_failed": 0,
+      "deferral_none": 78,
+      "deferral_observation": 2,
+      "deferral_foreground": 0,
+      "deferral_cpu": 0,
+      "deferral_memory": 0,
+      "deferral_duty": 0,
+      "deferral_other_maintenance": 0,
+      "deferral_capacity": 0,
+      "step_copying": 662,
+      "step_ready": 0,
+      "step_published": 0,
+      "step_retiring": 0,
+      "step_pinned": 0,
+      "step_failed": 0,
+      "retired": 1
+    },
+    "detached": {
+      "backing": "packed",
+      "before": 826802176,
+      "after": 6160384,
+      "old_epoch": 1,
+      "epoch": 2,
+      "pending": 0,
+      "idle": 0,
+      "copying": 2843,
+      "ready": 1,
+      "published": 1,
+      "retiring": 398,
+      "pinned": 0,
+      "failed": 0,
+      "independent_cpu": "exact",
+      "blake3": "24b7b9b2afa3ee9c8043d757ccb4229c4321e8af5352b9800d6a599b8b70faa4"
+    },
+    "independent_bytes": true,
+    "selected_and_settled_while_mounted": false,
+    "workload": {
+      "bytes": 1134259,
+      "counts": {
+        "conflicting_open": 1,
+        "cpu_verified": 3,
+        "create": 1030,
+        "enumerate": 3,
+        "flush": 1077,
+        "flush_cached": 3,
+        "flush_mapped": 4,
+        "flush_view": 4,
+        "held_read": 3,
+        "lookup_deleted": 2,
+        "mkdir": 1,
+        "overwrite_open": 1,
+        "range_read": 3,
+        "read": 3076,
+        "rename_replace": 1,
+        "unlink": 2,
+        "write": 1079
+      },
+      "cycles": 3,
+      "files": 1027,
+      "independent_population_blake3": "24b7b9b2afa3ee9c8043d757ccb4229c4321e8af5352b9800d6a599b8b70faa4",
+      "logical_bytes": 2291854,
+      "records": 6293,
+      "sha256": "a819bc8c0ba49580f45c3985470cbf88f3934aa3ac88cb910c4b72b72a984af1"
+    },
+    "older_arm": "docs/evidence/windows-mounted-range-retirement-2026-11-24.json",
+    "parity_receipt": {
+      "receipt_sha256": "ad4332cfbc082db6ed44dd5b774c1456e5f2ed76e8d0d765af81d5e458127e90",
+      "output_sha256": "51076490298d33e708188b12e36763221eec0553853138078db79753192713eb",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 20590592,
+      "memory_bytes": 2542796800,
+      "cpu_percent": 14,
+      "creation_time_job": true,
+      "inherited_error_mode": 32771
+    },
+    "windows_build": "26100",
+    "guest_manifest_sha256": "6c8057bdfc0ad7e8122ccdcf4f2fbbb64c39c01e395877277b59edec10dd0063",
+    "artifact_sha256": {
+      "flitzfs_volume_app.exe": "93faa7ecdc96f504a527a0e1daa4fb39163652f3e06e9643db447b38ca57be7c",
+      "flitzfs_volume_app_tests.exe": "3902ce752b0a105a99b906e3c31b0cd56711547521908f867544d704c40a03d5",
+      "flitzfs_volume_attachment_tests.exe": "2113da7ef95ce4b7e1a3f21a73e469ea2c57496775573fdcefb160b4875c3f9b",
+      "winfsp-x64.dll": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+      "winfsp-x64.sys": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+      "msvcp140.dll": "59d325227321d52b9a523ea401ce6787a5d59f78229a0ff3a6f124e5d3445685",
+      "msvcp140_atomic_wait.dll": "8b10c6bd4c3c427ce7c8be96ef0fef0f8187bc236962be62a03caef834b37dcd",
+      "vcruntime140.dll": "eb1ee979bf02324712346e5bdbfc59c785388bc50d18cc2688aae4b0734915a0",
+      "vcruntime140_1.dll": "a14b4a42a2c6df04d6d53a8340816023d953406f7f3d94996c7cab30c414ff63"
+    },
+    "signed_dependencies_verified": 6,
+    "guest_receipt_sha256": "91914af63ab78361c8839efb7408442d9e450aa622d6ed7d6b24fb0c6e7df15a",
+    "sandbox_receipt_sha256": "16e728a0341815be268450b60bf270d75409988efbc3f9b2c003dc645cbbd2ca",
+    "guest_stop_confirmed": true,
+    "remaining_guest_mounts": 0,
+    "remaining_guest_app_processes": 0,
+    "unregistration_exit_code": 0,
+    "driver_retired_with_guest": true,
+    "supervisor": {
+      "receipt_sha256": "99f8a6543ae5f88a058af18ece32565d46411d7a73e43c1634cf94adf06f1284",
+      "output_sha256": "edf0ca3d7a06da27e62840bcdb1368ae875454e09e694d0e42ba4be451259b57",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 52432896,
+      "memory_bytes": 2336227328,
+      "cpu_percent": 14,
+      "creation_time_job": true,
+      "inherited_error_mode": 32771
+    }
+  },
+  "radeon_prepared_mixed_read": {
+    "admission": {
+      "admitted": true,
+      "utc": "2026-11-25T00:47:17.7498664Z",
+      "windows_build": "26300",
+      "devices": [
+        {
+          "Name": "AMD Radeon RX 9070 XT",
+          "Status": "OK",
+          "DriverVersion": "32.0.32029.2010"
+        }
+      ],
+      "cpu": [
+        11.45,
+        18.93
+      ],
+      "peak_gpu_engine": 0.1471143231289608,
+      "available_kib": 31492808,
+      "total_kib": 66704480,
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "other_fixture_processes": 0
+    },
+    "binding": {
+      "status": 0,
+      "identity_queries": 1,
+      "worker_exit": 0,
+      "gpu_compute_requested": false,
+      "configuration": "d201d9dda038857b9f63816a44778dc25bafd08c683d1f5fcd21815ff851c049",
+      "luid": "9d75010000000000",
+      "node": 1,
+      "ordinal": 0,
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "local_budget": 16168480768,
+      "vendor_id": 4098,
+      "device_id": 30032,
+      "subsystem_id": 606344280,
+      "revision": 192
+    },
+    "verified_device_frames": 2,
+    "prepared_worker_ms": 1078,
+    "accepted_submit_ms": 1109,
+    "fixture_only": true,
+    "matched_speedup_proven": false,
+    "cpu_readback": {
+      "mixed": 1,
+      "ready_hits": 2,
+      "late_refused": 1,
+      "cpu_readback": 1,
+      "backing_writes": 0,
+      "unrelated_callbacks_retained": 1,
+      "checkpoint_change_refused": 0
+    },
+    "stage_manifest_sha256": "3c8ffaac291aa84a2c23e0e55e37bf5a99c402decd2d6b46f985f496701fc6d9",
+    "stage_artifacts": {
+      "flitzfs_winfsp_paged_tests.exe": {
+        "bytes": 2237952,
+        "sha256": "06132f6bf8d9395edf2123522f692afa6d41fa19c65ccdbf93e01f2e04576690"
+      },
+      "winfsp-x64.dll": {
+        "bytes": 200816,
+        "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+      },
+      "flitzfs_native_lz4_read_worker.exe": {
+        "bytes": 581632,
+        "sha256": "8625a3fa306adce0f3db5a1803ea6b9924147817c73630f75f09d42fdf268ca4"
+      },
+      "flitzfs_rocm_native_lz4_decode.dll": {
+        "bytes": 173568,
+        "sha256": "9ac5bb33a7b39ae26712dcdcfcdeb6b4b5fc049175e18dd6f24d047a37b3e128"
+      }
+    },
+    "source_bound_earlier_worker_and_module": "docs/evidence/windows-amd-group-startup-admission-2026-11-25.json",
+    "build": {
+      "receipt_sha256": "b56ec0755b1ba211a23e109832050ad799bcd9d634490388de66cff2b907ed7a",
+      "output_sha256": "422931cbe05479953ac73336d0b79f9da274eba43b99067ca7a3f6ce5d0b0b3c",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 98791424,
+      "memory_bytes": 4056940544,
+      "cpu_percent": 18,
+      "creation_time_job": true,
+      "inherited_error_mode": 32771
+    },
+    "supervisor": {
+      "receipt_sha256": "6665d1914b6df6f2f641f9b91f115f4708b4feff0266040b3dfdd822e4362800",
+      "output_sha256": "6cebd8422a679f24ef4de8a2689fc75300c8930145ea87313e2f2f4f2cc0305f",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 165433344,
+      "memory_bytes": 2550136832,
+      "cpu_percent": 20,
+      "creation_time_job": true,
+      "inherited_error_mode": 32771
+    },
+    "exact_child_retired": true
+  },
+  "validation": {
+    "sdk": {
+      "count": 6,
+      "checks": [
+        "bounded_native_staged_paged_rebuild",
+        "bounded_native_volume_file",
+        "bounded_native_volume_file_dense_session_cuts",
+        "bounded_native_volume_file_dense_tail",
+        "bounded_native_volume_file_dense_cross_group",
+        "bounded_winfsp_volume_file"
+      ],
+      "supervisor": {
+        "receipt_sha256": "252972347b53794d02efc4fc1b2431b0d62248a7dd93e1e8387b2bb5b1cd68ef",
+        "output_sha256": "bd25ffe638d8ba3b0d7e9b3d61d20c21bc5db8b7e25969544e85843dc519d255",
+        "exit_code": 0,
+        "tree_retired": true,
+        "residual_children": 0,
+        "peak_job_bytes": 233201664,
+        "memory_bytes": 3494903808,
+        "cpu_percent": 19,
+        "creation_time_job": true,
+        "inherited_error_mode": 32771
+      }
+    },
+    "raw_only": {
+      "count": 5,
+      "checks": [
+        "bounded_native_staged_paged_rebuild",
+        "bounded_native_volume_file",
+        "bounded_native_volume_file_dense_session_cuts",
+        "bounded_native_volume_file_dense_tail",
+        "bounded_native_volume_file_dense_cross_group"
+      ],
+      "supervisor": {
+        "receipt_sha256": "593947b7bbec15c12f3a1cd56f51e88ded381bcb1bcf8f3fe1c0471782543ce4",
+        "output_sha256": "67e39c37fc61dba58000b32f3cf07b3e6be2af780eea1ca867f0164da4bbe5ec",
+        "exit_code": 0,
+        "tree_retired": true,
+        "residual_children": 0,
+        "peak_job_bytes": 87511040,
+        "memory_bytes": 3249537024,
+        "cpu_percent": 19,
+        "creation_time_job": true,
+        "inherited_error_mode": 32771
+      }
+    },
+    "asan": {
+      "count": 4,
+      "checks": [
+        "windows_asan_runtime_preflight",
+        "bounded_native_staged_paged_rebuild",
+        "windows_asan_staging_regression",
+        "bounded_winfsp_volume_file"
+      ],
+      "supervisor": {
+        "receipt_sha256": "0ae5241483775a009ad09854945e67ba808c273a46773e4425849c188d4c31fb",
+        "output_sha256": "c5ef434244f3f35e14ecf9ade3a3a8e0dca57a4ee54edfd8ae4c0f6eea20b280",
+        "exit_code": 0,
+        "tree_retired": true,
+        "residual_children": 0,
+        "peak_job_bytes": 635457536,
+        "memory_bytes": 3214934016,
+        "cpu_percent": 20,
+        "creation_time_job": true,
+        "inherited_error_mode": 32771
+      }
+    },
+    "independent_cpu_group_callbacks": {
+      "count": 2,
+      "checks": [
+        "bounded_winfsp_paged_ready-group-reads",
+        "bounded_winfsp_paged_ready-mixed-group-reads"
+      ],
+      "supervisor": {
+        "receipt_sha256": "669765cdb9d0a068de77b76558c7898e5ddde7a6e9ff627834311ca4efad4249",
+        "output_sha256": "04ec21368bae35eae74846edcbbdcc93d3df254b6edb81f3645c9f39164a36a4",
+        "exit_code": 0,
+        "tree_retired": true,
+        "residual_children": 0,
+        "peak_job_bytes": 23302144,
+        "memory_bytes": 3103784960,
+        "cpu_percent": 20,
+        "creation_time_job": true,
+        "inherited_error_mode": 32771
+      }
+    }
+  },
+  "preserved_incomplete_attempts": {
+    "test_expectation": {
+      "reason": "The first assertion required batching even where unrelated native records did not fit.",
+      "correction": "Use an exact mixed-size regression for the batching contract.",
+      "supervisor": {
+        "receipt_sha256": "9eb627518c8420c5329f970943d14d5510b3c691c5862cc727959467d59ad05e",
+        "output_sha256": "ca879e06f244a99379d6a09184336913f153e2de269fe1ca7a21fe7f6dbf7e29",
+        "exit_code": 8,
+        "tree_retired": true,
+        "residual_children": 0,
+        "peak_job_bytes": 234070016,
+        "memory_bytes": 3999268864,
+        "cpu_percent": 20,
+        "creation_time_job": true,
+        "inherited_error_mode": 32771
+      }
+    },
+    "timing_fixture": {
+      "reason": "The first 22 percent supervisor setting exceeded the fixture's 20 percent limit.",
+      "correction": "Used the verified 20 percent supervisor without a nested fixture cap.",
+      "supervisor": {
+        "receipt_sha256": "e604acd555286a41af3d6ec5dcefa92f5aba01a614459e3acc91337ccd29cdf9",
+        "output_sha256": "85aa63e0b159357dbc377fa26a619e1837279998f1b718cac257984132f61b69",
+        "exit_code": 1,
+        "tree_retired": true,
+        "residual_children": 0,
+        "peak_job_bytes": 126222336,
+        "memory_bytes": 2584739840,
+        "cpu_percent": 22,
+        "creation_time_job": true,
+        "inherited_error_mode": 32771
+      }
+    }
+  },
+  "navigation": {
+    "receipt_sha256": "2d2c2b1d2ff50b79b53ed0f7c944e0ce38a4343e35a4d610da4a889c3c41c163",
+    "native_response_sha256": "8a73faee9efec9d600c2476eaf35bc67e48b72001ee5166c0096a9e0c7672bb7",
+    "provider_version": "0.2.43",
+    "exact_parent": "427e30204afe2c8e181f929ab54504dec389b2ee",
+    "actual_searches": 1
+  },
+  "research": {
+    "receipt_sha256": "b1a70fc4872cc817181ef6ad999e71fbe35d0e669f279787b3d26f6fcb0f6c14",
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "lock_sha256": "01fbef3b628f772e4aba9724b6ced11c0f211d4d3bf51e38d1b9d0039eac997b",
+    "provider_source_identity": {
+      "tools/crawl4ai_tool.py": "e84a0e54ee07e4e13d3d2f35491f641730096a78126068f232c1f2397a467d8c",
+      "tools/crawl4ai_research.py": "ec3cb7a98eceed8fef08f3af806d6eaed35656bd76ca0ee8853d273f790337a5",
+      "tools/requirements/crawl4ai.txt": "6a42b0ff5ff6c63c843c6329ce823b819fd4f6f068e68d1836ab6dbec96e8f2f",
+      "tools/crawl4ai_sites.json": "e8869cb0488d78762a90aea6ecf2c3616bb89f0c89a8800cc512c613a750dc86",
+      "tools/nltk_distribution.py": "19eb3007c226b1a13e1ad0daa79cbd8a7bf6d082a20bf386e36ac060d0000919",
+      "tools/python_wheel.py": "c3c9a62454cb377203abce32154bec07cbf805bc7420cc89386c1c18370b301a",
+      "tools/test_nltk_model_security.py": "8aab7e2a704af875992ecae9137cdf5e5ff6935a4dd49e6751c54b2629a7280b",
+      "tools/requirements/python-build.txt": "9b280d724fda87773ba33a2654362adad84c68c4f79394adc07ff2e0293ca498",
+      "tools/crawl4ai_source_build.py": "5c27c4693fa0880a8db399825f637b694616963fc11f708afed33fa5b2e38b48",
+      "tools/crawl4ai_download_opener.py": "d5fd20b5545fd64c93a06b3ef07732f1c2da7e09ee6cda80662475007db52538",
+      "tools/test_crawl4ai_downloads.py": "ae4cf54c351a9da2de49caeb96306f384bb6a8f487318eabc69db4132d658619",
+      "third_party/upstream/nltk/3.10.4/distribution.json": "3241a8670f12e205525fc096572ed1969c063f77e13cffd70eff5eb656fbe1b0",
+      "nltk_upstream_wheel": "e46d89e59ef949270e3b19ab097da8dbb09350e05cb5a746ff92f6ccf6e8ce90",
+      "crawl4ai_source_build": "7da6376934254d9ad1de9e016a4509dae32c47559955889424435fcbbc7419f5"
+    },
+    "native_pages": [
+      {
+        "name": "windows-sandbox-config",
+        "url": "https://learn.microsoft.com/en-us/windows/security/application-security/application-isolation/windows-sandbox/windows-sandbox-configure-using-wsb-file",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 31750,
+        "markdown_sha256": "0e4fe9271949a1369425f4ca2adf8c5a7566f0f80632ad4bfb6a8a4b51ae458a",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 2.133,
+        "capture": "windows-sandbox-config.native.json",
+        "capture_sha256": "379fcb1facdcb4999971798abffd049d7d20c6a0265b9ea41a2e004d80a0ba5e"
+      },
+      {
+        "name": "windows-sandbox-cli",
+        "url": "https://learn.microsoft.com/en-us/windows/security/application-security/application-isolation/windows-sandbox/windows-sandbox-cli",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 28404,
+        "markdown_sha256": "b70ff3702185a5bf7e30cc89252fe6032b294326b1f55a7f1f7749e45a1cb805",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.245,
+        "capture": "windows-sandbox-cli.native.json",
+        "capture_sha256": "aa263b77e86ba6945df73b5238fea937be910e30b5a2c7498bdb9ac1aa902c8c"
+      },
+      {
+        "name": "fast26-discard",
+        "url": "https://www.usenix.org/conference/fast26/presentation/bian",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 10640,
+        "markdown_sha256": "a6c829e9ea85521b0c10477e058e38d8377753aa4e8875c24a9f658b0dbf43ef",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.259,
+        "capture": "fast26-discard.native.json",
+        "capture_sha256": "d6eaa89db4388580c0c529cfcc7f592ceee823d6b218caab030327cd0132376e"
+      },
+      {
+        "name": "fast26-grouped-io",
+        "url": "https://www.usenix.org/conference/fast26/presentation/hao",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 10512,
+        "markdown_sha256": "820a9ee444cf22d9cde18168f00dc9668867c5b646e2707343e36515b38fe3c8",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.107,
+        "capture": "fast26-grouped-io.native.json",
+        "capture_sha256": "27223dbcc400eb6be790fef56f9c77644dddd51834c6eb70d44199d1631c5b80"
+      }
+    ],
+    "robots": true,
+    "timeout_seconds_per_page": 45,
+    "external_LLM": false
+  },
+  "next": [
+    "Separate verification reads, rebuild writes and publication work in the admitted mounted window.",
+    "Reuse checked adjacent record runs without weakening CPU comparison or either publication barrier.",
+    "Use matched installed-host CPU, cold AMD and ready AMD demand before claiming a useful crossover."
+  ]
+}

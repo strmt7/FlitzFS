@@ -20,6 +20,23 @@ startup and callback delivery. E01–E13 still define package completion.
 [Package plan](IMPLEMENTATION_PLAN.md) ·
 [Current architecture](architecture/CURRENT.md) · [Target architecture](architecture/TARGET.md)
 
+## Ordinary packed follow-up
+
+The follow-up starts after the 6,293-operation Win32 witness with the
+original selected image. The mounted controller performed 662 copy steps,
+including 584 continuations, without reaching publication in the observation.
+The detached CPU path then selected the compact image and reduced allocation
+to 6,160,384 bytes. All 1,027 files read back exactly across the three
+helper lifecycles. The signed guest retired its mount and was disposed.
+Use this trace to attribute rebuild work while mounted before tuning
+retirement again. [Ordinary mounted and detached evidence](evidence/windows-ordinary-reclamation-progress-2026-11-25.json)
+
+The current source also delivered two verified mixed AMD frames after an
+unrelated callback. The installed-host SDK test verified independent CPU
+readback, rejection of a late result and worker retirement. A matched
+ordinary-client speed comparison remains open.
+[Live Radeon evidence](evidence/windows-ordinary-reclamation-progress-2026-11-25.json)
+
 ## Reconciled release gates
 
 | Gate | Current evidence | Completion evidence |
@@ -27,7 +44,7 @@ startup and callback delivery. E01–E13 still define package completion.
 | S1 · Exact artifacts | Current scoped builds bind source and SDK/CPU artifacts. Earlier real device runs identify their exact ROCm binaries. | Bind one clean Windows 11 update, signed WinFsp pair, helper, workers, CPU decoder table and backing capabilities to the acceptance run. |
 | S2 · Scale | Paged inodes, names and extents are live. Checked replica reads now group within a leaf and a bank, retaining the complete startup walk. | Verify bounded attach under a versioned authority contract. Fit and validate separate named-file curves for attach, restart, enumeration, mutation and resident memory. |
 | S3 · Space reuse | Sparse backing settled while mounted after preselection on the 1,027-file trace. Packed work continued after detach. The new callback fixture releases an already-selected packed image’s confirmed suffix in bounded continuations. | Select and settle through the ordinary mounted controller. Measure actual allocation with pinned readers, sustained churn, constrained free space and interrupted recovery. |
-| S4 · AMD and CPU continuity | Prepared AMD frames passed earlier SDK tests. The current stream binding survives unrelated callbacks in CPU semantic tests. The measured 1 MiB write shape still favors CPU. A new passive host check saw GPU engine peaks of 97% and 80%. | Prove a useful automatic region for each advertised AMD role in installed-client paths. Qualify CPU availability, verified delivery and condition-based device recovery. |
+| S4 · AMD and CPU continuity | Prepared AMD frames passed earlier SDK tests. The later live trial verified two mixed device frames after an unrelated callback and independent CPU readback. The measured 1 MiB write shape still favors CPU. | Prove a useful automatic region for each advertised AMD role in installed-client paths. Qualify CPU availability, verified delivery and condition-based device recovery. |
 | S5 · Compression | Protected prefix selection can save an allocation pair. A 67-byte-shift restart fixture saves 122,880 complete bytes. Real corpus rebuild controls retained their sizes, with no catalog nominations required. AIT grouping and parity placement showed distinct effects. | Establish a held-out complete-size frontier including metadata and protection. Measure catalog recall and savings with a populated, funded search index. |
 | S6 · Autonomy | Persistent sparse advice, workload samples, yield ranking and resource admission run in the controller. | Measure learning benefit, time to settle, interference, per-volume fairness and bytes written per byte reclaimed across workloads and restart. |
 | S7 · Windows experience | The helper and WinFsp own memory and supported file-backed volumes. Signed guests exercised external clients and verified reopen. | Qualify Explorer and independent apps with the signed candidate. Cover sharing, mapped and cached I/O, names, metadata, repair and clean teardown. |
@@ -56,6 +73,13 @@ startup and callback delivery. E01–E13 still define package completion.
   the result on the same mutation trace before considering device hints.
   [DOGI](https://www.usenix.org/conference/fast26/presentation/kim-jeeyun) ·
   [WARP](https://www.usenix.org/conference/fast26/presentation/song)
+- **Measure direct reuse separately from live copying.** FAST ’26 DisCoGC
+  reports gains from releasing proven stale ranges independently of
+  compaction in its storage system. For FlitzFS, compare a bounded
+  ownership ledger for reusable ranges with whole-image rebuild on the
+  same trace. Validate both durable roots and retained readers before any
+  range becomes reusable.
+  [FAST ’26 DisCoGC](https://www.usenix.org/conference/fast26/presentation/bian)
 - **Track EOF, allocation and persistence independently.** Windows EOF,
   allocation and flush operations have separate contracts. Allow a confirmed
   packed shorten to fund a bounded follow-up in the current idle window.
@@ -134,17 +158,19 @@ and acknowledgements.
 
 1. Extend the common Win32 witness and controller observer with explicit
    copy, verification, selector, pin wait, logical retirement, relocation
-   and shortening phases. Record old and selected identities plus host
-   deferrals, durable authority, live slots, reusable gaps, releasable
-   suffix, EOF and actual allocated bytes under the attached owner.
+   and shortening phases. The ordinary packed follow-up now counts actual
+   advance outcomes and samples file allocation before detach. Add
+   per-stage backing calls and allocated-byte debt with identities, pins,
+   durable authority, host deferrals, live slots, reusable gaps and EOF.
 2. Replay the 1,027-file workload from normal writes with its flush,
    rename, mapped I/O, outstanding reads and continued writes. Use an
    equivalent arm with cold work withheld. Check durable operations and
    bytes with the independent CPU reader after stop and interruption.
 3. Attribute time and bytes to phases before tuning. If copy dominates,
-   remove repeated reads and candidate reconstruction using bounded pages
-   and identity rechecks. If placement dominates, compare extent age and
-   contiguous-gap candidates in shadow mode. Require an occupied plateau
+   group short checks within verified leaves, then measure adjacent
+   stored-record reads and candidate reconstruction separately. Keep
+   independent comparisons and identity rechecks. If placement dominates,
+   compare extent age and contiguous-gap candidates in shadow mode. Require an occupied plateau
    and fewer writes per reclaimed byte before replacing the allocator.
 4. Repeat under constrained capacity, churn and retained readers. Verify
    the last reader wakes retirement. Cut durable selectors, directory

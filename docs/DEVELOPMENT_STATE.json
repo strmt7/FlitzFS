@@ -26,7 +26,11 @@
     "packed_tail_continuation_evidence": "docs/evidence/windows-packed-tail-continuation-2026-11-25.json",
     "packed_model_continued_truncations": 4,
     "packed_model_continued_release_bytes": 12845056,
-    "next": "Run the shared Win32 trace from normal writes, attribute selection and physical settlement costs, and verify occupied bytes while mounted."
+    "ordinary_mounted_reclamation_evidence": "docs/evidence/windows-ordinary-reclamation-progress-2026-11-25.json",
+    "ordinary_mounted_copy_steps": 662,
+    "ordinary_mounted_publications": 0,
+    "ordinary_detached_verified_allocated_bytes": 6160384,
+    "next": "Separate verified source, copy and target costs during live admission. Retain the 6293-operation transcript for automatic selection and packed settlement."
   },
   "release_path_review": {
     "evidence": "docs/evidence/windows-packed-tail-continuation-2026-11-25.json",
@@ -226,8 +230,11 @@
     "unrelated_callbacks_preserve_ready_results": true,
     "packed_and_mixed_cpu_callback_hits_per_case": 2,
     "late_demand_and_changed_checkpoint_refused": true,
-    "live_radeon_trial": "deferred_by_current_device_utilization",
-    "next": "Measure delivered prepared bytes under interleaved mounted demand and compare to complete CPU service."
+    "prior_live_radeon_trial": "deferred_by_device_utilization",
+    "latest_live_device_evidence": "docs/evidence/windows-ordinary-reclamation-progress-2026-11-25.json",
+    "prepared_mixed_device_frames_after_unrelated_callback": 2,
+    "live_radeon_cpu_readback": true,
+    "next": "Compare complete installed-host CPU, cold AMD and prepared AMD service on the same ordinary client demand."
   },
   "architecture_reconciliation": {
     "reviewed_commit": "df5be9b5b9d0bc05ac565eb2da8454ac76bed3d2",

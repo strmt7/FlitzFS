@@ -5,8 +5,10 @@ during staged copying and independently verifies both new copies. A staged
 attempt can reconstruct a lost bank while the source remains CPU-readable.
 
 Paged storage now supports an explicit candidate alongside a live foreground
-writer. Copying and full-content verification advance one object at a time.
-A separate index phase reads up to one leaf of record headers per opportunity.
+writer. Full-content verification can check several short records from the
+same checked leaf in one opportunity. The copy retains its single-record
+work unit for ordinary rebuilds. The index phase reads up to one leaf of
+record headers per opportunity.
 Native wrappers preserve their namespace format and rebind the image identity.
 This is a maintenance primitive, not an automatic scheduler, active-volume
 handoff, persistent restart journal or collective compression algorithm.
@@ -50,12 +52,12 @@ Subsequent checked inactive-image releases can continue under the same
 
 | Phase | Work per advance | Target roots |
 | --- | --- | --- |
-| Verify source | One complete independently decoded record | Absent |
+| Verify source | A bounded set of independently decoded records from one checked leaf | Absent |
 | Copy | One record encoded or preserved and independently compared | Absent |
 | Build index | Up to one leaf of checked candidate headers and the resulting index pages | Absent |
-| Verify target | One record compared to its source and generation | Absent |
+| Verify target | A bounded set of records individually compared to their source and generation | Absent |
 | Publish | Dependency barrier, two root writes/barriers, independent root reparse | Private complete candidate |
-| Verify publication | One record selected through the reparsed target tree | Private complete candidate |
+| Verify publication | A bounded set of records selected through the reparsed target tree and individually compared | Private complete candidate |
 | Ready | Finish transfers the verified writer; no backing I/O | Complete candidate |
 
 Phase transitions check totals, seal padding, finish bounded tree levels or
@@ -83,15 +85,25 @@ an absent/moved/finished candidate has no usable progress and reports the
 current API's `failed` phase.
 
 The engine retains one unfinished leaf and bounded references per tree level.
-Each payload step admits at most one 1-MiB object. Index work follows one
-leaf's capacity, and tree finishing follows the admitted depth of 16. The
-indexed native path uses the same staged layout with its paged namespace.
+A verification step spends up to two commit units on the sum of record
+framing, stored size and logical size within a quarter of one leaf. A record
+larger than that budget receives its own opportunity, up to the existing
+1-MiB object limit. Each record still uses its own replica checks and CPU
+comparison. Index work follows one leaf's capacity, and tree finishing
+follows the admitted depth of 16. The indexed native path uses the same
+staged layout with its paged namespace.
 Each verification and copy pass carries a checked tree cursor. Target comparison
 uses a bounded source lookup cache for that pass. A pass change resets both,
 so verification after publication reads the private image again. Mirror
 verification supplies the decoded bytes used by the comparison and still checks
 each stored copy. This preserves the per-step foreground yield point and the
 separate root, data and selector checks.
+
+The indexed fixture reduced the count from 51 to 33 steps when preserving
+encodings and from 51 to 29 when re-encoding. Both 4-KiB and 64-KiB
+failure-unit models kept the same maximum measured I/O bytes per step.
+The same 1,413 write and barrier cuts ran against the new geometry.
+[Rebuild and mounted trace evidence](evidence/windows-ordinary-reclamation-progress-2026-11-25.json)
 
 Resource admission remains the provider/controller's responsibility. There is
 no thread, service, timer, online model or GPU launch. An OS flush can still

@@ -1392,15 +1392,25 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
   }
   template<class Visit> bool visit_quantum(const State& input,Visit&& visit) {
     if(!input.root.count)return false;
-    // The checkpoint is immutable for this pass. Keep its checked path and
-    // leaf between opportunities without increasing the payload work per step.
+    // The checkpoint is immutable during this pass. Batch small verification
+    // records from its checked leaf. Copying may encode, so it keeps its
+    // existing work unit. Large verification records still run alone.
     if(!frontier)frontier.emplace(TreeFrontier{{input.root},{}});
-    std::size_t remaining=retention?leaf_capacity(input)/4:1;
+    const bool verifying=phase!=PagedRewritePhase::copying;
+    std::size_t remaining=verifying || retention?(std::max)(std::size_t{1},leaf_capacity(input)/4):1;
+    std::uint64_t bytes_left=2*kStoreCommitUnit;
     const auto before=completed;
     while(remaining && frontier->present()) {
       if(frontier->entries.empty()) {
+        if(verifying && completed!=before)break;
         frontier->open(input);
         continue;
+      }
+      if(verifying) {
+        const auto& next=frontier->entries.back();
+        const auto bytes=std::uint64_t{next.logical}+next.stored+record_header_bytes;
+        if(completed!=before && bytes>bytes_left)break;
+        bytes_left-=(std::min)(bytes_left,bytes);
       }
       const auto entry=frontier->take();
       if(retention && entry.logical>retention->maximum_object_bytes)fail("oversized advisory record");

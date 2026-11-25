@@ -554,6 +554,7 @@ struct WinFspNativeWritable::Impl {
         if(paired_seal_memory)scratch={*admission.memory-indexed_transaction_scratch,try_locked_seal_scratch};
         const auto step=session.advance_persistent_reclamation(fresh_volume_identity,file_mode,scratch);
         auto result=progress(step);
+        result.file_reclamation=step;
         // After a checked release, this window can fund only further
         // releases of the same inactive image. A publication or a newly
         // abandoned candidate must wait for its first fresh observation.

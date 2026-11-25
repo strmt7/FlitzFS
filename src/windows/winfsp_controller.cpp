@@ -168,7 +168,7 @@ struct WinFspVolumeController::Impl {
         constexpr auto maximum_finite_wait=std::uint64_t{INFINITE-1};
         constexpr auto scrub_day_ms=24ULL*60*60*1000;
         std::uint64_t next=0,next_scrub=0;
-        bool scrub_pass_faulted=false;
+        bool scrub_pass_faulted=false,maintenance_quiescent=false;
         while(!stop_requested.load(std::memory_order_acquire)) {
           if(session->requires_offline() || session->dispatcher_stopped())break;
           if(!disabled && adapter->maintenance_event_failed()) {
@@ -245,6 +245,11 @@ struct WinFspVolumeController::Impl {
               (read_worker && read_worker->ready_to_verify()));
           if(anchor && !pending)anchor->cancel();
           const bool awaiting_anchor=anchor && anchor->waiting();
+          const bool quiescent=!pending && !disabled && !write_trial_running && !awaiting_anchor;
+          if(quiescent!=maintenance_quiescent) {
+            std::lock_guard lock(mutex);
+            current.maintenance_quiescent=maintenance_quiescent=quiescent;
+          }
           if(!pending || now<next) {
             auto delay=pending?(std::min)(next-now,maximum_finite_wait):std::uint64_t{INFINITE};
             if(!disabled && !scrub_due)delay=(std::min)({delay,next_scrub-now,maximum_finite_wait});
@@ -274,6 +279,7 @@ struct WinFspVolumeController::Impl {
           PagedPayloadScrubResult last_scrub_fault;
           std::optional<PagedPayloadCheckpointObservation> payload_checkpoint;
           std::uint64_t continued=0,continued_compaction=0,continued_range_retirement=0,continued_packed_tail=0;
+          decltype(WinFspControllerView::file_reclamation_steps) file_reclamation_steps{};
           detail::MaintenanceBackingUse backing_use;
           bool backing_limited=false,read_ahead_prepared=false,read_ahead_backing_refused=false;
           bool read_ahead_demand_sampled=false;
@@ -338,6 +344,8 @@ struct WinFspVolumeController::Impl {
                 auto& timing=backing_timing[static_cast<std::size_t>(step.continuation)];
                 if(step.continuation!=Continuation::none && step.progress.deferral==NativeMaintenanceDeferral::none)
                   timing.observe(backing_use.elapsed_ns()-backing_before);
+                if(step.file_reclamation!=NativeVolumeReclaimProgress::idle)
+                  ++file_reclamation_steps[static_cast<std::size_t>(step.file_reclamation)];
                 result=std::move(step);
                 const auto scrub=result.payload_scrub;
                 scrub_checks+=scrub.examined_objects;
@@ -398,6 +406,8 @@ struct WinFspVolumeController::Impl {
             current.continued_compaction_steps+=continued_compaction;
             current.continued_range_retirement_steps+=continued_range_retirement;
             current.continued_packed_tail_steps+=continued_packed_tail;
+            for(std::size_t i=0;i<file_reclamation_steps.size();++i)
+              current.file_reclamation_steps[i]+=file_reclamation_steps[i];
             if(result.reclaimed)++current.reclamation_quanta;
             if(result.payload_repaired)++current.payload_repairs;
             current.payload_scrub_checks+=scrub_checks;

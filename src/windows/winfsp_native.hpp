@@ -63,6 +63,7 @@ struct WinFspMaintenanceResult {
   bool payload_repaired=false;
   PagedPayloadScrubResult payload_scrub;
   bool sealed_image=false;
+  NativeVolumeReclaimProgress file_reclamation=NativeVolumeReclaimProgress::idle;
 };
 class WinFspNativeWritable final {
  public:

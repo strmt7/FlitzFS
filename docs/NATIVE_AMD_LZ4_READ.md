@@ -186,6 +186,13 @@ and confirmed worker retirement. The corrected prepared exchanges took
 3.8–5.9 seconds after submission in this fixture.
 [Live worker and callback receipt](evidence/windows-amd-group-budget-freshness-2026-11-24.json)
 
+On the later current-source run, the prepared mixed decoder returned two
+verified Radeon frames after an unrelated callback. Both ready results
+matched independent CPU reads. Late demand refused the ready result, and
+the worker retired. This SDK result establishes that delivery path on the
+installed device. A matched ordinary-client speed advantage remains open.
+[Current live Radeon and CPU evidence](evidence/windows-ordinary-reclamation-progress-2026-11-25.json)
+
 Private live grouped traces attributed **4,790–5,311 ms** to the worker's
 HIP kernel-attribute checks. Dispatch and wait accounted for **0.103–0.179 ms**.
 Each trace returned two verified frames and passed independent CPU readback.
@@ -469,7 +476,7 @@ and decoded digest before using the frame. The mount owner also checks
 worker retirement when it stops. A refused device configuration uses CPU
 for the remainder of that attachment. Temporary pressure uses the shared
 GPU recovery policy and requires fresh observations.
-[Worker ownership](WORKER_CHANNEL.md#resource-sized-transport) ·
+[Worker ownership](WORKER_CHANNEL.md#resource-sized-transport-experimental) ·
 [GPU recovery](GPU_RECOVERY.md)
 
 The live Windows SDK fixture consumed both frames of a Radeon batch

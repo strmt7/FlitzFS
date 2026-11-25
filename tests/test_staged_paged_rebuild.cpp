@@ -30,15 +30,17 @@ void staged_native(unsigned layout,std::uint32_t unit,bool reencode) {
   require(io(*source,*extra)==before_extra,"duplicate candidate performed I/O");
   rejects([&]{writer.finish_paged_recompression(candidate);},"premature finish accepted");
   rejects([&]{PagedObjectStoreWriter::create(target,next_id(),limits);},"candidate did not lease target");
-  std::set<PagedRewritePhase> phases;unsigned steps=0;std::uint64_t maximum_bytes=0;
+  std::set<PagedRewritePhase> phases;unsigned steps=0,verification_batches=0;std::uint64_t maximum_bytes=0;
   while(candidate.progress().phase!=PagedRewritePhase::ready) {
     const auto before=candidate.progress();phases.insert(before.phase);
     const auto read_bytes=source->read_bytes+target->read_bytes,write_bytes=target->write_bytes;
     writer.advance_paged_recompression(candidate);
     const auto after=candidate.progress();
     if(before.phase==after.phase) {
-      const auto budget=before.phase==PagedRewritePhase::building_index?62U:1U;
-      require(after.completed_in_phase-before.completed_in_phase<=budget,"step exceeded its payload or index budget");
+      const auto count=after.completed_in_phase-before.completed_in_phase;
+      const auto budget=before.phase==PagedRewritePhase::copying?1U:62U;
+      require(count<=budget,"step exceeded its payload or index budget");
+      if(before.phase!=PagedRewritePhase::building_index && count>1)++verification_batches;
     }
     const auto bytes=source->read_bytes+target->read_bytes-read_bytes+target->write_bytes-write_bytes;
     maximum_bytes=(std::max)(maximum_bytes,bytes);
@@ -61,7 +63,7 @@ void staged_native(unsigned layout,std::uint32_t unit,bool reencode) {
   require(writer.snapshot().read("stable.bin",0,100)==data(31,18),"candidate changed source");
   require(source->live==original && source->calls==calls,"staged operation wrote or flushed source");
   std::cout<<"staged_native layout="<<layout<<" unit="<<unit<<" reencode="<<reencode<<" steps="<<steps
-      <<" maximum_step_io_bytes="<<maximum_bytes<<'\n';
+      <<" verification_batches="<<verification_batches<<" maximum_step_io_bytes="<<maximum_bytes<<'\n';
 }
 void stale_phases(unsigned layout) {
   for(const auto phase:{PagedRewritePhase::verifying_source,PagedRewritePhase::copying,PagedRewritePhase::building_index,
@@ -103,18 +105,42 @@ void generic_maximum_and_empty() {
   for(bool populated:{false,true}) {
     auto source=std::make_shared<Ram>(),target=std::make_shared<Ram>();source->failure_unit=target->failure_unit=4096;
     auto writer=PagedObjectStoreWriter::create(source,identity(),limits,{StoreCompressionMode::raw,1,false});
-    const auto bytes=data(kStoreMaxObjectBytes,29);
-    if(populated){const StoreMutation item{700,false,bytes};writer.commit({&item,1});}
+    const auto bytes=data(kStoreMaxObjectBytes,29),short_record=data(41,32);
+    const std::array records{StoreMutation{698,false,short_record},StoreMutation{699,false,short_record},
+        StoreMutation{700,false,bytes},StoreMutation{701,false,short_record},StoreMutation{702,false,short_record}};
+    if(populated)writer.commit(records);
     auto original=writer.snapshot();const auto reads=source->read_bytes;
     auto candidate=writer.prepare_rebuild(target,next_id(),{StoreCompressionMode::raw,1,false});
     require(source->read_bytes-reads<=16384,"prepare hid a source inventory scrub");
     require(!candidate.replaces_native_root(),"generic rebuild claims native rebinding");
-    auto moved=std::move(writer);unsigned steps=0;
-    while(!candidate.advance(moved))require(++steps<32,"generic rebuild stalled");
+    auto moved=std::move(writer);unsigned steps=0,checked_large=0,small_batches=0;
+    for(;;) {
+      const auto before=candidate.progress();
+      const auto ready=candidate.advance(moved);
+      const auto after=candidate.progress();
+      using Phase=PagedRewritePhase;
+      const bool verifying=before.phase==Phase::verifying_source || before.phase==Phase::verifying_target ||
+          before.phase==Phase::verifying_publication;
+      if(verifying && after.phase==before.phase) {
+        if(after.completed_in_phase-before.completed_in_phase>1)++small_batches;
+        if(before.completed_in_phase<3 && after.completed_in_phase>=3) {
+          require(before.completed_in_phase==2 && after.completed_in_phase==3,
+              "maximum object verification shared a quantum with short records");
+          ++checked_large;
+        }
+      }
+      if(ready)break;
+      require(++steps<32,"generic rebuild stalled");
+    }
+    require(checked_large==(populated?3U:0U) && small_batches==(populated?6U:0U),
+        "bounded verification did not batch the short records around the maximum object");
     const auto before=io(*source,*target);auto copy=candidate.finish(moved);
     require(io(*source,*target)==before,"generic finish performed backing I/O");
-    require(copy.snapshot().info().objects==(populated?1U:0U),"generic inventory differs");
-    if(populated)require(copy.snapshot().read(700)==bytes && original.read(700)==bytes,"maximum object bytes differ");
+    const auto independent=PagedObjectStoreSnapshot::open(target,limits);
+    require(independent.info().objects==(populated?records.size():0U) &&
+        independent.info().objects==copy.snapshot().info().objects,"generic inventory differs");
+    if(populated)for(const auto& record:records)
+      require(independent.read(record.id)==original.read(record.id),"mixed-size rebuild bytes differ");
   }
 }
 void admission_and_read_failures() {

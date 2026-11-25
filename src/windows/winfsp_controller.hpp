@@ -29,6 +29,8 @@ struct WinFspControllerView {
   std::uint64_t maintenance_quanta=0,reclamation_quanta=0,compactions=0,sealed_compactions=0,compaction_failures=0;
   std::uint64_t continued_preparation_steps=0,continued_compaction_steps=0,payload_repairs=0;
   std::uint64_t continued_range_retirement_steps=0,continued_packed_tail_steps=0;
+  std::array<std::uint64_t,static_cast<std::size_t>(NativeVolumeReclaimProgress::failed)+1> file_reclamation_steps{};
+  bool maintenance_quiescent=false;
   std::uint64_t payload_scrub_checks=0,payload_scrub_passes=0,payload_scrub_faults=0;
   PagedPayloadScrubResult last_payload_scrub_fault;
   std::optional<PagedPayloadCheckpointObservation> last_payload_checkpoint;

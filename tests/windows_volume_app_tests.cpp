@@ -1943,7 +1943,8 @@ void observe_detached_reclamation(const MountedFileActivation& activation,StoreI
   std::cout<<" independent_cpu=exact blake3="<<hex_mounted_digest(population)<<std::endl;
 }
 
-void observe_mounted_reclamation(const MountedFileActivation& activation,StoreIoContract contract,StoreIdentity volume) {
+void observe_mounted_reclamation(const MountedFileActivation& activation,StoreIoContract contract,StoreIdentity volume,
+    bool preselected) {
 #ifdef FLITZFS_OBSERVE_VOLUME_PUBLICATION
   const auto profile=activation.reclamation.value().backing;
   const auto before=mounted_backing_space(activation.path,profile);
@@ -1966,7 +1967,7 @@ void observe_mounted_reclamation(const MountedFileActivation& activation,StoreIo
   std::array<unsigned,static_cast<std::size_t>(Phase::failed)+1> phases{};
   std::array<unsigned,static_cast<std::size_t>(Deferral::capacity)+1> deferrals{};
   WinFspControllerView view;
-  const auto limit=GetTickCount64()+20000;
+  const auto limit=GetTickCount64()+(preselected?20000:95000);
   std::uint64_t previous=0;
   // The serving process only observes its controller. The preceding Win32
   // clients run outside the helper and cover the retained-reader workload.
@@ -1977,9 +1978,16 @@ void observe_mounted_reclamation(const MountedFileActivation& activation,StoreIo
       ++deferrals[static_cast<std::size_t>(view.maintenance.deferral)];
       previous=view.maintenance_quanta;
     }
-    if(view.retired || view.offline || view.maintenance_disabled)break;
+    if(view.retired || view.offline || view.maintenance_disabled ||
+        (!preselected && view.compactions && view.maintenance_quiescent))break;
     Sleep(200);
   }while(GetTickCount64()<limit);
+  std::optional<MountedBackingSpace> attached;
+  if(view.state==SessionState::running && !view.retired && !view.offline) {
+    const auto sampled=mounted_backing_space(activation.path,profile);
+    const auto still=controller.view();
+    if(still.state==SessionState::running && !still.retired && !still.offline)attached=sampled;
+  }
   controller.stop_and_join();
   const auto stopped=controller.view();
   require(stopped.retired && stopped.write_restart_ready && absent(),"Reclamation observer did not retire its mount");
@@ -1992,7 +2000,9 @@ void observe_mounted_reclamation(const MountedFileActivation& activation,StoreIo
   constexpr std::array refusal_names{"none","observation","foreground","cpu","memory","duty","other_maintenance","capacity"};
   static_assert(phase_names.size()==phases.size() && refusal_names.size()==deferrals.size());
   std::cout<<"mounted_controller_reclamation allocated_before="<<before.allocated
-      <<" allocated_after="<<after.allocated<<" quanta="<<view.maintenance_quanta
+      <<" allocated_after="<<after.allocated<<" allocated_while_attached="<<(attached?attached->allocated:0)
+      <<" eof_while_attached="<<(attached?attached->eof:0)<<" quiescent="<<view.maintenance_quiescent
+      <<" preselected="<<preselected<<" quanta="<<view.maintenance_quanta
       <<" continued_compaction="<<view.continued_compaction_steps<<" publications="<<view.compactions
       <<" continued_range_retirement="<<view.continued_range_retirement_steps
       <<" continued_packed_tail="<<view.continued_packed_tail_steps
@@ -2003,9 +2013,13 @@ void observe_mounted_reclamation(const MountedFileActivation& activation,StoreIo
       <<" flush_calls="<<flushes.completed;
   for(std::size_t i=0;i<phases.size();++i)std::cout<<" phase_"<<phase_names[i]<<'='<<phases[i];
   for(std::size_t i=0;i<deferrals.size();++i)std::cout<<" deferral_"<<refusal_names[i]<<'='<<deferrals[i];
+  constexpr std::array steps{"idle","copying","ready","published","retiring","pinned","failed"};
+  static_assert(steps.size()==view.file_reclamation_steps.size());
+  for(std::size_t i=1;i<steps.size();++i)
+    std::cout<<" step_"<<steps[i]<<'='<<view.file_reclamation_steps[i];
   std::cout<<" retired=1"<<std::endl;
 #else
-  (void)activation;(void)contract;(void)volume;
+  (void)activation;(void)contract;(void)volume;(void)preselected;
   throw std::runtime_error("Reclamation observation requires the writable WinFsp fixture build");
 #endif
 }
@@ -2148,7 +2162,8 @@ void mounted_reclamation_gui_tests(const std::filesystem::path& app,const app_fi
   if(client_trace) {
     require(volume.has_value(),"Missing detached observation identity");
     if(observe_retirement)observe_detached_reclamation(activation,contract,*volume,foreground,true);
-    if(observe_controller || observe_retirement)observe_mounted_reclamation(activation,contract,*volume);
+    if(observe_controller || observe_retirement)
+      observe_mounted_reclamation(activation,contract,*volume,observe_retirement);
     observe_detached_reclamation(activation,contract,*volume,foreground);
     std::cout<<"mounted_trace_complete schema=1 records="<<client_trace->records()
         <<" cycles="<<cycles<<" populated="<<mounted_trace_files<<std::endl;

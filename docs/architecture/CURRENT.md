@@ -450,6 +450,10 @@ EOF shortening. Every step revalidates both selectors and ownership. The same
 idle window can fund another shorten after the previous extent is checked.
 Foreground activity, expiry or any transition away from confirmed shortening
 ends that continuation. The observer counts its admitted steps separately.
+It now also records each persistent-reclaimer outcome. The controller's
+idle observation indicates that no work is eligible at that decision.
+The fixture checks remaining work independently after detach.
+[Ordinary mount observation](../evidence/windows-ordinary-reclamation-progress-2026-11-25.json)
 [Populated retirement](../evidence/windows-mounted-range-retirement-2026-11-24.json) ·
 [Packed continuation](../evidence/windows-packed-tail-continuation-2026-11-25.json) ·
 [Next implementation slice](../RELEASE_RECONCILIATION_2026-11-25.md#ordered-implementation-and-decision-points)
