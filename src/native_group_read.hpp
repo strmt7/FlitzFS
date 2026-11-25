@@ -64,7 +64,8 @@ class NativeGroupReadyReads final {
       const std::function<bool()>& interrupted={});
   // Before publication, release members already served by the CPU.
   void discard_before(std::uint64_t offset) noexcept;
-  bool pending() const noexcept{return pending_members_!=0;}
+  bool pending() const noexcept{return pending_bytes_!=0;}
+  std::uint64_t pending_bytes() const noexcept{return pending_bytes_;}
   std::size_t consumed() const noexcept{return consumed_;}
 
  private:
@@ -79,16 +80,18 @@ class NativeGroupReadyReads final {
   };
   static std::size_t descriptor_bytes() noexcept;
   Member* find(std::uint64_t inode,std::uint64_t block,std::uint64_t object,std::uint64_t offset) noexcept;
-  void delivered(Member&,std::uint64_t end) noexcept;
+  std::uint32_t delivered(Member&,std::uint64_t begin,std::uint64_t end) noexcept;
   std::uint64_t inode_=0;
   std::shared_ptr<PagedReadMetadata> metadata_;
   std::vector<Member> members_;
-  std::size_t pending_members_=0,consumed_=0;
+  std::uint64_t pending_bytes_=0;
+  std::size_t consumed_=0;
 };
 struct NativeGroupReadRoute {
   NativeGroupReadyReads* ready=nullptr;
   bool decoded_tiled=false;
   std::uint32_t tiled_suffix_bytes=0;
+  std::uint32_t ready_bytes=0;
 };
 
 }

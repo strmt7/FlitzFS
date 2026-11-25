@@ -398,7 +398,7 @@ bool NativeLz4ReadWorker::verify_and_publish(WinFspNativeWritable& adapter,
       auto ready=exchange->accept(*f.work.groups,result->response,WorkerExecution::hip,interrupted);
       if(ready) {
         s.status.verified_frames+=f.frames;
-        published=adapter.publish_read_ahead(f.work,{},std::move(ready),stopped);
+        published=adapter.publish_read_ahead(f.work,{},std::move(ready),stopped,true);
       }else if(!interrupted())throw std::invalid_argument("Grouped extent reply verification failed");
     }else {
       auto ready=std::get<detail::NativeLz4ReadExchange>(*f.request).accept(result->response,WorkerExecution::hip);

@@ -182,6 +182,11 @@ void WinFspNativeSession::retire_adapter() noexcept {
     unexpected_stop_=unexpected_stop_||adapter_->dispatcher_stopped_unexpectedly();
     try{retired_deferred_=adapter_->deferred_write_stats();retired_stats_=adapter_->stats();offline_=offline_||retired_stats_.contexts!=0||retired_stats_.fenced;}
     catch(...){offline_=true;}
+    retired_group_read_delivery_=adapter_->group_read_delivery();
+    if(retired_group_read_delivery_) {
+      retired_group_read_delivery_->cpu.pending_bytes=0;
+      retired_group_read_delivery_->amd.pending_bytes=0;
+    }
     adapter_.reset(); // Only AFTER dispatcher join and owned FS deletion.
   }
 }
@@ -204,4 +209,7 @@ bool WinFspNativeSession::dispatcher_stopped_unexpectedly() const noexcept {
   return unexpected_stop_||(adapter_&&adapter_->dispatcher_stopped_unexpectedly());
 }
 NativeSessionStats WinFspNativeSession::stats() const{return adapter_?adapter_->stats():retired_stats_;}
+std::optional<WinFspGroupReadDelivery> WinFspNativeSession::group_read_delivery() const noexcept {
+  return adapter_?adapter_->group_read_delivery():retired_group_read_delivery_;
+}
 } // namespace flitzfs

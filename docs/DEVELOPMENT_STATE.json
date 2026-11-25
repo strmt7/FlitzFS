@@ -6,6 +6,15 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "grouped_read_delivery": {
+    "source_commit": "822acde052f9dd7284de5e172b700f1bf11e3887",
+    "tested_source_tree": "00d3795943dc1c7105b9715d8f7aaab60722bf33",
+    "evidence": "docs/evidence/windows-grouped-read-delivery-2026-11-25.json",
+    "shared_controller_delivery_bytes": true,
+    "host_radeon_bytes_returned": 131072,
+    "sdk_read_callbacks": 32,
+    "stable_release": false
+  },
   "compact_paged_roots": {
     "source_commit": "216034fb8adfa06247d502f2fef6f9eb19dbc78c",
     "tested_source_tree": "ccc9c5947d3d6e5dcd84483059db342a4c3e6a92",

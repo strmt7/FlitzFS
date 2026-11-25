@@ -190,10 +190,11 @@ struct WinFspVolumeController::Impl {
                 NativeAnchorOpportunity::foreground:NativeAnchorOpportunity::poll);
           }
           adapter->signal_foreground_for_anchor(waiting_for_accelerator());
-          if(read_worker) {
-            read_worker->observe(*adapter,disabled);
+          if(read_worker)read_worker->observe(*adapter,disabled);
+          if(const auto delivery=session->group_read_delivery();read_worker || delivery) {
             std::lock_guard lock(mutex);
-            current.amd_read=read_worker->stats();
+            if(read_worker)current.amd_read=read_worker->stats();
+            if(delivery)current.group_read_delivery=*delivery;
           }
           if(const auto demand=adapter->take_amd_write_demand()) {
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
@@ -520,6 +521,7 @@ struct WinFspVolumeController::Impl {
       current.amd_read=read_worker->stats();
       read_worker.reset();
     }
+    if(const auto delivery=session->group_read_delivery())current.group_read_delivery=*delivery;
     current.maintenance_disabled=disabled;current.retired=anchor_retired && read_retired;
     if(status_changed.value)SetEvent(status_changed.value);
   }

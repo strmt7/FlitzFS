@@ -48,6 +48,7 @@ struct WinFspControllerView {
   std::uint64_t gpu_budget_queries=0,gpu_budget_refusals=0;
   NativeAnchorSearchStats anchor_search;
   NativeLz4ReadWorkerStats amd_read;
+  WinFspGroupReadDelivery group_read_delivery;
   std::optional<NativeDeferredActivation> foreground_activation;
   std::optional<NativeAmdWriteDemand> amd_write_demand;
   std::optional<WinFspAmdCpuTrial> amd_cpu_trial;

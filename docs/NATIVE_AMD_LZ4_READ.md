@@ -302,6 +302,34 @@ across the 4 KiB requests, down from 16 times. Use this CPU baseline
 when determining which ordinary read shapes benefit from preparation.
 [Matched CPU evidence](evidence/windows-cpu-tile-and-ordinary-settlement-2026-11-25.json)
 
+### Measuring bytes delivered by grouped read-ahead
+
+The normal Windows controller view reports published, delivered and pending
+logical bytes for verified CPU and AMD grouped read-ahead. It credits bytes
+only when the indexed reader rechecks the committed member and base and
+returns the requested slice. An unread frame, a CPU reread and a reused CPU
+demand tile contribute no prepared delivery. A 4 KiB callback delivers 4 KiB
+even when its group member holds a full 64 KiB frame. The session preserves
+the final totals after joining the dispatcher and releasing readiness.
+
+A published group can retain part of an extent whose prefix was already
+served by CPU. Unused logical bytes are the published total less delivered
+and currently retained bytes. This allows the same trace to identify work
+discarded due to a seek, checkpoint change, close or replacement. These
+totals measure the WinFsp callback boundary. A mounted comparison also
+records the successful bytes and status observed by the Win32 client.
+[WinFsp read interface](https://github.com/winfsp/winfsp/blob/ada6de157df4fa99f5a866b6ac7af66918d6d838/inc/winfsp/winfsp.h) ·
+[Windows ReadFile](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-readfile)
+
+The matched segmented fixture counted 131,072 delivered bytes in 32 calls
+in both the CPU and host Radeon runs. A later CPU pass left those totals
+unchanged. The Radeon child retired before its output entered the read path.
+Use the delivered bytes and retained or discarded work together with setup,
+transfer, kernel, verification and demand timings when evaluating a warmed
+window. Keep software admission independent of HIP stream-priority support.
+[Matched Windows qualification](evidence/windows-grouped-read-delivery-2026-11-25.json) ·
+[AMD ROCm Core 10.2.0 release notes](https://rocm.docs.amd.com/en/docs-10.2.0/about/release-notes.html)
+
 ### Feedback when demand passes a grouped request
 
 A sequential handle can finish the captured range before the device

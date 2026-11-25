@@ -290,6 +290,7 @@ struct WinFspNativeWritable::Impl {
     std::unique_ptr<detail::NativeLz4ReadyReads> lz4;
     std::unique_ptr<detail::NativeGroupReadyReads> groups;
     std::pair<StoreIdentity,std::uint64_t> checkpoint;
+    bool device_groups=false;
     bool pending() const noexcept{return groups?groups->pending():lz4 && lz4->pending();}
     std::size_t consumed() const noexcept{return groups?groups->consumed():lz4?lz4->consumed():0;}
   };
@@ -328,6 +329,7 @@ struct WinFspNativeWritable::Impl {
   std::optional<DemandSample> recovery_demand_sample;
   bool file_read_ahead_seeded=false;
   PreparedRead prepared_read;
+  WinFspGroupReadDelivery group_delivery;
   std::uint64_t read_ahead_hits=0,last_read_ahead_observation=0;
   std::array<Slot,NativeFileSession::max_contexts> slots{};
   std::uintptr_t next_token=1;
@@ -783,6 +785,11 @@ struct WinFspNativeWritable::Impl {
     const bool seed_file_cost=file_profile && !file_read_ahead_seeded && (adjacent_window || group_window_due);
     std::uint64_t demand_cost=0;
     auto bytes=read_with_demand_sample(slot,offset,length,ready,groups,seed_file_cost,demand_cost);
+    if(groups.ready_bytes) {
+      auto& usage=prepared.device_groups?group_delivery.amd:group_delivery.cpu;
+      usage.delivered_bytes+=(std::min)(std::uint64_t{groups.ready_bytes},
+          (std::numeric_limits<std::uint64_t>::max)()-usage.delivered_bytes);
+    }
     if(has_prepared && prepared.consumed()>prior_hits)read_ahead_hits+=prepared.consumed()-prior_hits;
     const auto maximum=(std::numeric_limits<std::uint64_t>::max)();
     if(!length || bytes.size()!=length || offset>maximum-length)return bytes;
@@ -1884,7 +1891,7 @@ WinFspReadAheadState WinFspNativeWritable::read_ahead_state(const WinFspReadAhea
 
 bool WinFspNativeWritable::publish_read_ahead(WinFspReadAheadWork& work,
     std::unique_ptr<detail::NativeLz4ReadyReads> lz4,std::unique_ptr<detail::NativeGroupReadyReads> groups,
-    const std::atomic<bool>& stop_requested) noexcept {
+    const std::atomic<bool>& stop_requested,bool device_groups) noexcept {
   try {
     if(work.owner!=this || (groups?lz4 || !groups->pending():!lz4 || !lz4->pending()))return false;
     std::unique_lock guard(impl_->control,std::try_to_lock);
@@ -1899,7 +1906,12 @@ bool WinFspNativeWritable::publish_read_ahead(WinFspReadAheadWork& work,
       if(impl_->read_ahead && impl_->read_ahead->token==work.token)impl_->read_ahead.reset();
     }
     if(lz4)lz4->keep_metadata(std::move(work.metadata));
-    impl_->prepared_read={{work.token,work.offset,work.bytes},std::move(lz4),std::move(groups),work.checkpoint};
+    if(groups) {
+      auto& usage=device_groups?impl_->group_delivery.amd:impl_->group_delivery.cpu;
+      usage.published_bytes+=(std::min)(groups->pending_bytes(),
+          (std::numeric_limits<std::uint64_t>::max)()-usage.published_bytes);
+    }
+    impl_->prepared_read={{work.token,work.offset,work.bytes},std::move(lz4),std::move(groups),work.checkpoint,device_groups};
     return true;
   }catch(...) {return false;}
 }
@@ -1925,6 +1937,19 @@ void WinFspNativeWritable::discard_native_lz4_read_ahead(std::uint64_t epoch,boo
     if(measure_demand)impl_->read_ahead_sample_target=impl_->read_ahead;
     impl_->read_ahead.reset();
   }catch(...) {}
+}
+std::optional<WinFspGroupReadDelivery> WinFspNativeWritable::group_read_delivery() const noexcept {
+  try {
+    std::unique_lock guard(impl_->control,std::try_to_lock);
+    if(!guard || !impl_->read_ahead_enabled)return {};
+    auto result=impl_->group_delivery;
+    const auto& prepared=impl_->prepared_read;
+    if(prepared.groups && prepared.checkpoint==impl_->session.read_ahead_checkpoint()) {
+      auto& usage=prepared.device_groups?result.amd:result.cpu;
+      usage.pending_bytes=prepared.groups->pending_bytes();
+    }
+    return result;
+  }catch(...) {return {};}
 }
 std::uint64_t WinFspNativeWritable::native_lz4_read_ahead_hits() const {
   std::lock_guard guard(impl_->control);

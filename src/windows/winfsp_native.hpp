@@ -5,6 +5,7 @@
 #include "native_file_info.hpp"
 #include "native_deferred_write.hpp"
 #include "winfsp_origin.hpp"
+#include "winfsp_read_delivery.hpp"
 #include "flitzfs/native_maintenance.hpp"
 #include <atomic>
 #include <filesystem>
@@ -223,7 +224,9 @@ class WinFspNativeWritable final {
   WinFspReadAheadState read_ahead_state(const WinFspReadAheadWork&) const noexcept;
   bool publish_read_ahead(WinFspReadAheadWork&,std::unique_ptr<detail::NativeLz4ReadyReads>,
       std::unique_ptr<detail::NativeGroupReadyReads>,
-      const std::atomic<bool>& stop_requested) noexcept;
+      const std::atomic<bool>& stop_requested,
+      bool device_groups=false) noexcept;
+  std::optional<WinFspGroupReadDelivery> group_read_delivery() const noexcept;
   bool prepare_captured_native_lz4_read(WinFspReadAheadWork&,const std::atomic<bool>& stop_requested) noexcept;
   // After a measured backing refusal, the matching CPU demand may refresh cost.
   void discard_native_lz4_read_ahead(std::uint64_t foreground_epoch,bool measure_demand=false) noexcept;

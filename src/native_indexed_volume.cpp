@@ -2389,6 +2389,7 @@ Bytes IndexedVolumeView::read(const IndexedInodeInput& selected,std::uint64_t of
   if(groups) {
     groups->decoded_tiled=false;
     groups->tiled_suffix_bytes=0;
+    groups->ready_bytes=0;
   }
   if(selected.lifetime==IndexedLifetime::retiring)fail(Code::not_found,"indexed inode is retired");
   if(selected.directory)fail(Code::is_directory,"cannot read indexed directory");
@@ -2432,11 +2433,12 @@ Bytes IndexedVolumeView::read(const IndexedInodeInput& selected,std::uint64_t of
     const auto begin=block*kNativeExtentBytes;
     if(groups && groups->ready) {
       auto& pending=*groups->ready;
-      auto* ready=pending.find(selected.inode,block,entry.value,(std::max)(begin,offset)-begin);
+      const auto within=(std::max)(begin,offset)-begin;
+      auto* ready=pending.find(selected.inode,block,entry.value,within);
       if(ready && store_.matches_group_read(ready->record,ready->base,*pending.metadata_)) {
         validate_payload(owner,block,ready->bytes);
         copy_payload(begin,ready->bytes,true);
-        pending.delivered(*ready,end-begin);
+        groups->ready_bytes+=pending.delivered(*ready,within,end-begin);
         continue;
       }
       // The prepared lookup may have found damage in the backing.

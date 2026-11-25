@@ -547,21 +547,45 @@ void group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={},Group
   const auto first_ready=predicted+static_cast<unsigned>(cpu_prefix);
   auto ready_members=after-first_ready;
   if(segmented || small_requests) {
+    const auto usage=[&] {
+      const auto all=h.adapter->group_read_delivery();
+      require(all.has_value(),"Grouped callback delivery accounting unavailable");
+      const auto& other=worker?all->cpu:all->amd;
+      require(!other.published_bytes && !other.delivered_bytes && !other.pending_bytes,
+          "Grouped callback bytes were attributed to the wrong execution path");
+      return worker?all->amd:all->cpu;
+    };
+    const auto expected_bytes=ready_members*extent;
+    const auto published=usage();
+    require(published.published_bytes==expected_bytes && published.pending_bytes==expected_bytes &&
+        !published.delivered_bytes,"Published frames were counted as callback delivery");
     // Observe reads of one protected member without injecting a failure.
     h.image->corrupt_read_offset=member_offset;
     h.image->corrupt_read_number=(std::numeric_limits<std::uint64_t>::max)();
-    const auto read_slices=[&] {
+    const auto read_slices=[&](bool prepared_pass) {
       h.image->matching_reads=0;
       const auto before=h.image->read_bytes;
-      for(auto offset=first_ready*extent;offset<after*extent;offset+=slice)
+      for(auto offset=first_ready*extent;offset<after*extent;offset+=slice) {
         read_slice(offset);
+        if(prepared_pass && offset==first_ready*extent) {
+          const auto partial=usage();
+          require(partial.delivered_bytes==slice && partial.pending_bytes==expected_bytes-slice,
+              "A partial callback was credited with an entire grouped frame");
+        }
+      }
       return std::pair{h.image->read_bytes-before,h.image->matching_reads};
     };
-    const auto prepared=read_slices();
-    const auto cpu=read_slices();
+    const auto prepared=read_slices(true);
+    const auto used=usage();
+    const auto cpu=read_slices(false);
+    const auto repeated=usage();
+    require(used.delivered_bytes==expected_bytes && !used.pending_bytes &&
+        repeated.published_bytes==used.published_bytes && repeated.delivered_bytes==used.delivered_bytes &&
+        !repeated.pending_bytes,"CPU demand or a retained CPU tile counted as prepared delivery");
     h.image->corrupt_read_offset=Ram::no_read_fault;
     std::cout<<"segmented_group_read callbacks="<<(after-first_ready)*extent/slice
         <<" delivered_frames="<<h.adapter->native_lz4_read_ahead_hits()
+        <<" delivered_bytes="<<used.delivered_bytes<<" published_bytes="<<used.published_bytes
         <<" prepared_backing_bytes="<<prepared.first<<" cpu_backing_bytes="<<cpu.first
         <<" prepared_member_reads="<<prepared.second<<" cpu_member_reads="<<cpu.second
         <<" device="<<bool(worker)<<" small_request_training="<<small_requests
@@ -701,9 +725,26 @@ void group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={},Group
         !h.adapter->publish_read_ahead(*old,{},std::move(old_ready),stop),"A changed checkpoint accepted old read work");
     read(2*width);
     require(h.adapter->native_lz4_read_ahead_hits()==ready_members,"Changed checkpoint delivered a speculative result");
+    const auto before=h.adapter->group_read_delivery()->cpu;
+    read(0);
+    read(width);
+    admitted=h.clock.next();
+    auto unused=h.adapter->capture_native_lz4_read_ahead(admitted,h.clock.now,h.adapter->foreground_activity(),stop);
+    require(unused && unused->groups,"Close fixture did not capture a new grouped range");
+    auto unused_ready=detail::NativeGroupReadyReads::decode_captured(*unused->groups);
+    require(unused_ready && h.adapter->publish_read_ahead(*unused,{},std::move(unused_ready),stop),
+        "Close fixture could not publish grouped readiness");
+    const auto pending=h.adapter->group_read_delivery()->cpu;
+    require(pending.pending_bytes && pending.published_bytes-before.published_bytes==pending.pending_bytes &&
+        pending.delivered_bytes==before.delivered_bytes,"Unused close fixture changed callback delivery");
+    h.close(context);
+    context=nullptr;
+    const auto closed=h.adapter->group_read_delivery()->cpu;
+    require(!closed.pending_bytes && closed.published_bytes==pending.published_bytes &&
+        closed.delivered_bytes==pending.delivered_bytes,"Close credited unread prepared bytes");
   }
   h.close(other_context);
-  h.close(context);
+  if(context)h.close(context);
   auto snapshot=h.adapter->snapshot();
   require(snapshot.read("f47",0,file.size())==file &&
       snapshot.read("f46",0,unrelated_current.size())==unrelated_current,"Independent CPU read changed callback bytes");

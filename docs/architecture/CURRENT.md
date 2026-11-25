@@ -704,6 +704,12 @@ exchange is still running. An invalidated stream provides no timing
 evidence. The next valid forecast can use the stronger timing estimate.
 [Read-demand expiry evidence](../evidence/windows-grouped-demand-expiry-2026-11-25.json)
 
+The WinFsp controller's grouped-read view tracks published, returned and
+pending logical bytes per execution path. The paced worker contributes to
+these totals when a verified member answers an actual range read. The view
+survives controller teardown with zero pending bytes.
+[Read-ahead delivery contract](../NATIVE_AMD_LZ4_READ.md#measuring-bytes-delivered-by-grouped-read-ahead)
+
 ### Retaining one CPU-decoded group tile
 
 The serialized writer can retain the final partially read tiled member

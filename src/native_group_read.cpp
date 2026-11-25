@@ -28,20 +28,22 @@ NativeGroupReadyReads::Member* NativeGroupReadyReads::find(std::uint64_t inode,s
       (!found->next_offset || found->next_offset==offset)?&*found:nullptr;
 }
 
-void NativeGroupReadyReads::delivered(Member& member,std::uint64_t end) noexcept {
+std::uint32_t NativeGroupReadyReads::delivered(Member& member,std::uint64_t begin,std::uint64_t end) noexcept {
+  const auto through=(std::min)(end,std::uint64_t{member.logical_bytes});
+  pending_bytes_-=through-member.next_offset;
   if(!member.next_offset)++consumed_;
-  if(end>=member.logical_bytes) {
-    std::vector<std::byte>{}.swap(member.bytes);
-    --pending_members_;
-  }else member.next_offset=static_cast<std::uint32_t>(end);
+  if(through==member.logical_bytes)std::vector<std::byte>{}.swap(member.bytes);
+  else member.next_offset=static_cast<std::uint32_t>(through);
+  return static_cast<std::uint32_t>(through-begin);
 }
 
 void NativeGroupReadyReads::discard_before(std::uint64_t offset) noexcept {
   const auto keep=std::ranges::upper_bound(members_,offset,{},[](const Member& member) {
     return member.block*kNativeExtentBytes+member.logical_bytes;
   });
-  pending_members_-=static_cast<std::size_t>(std::count_if(members_.begin(),keep,
-      [](const Member& member){return !member.bytes.empty();}));
+  for(auto it=members_.begin();it!=keep;++it) {
+    if(!it->bytes.empty())pending_bytes_-=it->logical_bytes-it->next_offset;
+  }
   members_.erase(members_.begin(),keep);
 }
 
@@ -58,12 +60,12 @@ std::unique_ptr<NativeGroupReadyReads> NativeGroupReadyReads::verify(NativeGroup
     if(bytes.size()!=kNativeExtentBytes || record_digest(bytes)!=member.decoded_digest)return {};
     while(!bytes.empty() && bytes.back()==std::byte{})bytes.pop_back();
     if(bytes.empty() || bytes.size()>member.maximum_payload)return {};
+    ready->pending_bytes_+=member.maximum_payload;
     ready->members_.push_back({member.record,batch.bases_[member.base].record,member.block,
         member.maximum_payload,0,std::move(bytes)});
   }
   if(interrupted && interrupted())return {};
   ready->metadata_=std::move(batch.metadata_);
-  ready->pending_members_=ready->members_.size();
   return ready;
 }
 

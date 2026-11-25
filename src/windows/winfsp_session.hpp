@@ -1,5 +1,6 @@
 #pragma once
 #include "winfsp_readonly.hpp"
+#include "winfsp_read_delivery.hpp"
 #include "native_deferred_write.hpp"
 #include <memory>
 #include "flitzfs/native_session.hpp"
@@ -104,6 +105,7 @@ class WinFspNativeSession final {
   bool self_origin_rejected() const noexcept;
   bool dispatcher_stopped_unexpectedly() const noexcept;
   NativeSessionStats stats() const;
+  std::optional<WinFspGroupReadDelivery> group_read_delivery() const noexcept;
   bool write_restart_ready() const noexcept;
  private:
   void release() noexcept;
@@ -115,6 +117,7 @@ class WinFspNativeSession final {
   bool dispatcher_attempted_=false,mount_owned_=false,unexpected_stop_=false,offline_=false,stopped_=false;
   bool self_rejected_=false,retirement_unconfirmed_=false;
   NativeSessionStats retired_stats_{};
+  std::optional<WinFspGroupReadDelivery> retired_group_read_delivery_;
   NativeDeferredWriteStats retired_deferred_{};
 };
 } // namespace flitzfs
