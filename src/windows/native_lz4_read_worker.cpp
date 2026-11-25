@@ -343,12 +343,29 @@ void NativeLz4ReadWorker::observe(const WinFspNativeWritable& adapter,bool cance
   auto& s=*impl_;
   if(!s.flight)return;
   auto& f=*s.flight;
-  if(cancel || (f.request?adapter.read_ahead_state(f.work)==WinFspReadAheadState::superseded:
-      adapter.foreground_pending() || adapter.foreground_activity()!=f.work.foreground_epoch))s.cancel();
+  using State=WinFspReadAheadState;
+  const auto state=!cancel && f.request?adapter.read_ahead_state(f.work):State::busy;
   const auto handle=static_cast<HANDLE>(f.worker.child.supervisor_wait_handle());
-  if(!handle || WaitForSingleObject(handle,0)!=WAIT_OBJECT_0)return;
+  const auto sampled=state==State::demand_served?GetTickCount64():0;
+  const auto waited=handle?WaitForSingleObject(handle,0):WAIT_FAILED;
+  if(state==State::demand_served && !f.superseded) {
+    ++s.status.group_demand_misses;
+    const auto started=f.ready_at_submit?f.submitted_at:f.worker.started_at;
+    // Only an unfinished exchange establishes a lower bound on delivery.
+    if(waited==WAIT_TIMEOUT && sampled>started && sampled-started<=s.profile.worker.timeout_ms)
+      s.group_timing.observe_unfinished(sampled-started,f.ready_at_submit);
+  }
+  const bool obsolete=cancel || state==State::superseded || state==State::demand_served ||
+      (!f.request && (adapter.foreground_pending() || adapter.foreground_activity()!=f.work.foreground_epoch));
+  if(waited!=WAIT_OBJECT_0) {
+    if(obsolete)s.cancel();
+    return;
+  }
   const auto exact=f.worker.child.retirement_confirmed();
   const auto* result=f.worker.child.try_result();
+  // Already observed failures inform recovery even when demand has moved on.
+  // A completed result for obsolete work is discarded without publication.
+  if(obsolete && exact && result && result->code==WorkerExchangeCode::completed)f.superseded=true;
   if(!exact || f.superseded || !f.request || !result || result->code!=WorkerExchangeCode::completed)s.retire(exact);
 }
 

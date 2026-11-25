@@ -715,7 +715,7 @@ struct WinFspNativeWritable::Impl {
         !stopped.load(std::memory_order_acquire) && !foreground.load(std::memory_order_acquire) &&
         (!deferred || (!deferred->publication_pending_locked() && !deferred->stats_locked().worker_busy));
   }
-  const Slot* current_read_target(const WinFspReadAheadWork& work) const noexcept {
+  const Slot* current_read_target(const WinFspReadAheadWork& work,bool* demand_served=nullptr) const noexcept {
     if(maintenance_cancelled || !work.token || !work.stream_revision || !work.checkpoint.second ||
         work.checkpoint!=session.read_ahead_checkpoint())return nullptr;
     const auto slot=std::ranges::find(slots,work.token,&Slot::token);
@@ -724,8 +724,10 @@ struct WinFspNativeWritable::Impl {
     // A completed CPU read can pass the start of an in-flight group window.
     // Keep the capture only while that stream still needs some of its bytes.
     if(work.groups && slot->read_revision>work.stream_revision &&
-        slot->last_read.sequential_since<=work.stream_revision &&
-        work.groups->has_data_after(slot->last_read.end))return &*slot;
+        slot->last_read.sequential_since<=work.stream_revision) {
+      if(work.groups->has_data_after(slot->last_read.end))return &*slot;
+      if(demand_served)*demand_served=true;
+    }
     return nullptr;
   }
   std::vector<std::byte> read_with_demand_sample(const Slot& slot,std::uint64_t offset,std::uint32_t length,
@@ -1870,7 +1872,9 @@ WinFspReadAheadState WinFspNativeWritable::read_ahead_state(const WinFspReadAhea
   try {
     std::unique_lock guard(impl_->control,std::try_to_lock);
     if(!guard || foreground_pending())return State::busy;
-    if(!impl_->current_read_target(work))return State::superseded;
+    bool demand_served=false;
+    if(!impl_->current_read_target(work,&demand_served))
+      return demand_served?State::demand_served:State::superseded;
     return impl_->may_prepare_read()?State::current:State::busy;
   }catch(...) {return State::superseded;}
 }

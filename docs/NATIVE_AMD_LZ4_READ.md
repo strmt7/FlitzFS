@@ -302,6 +302,26 @@ across the 4 KiB requests, down from 16 times. Use this CPU baseline
 when determining which ordinary read shapes benefit from preparation.
 [Matched CPU evidence](evidence/windows-cpu-tile-and-ordinary-settlement-2026-11-25.json)
 
+### Feedback when demand passes a grouped request
+
+A sequential handle can finish the captured range before the device
+exchange delivers it. The checked stream revision and unchanged
+checkpoint identify this outcome. A seek, close or checkpoint change
+still invalidates the request independently. Each terminal outcome
+keeps the CPU-served bytes and cancels work owned by that request.
+
+When the supervisor's completion handle is still unsignaled at a
+confirmed demand miss, the controller records a lower bound on
+exchange time. Ready submissions measure from submission. Unready
+submissions measure from startup. The worker's existing lifetime budget
+bounds the observation. A completed verified exchange can refresh the
+same phase. A signaled supervisor counts as a delivery miss and leaves
+the phase estimate intact. A confirmed worker failure still informs recovery
+after foreground demand advances. This lets a later read forecast seek a
+farther eligible group without learning false delay from invalidated work.
+[Bounded Windows checks](evidence/windows-grouped-demand-expiry-2026-11-25.json) ·
+[Windows wait semantics](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitforsingleobject)
+
 ## Prepared native reads
 
 The indexed session can capture one owned encoded LZ4 record for a readable

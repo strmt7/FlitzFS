@@ -1,0 +1,308 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "experimental": true,
+  "scope": "Checked grouped demand expiry and phase-specific timing, Windows SDK callbacks and bounded CPU controller fixtures",
+  "source": {
+    "parent": "4293e13d9067e16f068e9999b117a0c36cc466df",
+    "base_tree": "34ca6751ee44be939c803f7aa0302471925f6618",
+    "tree": "caa86fbbab5caadb55de6cc3d91094388c9bcb28",
+    "elements": [
+      {
+        "path": "src/windows/native_lz4_read_worker.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "5141c271b76fb792d0e94af7ee489aae637f1b39",
+        "bytes": 22352
+      },
+      {
+        "path": "src/windows/native_lz4_read_worker.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "00307dd42b3754bcead2fc459686a015df57ea97",
+        "bytes": 4128
+      },
+      {
+        "path": "src/windows/winfsp_native.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "8f1329220fb2b34bd388d868cc5f92c67671810d",
+        "bytes": 113424
+      },
+      {
+        "path": "src/windows/winfsp_native.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "b82f9a0a43f33f2fe9d93e0b27370d4537f16e55",
+        "bytes": 15960
+      },
+      {
+        "path": "tests/test_winfsp_controller.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "4c55d2472f6d80906147fcf6622b812daa93d02e",
+        "bytes": 325239
+      },
+      {
+        "path": "tests/test_winfsp_paged.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "4d980995d2627caa69ce911265cd8bb571b42617",
+        "bytes": 91859
+      }
+    ]
+  },
+  "earlier_attempt_source": {
+    "parent": "4293e13d9067e16f068e9999b117a0c36cc466df",
+    "base_tree": "34ca6751ee44be939c803f7aa0302471925f6618",
+    "tree": "74511354e8ef098a07814befb7801b5a278cdb47",
+    "elements": [
+      {
+        "path": "src/windows/native_lz4_read_worker.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "85260dce4876411190b47f315c47cf1bb8819f5f",
+        "bytes": 22117
+      },
+      {
+        "path": "src/windows/native_lz4_read_worker.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "00307dd42b3754bcead2fc459686a015df57ea97",
+        "bytes": 4128
+      },
+      {
+        "path": "src/windows/winfsp_native.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "8f1329220fb2b34bd388d868cc5f92c67671810d",
+        "bytes": 113424
+      },
+      {
+        "path": "src/windows/winfsp_native.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "b82f9a0a43f33f2fe9d93e0b27370d4537f16e55",
+        "bytes": 15960
+      },
+      {
+        "path": "tests/test_winfsp_paged.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "4d980995d2627caa69ce911265cd8bb571b42617",
+        "bytes": 91859
+      }
+    ]
+  },
+  "checks": {
+    "final-release": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "log_sha256": "d553ca1ce3edfdb4081129ca6c0d337b57da3282f809b42c7cf5b3fec6297a99",
+      "peak_job_bytes": 58855424,
+      "tests_passed": 7,
+      "passed": [
+        "bounded_winfsp_controller",
+        "bounded_winfsp_paged_callbacks",
+        "bounded_winfsp_paged_ready-lz4-reads",
+        "bounded_winfsp_paged_ready-group-reads",
+        "bounded_winfsp_paged_ready-mixed-group-reads",
+        "bounded_winfsp_paged_ready-segmented-group-reads",
+        "bounded_winfsp_paged_ready-small-stream-group-reads"
+      ]
+    },
+    "final-asan": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "log_sha256": "0e19951dac27988adb876a1503e9656d509bb3f1d260b194226891eb205c6043",
+      "peak_job_bytes": 586813440,
+      "tests_passed": 4,
+      "passed": [
+        "windows_asan_runtime_preflight",
+        "bounded_winfsp_paged_callbacks",
+        "bounded_winfsp_paged_ready-group-reads",
+        "bounded_winfsp_paged_ready-small-stream-group-reads"
+      ]
+    },
+    "final-raw": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "log_sha256": "8c5678b91ee11601f6d9fdfac980f831511cc35b196c04a7a1eb0d8ac67087fb",
+      "peak_job_bytes": 57683968,
+      "tests_passed": 1,
+      "passed": [
+        "bounded_winfsp_paged_callbacks"
+      ]
+    },
+    "diagnosis": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "log_sha256": "e642ede07bc754adfdae89b31111a7cb496fdeff73de179df9c23fe9059707f6",
+      "peak_job_bytes": 9912320,
+      "checks_passed": 95,
+      "outcome": {
+        "prepared": 3,
+        "exact_hits": 3,
+        "backing_refused": 7,
+        "refused_backing_calls": 0,
+        "modeled_stall_ns": 46601700,
+        "demand_samples": 7,
+        "slow_demand_kept_limit": 1,
+        "timer_only_retries": 0,
+        "demand_recovered": 1,
+        "exact_cpu_fallback": 1,
+        "owner_retired": 1
+      }
+    },
+    "final-duty": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "log_sha256": "4b943ab762c2fd6d69e19cebac3e74fc0978de01265f979ef3456b127637088c",
+      "peak_job_bytes": 10268672,
+      "checks_passed": 44,
+      "outcome": {
+        "exact_hits": 1,
+        "duty_retained": 1,
+        "owner_retired": 1,
+        "verified_amd_frames": 0
+      }
+    },
+    "controller-cpu": {
+      "exit_code": 1,
+      "tree_retired": true,
+      "log_sha256": "6ad11750c74b31057673c415b314b734d1e32c41077b1859592a618d38965c6d",
+      "peak_job_bytes": 10072064,
+      "outcome": "Initial idle-credit deadline expired before the read-ahead portion of the test."
+    },
+    "controller-duty": {
+      "exit_code": 1,
+      "tree_retired": true,
+      "log_sha256": "6c5cb3226279459e4ff60ae8c6cd071302277885a4de6bab2a40ff4a93eb2d02",
+      "peak_job_bytes": 9555968,
+      "outcome": "Initial idle-credit deadline expired before the read-ahead portion of the test."
+    }
+  },
+  "test_binary_sha256": {
+    "release": "5da6c07205880ab33cdb0790aaf20a5256598a3e87c3ced9f39c1acfd2abcaf5",
+    "controller": "aa5829773a6531d696fd21916c69d173431ed2d1bc121efba4fc731b98e63255",
+    "address_sanitizer": "4d35f3b4839d86e3e5d90996b83d7335b2f29ec1143c9b1ebeb9298af43ba9e2",
+    "raw": "b8129ea2f7ac35efae22839c7e6be496fdfe5fbeb0ebbd30df0d3613dd8f8a04"
+  },
+  "timing_cases": [
+    "unchanged-checkpoint sequential window served",
+    "partial CPU prefix keeps remaining members",
+    "seek invalidates",
+    "checkpoint change invalidates",
+    "unfinished ready and unready phase floors",
+    "phase refresh after completion",
+    "late result never published"
+  ],
+  "preflight": [
+    {
+      "exit_code": 0,
+      "tree_retired": true,
+      "log_sha256": "3d0db561da4554d49d62b52b8736c7dccbddc2e7dbd8de15eba4d063258e6561",
+      "peak_job_bytes": 91598848,
+      "admitted": false,
+      "reason": "Existing host load above the fixture envelope",
+      "utc": "2026-11-25T12:04:53.9741890Z",
+      "driver": "32.0.32029.2010",
+      "build": "26300",
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "available_bytes": 22820016128,
+      "reserved_bytes": 4294967296,
+      "gpu_peak": 99.32602782671621,
+      "cpu_peak": 16.155162796113633,
+      "target_samples": 816
+    },
+    {
+      "exit_code": 0,
+      "tree_retired": true,
+      "log_sha256": "de7990eb4b75ed89e35cad73181150bef87d65fd2bb80995b35cbd990ac21d0f",
+      "peak_job_bytes": 94027776,
+      "admitted": false,
+      "reason": "Existing host load above the fixture envelope",
+      "utc": "2026-11-25T12:16:19.5404636Z",
+      "driver": "32.0.32029.2010",
+      "build": "26300",
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "available_bytes": 21574565888,
+      "reserved_bytes": 4294967296,
+      "gpu_peak": 98.17372500844972,
+      "cpu_peak": 26.56045579651267,
+      "target_samples": 816
+    }
+  ],
+  "installed_driver_probe": {
+    "state": "Stopped",
+    "startMode": "Manual",
+    "signedGuestDigestMatch": false,
+    "fileVersion": "2.1.25156.ddca7bd",
+    "sha256": "03553fffacd362f4a9a08c00b4f236a82354a183bc6028494fb32055386e13c9"
+  },
+  "limits": "The timing cases exercise the policy and SDK callbacks on Windows. Both initial controller attempts reached their idle-credit deadline. Both cases passed on retry and the original delays remain unexplained. Hardware and mounted performance qualification remain open.",
+  "research": {
+    "provider": "0.9.5+flitzzip.portable2",
+    "robots": true,
+    "external_llm": false,
+    "research_sha256": "caeb730757c79d33810c77ec73b0c5e589bd8961b42c096188cb67a4cf5ef5fc",
+    "pages": [
+      {
+        "name": "windows-owned-completion",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitforsingleobject",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 32817,
+        "markdown_sha256": "6deccd861eee49fc4f531e354958bd15423cd9a2df2dff46297c29a430238f40",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.992,
+        "capture": "windows-owned-completion.native.json",
+        "capture_sha256": "21da469b4b120908e2bbb46a727b206486d3db3130537f577c61c4fdff0158d4"
+      },
+      {
+        "name": "amd-kernel-launch-guidance",
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/performance_guidelines.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 51332,
+        "markdown_sha256": "f5b26916040d693275684ca2fd5b19265fe6f96cd77bea62fef8bf9a02020387",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 3.027,
+        "capture": "amd-kernel-launch-guidance.native.json",
+        "capture_sha256": "4ad0062c8cd15419488ca128eed902ce7a1f5f72bf7192572797613c2d290851"
+      },
+      {
+        "name": "windows-monotonic-observation",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-gettickcount64",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 26045,
+        "markdown_sha256": "439ce2fe35860b4981991bf205c3c4f586e20f79716511ebddc84d20bcfa7392",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.593,
+        "capture": "windows-monotonic-observation.native.json",
+        "capture_sha256": "cf36163f66fcdcda51470e68891313d5260b5f1900ff96fee2dd50e1e7117ebd"
+      }
+    ],
+    "source_routing": {
+      "receipt_sha256": "2973c23da9c93c571102cf262ecbba4fb285152dcfc6649ae5a9c5c9002a96ab",
+      "commit": "4293e13d9067e16f068e9999b117a0c36cc466df",
+      "source_files": 8,
+      "inventory_sha256": "2e91e2b946369193f4e1e1e5bed9cd25285ea382bebe85bcbc83bea9d20a2326",
+      "native_response_sha256": "966a32e39fa68482b2bea199ce581ae6e03a8cff9b12f552d461e80b9e648d08",
+      "actual_searches": 1
+    }
+  }
+}

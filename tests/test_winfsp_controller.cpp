@@ -641,8 +641,19 @@ void live_read_ahead_admission(bool group_duty,std::optional<NativeLz4ReadWorker
   Bytes file;
   for(const auto& frame:frames)file.insert(file.end(),frame.begin(),frame.end());
   callback_file(provider,0,file,kNativeExtentBytes);
-  await([&]{return controller.view().payload_scrub_passes>0 && !route->background_maintenance_pending();},
-      12000,"initial maintenance never returned idle credit");
+  try {
+    await([&]{return controller.view().payload_scrub_passes>0 && !route->background_maintenance_pending();},
+        12000,"initial maintenance never returned idle credit");
+  }catch(...) {
+    const auto state=controller.view();
+    std::cerr<<"read-ahead initial maintenance host="<<static_cast<unsigned>(state.host)
+        <<" phase="<<static_cast<unsigned>(state.maintenance.phase)
+        <<" deferral="<<static_cast<unsigned>(state.maintenance.deferral)
+        <<" quanta="<<state.maintenance_quanta<<" scrub_passes="<<state.payload_scrub_passes
+        <<" scrub_faults="<<state.payload_scrub_faults<<" disabled="<<state.maintenance_disabled
+        <<" pending="<<route->background_maintenance_pending()<<'\n';
+    throw;
+  }
   if(group_duty) {
     image->delay_next_idle_read();
     callback_file(provider,1,data(extent,918),kNativeExtentBytes);

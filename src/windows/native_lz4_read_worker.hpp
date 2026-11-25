@@ -48,6 +48,12 @@ class NativeGroupReadTiming final {
     const auto remaining=elapsed_ms<total?total-elapsed_ms:total;
     return (std::max)(dispatch, remaining);
   }
+  void observe_unfinished(std::uint64_t elapsed_ms,bool ready_at_submit) noexcept {
+    // The exchange still had work at this age. Keep a lower bound until
+    // a completed exchange measures the same phase.
+    auto& observed=ready_at_submit?ready_ms_:unready_ms_;
+    observed=(std::max)(observed,elapsed_ms);
+  }
   void observe_accepted(std::uint64_t turnaround_ms, std::uint64_t submit_ms, bool ready_at_submit) noexcept {
     // A ready worker can wait for its request. That interval carries no
     // information about the time needed to become ready.
@@ -62,7 +68,7 @@ class NativeGroupReadTiming final {
 struct NativeLz4ReadWorkerStats {
   std::uint64_t submitted=0,published=0,superseded=0,failures=0,declined=0;
   std::uint64_t submitted_frames=0,verified_frames=0,budget_queries=0,last_worker_elapsed_ms=0;
-  std::uint64_t last_turnaround_ms=0,lead_refusals=0;
+  std::uint64_t last_turnaround_ms=0,lead_refusals=0,group_demand_misses=0;
   std::uint64_t prepared_groups_started=0,prepared_groups_submitted=0,last_prepared_submit_ms=0;
   std::uint32_t last_worker_exit_code=0;
   bool pending=false,configuration_refused=false,retirement_confirmed=true;

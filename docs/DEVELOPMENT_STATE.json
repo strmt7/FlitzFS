@@ -6,6 +6,15 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "grouped_demand_expiry": {
+    "source_base": "4293e13d9067e16f068e9999b117a0c36cc466df",
+    "tested_runtime_tree": "caa86fbbab5caadb55de6cc3d91094388c9bcb28",
+    "evidence": "docs/evidence/windows-grouped-demand-expiry-2026-11-25.json",
+    "selected_ctest_cases": 12,
+    "verified_cpu_controller_hits": 3,
+    "group_duty_preserved": true,
+    "next": "Measure delivered grouped windows and phase-specific misses with the ordinary mounted AMD route under fresh admitted headroom."
+  },
   "release_review": "docs/RELEASE_RECONCILIATION_2026-11-25.md#current-round-and-release-decisions",
   "retained_cpu_tile": {
     "source_base": "fec45a0621dfcda23963b96960255d8f9ce67843",

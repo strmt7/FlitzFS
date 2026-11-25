@@ -275,7 +275,20 @@ void group_read_timing() {
   timing.observe_accepted(4900,4800,false);
   require(timing.start_lead(startup)==4900 && timing.submit_lead(startup,dispatch,4900,true)==45,
       "A later cold exchange replaced the ready dispatch observation");
-  std::cout<<"winfsp_group_timing startup_observed=1 ready_dispatch_observed=1 overdue_refused=1 ready_wait_excluded=1\n";
+  timing.observe_unfinished(5200,false);
+  timing.observe_unfinished(4900,false);
+  require(timing.start_lead(startup)==5200 && timing.submit_lead(startup,dispatch,5000,false)==200 &&
+      timing.submit_lead(startup,dispatch,5000,true)==45,
+      "An unfinished cold exchange failed to preserve its lower bound");
+  timing.observe_unfinished(90,true);
+  timing.observe_unfinished(70,true);
+  require(timing.start_lead(startup)==5200 && timing.submit_lead(startup,dispatch,5000,true)==90,
+      "An unfinished ready exchange affected the wrong phase or lost its lower bound");
+  timing.observe_accepted(10000,60,true);
+  require(timing.start_lead(startup)==5200 && timing.submit_lead(startup,dispatch,5000,true)==60,
+      "A completed ready exchange failed to refresh its phase estimate");
+  std::cout<<"winfsp_group_timing startup_observed=1 ready_dispatch_observed=1 overdue_refused=1"
+      <<" ready_wait_excluded=1 unfinished_cold_and_ready=1 completed_refresh=1\n";
 }
 void group_read_window() {
   constexpr auto extent=kNativeExtentBytes;
@@ -642,9 +655,10 @@ void group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={},Group
   require(superseded && superseded->groups,"Missing second grouped forecast");
   auto late=detail::NativeGroupReadyReads::decode_captured(*superseded->groups);
   read(end,superseded->bytes/extent);
-  require(late && h.adapter->read_ahead_state(*superseded)==WinFspReadAheadState::superseded &&
+  require(late && h.adapter->read_ahead_state(*superseded)==WinFspReadAheadState::demand_served &&
       !h.adapter->publish_read_ahead(*superseded,{},std::move(late),stop) &&
-      h.adapter->native_lz4_read_ahead_hits()==ready_members,"A fully served range accepted late grouped output");
+      h.adapter->native_lz4_read_ahead_hits()==ready_members,
+      "A fully served range was not identified or accepted late grouped output");
   if(!worker) {
     const auto foreground=h.adapter->foreground_activity();
     admitted=h.clock.next();

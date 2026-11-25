@@ -671,6 +671,13 @@ matched CPU comparison with delivered bytes under real demand.
 [Live grouped evidence](../evidence/windows-amd-group-supervisor-comparison-2026-11-24.json) ·
 [Native LZ4 device evidence](../NATIVE_AMD_LZ4_READ.md)
 
+If consecutive reads exhaust the group at the same checkpoint, the
+controller records the missed delivery before retiring the work. It
+raises the applicable cold or ready timing estimate only when the owned
+exchange is still running. An invalidated stream provides no timing
+evidence. The next valid forecast can use the stronger timing estimate.
+[Read-demand expiry evidence](../evidence/windows-grouped-demand-expiry-2026-11-25.json)
+
 ### Retaining one CPU-decoded group tile
 
 The serialized writer can retain the final partially read tiled member

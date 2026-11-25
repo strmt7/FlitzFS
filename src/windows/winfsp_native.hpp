@@ -44,7 +44,7 @@ void plan_group_read_window(WinFspReadAheadWork&,WinFspGroupReadWindow,
     std::uint64_t observed_frames,std::uint64_t available_frames,
     std::uint64_t aligned_group_gap_ms,std::uint64_t now_ms) noexcept;
 }
-enum class WinFspReadAheadState {current,busy,superseded};
+enum class WinFspReadAheadState {current,busy,superseded,demand_served};
 struct MemoryVolumeBacking;
 // Experimental real writable adapter; qualify backing, runtime and containment.
 // Historical _hosted names remain for ABI/report compatibility, not location.
