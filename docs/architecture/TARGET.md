@@ -395,6 +395,42 @@ An older reader may read a compatible pinned view only while that compatibility
 is supported and verified. Unknown required capabilities must fail before
 mutation.
 
+For the first gradual migration, keep format intent in the rebuildable
+advice area. An intent or discarded candidate does not affect existing
+readers. Start with linked, standalone extent-backed files whose checked
+EOF is at most 512 bytes. Use the normal indexed scan's coordinate,
+object identity, payload generation and inode revision. Price the
+combined inode and mapping changes against the selected volume,
+including both copies and actual geometry. Decline if the estimate
+cannot prove a smaller settled image or the backing cannot fund
+staging and preserve its recovery reserve. Revisit grouped extents
+after qualifying their dependency accounting.
+
+```mermaid
+flowchart TD
+    Active["Selected extent-based root"] --> Discover["Paid scan of stable eligible extents"]
+    Discover --> Candidate["Stage checked bytes and unchanged inode metadata"]
+    Candidate --> Price{"Protected size improves and grant covers staging?"}
+    Price -->|No| Active
+    Price -->|Yes| Verify["Recheck captured revisions, extent ownership and CPU bytes"]
+    Verify -->|Changed or canceled| Active
+    Verify -->|Current| Commit["Publish capability and converted inodes in one COW root"]
+    Commit --> Recover["CPU reopen selects the complete older or newer root"]
+    Recover --> Readers["Release prior ranges after reader retirement"]
+    Recover --> Continue["Resume a checked next window from advisory progress"]
+```
+
+The first completed conversion publishes bit 10 with the new inode
+and removes the old extent. Subsequent roots retain the feature.
+Preserve Windows timestamps, security, stream size, logical allocation
+and inode identity across a layout-only change. An older reader which
+cannot understand the selected root must refuse before repair or write.
+Require the candidate CPU reader to decode every supported historical
+form. Freeze both binaries and test this through ordinary volume entry points.
+[OpenZFS feature activation](https://openzfs.github.io/openzfs-docs/man/master/7/zpool-features.7.html) ·
+[Btrfs compatibility fields](https://btrfs.readthedocs.io/en/latest/dev/On-disk-format.html) ·
+[Current short-file layout](../INDEXED_NATIVE_VOLUME.md#inline-short-file-data)
+
 For an upgrade, record the intended source and feature set and the resumable
 migration cursor. Read both admitted representations while building the new
 one. CPU-audit the candidate, publish the capability and root together, confirm

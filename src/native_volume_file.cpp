@@ -730,7 +730,8 @@ NativeFileSession NativeVolumeFile::create_regions(Regions region,StoreIdentity 
     PagedStoreLimits limits,StoreCompressionOptions foreground,NativeDispositionPolicy disposition,
     std::optional<NativeVolumeRootMetadata> root) {
   auto session=NativeFileSession::create_indexed_volume(std::move(region.head),volume,std::move(region.image),
-      image,limits,foreground,disposition,std::move(root),region.selection.placement);
+      image,limits,foreground,disposition,std::move(root),region.selection.placement,
+      NativeIndexedDataLayout::inline_small_files);
   session.create_budgeted_optimization_area(std::move(region.advice));
   region.configure_catalog(session);
   session.bind_persistent_reclamation(std::move(region.reclaimer));

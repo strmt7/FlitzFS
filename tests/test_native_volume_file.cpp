@@ -250,6 +250,71 @@ void publication_cuts() {
   }
 }
 
+void inline_file_publication_cuts() {
+  const auto witness=data(61,973);
+  auto short_contents=data(197,971);
+  short_contents.resize(512);
+  const auto suffix=data(31,972);
+  constexpr auto suffix_offset=kNativeExtentBytes+19;
+  auto grown_contents=short_contents;
+  grown_contents.resize(suffix_offset);
+  grown_contents.insert(grown_contents.end(),suffix.begin(),suffix.end());
+  for(const bool dense:{false,true})for(const bool grow:{false,true}) {
+    auto seed=empty(4096);
+    {
+      auto session=dense?NativeVolumeFile::create_dense(seed,limits.maximum_physical_bytes,id(90),id(91),limits,raw):
+          NativeVolumeFile::create(seed,id(90),id(91),limits,raw);
+      put(session,"short",grow?short_contents:grown_contents);
+      put(session,"witness",witness);
+    }
+    const auto check=[&](const std::shared_ptr<Ram>& backing) {
+      const auto reopened=NativeVolumeFile::inspect(image(backing->stable,4096),id(90));
+      const auto& fs=reopened.filesystem();
+      fs.verify_all();
+      const auto actual=fs.read("short",0,grown_contents.size());
+      require(actual==short_contents || actual==grown_contents,
+          "persistent inline transition exposed incomplete bytes");
+      const bool external=actual==grown_contents;
+      require(fs.allocation_usage().live_extents==(external?2U:0U) &&
+          fs.read("witness",0,witness.size())==witness,"persistent inline transition selected inconsistent mappings");
+      return external;
+    };
+    require(check(seed)!=grow,"new persistent volume selected the wrong short-file layout");
+    const auto change=[&](NativeFileSession& session) {
+      const auto file=session.open("short",{true,true,false});
+      if(grow)session.write(file,suffix_offset,suffix);
+      else session.truncate(file,short_contents.size());
+      session.cleanup(file,false);
+      session.close(file);
+    };
+    auto complete=image(seed->stable,4096);
+    std::size_t boundaries=0;
+    {
+      auto session=NativeVolumeFile::resume(complete,id(90),raw);
+      const auto before=complete->calls;
+      change(session);
+      boundaries=complete->calls-before;
+    }
+    require(check(complete)==grow && boundaries>0 && boundaries<=320,
+        "acknowledged persistent inline transition did not survive reopen");
+    std::size_t previous=0,current=0;
+    for(unsigned mode=0;mode<3;++mode)for(std::size_t cut=0;cut<boundaries;++cut) {
+      auto torn=image(seed->stable,4096);
+      {
+        auto session=NativeVolumeFile::resume(torn,id(90),raw);
+        torn->failure=mode;
+        torn->fail_at=torn->calls+cut;
+        rejects([&]{change(session);},"interrupted inline transition was acknowledged");
+      }
+      if(check(torn)==grow)++current;
+      else ++previous;
+    }
+    require(previous && current,"persistent inline interruption did not exercise both complete layouts");
+    std::cout<<"inline_file_publication provider="<<(dense?"dense":"range")
+        <<" growth="<<grow<<" previous="<<previous<<" complete="<<current<<'\n';
+  }
+}
+
 void overwrite_and_rename_publication_cuts() {
   const auto original=data(2*kNativeExtentBytes+137,751);
   const auto shortened=data(kNativeExtentBytes+997,752),witness=data(377,753);
@@ -2642,6 +2707,11 @@ int main(int argc,char** argv){
       std::cout<<"PASS: "<<checks<<" dense publication recovery checks\n";
       return 0;
     }
+    if(argc==2 && std::string_view(argv[1])=="--inline-file") {
+      inline_file_publication_cuts();
+      std::cout<<"PASS: "<<checks<<" persistent inline file checks\n";
+      return 0;
+    }
     if(argc==2 && std::string_view(argv[1])=="--dense-tail") {
       dense_tail_retirement();
       std::cout<<"PASS: "<<checks<<" dense tail checks\n";
@@ -2741,6 +2811,7 @@ int main(int argc,char** argv){
     retired_and_reopened();
     geometry_and_advice();
     publication_cuts();
+    inline_file_publication_cuts();
     reclaimed_ranges();
     reclamation_after_reopen();
     capacity_repair_rotation();full_startup_repair_rotation();range_publication_cuts();

@@ -154,12 +154,14 @@ The matched 192-file run reduced settled image and selector bytes by
 with 374 files and 160 directories saved 172,032 bytes on the host
 with matching protection. An isolated signed WinFsp guest verified
 creation, sparse growth, shrink, rename and reopen with the ordinary
-memory-volume owner. Fresh Windows memory volumes select inline data
-automatically. Before extending the policy to persistent volumes,
-qualify format negotiation, migration and retained write cost.
+memory-volume owner. Fresh Windows memory and volume-file creation select
+inline data automatically. For existing images, establish unsupported-writer
+refusal and net occupied-size benefit before activating a capability through
+gradual migration.
 [Wire and lifecycle contract](../INDEXED_NATIVE_VOLUME.md#inline-short-file-data) ·
 [Named Windows qualification](../evidence/windows-inline-named-and-adaptive-read-2026-11-25.json) ·
-[Modeled interruption coverage](../evidence/windows-inline-small-files-2026-11-25.json)
+[Modeled interruption coverage](../evidence/windows-inline-small-files-2026-11-25.json) ·
+[Persistent creation evidence](../evidence/windows-persistent-inline-reconciliation-2026-11-25.json)
 
 ```mermaid
 flowchart TD

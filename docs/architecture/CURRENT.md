@@ -2,8 +2,9 @@
 
 The diagrams trace the implementation reconciled on 25 November. They
 cover prepared AMD read delivery, mirrored cold copy across packed banks,
-phase visibility during reclaimer steps, bounded rolling lookup and
-single-view indexed sampling.
+phase visibility during reclaimer steps, bounded rolling lookup,
+single-view indexed sampling and inline placement for new persistent
+volumes.
 [Release reconciliation](../RELEASE_RECONCILIATION_2026-11-25.md) ·
 [Packed admission and sealing evidence](../evidence/windows-packed-admission-and-sealing-2026-11-25.json) ·
 [Revised architecture](TARGET.md)
@@ -73,6 +74,8 @@ backing in the Explorer helper is a local NTFS file under the qualified
 contract. New files use packed placement when capacity covers both virtual
 image ranges, the reserved catalog and the packed directories. The exclusive
 open selects the effective contract for existing packed or sparse files.
+New volumes in either placement initialize the checked inline-file feature.
+Reopen preserves the selected namespace capabilities.
 [Runtime and backing selection](../../src/windows/volume_app_winfsp.cpp#L67)
 · [attachment and retirement](../../src/windows/winfsp_volume_attachment.cpp#L55)
 · [dispatcher lifecycle](../../src/windows/winfsp_session.cpp#L101)
@@ -221,6 +224,14 @@ sequenceDiagram
 ```
 
 The outer selector changes during image handoff, with its own publication steps.
+Moving short data between an inode and external extents changes the inode,
+extent mappings and allocation counts through the same inner root. The
+selected root determines whether the CPU reader reads inline bytes or follows
+external extent keys. The dense and range file models verified both complete
+states across interrupted growth and shrink.
+[Short-file wire layout](../INDEXED_NATIVE_VOLUME.md#inline-short-file-data) ·
+[Volume-file interruption evidence](../evidence/windows-persistent-inline-reconciliation-2026-11-25.json)
+
 The same logical application operation can have more than one observable step
 when Windows supplies a sequence of callbacks. Generation choice and recovered
 bytes matter independently of whether a client already received success.

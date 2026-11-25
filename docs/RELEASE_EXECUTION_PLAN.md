@@ -8,9 +8,13 @@ replay released allocation while mounted with zero maintenance failures.
 The signed replay of the single-view scan released allocation while attached,
 verified all live files and covered 610 extents with work still pending.
 Attribute the observed wake and duty delays before changing the scheduler.
-Qualify useful automatic AMD delivery, measure held-out occupied size
-and compare writable attach with its full verification control.
+Fresh volume-file creation now uses inline data for short files. Keep the
+next volume work on the ordinary mounted settlement trace and deliberate
+older-format admission. Qualify useful automatic AMD delivery, measure
+held-out occupied size and compare writable attach with its full
+verification control.
 [Current reconciliation](RELEASE_RECONCILIATION_2026-11-25.md) ·
+[Persistent short-file evidence](evidence/windows-persistent-inline-reconciliation-2026-11-25.json) ·
 [Implementation packets and exit decisions](RELEASE_RECONCILIATION_2026-11-25.md#implementation-packets-and-exit-decisions) ·
 [Current mounted and codec evidence](evidence/windows-mounted-sample-and-zstd-2026-11-25.json)
 Use the [repository overview](REPOSITORY_OVERVIEW.md) for the product snapshot,

@@ -1,16 +1,17 @@
 # FlitzFS repository overview
 
-The latest source reconciliation covers 1,106 tracked paths and all twelve
-release gates. On a protected host profile, grouping and cold re-encoding
-reduced the CPython revision cohort from 1,523,712 to 868,352 bytes.
-For a separate 192-file tiny cohort, the protected record layout
-dominates the footprint and is the next size experiment. The latest
-adaptive AMD live check deferred before dispatch under high device load.
-Earlier physical GPU readback and the signed mounted client retain their
-own verified scopes. Automatic mounted benefit and full recovery
-qualification remain open.
-[Latest reconciliation](RELEASE_RECONCILIATION_2026-11-25.md#complete-protected-size-and-priorities) ·
-[Protected size evidence](evidence/windows-protected-size-frontier-2026-11-25.json)
+The latest reconciliation covers the 1,109 tracked paths at `62f3453`,
+the persistent short-file change and all twelve release gates. The
+production dense and range creators now store eligible short-file data
+inside mirrored inodes. The persistent file model verified 372
+interruption cases. A separate Windows memory-volume profile saved 15.6%
+on 374 held-out named files. Grouping and cold re-encoding saved 43.0%
+on the CPython revision cohort. A Radeon SDK run consumed four verified
+later extents after two CPU extents. Useful installed-client acceleration,
+legacy migration and persistent-media recovery remain open.
+[Latest reconciliation](RELEASE_RECONCILIATION_2026-11-25.md) ·
+[Persistent creation evidence](evidence/windows-persistent-inline-reconciliation-2026-11-25.json) ·
+[Priority and exit decisions](RELEASE_RECONCILIATION_2026-11-25.md#next-decisions-ranked-by-expected-gain)
 
 The 25 November reconciliation covers the writable WinFsp path, indexed
 storage, AMD work, collective compression and the release gates. The

@@ -3,9 +3,9 @@
   "updated": "2026-11-25",
   "forward_work_rule": "Use current_release_sequence for integration order, and execution_programme and the implementation plan for package dependencies and exits. Historical checkpoints describe completed or partial evidence.",
   "current_release_sequence": {
-    "reviewed_commit": "de071e900ffb680e6e150de40f54a45249c5fdb9",
-    "reviewed_tree": "f221a2ff2de1e3ad2b51641e9d278a07a231a6a6",
-    "candidate_runtime_tree": "e67c3163c1026801e56cdde5c620d25b4bcc058a",
+    "reviewed_commit": "62f34534c35d3c0a77bf770ba870db70bcd14a33",
+    "reviewed_tree": "bd51ff6cf469fccb88ab7128e1c2c5195f5663bf",
+    "previous_signed_sampling_runtime_tree": "e67c3163c1026801e56cdde5c620d25b4bcc058a",
     "assessment": "docs/REPOSITORY_OVERVIEW.md",
     "architecture_diagrams": "docs/architecture/CURRENT.md",
     "source_review": "docs/RELEASE_RECONCILIATION_2026-11-25.md",
@@ -14,7 +14,7 @@
     "package_contract": "docs/IMPLEMENTATION_PLAN.md",
     "gate_ledger": "docs/RELEASE_EXECUTION_PLAN.md#current-gate-ledger",
     "next_implementation_tickets": "docs/IMPLEMENTATION_PLAN.md#next-implementation-tickets",
-    "evidence": "docs/evidence/windows-protected-size-frontier-2026-11-25.json",
+    "evidence": "docs/evidence/windows-persistent-inline-reconciliation-2026-11-25.json",
     "previous_checked_sampling_review": "docs/evidence/windows-indexed-sample-scope-2026-11-25.json",
     "previous_source_review_evidence": "docs/evidence/release-reconciliation-rolling-lookups-2026-11-25.json",
     "latest_bounded_handoffs": "docs/RELEASE_RECONCILIATION_2026-11-25.md#package-handoffs",
@@ -66,7 +66,7 @@
     "latest_staged_copy_runtime_tree": "749528e5cf00d55080b87de34bd67a4ed9048361",
     "latest_bank_spanning_verification": "docs/evidence/windows-bank-spanning-verification-2026-11-25.json",
     "latest_bank_spanning_verification_runtime_tree": "a808738f2d8a56980b339e84ce12a85a800d00a1",
-    "next_highest_impact_work": "docs/RELEASE_RECONCILIATION_2026-11-25.md#implementation-packets-and-exit-decisions",
+    "next_highest_impact_work": "docs/RELEASE_RECONCILIATION_2026-11-25.md#next-decisions-ranked-by-expected-gain",
     "latest_separate_request_admission": "docs/evidence/windows-controller-separate-request-admission-2026-11-24.json",
     "latest_finishable_worker_burst": "docs/evidence/windows-finishable-worker-bursts-2026-11-24.json",
     "latest_arriving_native_write_burst": "docs/evidence/windows-native-arriving-write-burst-2026-11-24.json",
@@ -74,7 +74,7 @@
     "latest_mixed_size_resident_worker": "docs/evidence/windows-mixed-size-resident-worker-2026-11-24.json",
     "latest_write_geometry_calibration": "docs/evidence/windows-amd-write-geometry-calibration-2026-11-24.json",
     "latest_indexed_name_page_inventory": "docs/evidence/indexed-name-page-inventory-2026-11-23.json",
-    "next": "Qualify persistent inline creation and versioned migration. Price compact fragment locators where record or payload cost remains dominant. Compare useful adaptive AMD service against CPU on an ordinary installed-client shape and continue mounted quiescence and writable attach.",
+    "next": "Complete ordinary mounted settlement and carry the same trace into ready AMD comparisons and persistent named-tree size measurements. Freeze reader and writer compatibility before gradually migrating an older layout. Compare a scalable writable-attach decision with the full verifier.",
     "release_qualified": false,
     "latest_packed_admission_fix": "docs/evidence/windows-packed-admission-and-sealing-2026-11-25.json",
     "implementation_packets": "docs/RELEASE_RECONCILIATION_2026-11-25.md#implementation-packets-and-exit-decisions",
@@ -1243,6 +1243,20 @@
     "next": "Do not repeat the unchanged case. Implement configuration/recovery keyed complete-cost acquisition and useful comparisons for automatic Windows integration; continue independent CPU recovery, minimum-total-size collective learning and full product gates."
   },
   "current_round": {
+    "source_base": "62f34534c35d3c0a77bf770ba870db70bcd14a33",
+    "contract": "docs/INDEXED_NATIVE_VOLUME.md#inline-short-file-data",
+    "evidence": "docs/evidence/windows-persistent-inline-reconciliation-2026-11-25.json",
+    "status": "Fresh dense and range volume-file creation enables inline short files. Independent CPU reopen verified both representation transitions in 372 modeled interruptions.",
+    "selected_ctest_passed": 14,
+    "actual_gpu_fixture": false,
+    "local_mount": false,
+    "comparative_benefit_proven": false,
+    "ordinary_gpu_route": false,
+    "release": false,
+    "full_goal_status": "active",
+    "next": "Follow next_highest_impact_work in current_release_sequence."
+  },
+  "historical_amd_runtime_discovery_round": {
     "source_base": "a513e0dc9ae35ed0b9c27e52da2df0d4d40bbb02",
     "contract": "docs/AMD_RUNTIME_DISCOVERY.md",
     "evidence": "docs/evidence/amd-route-2026-11-17.json",
@@ -1257,11 +1271,11 @@
     "next": "Prototype bounded AMD work windows to amortize observed initialization cost and retain immediate CPU completion. Introduce the checked indexed metadata layout after the per-inode codec split."
   },
   "next_product_slices": [
-    "Carry the passed disposable external-client mount scenarios to an actual Windows 11 client VM. Continue checked indexed metadata and automatic AMD performance qualification.",
-    "First indexed inode/name/extent transaction with reusable-allocation authority and legacy reader parity.",
-    "Account for packed protected bytes and qualify bounded handoff plus incremental reclamation under unrelated commits.",
-    "Acquire complete-cost AMD observations and compare stronger collective representations independently.",
-    "Complete Windows semantics, physical-provider durability, backward reading and gradual upgrades, secure packaging, recognized comparisons and release-candidate soak."
+    "Finish one ordinary Win32 trace for populated churn, mounted settlement, acknowledged recovery and owned teardown.",
+    "Use matched CPU, cold AMD and ready AMD client runs to qualify useful automatic read and write regions and price paid collective GPU work.",
+    "Measure persistent named-tree occupancy, exact oracle recall, protected fragment candidates and versioned inline migration with independent CPU readback.",
+    "Compare incremental writable-attach authority with the full audit and measure stable resident memory and workload scaling.",
+    "Close Windows integration, backing-specific durability, compatibility, packaging, native NTFS comparisons and exact-candidate soak."
   ],
   "controlled_reused_dispatch": {
     "source": "3b7a6c90a41535789854341da804bc48b2454951",

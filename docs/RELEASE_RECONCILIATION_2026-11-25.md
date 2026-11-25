@@ -9,13 +9,15 @@ on held-out workloads. Writable attach must also scale beyond the current
 full audit. Use one operation witness and common accounting across these
 lanes so each change can be judged at the product boundary.
 
-The current review inventories 1,106 tracked paths at
-`de071e900ffb680e6e150de40f54a45249c5fdb9`. It reconciles 44 changed
-paths across four commits since the inventory at `3bbc45a`, including
-checked sampling, the Zstandard update and two changes to grouped AMD
-delivery. Each signed replay, live AMD run and local profile carries
-its own source identity.
-The twelve-gate audit uses the strongest applicable evidence for each gate.
+This checkpoint inventories 1,109 tracked paths at `62f3453` and
+reconciles 26 changed paths since the detailed review at `de071e9`.
+It follows the new creation change from the Windows helper to both
+volume-file placement modes and their independent CPU reopen. The
+earlier inventory at `de071e9` covered checked sampling, the Zstandard
+update and two changes to grouped AMD delivery. Each signed replay,
+physical AMD run and local profile carries its own source identity.
+[Current code, checks and research receipts](evidence/windows-persistent-inline-reconciliation-2026-11-25.json) ·
+[Implementation priorities](#next-decisions-ranked-by-expected-gain)
 [Protected size, source inventory and current decisions](evidence/windows-protected-size-frontier-2026-11-25.json) ·
 [Indexed sampling and source evidence](evidence/windows-indexed-sample-scope-2026-11-25.json) ·
 [Latest signed replay and controller checks](evidence/windows-packed-settlement-credit-2026-11-25.json) ·
@@ -29,6 +31,16 @@ The twelve-gate audit uses the strongest applicable evidence for each gate.
 [Current architecture](architecture/CURRENT.md) · [Target architecture](architecture/TARGET.md)
 
 ## Complete protected size and priorities
+
+Dense and range volume-file creation now use the protected short-file
+layout. The model recovered the prior layout in 340 interruption cases
+and the complete change in 32, with exact bytes and extent mappings on
+both sides. Release, raw-only and AddressSanitizer runs passed. This uses
+the production creation and reopen logic with modeled file backings.
+The held-out size improvement below is measured on the memory-volume
+path. Measure the persistent result with equivalent occupied-space
+accounting after ordinary mounted settlement.
+[Persistent short-file qualification](evidence/windows-persistent-inline-reconciliation-2026-11-25.json)
 
 Fresh Windows memory volumes now select inline data automatically. The
 held-out CPython tree contained 374 files, including 362 small files
@@ -564,11 +576,11 @@ Attribute resource cost and remaining work before changing either phase.
 | S2 · Scale | Paged inodes, names and extents are live. Checked replica reads group adjacent frames in a leaf. A single checked view now supplies each maintenance sample. Writable startup still walks the inventory. | Verify bounded attach under a versioned authority contract. Fit and validate separate named-file curves for attach, restart, enumeration, mutation and resident memory. |
 | S3 · Space reuse | The single-view replay released backing bytes while mounted, reported zero maintenance failures and independently verified all 1,027 files. It reached 610 sampled extents with duty still pending. | Trace work grants and refused continuation to the pending cursor. Verify advisory quiescence and repeated settlement under churn, pressure and interruption. |
 | S4 · AMD and CPU continuity | The physical adaptive window consumed four verified Radeon extents after two early CPU extents. The SDK and earlier physical prefix remain available as separate controls. | Prove an automatic region that beats CPU on the installed-client path. Retain the separate write and collective gates. |
-| S5 · Compression | Inline data saved 168 KiB on a held-out named tree, including the selector and both recovery copies. A signed mounted client and CPU reopen passed. New Windows memory volumes now select this layout. | Qualify persistent adoption and versioned migration. Measure profitable-discovery recall and extend the held-out frontier with range and write costs. |
+| S5 · Compression | Inline data saved 168 KiB on a held-out named tree, including the selector and both recovery copies. A signed memory mount and CPU reopen passed. Fresh volume-file creation passed both inline transitions with modeled failures. | Measure complete settled size on a matched persistent named tree. Qualify gradual migration and useful shortlist recall, and extend the held-out frontier with range and write costs. |
 | S6 · Autonomy | Persistent sparse advice, workload samples, yield ranking and resource admission run in the controller. The candidate sampled the same extents with 22–35% fewer backing calls in two local fixtures. | Measure learning benefit, time to settle, interference, per-volume fairness and bytes written per byte reclaimed across workloads and restart. |
 | S7 · Windows experience | The helper and WinFsp own memory and supported file-backed volumes. Signed guests exercised external clients and verified reopen. | Qualify Explorer and independent apps with the signed candidate. Cover sharing, mapped and cached I/O, names, metadata, repair and clean teardown. |
 | S8 · Durability | Interruption fixtures exercised writes, flush, mapping and selector publication with independent CPU readback. | Qualify the acknowledged-operation and survivor-repair envelope for each backing. Explain unrecoverable failures precisely and retain the evidence for recovery. |
-| S9 · Evolution | Native formats identify required CPU features. Packed cross-group moves use paired versioned anchors. | Freeze historical writers, readers and images. Test old reads, mixed generations, migration checkpoints, old-writer refusal and interrupted recovery. |
+| S9 · Evolution | Native formats identify required CPU features. Fresh file creation sets bit 10 in its first selected root. Reopen keeps the existing layout. | Freeze historical writers, readers and images. Test old reads, mixed generations, migration checkpoints, old-writer refusal and interrupted recovery. |
 | S10 · Deployment | Private dependency staging and signed-provider fixtures exercise controlled setup. | Qualify relocation, missing optional AMD, offline rescue and clean install, upgrade, rollback and removal. Cybersecurity review remains separately deferred. |
 | S11 · Comparisons | DiskSpd, a Win32 operation witness, public corpora and the native NTFS compression protocol are available. | Run matched installed-host plain NTFS, built-in compressed NTFS and FlitzFS CPU/AMD comparisons with distributions, occupied bytes and exact readback. |
 | S12 · Stabilization | Scoped tests and pilot receipts exist across these lanes. | Resolve material regressions and pass the signed-candidate compatibility, recovery and soak matrix before the owner evaluates release. |
@@ -644,7 +656,7 @@ Attribute resource cost and remaining work before changing either phase.
 
 [Current good and rejected source captures](evidence/windows-indexed-sample-scope-2026-11-25.json)
 
-- **Charge the complete representation.** The November tufazip report
+- **Charge the complete representation.** The tufazip author report
   includes its decoder and seed weights in the 105,388,353-byte result on
   enwik9. Its smaller payload with a larger seed made the full bundle grow.
   ZipLLM shows that family-aware grouping and a reversible XOR delta can
@@ -655,9 +667,18 @@ Attribute resource cost and remaining work before changing either phase.
   CPU decoding remains defined by the committed representation.
   [Tufazip author report](https://tufalabs.ai/research/tufazip) ·
   [NSDI ’26 ZipLLM](https://www.usenix.org/conference/nsdi26/presentation/wang-zirui)
+- **Use long text and general-purpose corpora for distinct experiments.**
+  The maintained Large Text Compression Benchmark charges both compressed
+  text and its decoder. Use that accounting for an experimental long-text
+  control. Use the contemporary AITDCC held-out files and independently
+  selected named trees for cross-format and filesystem conclusions.
+  [Large Text Compression Benchmark](https://www.mattmahoney.net/dc/text.html) ·
+  [AITDCC 2026 methodology](https://arxiv.org/abs/2606.17712)
 - **Bind package, component and device separately.** AMD's ROCm Core SDK
   10.2.0 release notes list HIP 7.17.0. Follow the selected Windows package
   and record the actually discovered runtime, device and compatible worker.
+  The notes list Windows 11 25H2 for Radeon. Record vendor support and
+  actual Windows build qualification separately.
   Streams and events provide explicit dependencies for a prepared
   worker. Compare overlapping transfers and compute inside that bound
   worker only after the end-to-end trace shows a reason to change it.
@@ -673,6 +694,18 @@ Attribute resource cost and remaining work before changing either phase.
   [AITDCC canonical files](https://aitdcc.github.io/dataset.html) ·
   [Microsoft native compression state](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/62de177d-ed90-4884-ae04-9de52f1180f1) ·
   [Microsoft DiskSpd 2.3](https://github.com/microsoft/diskspd/releases/tag/v2.3)
+- **Make format activation atomic.** OpenZFS documents enabled versus
+  active features. Btrfs records distinct read and write compatibility
+  fields. Carry that separation into FlitzFS by keeping intent advisory
+  and setting required bits when a protected representation first commits.
+  Keep one selected authority and independently test refusal on a frozen
+  writer. Windows documents separate buffering and write-through controls.
+  Use the selected provider's actual flush and recovery evidence before
+  extending a durability claim to persistent hardware.
+  [OpenZFS feature flags](https://openzfs.github.io/openzfs-docs/man/master/7/zpool-features.7.html) ·
+  [Btrfs disk format](https://btrfs.readthedocs.io/en/latest/dev/On-disk-format.html) ·
+  [Windows file buffering](https://learn.microsoft.com/en-us/windows/win32/fileio/file-buffering) ·
+  [Windows file caching](https://learn.microsoft.com/en-us/windows/win32/fileio/file-caching)
 - **Keep publication proof with the state it certifies.** The OSDI study
   on metadata write-once publication uses persistent memory. Its
   separation of prerequisite writes from complete recovery state
@@ -1096,6 +1129,70 @@ semantics constrain every optimization.
 | Protected size | Indexed coherence catalog and protected candidate builder | Held-out families and their exact-cost shortlist oracle | E04–E07, E12 |
 | Scalable authority | Checked indexed reopen, selector and backing ownership | Full inventory audit and completed client operations | E01, E02, E11 |
 | Owner acceptance | Signed helper, WinFsp and standalone CPU rescue | Compatibility, backing-specific interruption and installed comparisons | E08–E13 |
+
+### Next decisions ranked by expected gain
+
+1. **Use the ordinary client to connect allocation, CPU and AMD work.**
+   Extend the existing Win32 writer and independent reopen witness to
+   feed the same immutable manifest and arrival trace into the helper.
+   Collect open, enumeration, cached and mapped writes, explicit flush,
+   rename, held-reader state and restart in one trace. Correlate the
+   controller's admitted work and grant exhaustion with selected image
+   identity, both physical anchors and complete backing allocation.
+   Fix the first stage where a ready opportunity stays idle, reads stale
+   state or repeats excessive I/O. Exit when populated churn repeatedly
+   settles, every acknowledged operation survives independent CPU reopen,
+   and teardown releases its workers and mounts. This is the shared
+   harness for the next three decisions.
+2. **Finish useful automatic AMD service.** Start with the later-read
+   window already consumed by physical Radeon. Derive a lead signal from
+   matched real client arrival and CPU service. Compare alternate runs
+   with CPU, cold AMD, and a session-owned ready AMD worker. Record first
+   byte, subsequent offsets, queue and runtime activation, transfers,
+   kernel, verification and delivery, device pressure and retirement.
+   Qualify a route only when it consumes exact output during an ordinary
+   trace and improves service at the intended shape. For writes, batch
+   the CPU-bound windows that the ordinary controller can actually
+   assemble and compare durable throughput and complete size. For
+   background work, spend GPU time on profitable candidates per idle grant.
+   On device or transport failure serve CPU and withdraw the learned offer.
+   Renew it after relevant evidence and confirmed retirement.
+3. **Buy complete-size improvements before broadening search.** Use
+   the protected-size breakdown to choose a path per cohort. For tiny
+   cold files, price live extent removal through the existing inode
+   representation and compare compact fragment locators only if record
+   overhead remains material. For related large extents, use an exhaustive
+   small-window oracle to bound missed savings by sparse lookup. Compare
+   exact sharing, restartable shared fragments, prefixes and transforms
+   at equal read granularity. Apply the winning plan to held-out groups
+   of multiple sizes and independent file families. Measure total
+   protected volume occupancy after convergence, intermediate rewrite
+   cost, range amplification and long-tail read latency. Keep a deferred
+   representation out of the selected image until its CPU decoder,
+   dependency limits and achievable gain are demonstrated.
+4. **Make writable admission and discovery scale.** Run the incremental
+   authority decision beside the existing full audit on healthy images,
+   old roots, stale summaries, corrupt mirrors and cut publications.
+   A discrepancy fences the candidate decision and records check cost
+   by phase. Keep repair and recovery on the independently checked
+   CPU path. Run geometric live name, directory and extent populations
+   under measured resource budgets. Fit separate curves for attach,
+   randomized lookup, enumeration, foreground edits, idle scan progress
+   and resident memory. Use a larger reserved sample to check the curve.
+   Extrapolation to tens of millions remains an estimate with an
+   error interval and a stated backing and workload.
+5. **Promote format features and qualify the delivered product.** Use
+   bit 10 as the first frozen-reader and migration rehearsal. Define the
+   supported reader/writer pairs, then enable a paid, profitable batch
+   after pre-mutation refusal and old/current CPU recovery have passed.
+   Carry the same checks into packaging, missing AMD dependencies, offline
+   rescue, media-specific failure and automatic owned removal. Run
+   recognized comparison workloads only on matched, qualified targets.
+   Conclude with an exact signed-candidate soak and the owner's decision.
+
+[Windows trace and NTFS controls](BENCHMARK_PROTOCOL.md) ·
+[Adaptive execution design](architecture/ADAPTIVE_STORAGE_EXECUTION.md) ·
+[Migration steps](IMPLEMENTATION_PLAN.md#12-e09--multi-release-readers-and-gradual-format-migration)
 
 ### Allocation and write cost
 

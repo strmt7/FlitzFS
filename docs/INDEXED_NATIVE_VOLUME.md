@@ -57,13 +57,12 @@ shared-base backreferences in the same protected tree.
 
 ### Inline short-file data
 
-Fresh Windows memory volumes select
-`NativeIndexedDataLayout::inline_small_files` through the ordinary
-startup path. The checked root advertises the feature before a regular
-inode can contain inline data. The same reader supports existing
-extent-based images. An older reader with the
-previous namespace-feature mask refuses a root carrying bit 10. Reopen,
-compaction and a group-capability update preserve the feature.
+Fresh Windows memory volumes and freshly created dense or range-backed
+volume files select `NativeIndexedDataLayout::inline_small_files`. The
+checked root advertises the feature before a regular inode can contain inline
+data. Reopening an existing volume retains its selected layout. An older
+decoder with the previous namespace-feature mask refuses a root carrying
+bit 10. Compaction and a group-capability update preserve the feature.
 
 The canonical inode frame still has zero legacy extent entries. A
 regular file of at most 512 bytes may store its data from offset zero
@@ -91,9 +90,13 @@ snapshots retain their previous representation.
 An external Win32 client exercised the default on 374 held-out CPython
 files, including growth, sparse reads, shrink, rename, enumeration and
 remount. Independent CPU inspection verified both retired selections.
-Persistent-volume adoption and migration have their own qualification.
+The dense and range volume-file creation paths also passed independent CPU
+reopen across 372 modeled write and flush interruptions during growth and
+shrink. Gradual migration of pre-existing extent-only roots is planned
+separately.
 [Named Windows qualification](evidence/windows-inline-named-and-adaptive-read-2026-11-25.json) ·
 [Inline layout evidence](evidence/windows-inline-small-files-2026-11-25.json) ·
+[Persistent creation and recovery model](evidence/windows-persistent-inline-reconciliation-2026-11-25.json) ·
 [Release design](architecture/ADAPTIVE_STORAGE_EXECUTION.md#protected-short-files-and-complete-size)
 
 ### Name profiles

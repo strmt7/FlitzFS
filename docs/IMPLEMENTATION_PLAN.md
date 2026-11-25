@@ -5,8 +5,9 @@ shared Win32 settlement trace, automatic AMD service on identical client
 demand, the indexed attach differential and held-out settled compression.
 The E01–E13 acceptance and dependency contracts below define the release exits.
 [Current assessment](RELEASE_RECONCILIATION_2026-11-25.md) ·
+[Priority and exit decisions](RELEASE_RECONCILIATION_2026-11-25.md#next-decisions-ranked-by-expected-gain) ·
 [Ordered implementation](RELEASE_RECONCILIATION_2026-11-25.md#ordered-implementation-and-decision-points) ·
-[Source and review evidence](evidence/windows-indexed-sample-scope-2026-11-25.json)
+[Source and review evidence](evidence/windows-persistent-inline-reconciliation-2026-11-25.json)
 
 The [current architecture](architecture/CURRENT.md) shows the implementation.
 The [source review](architecture/REVIEW.md) tests the assumptions and the
@@ -500,9 +501,10 @@ search scope. Price protection changes in their own paired runs.
    random ranges with the independent CPU reader.
 2. **Reduce the cost per tiny file.** The inline layout now passes a
    held-out named host comparison and a signed Windows client replay.
-   Fresh Windows memory volumes select it through their normal factory.
-   Before persistent adoption, pin the exact layout and prove old-reader
-   behavior and migration under interruption. Price repeated short
+   Fresh Windows memory and persistent volume-file creation select it.
+   The persistent model verified interrupted growth and shrink. Before
+   gradual activation on existing roots, freeze old readers and test
+   recovery across an interrupted migration. Price repeated short
    writes and growth on each provider. Compare compact direct locators
    into restartable protected fragments where the small-file record or
    payload charge remains material. Preserve mirrored failure isolation,
@@ -2064,6 +2066,53 @@ owner host. **Existing ledger:** W01, D01; scalable completion also requires E01
 
 **Reuse:** existing flat/paged capabilities, typed heads, compatible resume,
 immutable representations and COW handoff. **Planning effort:** 3–6 person-weeks.
+
+### First migration implementation
+
+Fresh dense and range volume files now set the short-file feature at
+creation. The modeled growth and shrink cuts verified copy-on-write
+representation changes with the feature already active. Older selected
+roots still require migration qualification. Use this format for the
+first end-to-end gradual upgrade.
+
+1. **Freeze selection and refusal.** Capture old extent-only and new inline
+   images at both root and volume-file boundaries. Run the oldest retained
+   executable, the immediate parent and the candidate through their ordinary
+   open paths. Log the selected generation and number of backing writes. A
+   candidate must read every old file. An old writer that lacks a required
+   feature must refuse with zero writes. Treat unsupported selected data
+   as distinct from a corrupt replica and never reinterpret a stale root
+   as the current generation.
+2. **Discover without a second catalog.** Gather stable protected extent
+   tokens in the existing indexed scan. Admit linked, standalone short files
+   first. Verify the mapped object, revision, EOF and ownership on the same
+   checked view. Reuse the allocation charge for a nonempty inline suffix.
+   Leave format-1 roots on their current reader until a separate version
+   upgrade is qualified.
+3. **Stage and price.** Prepare the inode edit and extent removal using
+   native COW staging and compacted-cost accounting. Compare complete
+   settled bytes including new inode frames, removed index keys, both
+   copies, allocation units, selector and reserved metadata. Debit
+   staging and reclamation writes from the current grant. Where a small
+   window cannot release a protected allocation pair, combine stable
+   windows under adaptive bounds or defer.
+4. **Publish atomically.** Revalidate captured revisions under the current
+   writer fence. CPU-decode and compare bytes and preserved metadata.
+   Publish the first converted batch with its feature bit in the same root.
+   A refused or canceled survey may retain advisory progress. After
+   publication, a stale or lost cursor causes revalidation against the
+   selected generation. Preserve source references until readers retire.
+5. **Qualify automatic resumption.** Cut each write and flush around the first
+   activation and subsequent batch publication. Exercise hold-open reads,
+   concurrent rename/truncate, space exhaustion, corrupt advice, remount
+   with AMD absent and later repair. Compare independent selected bytes,
+   names, timestamps and allocation at each cut. Measure convergence and
+   write amplification over a held-out named mixed tree. A downgrade
+   after newer acknowledged writes needs a verified compatible export
+   of the latest data.
+
+[Persistent creation evidence](evidence/windows-persistent-inline-reconciliation-2026-11-25.json) ·
+[Migration control and publication diagram](architecture/TARGET.md#7-format-compatibility-repair-and-upgrade)
 
 ### Implementation steps
 

@@ -6,6 +6,20 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "persistent_inline_creation": {
+    "source_base": "62f34534c35d3c0a77bf770ba870db70bcd14a33",
+    "evidence": "docs/evidence/windows-persistent-inline-reconciliation-2026-11-25.json",
+    "fresh_volume_file_default": "inline_small_files",
+    "modeled_provider_placements": ["range", "dense"],
+    "modeled_transition_interruptions": 372,
+    "prior_and_complete_recovery_counts": [340, 32],
+    "selected_windows_ctest_passed": 14,
+    "raw_only_and_asan_transition_models_passed": true,
+    "legacy_activation_implemented": false,
+    "persistent_media_qualified": false,
+    "release_qualified": false,
+    "next": "Finish the populated trace and price persistent settlement. Use the E09 migration steps after frozen-reader qualification."
+  },
   "named_windows_inline_and_adaptive_read": {
     "evidence": "docs/evidence/windows-inline-named-and-adaptive-read-2026-11-25.json",
     "fresh_windows_memory_volume_default": "inline_small_files",
@@ -14,7 +28,7 @@
     "held_out_complete_bytes": [1105920, 933888],
     "signed_guest_mounts_with_independent_cpu_reopen": 2,
     "physical_adaptive_read_prefix_cpu_and_later_radeon_extents": [2, 4],
-    "next": "Qualify automatic persistent adoption and migration and measure useful ordinary mounted AMD service against CPU.",
+    "next": "See persistent_inline_creation for the volume-file default. Measure useful ordinary mounted AMD service against CPU.",
     "release_qualified": false
   },
   "inline_short_files": {
