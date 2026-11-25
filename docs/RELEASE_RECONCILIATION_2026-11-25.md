@@ -111,6 +111,22 @@ remaining handoff from range retirement to physical tail release
 before judging attached settlement.
 [Shared bank and matched client evidence](evidence/windows-shared-mirrored-banks-2026-11-25.json)
 
+Packed retirement can now release a contiguous mapped run with one
+directory publication. In the callback control the old image's
+retirement took two steps instead of seven. The verified relocation
+offered the first truncate after one fresh observation. The controlled
+followup released 196,608 bytes while preserving the foreground and
+observation-age checks.
+
+The preselected mounted replay matched all client operations and
+independently verified the 1,027 files. Its attached allocation
+decreased by 524,288 bytes. The attached and detached phases together
+used 154 retirement steps, compared with 210 in the previous run with
+the same final allocation. The mounted observation still ended with
+work pending. Trace subsequent relocation and shortening through a
+complete ordinary attached cycle before closing the settlement gate.
+[Packed tail handoff and recovery evidence](evidence/windows-packed-tail-handoff-2026-11-25.json)
+
 ### 1. Reduce occupied bytes and repeated writes along the ordinary client path
 
 1. Extend the existing Win32 operation witness and controller receipt

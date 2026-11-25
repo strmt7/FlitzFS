@@ -903,6 +903,10 @@ void dense_allocation() {
     const auto occupied=io->extent();
     require(occupied==8*unit && dense->extent()==remote+unit,
         "logical gaps grew the ordinary backing");
+    require(dense->trailing_run_start(0,3*unit)==0 &&
+        dense->trailing_run_start(unit,3*unit)==unit &&
+        dense->trailing_run_start(3*unit,4*unit)==4*unit,
+        "dense mapped suffix did not preserve the caller's ownership boundary");
     dense->admit_contiguous_growth(dense->extent(),remote+32,remote+33);
     rejects([&]{dense->admit_contiguous_growth(remote+2*unit,remote+unit,remote+2*unit);},
         "growth beyond the physical cap was admitted");

@@ -172,10 +172,15 @@ struct NativeVolumeFile::Region final:StoreByteIo {
     if(end>capacity || end%kStoreCommitUnit)fail(Error::storage_failure,"invalid volume allocation bound");
     return end;
   }
-  void reclaim_tail() {
+  void reclaim_tail(bool inactive_image=false) {
     const auto before=allocation_extent();
     if(!before){fixed_extent.store(0,std::memory_order_release);return;}
-    const auto start=(before-1)/retirement_quantum*retirement_quantum;
+    auto start=(before-1)/retirement_quantum*retirement_quantum;
+    // Deleting a contiguous mapping touches one packed directory even if
+    // the run owns many units. Leave sparse, scratch and advice work bounded
+    // by the ordinary byte quantum.
+    if(inactive_image && owner->dense_file)
+      start=(std::min)(start,owner->dense_file->trailing_run_start(offset,offset+before)-offset);
     owner->ranges->reclaim_range(offset+start,before-start);
     flush();
     const auto after=allocation_extent();
@@ -350,7 +355,7 @@ Progress NativeVolumeFileReclaimer::retire(const NativeVolumeHeadInfo& current) 
   if(spare_.use_count()!=1)return Progress::pinned;
   check_inactive(current);
   auto& range=*spare_;
-  range.reclaim_tail();
+  range.reclaim_tail(true);
   if(!range.extent())phase_=Phase::idle;
   return Progress::retiring;
 }

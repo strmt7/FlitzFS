@@ -1291,6 +1291,7 @@ void dense_file_retirement_with_due_scrub() {
     writer.stop();
     require(writer.write_restart_ready(),"dense retirement producer did not retire");
   }
+  unsigned logical_retirement_steps=0;
   {
     auto writer=NativeVolumeFile::resume(backing,volume,raw,NativeDispositionPolicy::windows_global);
     for(unsigned step=0;writer.persistent_reclamation_pending();++step) {
@@ -1298,6 +1299,7 @@ void dense_file_retirement_with_due_scrub() {
       const auto result=writer.advance_persistent_reclamation([]{return id(2);});
       require(result==Progress::copying || result==Progress::ready || result==Progress::published ||
           result==Progress::retiring,"dense preparation failed");
+      if(result==Progress::retiring)++logical_retirement_steps;
     }
     require(writer.volume_info().selection.epoch==2 && writer.persistent_reclamation_pending(true),
         "dense preparation did not leave physical tail work");
@@ -1324,22 +1326,30 @@ void dense_file_retirement_with_due_scrub() {
   observed.foreground_pending=false;
   refuse(Deferral::observation,packed_tail);
   auto retirement=advance();
-  for(unsigned step=0;step<96 && retirement.continuation!=packed_tail;++step) {
-    require(!retirement.compaction_failed,"packed tail preparation failed");
-    retirement=advance();
-  }
-  require(retirement.continuation==packed_tail && backing->extent()<before,
-      "a due scrub blocked the first checked pack shortening");
+  require(logical_retirement_steps==2,"packed retirement split an owned run");
+  require(retirement.continuation==packed_tail && backing->extent()==before,
+      "verified relocation did not offer its truncate-only followup");
+  retirement=advance(packed_tail);
+  const auto first_released=before-backing->extent();
+  require(retirement.progress.deferral==Deferral::none && first_released &&
+      first_released<=kStoreMaxTransactionBytes,"the same observation did not shorten the checked suffix");
+  const auto fresh_offer=[&] {
+    for(unsigned step=0;step<96;++step) {
+      auto result=advance();
+      require(!result.compaction_failed,"packed tail preparation failed");
+      if(result.continuation==packed_tail)return result;
+    }
+    throw std::runtime_error("packed tail did not offer another truncate");
+  };
+  if(retirement.continuation!=packed_tail)retirement=fresh_offer();
   refuse(Deferral::observation,packed_tail,NativeMaintenancePolicy{}.maximum_age_ms+1);
   refuse(Deferral::observation,packed_tail);
-  retirement=advance();
-  require(retirement.continuation==packed_tail,"packed tail did not leave enough for a continued truncate");
+  retirement=fresh_offer();
   observed.foreground_pending=true;
   refuse(Deferral::foreground,packed_tail);
   observed.foreground_pending=false;
   refuse(Deferral::observation,packed_tail);
-  retirement=advance();
-  require(retirement.continuation==packed_tail,"a fresh capture did not restore bounded shortening");
+  retirement=fresh_offer();
   const auto capture=observed.captured_ms;
   const auto before_continuation=backing->extent();
   unsigned continued=0;
@@ -1370,6 +1380,8 @@ void dense_file_retirement_with_due_scrub() {
       reopened.filesystem().read("f0",0,static_cast<std::uint32_t>(expected.size()))==expected,
       "dense release changed selected bytes");
   std::cout<<"dense_release_scrub before="<<before<<" settled="<<backing->extent()
+      <<" range_retirement_steps="<<logical_retirement_steps<<" fresh_before_shorten=1"
+      <<" same_observation_handoff=1 first_released="<<first_released
       <<" continued="<<continued<<" continued_bytes="<<before_continuation-backing->extent()
       <<" observed_objects="<<checked_objects<<" exact_generation=1 independent_bytes=1\n";
 }

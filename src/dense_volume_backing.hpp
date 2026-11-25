@@ -27,6 +27,8 @@ class DenseVolumeBacking final : public NativeVolumeRangeIo {
   bool concurrent_reads_supported() const noexcept override;
   bool supports_reclaimable_ranges() const noexcept override;
   std::uint64_t allocated_extent(std::uint64_t offset, std::uint64_t bytes) const override;
+  // A contiguous suffix contained in one mapped run and physical directory.
+  std::uint64_t trailing_run_start(std::uint64_t begin, std::uint64_t end) const;
   void admit_range_write(std::uint64_t projected, std::uint64_t additional) override;
   void admit_contiguous_growth(std::uint64_t projected, std::uint64_t begin, std::uint64_t end) override;
   void reclaim_range(std::uint64_t offset, std::uint64_t bytes) override;

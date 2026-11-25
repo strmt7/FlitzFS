@@ -596,19 +596,16 @@ struct WinFspNativeWritable::Impl {
         auto result=progress(step);
         result.file_reclamation=step;
         result.file_rebuild_entry=rebuild;
-        // After a checked release, this window can fund only further
-        // releases of the same inactive image. A publication or a newly
-        // abandoned candidate must wait for its first fresh observation.
-        if(retiring_range && step==NativeVolumeReclaimProgress::retiring && session.inactive_image_retirement_ready()) {
-          range_retirement_capture=observed.captured_ms;
-          result.continuation=Continuation::range_retirement;
-        }
-        // An EOF change can fund another confirmed truncate under the
-        // original budget. Relocation and recovery require a fresh sample.
-        if(shortening && step==NativeVolumeReclaimProgress::retiring &&
-            session.persistent_reclamation_pending(shorten)) {
-          packed_tail_retirement_capture=observed.captured_ms;
-          result.continuation=Continuation::packed_tail_retirement;
+        if(step==NativeVolumeReclaimProgress::retiring) {
+          if(retiring_range && session.inactive_image_retirement_ready()) {
+            range_retirement_capture=observed.captured_ms;
+            result.continuation=Continuation::range_retirement;
+          } else if(session.persistent_reclamation_pending(shorten)) {
+            // Settled retirement or relocation can expose a truncate-only
+            // step. Recheck it under the remaining budget and foreground guard.
+            packed_tail_retirement_capture=observed.captured_ms;
+            result.continuation=Continuation::packed_tail_retirement;
+          }
         }
         result.sealed_image=result.compacted && session.volume_info().selection.sealed_range.has_value();
         return result;

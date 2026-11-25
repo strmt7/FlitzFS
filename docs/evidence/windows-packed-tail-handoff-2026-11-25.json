@@ -1,0 +1,210 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "qualification": "experimental",
+  "source": {
+    "base_commit": "61c9b5aee343484d66fa8cacef90cad237ed9152",
+    "base_tree": "7473c85de1d70757bb5579bb41d89531af008184",
+    "tested_tree": "da0ba7a4f914a5f717a6035b02ade9174481088e",
+    "source_blobs": {
+      "src/dense_volume_backing.cpp": "1d159d0fba74676f58e6412e2e4c1c9ac077ce3f",
+      "src/dense_volume_backing.hpp": "bbbb1eae66a9ec2a24ee6963cc0a86158a59b9b3",
+      "src/native_volume_file.cpp": "3062c57288bdc30101d23c7bb8071ebddee686f8",
+      "src/windows/winfsp_native.cpp": "d9d1d5aced681d6d20136a0b23454277c98b2d1c",
+      "tests/test_native_volume_file.cpp": "ed9b4542eaf5797794c62da233739ead59e4cee8",
+      "tests/test_winfsp_controller.cpp": "90d78f208be1daa71e6751bfd9fbd3d8dd2df44d"
+    }
+  },
+  "volume_callback_model": {
+    "before": {
+      "before": 27918336,
+      "settled": 2293760,
+      "range_retirement_steps": 7,
+      "fresh_before_shorten": 4,
+      "same_observation_handoff": 0,
+      "continued": 4,
+      "continued_bytes": 12845056,
+      "observed_objects": 17,
+      "exact_generation": 1,
+      "independent_bytes": 1
+    },
+    "after": {
+      "before": 27918336,
+      "settled": 2293760,
+      "range_retirement_steps": 2,
+      "fresh_before_shorten": 1,
+      "same_observation_handoff": 1,
+      "first_released": 196608,
+      "continued": 5,
+      "continued_bytes": 17039360,
+      "observed_objects": 17,
+      "exact_generation": 1,
+      "independent_bytes": 1
+    },
+    "fresh_observations_to_truncate_offer": [
+      4,
+      1
+    ],
+    "same_observation_first_released_bytes": 196608,
+    "rejected_expired_and_foreground_followups": true,
+    "independent_cpu_reopen_exact": true
+  },
+  "mounted_preselected_win32_trace": {
+    "previous_evidence": "windows-shared-mirrored-banks-2026-11-25.json",
+    "exact_client_trace_match": true,
+    "guest": {
+      "attached_allocation_decreased": true,
+      "controller": {
+        "allocated_after": 433192960,
+        "allocated_before": 433717248,
+        "allocated_while_attached": 433192960,
+        "compaction_failures": 0,
+        "continued_packed_tail": 0,
+        "continued_range_retirement": 36,
+        "flush_calls": 115,
+        "publications": 0,
+        "quanta": 16,
+        "quiescent": 0,
+        "rebuild_publishing_flushes": 0,
+        "rebuild_ready_flushes": 0,
+        "retirement_flush_calls": 115,
+        "retirement_write_bytes": 4789696,
+        "sampled_extents": 0,
+        "step_retiring": 51,
+        "write_bytes": 4789696,
+        "write_calls": 114
+      },
+      "detached_completed": {
+        "after": 5767168,
+        "before": 433192960,
+        "epoch": 2
+      },
+      "final_deferral": "none",
+      "final_phase": "preparing",
+      "guest_build": "26100",
+      "guest_memory_mib": 4096,
+      "guest_receipt_sha256": "b3bf7faf92d47759d2c4532814435fcd7847436daceaac87068667af9f457f9f",
+      "historical_client_trace_equal": true,
+      "manifest_sha256": "119a13b73d5454ddef1d1a4be17b706a857fc803663f2609c358d2e017527f43",
+      "preselected": true,
+      "sandbox_receipt_sha256": "7144c59f335ce38ab750c235b7821abef8b9300bb3c8b596782d1b7aa6cf20b4",
+      "sandbox_retired": true,
+      "signed_artifacts_verified": 6,
+      "signed_driver_sha256": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+      "trace": {
+        "bytes": 1134259,
+        "counts": {
+          "conflicting_open": 1,
+          "cpu_verified": 3,
+          "create": 1030,
+          "enumerate": 3,
+          "flush": 1077,
+          "flush_cached": 3,
+          "flush_mapped": 4,
+          "flush_view": 4,
+          "held_read": 3,
+          "lookup_deleted": 2,
+          "mkdir": 1,
+          "overwrite_open": 1,
+          "range_read": 3,
+          "read": 3076,
+          "rename_replace": 1,
+          "unlink": 2,
+          "write": 1079
+        },
+        "cycles": 3,
+        "files": 1027,
+        "independent_population_blake3": "24b7b9b2afa3ee9c8043d757ccb4229c4321e8af5352b9800d6a599b8b70faa4",
+        "logical_bytes": 2291854,
+        "records": 6293,
+        "sha256": "a819bc8c0ba49580f45c3985470cbf88f3934aa3ac88cb910c4b72b72a984af1"
+      }
+    },
+    "witness_sha256": "42faf9dcdeeea1fbcfde1d1bf580fd20398cfeff0fdcf351e013dae441dfa893",
+    "first_observed_attached_allocation_release_bytes": 524288,
+    "complete_retirement_steps_before_after": [
+      210,
+      154
+    ],
+    "detached_retirement_steps_before_after": [
+      106,
+      103
+    ],
+    "scope": "Same Win32 transcript, independent content digest and detached allocation endpoint on disposable Windows guests. Each arm began with its own foreground allocation. The candidate reached an attached truncate and completed remaining retirement after detach."
+  },
+  "windows_selected_ctest_passes": 10,
+  "raw_selected_ctest_passes": 3,
+  "addresssanitizer_selected_ctest_passes": 3,
+  "addresssanitizer_runtime_preflight_passed": true,
+  "diagnostic": "The matched model contained two mapped runs. The test checks the first confirmed truncate independently of readiness for additional truncations.",
+  "supervised_runs": [
+    {
+      "lane": "tailHandoffBaselineTest",
+      "peak_job_bytes": 227430400,
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "residual_children": 0,
+      "output_sha256": "6145d685424aa30b6084c407f2be0d14447e4cb67e8bdb468f0be98957a0472e"
+    },
+    {
+      "lane": "tailHandoffCheckedTests",
+      "peak_job_bytes": 679473152,
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "residual_children": 0,
+      "output_sha256": "441a7b6eb966d326e6db32a5b1e3a6d236d5b6119c0a5883e10ae7410dd58cda"
+    },
+    {
+      "lane": "tailHandoffRawTests",
+      "peak_job_bytes": 22462464,
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "residual_children": 0,
+      "output_sha256": "cda337f3129faab80d641ef8be160e0025cea9280c9f0f3e1c20a842a2a0e222"
+    },
+    {
+      "lane": "tailHandoffAsanTests",
+      "peak_job_bytes": 434905088,
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "residual_children": 0,
+      "output_sha256": "cdf1dc387e7399f9eb550a5f067125f9ff4a7bb9fece7c5270d4c6ecf8a79405"
+    },
+    {
+      "lane": "tailHandoffGuestRun",
+      "peak_job_bytes": 46112768,
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "residual_children": 0
+    }
+  ],
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "captures": [
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_allocation_info",
+        "http_status": 200,
+        "final_http_status": 200,
+        "success": true,
+        "markdown_sha256": "b8e501c32be8ea95315638155c33362303db54a33c903b2f80ae922ae643518b",
+        "capture_sha256": "2a604ca9c861bc41c93f38055d874ac751a040c4ec71a6ebd0ae9e7a0b4bab23"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_end_of_file_info",
+        "http_status": 200,
+        "final_http_status": 200,
+        "success": true,
+        "markdown_sha256": "6018fa2cb8107a8e649e12befc5a8848f04dbb99a8437efc8f5eb28625599c8e",
+        "capture_sha256": "5dd8782daf69575d730b33add5eaf4966459130d68eb3d4ddc10377bd9d41d11"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadpriority",
+        "http_status": 200,
+        "final_http_status": 200,
+        "success": true,
+        "markdown_sha256": "4f535a0b9a9f909b21bfa37d7b66735c7c6d47d13f2ba0217574c2587183c9f3",
+        "capture_sha256": "980b9ed032d8f5d44a569d66d9b4def229296bd46aba0daf43bb74ee4b9dc228"
+      }
+    ]
+  }
+}

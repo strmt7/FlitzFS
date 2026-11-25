@@ -189,13 +189,19 @@ and writable reopen retains its initial backing fence. The backing model
 checks these boundaries and independently verifies the retained bytes.
 [Packed retirement evidence](evidence/windows-packed-retirement-flushes-2026-11-25.json)
 
-Following a confirmed truncation, the WinFsp controller can spend the remaining
-idle observation on another truncation. It checks the durable selection,
-settled allocation state, available memory, backing time and foreground
-demand before each step. Fresh observations fund relocation, move recovery
-and the first shorten. In the Windows callback model, four continued steps
-released 12,845,056 additional bytes, with exact independent CPU reopen.
-[Packed continuation evidence](evidence/windows-packed-tail-continuation-2026-11-25.json)
+Retirement of an unpinned packed data image can remove a whole
+contiguous mapped run in one step. That run belongs to one physical
+directory. The range stays inside the inactive image, and the owner
+checks the current selector before each release. The ordinary byte
+quantum covers short trailing runs and still governs sparse, scratch
+and advisory retirement.
+
+After a retirement, relocation or truncation exposes a free suffix,
+the controller can offer a truncate-only step within the remaining
+observation. It checks durable selection, settled allocation, memory,
+backing time and foreground activity before doing the work. A live
+copy or move recovery still needs a fresh observation.
+[Handoff and mounted evidence](evidence/windows-packed-tail-handoff-2026-11-25.json)
 
 The NTFS guest verified a reduction from 1,900,544 to 720,896 allocated
 bytes. The file retained its held snapshot and independently reopened

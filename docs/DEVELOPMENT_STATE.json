@@ -6,6 +6,20 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "packed_tail_handoff": {
+    "source_base": "61c9b5aee343484d66fa8cacef90cad237ed9152",
+    "tested_runtime_tree": "da0ba7a4f914a5f717a6035b02ade9174481088e",
+    "evidence": "docs/evidence/windows-packed-tail-handoff-2026-11-25.json",
+    "logical_retirement_steps_before_after": [7, 2],
+    "fresh_observations_to_truncate_offer_before_after": [4, 1],
+    "selected_windows_tests_passed": 10,
+    "mounted_cpu_verified_files": 1027,
+    "preselected_attached_release_bytes": 524288,
+    "complete_retirement_steps_before_after": [210, 154],
+    "detached_recovered_allocation": 5767168,
+    "ordinary_attached_settlement_qualified": false,
+    "next": "Attribute remaining physical relocation and truncation work through a full ordinary attached cycle. Preserve fresh grants and foreground responsiveness."
+  },
   "shared_mirrored_banks": {
     "source_base": "cc0455593f0973773c11a15a1289f802dadb3d6c",
     "tested_runtime_tree": "dae5f9bcd7fcc2dcfacbed34349bae0235f1735a",

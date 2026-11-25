@@ -1029,6 +1029,17 @@ std::uint64_t DenseVolumeBacking::allocated_extent(std::uint64_t offset, std::ui
   return end > offset ? end - offset : 0;
 }
 
+std::uint64_t DenseVolumeBacking::trailing_run_start(std::uint64_t begin, std::uint64_t end) const {
+  if (begin > end || end > state_->geometry.logical_limit || begin % unit || end % unit)
+    fail(Code::limit, "invalid dense retirement query");
+  const std::shared_lock lock(state_->mutex);
+  const auto next = state_->logical.lower_bound(end / unit);
+  if (next == state_->logical.begin()) return end;
+  const auto run = std::prev(next);
+  if (end_of(run) * unit < end) return end;
+  return (std::max)(begin, run->first * unit);
+}
+
 void DenseVolumeBacking::reclaim_range(std::uint64_t offset, std::uint64_t bytes) {
   state_->check_writer();
   const auto limit = state_->geometry.logical_limit;
