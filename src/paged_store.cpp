@@ -2771,21 +2771,32 @@ PagedStoreWriteResult PagedObjectStoreWriter::commit_impl(
     std::uint64_t stored=0;
     bool has_pending_lz4=false;
   };
-  const auto prepare=[&](const auto& batch) {
+  const auto prepare=[&](std::span<const StoreMutation* const> batch,
+      std::span<const StoreMutation* const> incumbent={},std::span<const PreparedObject> checked={}) {
     PreparedChanges result;
     result.objects.reserve(batch.size());
     result.changes.reserve(batch.size());
-    for(const auto* mutation:batch) {
-      if(mutation->erase) {
-        result.changes.push_back({mutation->id,true,{}});
+    for(std::size_t i=0;i<batch.size();++i) {
+      const auto& mutation=*batch[i];
+      if(mutation.erase) {
+        result.changes.push_back({mutation.id,true,{}});
         continue;
       }
-      auto record=prepare_object(plan.next,p.encoder,*mutation,consider_lz4_allocation);
+      const auto* previous=incumbent.empty()?nullptr:incumbent[i];
+      const bool reuse=previous && mutation.lz4_literal_prefix_bytes==previous->lz4_literal_prefix_bytes &&
+          mutation.bytes==previous->bytes && mutation.lz4_candidate==previous->lz4_candidate;
+      const auto index=result.objects.size();
+      // Alternatives have the same sorted IDs and erasures. An empty slot
+      // borrows the checked entry until the variant wins and takes its bytes.
+      if(reuse)result.objects.emplace_back();
+      else {
+        auto& record=result.objects.emplace_back(prepare_object(plan.next,p.encoder,mutation,consider_lz4_allocation));
+        if(!compacted && !consider_lz4_allocation)place_object(plan.next,record,allocation,cursor);
+      }
+      const auto& record=reuse?checked[index]:result.objects.back();
       result.has_pending_lz4|=record.pending_lz4_comparison!=nullptr;
-      if(!compacted && !consider_lz4_allocation)place_object(plan.next,record,allocation,cursor);
-      else if(compacted && mutation->id!=compacted->rebound_object)result.stored=add(result.stored,record.entry.stored);
-      result.changes.push_back({mutation->id,false,record.entry});
-      result.objects.push_back(std::move(record));
+      if(compacted && mutation.id!=compacted->rebound_object)result.stored=add(result.stored,record.entry.stored);
+      result.changes.push_back({mutation.id,false,record.entry});
     }
     return result;
   };
@@ -2796,18 +2807,22 @@ PagedStoreWriteResult PagedObjectStoreWriter::commit_impl(
       // footprint comes from one checked inventory of this checkpoint.
       const auto inventory=compacted_inventory(old,changes,compacted->rebound_object);
       compacted->sizes=compacted_sizes_after(old,inventory,changes,compacted->rebound_object);
+      std::span<const StoreMutation* const> incumbent=sorted;
       for(std::size_t i=0;i<alternatives.size();++i) {
         if(alternatives[i].empty())continue;
         std::optional<PreparedChanges> variant;
-        try{variant.emplace(prepare(alternatives[i]));}
+        try{variant.emplace(prepare(alternatives[i],incumbent,objects));}
         catch(const std::bad_alloc&){continue;}
         const auto sizes=compacted_sizes_after(old,inventory,variant->changes,compacted->rebound_object);
         if(std::pair{sizes.after_upper,variant->stored}<std::pair{compacted->sizes.after_upper,stored}) {
           compacted->sizes=sizes;
           compacted->selected=i+1;
           stored=variant->stored;
+          for(std::size_t object=0;object<objects.size();++object)
+            if(!variant->objects[object].entry.id)variant->objects[object]=std::move(objects[object]);
           objects=std::move(variant->objects);
           changes=std::move(variant->changes);
+          incumbent=alternatives[i];
         }
       }
       if(old.degraded_metadata)fail("metadata replica lost during compacted size admission");

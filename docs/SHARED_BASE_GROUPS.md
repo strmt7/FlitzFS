@@ -254,6 +254,21 @@ compacted sizes, then checks the existing publication protocol.
 [Assembled-prefix flow](architecture/CURRENT.md#11-compression-over-an-assembled-base) ·
 [Paired comparison](evidence/windows-assembled-prefix-2026-11-25.json)
 
+### Reuse prepared records during the size comparison
+
+Every alternative has the same sorted mutation IDs and erasures. The
+writer compares its plaintext, LZ4 advice and literal-prefix length with
+the incumbent for each surviving ID. An exact match borrows the prepared
+entry for sizing. Changed mutations go through normal encoding and
+verification. If the alternative wins, it takes ownership of the
+unchanged prepared bytes before the writer allocates or writes anything.
+
+The full compacted-size estimator and its stored-byte tiebreak still
+decide which layout can publish. The selected records go through the
+existing mirrored writes, readback and checkpoint publication. The
+transaction returns its scratch when the comparison ends.
+[Paired protected-size and workload evidence](evidence/windows-settled-prepared-records-2026-11-25.json)
+
 On indexed volumes, a protected base can also hold several short payloads
 as verified slices. This reduced occupied size by 4.0% for 40 distinct
 Lucide SVGs and by 4.8% for the controlled short-token corpus. Two other

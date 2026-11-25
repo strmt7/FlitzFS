@@ -27,6 +27,17 @@ passes and the destination stream and checkpoint are current. The next
 ordinary client trace needs to distinguish a retired worker, a checked
 reply and useful delivery. [Scoped validation](evidence/windows-resumable-group-replies-2026-11-25.json)
 
+The writer now reuses exact prepared records when it compares protected
+group layouts. Four alternating trials on the 24-file CPython revision
+cohort recorded 336.3 ms median group-maintenance work before and
+313.4 ms after. Both builds settled at 696,320 bytes after grouping and
+cold encoding. Independent cold encoding occupied 1,474,560 bytes on
+the same backing geometry. The short-file cohort remained at 524,288
+bytes and showed no measured work reduction. Both cohorts passed
+independent CPU readback and retained-snapshot checks. These are scoped
+native profiles on the Windows host.
+[Paired protected-size evidence](evidence/windows-settled-prepared-records-2026-11-25.json)
+
 | Area | What exists and has evidence | Release work |
 | --- | --- | --- |
 | Windows and setup | Owned writable WinFsp memory and volume-file backings. Signed guest clients exercised cached and mapped writes, flush, interruption and reopen. Private packages can be staged. | Bind the exact signed driver, helper and workers to an ordinary Explorer and Win32 matrix. Qualify dependency setup, relocation, upgrade, rollback and teardown. |

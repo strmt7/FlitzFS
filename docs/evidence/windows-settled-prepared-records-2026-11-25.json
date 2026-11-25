@@ -1,0 +1,279 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "source": {
+    "parent": "ec6340e6380c48b4cb13e3a4b528987c264fca24",
+    "base_tree": "98e7c2823c056ade00c1ce5790ad9d4c38447527",
+    "tree": "8d871205921fec9c209460c3d89b223d2322e94d",
+    "elements": [
+      {
+        "path": "src/paged_store.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "942873438cef8d1559d50847133f842b14490d7b",
+        "bytes": 161921
+      }
+    ]
+  },
+  "scope": {
+    "model": "Windows native maintenance with modeled idle observations, same mirrored image and selector.",
+    "timing": "Recorded work during the native group pass. This is not mounted throughput.",
+    "driver_modified": false,
+    "new_device_compute": false,
+    "mount_created": false
+  },
+  "paired_profiles": {
+    "baseline_sha256": "50ef1893c09cd4a57cbdf24af11b726f7f94dff45cb9aeaebb4d6c8d43732ec6",
+    "candidate_sha256": "3abaced04bdd9419ac31b8c1101e5a7110b9cc2007547c1d83efaf7c80ad11c3",
+    "matched_receipt_sha256": "e9188c7bd2d1ea3d65191c15e02eb87dcbc9c1e1b95cf8d5aba9ee29ce0f8ff0",
+    "cohorts": [
+      {
+        "workload": "revisions",
+        "fixture_sha256": "d053d6acd0551763909205a2ed670d6bf6bc3e61a13ef0cd13ca93e69c5489f9",
+        "files": 24,
+        "logical_bytes": 2510681,
+        "paired_bytes": {
+          "independent_preserved": 1662976,
+          "independent_level_3": 1662976,
+          "independent_level_9": 1540096,
+          "cold_only": 1474560,
+          "cold_then_group": 745472,
+          "group_only": 745472,
+          "group_then_cold": 696320
+        },
+        "maintenance_write_bytes_both_builds": 1007616,
+        "cpu_and_retained_snapshot_exact": true,
+        "maintenance_ms_median": {
+          "baseline": 336.2936,
+          "candidate": 313.37755
+        },
+        "trials": [
+          {
+            "arm": "baseline",
+            "work_ns": 326392500,
+            "log_sha256": "0635df2c093216c7d77be0174e88e87a9acd9aa4f0428ccf3e76904470ce1dd9"
+          },
+          {
+            "arm": "candidate",
+            "work_ns": 310854800,
+            "log_sha256": "6d5989fa3e406e783d3e73d7388c650bb35ac396a715749cd42fe6124422845d"
+          },
+          {
+            "arm": "candidate",
+            "work_ns": 315900300,
+            "log_sha256": "4ea861db261f10b5fbf3ec9dda5cf710d617609eddb2d810a668b53220c08905"
+          },
+          {
+            "arm": "baseline",
+            "work_ns": 340746800,
+            "log_sha256": "8844c82e52d66d634c6c5b40e9e8b444b5e84991b909eb4bedc1a854cdffae12"
+          },
+          {
+            "arm": "baseline",
+            "work_ns": 331840400,
+            "log_sha256": "bf217196b6c32f09301a26c86d30e3f7c77d99c349632654482e1f25f015cba7"
+          },
+          {
+            "arm": "candidate",
+            "work_ns": 328891400,
+            "log_sha256": "d96a8d353a7b567567d4c8de12a6cce910568542e01107c5cc907afc1a2a0559"
+          },
+          {
+            "arm": "candidate",
+            "work_ns": 305263500,
+            "log_sha256": "1bd6758b0c087d34e9b0d956131ecab07c7c9b0cc71bfd6909a3a9b8a0b53bae"
+          },
+          {
+            "arm": "baseline",
+            "work_ns": 347374900,
+            "log_sha256": "99bdfe9ee3abc17da2ab3c51a91535bb13f5c440a3e92bae8b921a34d98c3219"
+          }
+        ]
+      },
+      {
+        "workload": "short_holdout",
+        "fixture_sha256": "ac2c855bfcf450bbdd3d571978fbc806554d66c4e0d168d0d21fc5c5e1d07536",
+        "files": 192,
+        "logical_bytes": 32922,
+        "paired_bytes": {
+          "independent_preserved": 524288,
+          "independent_level_3": 524288,
+          "independent_level_9": 524288,
+          "cold_only": 524288,
+          "cold_then_group": 524288,
+          "group_only": 524288,
+          "group_then_cold": 524288
+        },
+        "maintenance_write_bytes_both_builds": 0,
+        "cpu_and_retained_snapshot_exact": true,
+        "maintenance_ms_median": {
+          "baseline": 76.1925005,
+          "candidate": 78.58575
+        },
+        "trials": [
+          {
+            "arm": "baseline",
+            "work_ns": 76758500,
+            "log_sha256": "a6befe17aa14090e91a8030f0e362ecda08ef9f4c39d817857fb3395246a1de6"
+          },
+          {
+            "arm": "candidate",
+            "work_ns": 79781800,
+            "log_sha256": "7ef845fe8a8685ea2a284176a8c3a2deecf03258b8175b37e42a967ce8849d8a"
+          },
+          {
+            "arm": "candidate",
+            "work_ns": 77389700,
+            "log_sha256": "3eec858fc7f1000babcf038fcafe1895eb5914dada985c52a39e8807e8231a98"
+          },
+          {
+            "arm": "baseline",
+            "work_ns": 75626501,
+            "log_sha256": "bd2086eaf73659da24ec11be9248fc28bf0fd0362168ab18f1ef586d26561d22"
+          }
+        ]
+      }
+    ]
+  },
+  "validation": {
+    "passed_by_configuration": {
+      "release_tests": 5,
+      "raw_tests": 2,
+      "asan_tests": 4
+    },
+    "asan_runtime_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed",
+    "runs": {
+      "baseline_build": {
+        "run": "local-run-849c7340f23a4e54ae9f720509818b56",
+        "exit_code": 0,
+        "tree_retired": true,
+        "result_sha256": "59dca9b6e1d68c5e33de45d3283775edf3946f87a4081f26951561545244f03c",
+        "log_sha256": "e5099d6f1ab394b9de12812ecbce21f89dc6090e752486ca6363ec23c968dc07"
+      },
+      "release_build": {
+        "run": "local-run-d311b90e4f9c4d1a9c7e919543ab697b",
+        "exit_code": 0,
+        "tree_retired": true,
+        "result_sha256": "b1083b232b4c4f1b52ae8b321b6e740e736cb4cbba0f8bcd0a63be69c2804f55",
+        "log_sha256": "c56d01b4b981b8a1f5f70b209c9ed14f1f1a0dc2029a86935f42c292d0451704"
+      },
+      "release_tests": {
+        "run": "local-run-520fd60dceca4e2d8762882ec0ba9cc3",
+        "exit_code": 0,
+        "tree_retired": true,
+        "result_sha256": "725d38ff6caa1d29dafe5bac3d7294695a169b011325abc5e23fce641c111a49",
+        "log_sha256": "e3e4b0f4583484c9b4ed25eb18686fd361ddc9f22c8f30be99fd75a1c2bebab1",
+        "passed": [
+          "bounded_native_indexed_cold_copy",
+          "bounded_native_indexed_group_resume",
+          "bounded_native_indexed_prefixed_group",
+          "bounded_native_indexed_assembled_prefix",
+          "bounded_native_indexed_packed_short_extents"
+        ]
+      },
+      "raw_build": {
+        "run": "local-run-78dccc5c05624e28b436a59361555a21",
+        "exit_code": 0,
+        "tree_retired": true,
+        "result_sha256": "0af8d0da27fed6161480d020e531bdae2d058898ee14a28f26abaa8c1dbdb7e8",
+        "log_sha256": "c9b03292cec3cd7af5921089102dd4cb03204fa50d8f4580829a0372a24dcf6c"
+      },
+      "raw_tests": {
+        "run": "local-run-9de1312512c043da943e0d64d989f047",
+        "exit_code": 0,
+        "tree_retired": true,
+        "result_sha256": "4cf739bfab6039b3ee89f908f70c41f73ad3bc8bc8d2a1a868dd1a85bf719fa2",
+        "log_sha256": "9323a75fa006a49b8f4c98111fbb912eab6b90cde4dbbf052d03c0bff23e7184",
+        "passed": [
+          "bounded_native_indexed_group_xor",
+          "bounded_native_indexed_group_resume"
+        ],
+        "skipped": [
+          "bounded_native_indexed_cold_copy"
+        ]
+      },
+      "asan_build": {
+        "run": "local-run-e9df9d9e24094dc78a03749a1635e2ff",
+        "exit_code": 0,
+        "tree_retired": true,
+        "result_sha256": "3f40fa275cb1709ef406360ecee43f7a183ac6e37f9797e675a455af02142f92",
+        "log_sha256": "8b6be42e69e592fcf2c68d443b26902a4a933c67fe5d536bcf7498104419dc8c"
+      },
+      "asan_tests": {
+        "run": "local-run-1c345735dd86478488de6cd910d86243",
+        "exit_code": 0,
+        "tree_retired": true,
+        "result_sha256": "be4cc33b2a6f7e8365640cd15d14da70638bc7feebc5ef2a615aac17ce3ebd63",
+        "log_sha256": "04bd8056970a23b1351b600df2dbfcfa26ff26d9af085ead8e3d4e61fbdc3d85",
+        "passed": [
+          "windows_asan_runtime_preflight",
+          "bounded_native_indexed_group_resume",
+          "bounded_native_indexed_assembled_prefix",
+          "bounded_native_indexed_packed_short_extents"
+        ]
+      },
+      "revision_run_and_refused_short_tree": {
+        "run": "local-run-1dbbc5892c3643d0b9b0087dddb75ce1",
+        "exit_code": 1,
+        "tree_retired": true,
+        "result_sha256": "c36b9b4ccdaa5bfccf13914dcb30070ee113f90433a5364d28a6b24d436a5140",
+        "log_sha256": "3bcb821a1e6a0758acc00667fd0adb39dfae291f5f514b2103fe997b1ee071af",
+        "scope_note": "Revision pairs completed. The larger named short tree exceeded the profiler input limit. The admitted run uses an existing 192-file short cohort."
+      },
+      "matched_profile": {
+        "run": "local-run-a2978d5ef30b4171b31dc986cc074a1b",
+        "exit_code": 0,
+        "tree_retired": true,
+        "result_sha256": "7fe110908721bb584dec7c02960c07c217d021f1d1e5dbf69f49f152ad6dc9a6",
+        "log_sha256": "1886ab5257d3d0b5cd0621f6b94bb2a91f59658fa46de916343efaa227565332"
+      },
+      "initial_research": {
+        "run": "local-run-3823093b823d4b188eb2b9101611da1a",
+        "exit_code": 1,
+        "tree_retired": true,
+        "result_sha256": "e18c0e56d1ae47352b55f2630d69bca4d9b60343fe3f08d4000730bc330da6cb",
+        "log_sha256": "6d40e925bde8b0f5ec0d6df563316937f725f5da489b0f319ae7c8192ba3e673",
+        "scope_note": "Rendered manual returned HTTP 404. The tagged source header was captured successfully."
+      },
+      "pinned_header_research": {
+        "run": "local-run-1e66ff84c8354df6a339e87cca1ce35a",
+        "exit_code": 0,
+        "tree_retired": true,
+        "result_sha256": "18659345c53eb3d2e423543c6cff1fd8014027621d4f9c4e2e582201d0c32a98",
+        "log_sha256": "0b0103e28fce5a17937d07242040070c17271d02517427147dfd4918a50f6946"
+      },
+      "discarded_test_build": {
+        "run": "local-run-91f022f451bc44d387bbce666d1d7f15",
+        "exit_code": 1,
+        "tree_retired": true,
+        "result_sha256": "cdf01302fd56bae8cfd3871015022d7804c30cc48e4f8574fa6f14af7a1058a6",
+        "log_sha256": "98b716f2fd7cd97c8696d2df6cee8ca72dee7933ca3870bcbcb9972425d71dfb",
+        "scope_note": "Direct access to the private writer operation was rejected at compile time. Final verification uses normal native entry points."
+      }
+    }
+  },
+  "navigation": {
+    "actual_searches": 1,
+    "receipt_sha256": "a41b43f6d6e1353209676677d1f73dd328db683ee49cc22760d43bffb5b91933",
+    "response_sha256": "0643abcef0dced43eee10c4cd532553535d06edbbb3953a623aab3610cc79f34"
+  },
+  "research": [
+    {
+      "url": "https://www.usenix.org/conference/fast26/presentation/huang",
+      "http_status": 200,
+      "provider": "0.9.5+flitzzip.portable2",
+      "native_receipt_sha256": "1cbbc6689147b16b343feb7ad69c0dcdf0a517581da816f2389b4e586bb250dd",
+      "capture_sha256": "cf9f8d9ee9da246a112d6191def5bfb1d247166accf082c568a9b73b9618595c",
+      "text_sha256": "b271b38f1feb88acd780ae11d756c7f3723fecb288cfe5e7803fed9c5d93767d"
+    },
+    {
+      "url": "https://github.com/facebook/zstd/blob/v1.6.0/lib/zstd.h",
+      "http_status": 200,
+      "provider": "0.9.5+flitzzip.portable2",
+      "native_receipt_sha256": "49b4d442a46d1bad684a2030d9bc5348929ee07b4486ffa362a920b678bade85",
+      "capture_sha256": "062709ae7788b78cdb358ee68f8a856431415c3e614e83ffdc870f9ddd82338d",
+      "text_sha256": "6a3de284a9fc9a3b385bdb099985225ec2efa6e82fd2a575496f637ed69caba6"
+    }
+  ],
+  "release_qualified": false
+}
