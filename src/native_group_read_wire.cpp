@@ -183,19 +183,45 @@ Bytes encode_native_group_reply(const NativeGroupWireRequest& request,View outpu
   return reply;
 }
 
-std::unique_ptr<NativeGroupReadyReads> NativeGroupReadExchange::accept(NativeGroupReadBatch& capture,
-    View reply,WorkerExecution expected,const std::function<bool()>& interrupted) const {
+NativeGroupReplyVerifier::NativeGroupReplyVerifier(NativeGroupReadBatch& capture,View payload)
+    :capture_(&capture),payload_(payload),ready_(new NativeGroupReadyReads) {
+  ready_->inode_=capture.inode_;
+  ready_->members_.reserve(capture.members_.size());
+}
+NativeGroupReplyVerifier::State NativeGroupReplyVerifier::advance(const std::function<bool()>& interrupted) {
+  if(!ready_ || !capture_->metadata_)return State::invalid;
+  if(complete_)return State::verified;
+  for(std::size_t i=ready_->members_.size();i<capture_->members_.size();++i) {
+    if(interrupted && interrupted())return State::paused;
+    const auto member=payload_.subspan(i*kNativeExtentBytes,kNativeExtentBytes);
+    if(!ready_->append_checked(*capture_,Bytes(member.begin(),member.end()))) {
+      ready_.reset();
+      return State::invalid;
+    }
+  }
+  if(interrupted && interrupted())return State::paused;
+  complete_=true;
+  return State::verified;
+}
+std::unique_ptr<NativeGroupReadyReads> NativeGroupReplyVerifier::take_verified() noexcept {
+  if(!ready_ || !complete_ || !capture_->metadata_)return {};
+  ready_->metadata_=std::move(capture_->metadata_);
+  return std::move(ready_);
+}
+
+std::optional<NativeGroupReplyVerifier> NativeGroupReadExchange::begin_verification(
+    NativeGroupReadBatch& capture,View reply,WorkerExecution expected) const {
   if(!request_ || !valid_execution(expected) || reply.size()!=reply_capacity() || !magic(reply,reply_magic) ||
       get(reply,8,8)!=id_ || get(reply,16,4)!=layout_.members || get(reply,20,4)!=static_cast<std::uint32_t>(expected) ||
-      !std::ranges::equal(reply.subspan(24,digest_.size()),digest_) ||
+      !std::ranges::equal(reply.subspan(24,digest_.size()),digest_) || capture.members_.size()!=layout_.members ||
       !capture.metadata_ || capture_.lock()!=capture.metadata_)return {};
-  std::vector<Bytes> decoded;
-  decoded.reserve(layout_.members);
-  for(std::uint32_t i=0;i<layout_.members;++i) {
-    if(interrupted && interrupted())return {};
-    const auto member=reply.subspan(reply_header+i*kNativeExtentBytes,kNativeExtentBytes);
-    decoded.emplace_back(member.begin(),member.end());
-  }
-  return NativeGroupReadyReads::verify(capture,std::move(decoded),interrupted);
+  return NativeGroupReplyVerifier(capture,reply.subspan(reply_header));
+}
+
+std::unique_ptr<NativeGroupReadyReads> NativeGroupReadExchange::accept(NativeGroupReadBatch& capture,
+    View reply,WorkerExecution expected,const std::function<bool()>& interrupted) const {
+  auto verification=begin_verification(capture,reply,expected);
+  if(!verification || verification->advance(interrupted)!=NativeGroupReplyVerifier::State::verified)return {};
+  return verification->take_verified();
 }
 }

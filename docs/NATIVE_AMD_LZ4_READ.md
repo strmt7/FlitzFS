@@ -385,6 +385,24 @@ reply at the end of that step. Both checks use the existing host grant
 and exact stream and checkpoint requirements.
 [Controller scheduling and qualification](evidence/windows-ready-read-delivery-priority-2026-11-25.json)
 
+### Resume verification after foreground work
+
+A retired grouped reply is bound once to the immutable request and its
+captured metadata. The maintenance owner checks and copies one complete
+member at a time against the committed decoded digest. It yields between
+members if foreground work arrives. The next eligible grant resumes at
+the first unchecked member of the same reply. A failed member invalidates
+the batch before any bytes can be published.
+
+The verified buffers stay with the owner through a refused publication.
+Publication rechecks the live handle, stream and checkpoint, then discards
+members already served by the CPU. Demand exhaustion, an invalidated
+capture, shutdown or expiry clears the pending reply. Partially checked
+results remain private. The existing job deadline bounds retained work.
+[Resumed reply and callback evidence](evidence/windows-resumable-group-replies-2026-11-25.json) ·
+[WinFsp concurrency contract](https://winfsp.dev/apiref/) ·
+[Windows background thread mode](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadpriority)
+
 ### Later ranges for a cold grouped worker
 
 A qualified packed or mixed group profile can propose a later read

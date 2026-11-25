@@ -296,7 +296,12 @@ and its [ordered work and exits](RELEASE_RECONCILIATION_2026-11-25.md#ordered-im
 The next shared deliverable is an ordinary Windows client trace with
 phase-attributed allocation, flush and AMD delivery. The retained route
 checks the controller's fresh exact-adapter observation at staging and
-submission. Measure its useful service and retirement through that trace.
+submission. The grouped-read verifier now retains checked members while a
+foreground callback runs. Attribute worker completion, resumed checking
+and delivery separately in the ordinary client trace. Measure useful
+retirement, CPU fallback and deadlines on the same stream.
+[Resumed reply evidence](evidence/windows-resumable-group-replies-2026-11-25.json)
+
 Fix the first production stage with a material cost. Run the held-out
 settled-size comparison against the strongest existing protected CPU control.
 Use the E01–E13 sections below for proof and ownership.

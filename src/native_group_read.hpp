@@ -45,6 +45,7 @@ class NativeGroupReadBatch final {
   friend class NativeGroupCaptureLease;
   friend class NativeGroupReadyReads;
   friend class NativeGroupReadExchange;
+  friend class NativeGroupReplyVerifier;
   NativeGroupReadBatch()=default;
   std::uint64_t inode_=0;
   std::vector<Base> bases_;
@@ -71,7 +72,9 @@ class NativeGroupReadyReads final {
  private:
   friend class IndexedVolumeView;
   friend class ::flitzfs::NativeFilesystemWriter;
+  friend class NativeGroupReplyVerifier;
   NativeGroupReadyReads()=default;
+  bool append_checked(const NativeGroupReadBatch&,std::vector<std::byte>);
   struct Member {
     PagedGroupReadRecord record,base;
     std::uint64_t block;

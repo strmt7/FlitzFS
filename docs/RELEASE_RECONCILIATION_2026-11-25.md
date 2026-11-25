@@ -21,6 +21,12 @@ artifact scope. All twelve release gates remain open.
 [Current architecture](architecture/CURRENT.md) · [Target architecture](architecture/TARGET.md) ·
 [Gate ledger](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
 
+The grouped read path now preserves a partially checked reply across a
+foreground interruption. Checked bytes remain private until the full reply
+passes and the destination stream and checkpoint are current. The next
+ordinary client trace needs to distinguish a retired worker, a checked
+reply and useful delivery. [Scoped validation](evidence/windows-resumable-group-replies-2026-11-25.json)
+
 | Area | What exists and has evidence | Release work |
 | --- | --- | --- |
 | Windows and setup | Owned writable WinFsp memory and volume-file backings. Signed guest clients exercised cached and mapped writes, flush, interruption and reopen. Private packages can be staged. | Bind the exact signed driver, helper and workers to an ordinary Explorer and Win32 matrix. Qualify dependency setup, relocation, upgrade, rollback and teardown. |

@@ -224,8 +224,9 @@ class WinFspNativeWritable final {
       WinFspGroupReadWindow group_window={}) noexcept;
   WinFspReadAheadState read_ahead_state(const WinFspReadAheadWork&) const noexcept;
   WinFspReadAheadState group_preparation_state(const WinFspReadAheadWork&,std::uint64_t now_ms) const noexcept;
-  bool publish_read_ahead(WinFspReadAheadWork&,std::unique_ptr<detail::NativeLz4ReadyReads>,
-      std::unique_ptr<detail::NativeGroupReadyReads>,
+  // Keep verified buffers with the caller until the current target admits publication.
+  bool publish_read_ahead(WinFspReadAheadWork&,std::unique_ptr<detail::NativeLz4ReadyReads>&&,
+      std::unique_ptr<detail::NativeGroupReadyReads>&&,
       const std::atomic<bool>& stop_requested,
       bool device_groups=false) noexcept;
   std::optional<WinFspGroupReadDelivery> group_read_delivery() const noexcept;

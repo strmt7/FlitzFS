@@ -6,6 +6,15 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "resumable_group_reply": {
+    "source_parent": "aae41c783b250edc979d754c476ea41f0e20896e",
+    "tested_source_tree": "24d370efbcbfee71e189533283788f81cd192d58",
+    "evidence": "docs/evidence/windows-resumable-group-replies-2026-11-25.json",
+    "paused_checks_reused": true,
+    "verified_buffer_survives_publication_refusal": true,
+    "physical_radeon_compute_executed": false,
+    "ordinary_mounted_delivery_qualified": false
+  },
   "retained_amd_admission": {
     "source_parent": "7d234fc699e5f62673f2f07077a8e728fdea7501",
     "tested_source_tree": "7064a12d7f790ebfd39c04bc4a543c5e3dc0ba54",

@@ -576,6 +576,10 @@ void group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={},Group
       require(!h.adapter->native_lz4_read_ahead_hits(),"CPU prefix unexpectedly used the unpublished result");
     }
     read_unrelated();
+    const std::atomic<bool> refused{true};
+    const auto* verified=ready.get();
+    require(verified && !h.adapter->publish_read_ahead(*work,{},std::move(ready),refused) &&
+        ready.get()==verified,"A publication refusal consumed the verified group");
     require(h.adapter->foreground_activity()!=epoch &&
         h.adapter->read_ahead_state(*work)==WinFspReadAheadState::current &&
         h.adapter->publish_read_ahead(*work,{},std::move(ready),stop),

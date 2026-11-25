@@ -715,7 +715,13 @@ sequenceDiagram
         C->>W: Cancel owned preparation if active
     else Exact worker reply and confirmed retirement
         W-->>C: Exact reply and terminal exit
-        C->>S: Verify committed digests and recheck capture identity
+        loop Each checked member in the same reply
+            C->>S: Verify complete member against its committed digest
+            opt A callback interrupts validation
+                C->>C: Keep checked members and yield to foreground
+            end
+        end
+        C->>S: Recheck capture identity and unread range
         C-->>R: Make the verified unread extents available
     end
 ```
@@ -731,7 +737,8 @@ matched CPU comparison with delivered bytes under real demand.
 [Sequential CPU prefix evidence](../evidence/windows-group-read-cpu-prefix-2026-11-25.json) ·
 [Learned startup evidence](../evidence/windows-amd-later-group-window-2026-11-25.json) ·
 [Live grouped evidence](../evidence/windows-amd-group-supervisor-comparison-2026-11-24.json) ·
-[Native LZ4 device evidence](../NATIVE_AMD_LZ4_READ.md)
+[Native LZ4 device evidence](../NATIVE_AMD_LZ4_READ.md) ·
+[Resumed verification](../evidence/windows-resumable-group-replies-2026-11-25.json)
 
 If consecutive reads exhaust the group at the same checkpoint, the
 controller records the missed delivery before retiring the work. It

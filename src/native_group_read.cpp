@@ -47,22 +47,25 @@ void NativeGroupReadyReads::discard_before(std::uint64_t offset) noexcept {
   members_.erase(members_.begin(),keep);
 }
 
+bool NativeGroupReadyReads::append_checked(const NativeGroupReadBatch& batch,std::vector<std::byte> bytes) {
+  const auto& member=batch.members_[members_.size()];
+  if(bytes.size()!=kNativeExtentBytes || record_digest(bytes)!=member.decoded_digest)return false;
+  while(!bytes.empty() && bytes.back()==std::byte{})bytes.pop_back();
+  if(bytes.empty() || bytes.size()>member.maximum_payload)return false;
+  members_.push_back({member.record,batch.bases_[member.base].record,member.block,
+      member.maximum_payload,0,std::move(bytes)});
+  pending_bytes_+=member.maximum_payload;
+  return true;
+}
+
 std::unique_ptr<NativeGroupReadyReads> NativeGroupReadyReads::verify(NativeGroupReadBatch& batch,
     std::vector<std::vector<std::byte>> decoded,const std::function<bool()>& interrupted) {
   if(!batch.metadata_ || batch.members_.empty() || decoded.size()!=batch.members_.size())return {};
   auto ready=std::unique_ptr<NativeGroupReadyReads>(new NativeGroupReadyReads);
   ready->inode_=batch.inode_;
   ready->members_.reserve(decoded.size());
-  for(std::size_t i=0;i<decoded.size();++i) {
-    if(interrupted && interrupted())return {};
-    const auto& member=batch.members_[i];
-    auto& bytes=decoded[i];
-    if(bytes.size()!=kNativeExtentBytes || record_digest(bytes)!=member.decoded_digest)return {};
-    while(!bytes.empty() && bytes.back()==std::byte{})bytes.pop_back();
-    if(bytes.empty() || bytes.size()>member.maximum_payload)return {};
-    ready->pending_bytes_+=member.maximum_payload;
-    ready->members_.push_back({member.record,batch.bases_[member.base].record,member.block,
-        member.maximum_payload,0,std::move(bytes)});
+  for(auto& bytes:decoded) {
+    if((interrupted && interrupted()) || !ready->append_checked(batch,std::move(bytes)))return {};
   }
   if(interrupted && interrupted())return {};
   ready->metadata_=std::move(batch.metadata_);

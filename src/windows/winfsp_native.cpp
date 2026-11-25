@@ -1917,7 +1917,7 @@ WinFspReadAheadState WinFspNativeWritable::group_preparation_state(const WinFspR
 }
 
 bool WinFspNativeWritable::publish_read_ahead(WinFspReadAheadWork& work,
-    std::unique_ptr<detail::NativeLz4ReadyReads> lz4,std::unique_ptr<detail::NativeGroupReadyReads> groups,
+    std::unique_ptr<detail::NativeLz4ReadyReads>&& lz4,std::unique_ptr<detail::NativeGroupReadyReads>&& groups,
     const std::atomic<bool>& stop_requested,bool device_groups) noexcept {
   try {
     if(work.owner!=this || (groups?lz4 || !groups->pending():!lz4 || !lz4->pending()))return false;

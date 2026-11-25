@@ -189,9 +189,17 @@ void prepared_packed_group_reads() {
   require(repeated_capture && !exchange.accept(*repeated_capture,reply,backend) &&
       !exchange.accept(*capture,reply,WorkerExecution::hip) &&
       !exchange.accept(*capture,changed_reply,backend),"Invalid group completion accepted");
-  auto ready=exchange.accept(*capture,reply,backend);
-  require(ready && ready->pending() && !NativeGroupReadyReads::decode_captured(*capture),
-      "Packed results were not transferred once");
+  using ReplyState=detail::NativeGroupReplyVerifier::State;
+  auto verification=exchange.begin_verification(*capture,reply,backend);
+  std::size_t checks=0;
+  require(verification && verification->advance([&]{return ++checks==2;})==ReplyState::paused &&
+      !verification->take_verified(),"A partially checked response became available");
+  checks=0;
+  require(verification->advance([&]{++checks;return false;})==ReplyState::verified && checks==count-1,
+      "Resumed verification repeated the accepted member or missed a remaining member");
+  auto ready=verification->take_verified();
+  require(ready && ready->pending() && !verification->take_verified() &&
+      !NativeGroupReadyReads::decode_captured(*capture),"Packed results were not transferred once");
   capture.reset();
   detail::NativeGroupReadRoute route{ready.get()};
 

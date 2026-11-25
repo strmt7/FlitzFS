@@ -46,6 +46,8 @@
     "latest_retained_amd_admission": "docs/evidence/windows-retained-amd-admission-2026-11-25.json",
     "tested_retained_amd_source_tree": "7064a12d7f790ebfd39c04bc4a543c5e3dc0ba54",
     "retained_amd_reviewed_parent": "7d234fc699e5f62673f2f07077a8e728fdea7501",
+    "latest_resumable_group_reply": "docs/evidence/windows-resumable-group-replies-2026-11-25.json",
+    "tested_resumable_group_reply_tree": "24d370efbcbfee71e189533283788f81cd192d58",
     "latest_native_attach_evidence": "docs/evidence/windows-indexed-namespace-read-window-2026-11-25.json",
     "previous_checked_extent_owner_evidence": "docs/evidence/windows-indexed-extent-owner-audit-2026-11-25.json",
     "latest_chunked_scrub_evidence": "docs/evidence/indexed-scrub-checkpoint-2026-11-23.json",

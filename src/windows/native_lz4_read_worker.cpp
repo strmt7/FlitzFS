@@ -114,6 +114,8 @@ struct NativeLz4ReadWorker::Impl {
     std::uint32_t frames=0;
     detail::NativeGroupPreparedGrant preparation;
     bool superseded=false,ready_at_submit=false;
+    std::optional<detail::NativeGroupReplyVerifier> group_verification;
+    std::unique_ptr<detail::NativeGroupReadyReads> verified_groups;
   };
   const NativeLz4ReadWorkerProfile profile;
   const WindowsGpuEngineSampler* const engines;
@@ -410,19 +412,22 @@ void NativeLz4ReadWorker::observe(const WinFspNativeWritable& adapter,bool cance
   using State=WinFspReadAheadState;
   const auto state=!cancel && f.request?adapter.read_ahead_state(f.work):State::busy;
   const auto handle=static_cast<HANDLE>(f.worker.child.supervisor_wait_handle());
-  const auto sampled=state==State::demand_served?GetTickCount64():0;
+  const auto now=GetTickCount64();
   const auto waited=handle?WaitForSingleObject(handle,0):WAIT_FAILED;
   if(state==State::demand_served && !f.superseded) {
     ++s.status.group_demand_misses;
     const auto started=f.ready_at_submit?f.submitted_at:f.worker.started_at;
     // Only an unfinished exchange establishes a lower bound on delivery.
-    if(waited==WAIT_TIMEOUT && sampled>started && sampled-started<=s.profile.worker.timeout_ms)
-      s.group_timing.observe_unfinished(sampled-started,f.ready_at_submit);
+    if(waited==WAIT_TIMEOUT && now>started && now-started<=s.profile.worker.timeout_ms)
+      s.group_timing.observe_unfinished(now-started,f.ready_at_submit);
   }
   // A missing observation pauses submission without discarding preparation
   // between samples. A fresh refusal can retire an unused child.
-  const bool engine_refused=!f.request && !s.engine_available(GetTickCount64()).value_or(true);
-  const bool obsolete=cancel || engine_refused || state==State::superseded || state==State::demand_served ||
+  const bool engine_refused=!f.request && !s.engine_available(now).value_or(true);
+  const bool verification_expired=f.work.groups && f.request && waited==WAIT_OBJECT_0 &&
+      now>=f.worker.started_at && now-f.worker.started_at>=s.profile.worker.timeout_ms;
+  const bool obsolete=cancel || engine_refused || verification_expired ||
+      state==State::superseded || state==State::demand_served ||
       (!f.request && (adapter.foreground_pending() || adapter.foreground_activity()!=f.work.foreground_epoch) &&
           !s.keep_preparation(adapter,f));
   if(waited!=WAIT_OBJECT_0) {
@@ -452,7 +457,7 @@ bool NativeLz4ReadWorker::verify_and_publish(WinFspNativeWritable& adapter,
   const auto* result=f.worker.child.try_result();
   const auto resources=detail::maintenance_resources(observed,now,adapter.group_maintenance_policy());
   const auto verification_epoch=adapter.foreground_activity();
-  if(!resources || resources->cpu_busy || resources->memory_allowance<result->response.size() ||
+  if(!resources || resources->cpu_busy || (!f.verified_groups && resources->memory_allowance<result->response.size()) ||
       stopped.load(std::memory_order_acquire) || adapter.read_ahead_state(f.work)!=WinFspReadAheadState::current ||
       adapter.foreground_activity()!=verification_epoch)return false;
   bool published=false;
@@ -462,11 +467,23 @@ bool NativeLz4ReadWorker::verify_and_publish(WinFspNativeWritable& adapter,
           adapter.foreground_activity()!=verification_epoch;
     };
     if(const auto* exchange=std::get_if<detail::NativeGroupReadExchange>(&*f.request)) {
-      auto ready=exchange->accept(*f.work.groups,result->response,WorkerExecution::hip,interrupted);
-      if(ready) {
+      if(!f.verified_groups) {
+        if(!f.group_verification)
+          f.group_verification=exchange->begin_verification(*f.work.groups,result->response,WorkerExecution::hip);
+        if(!f.group_verification)throw std::invalid_argument("Grouped extent reply does not match its capture");
+        using State=detail::NativeGroupReplyVerifier::State;
+        const auto verified=f.group_verification->advance(interrupted);
+        if(verified==State::paused)return false;
+        f.verified_groups=f.group_verification->take_verified();
+        f.group_verification.reset();
+        if(!f.verified_groups)throw std::invalid_argument("Grouped extent reply verification failed");
         s.status.verified_frames+=f.frames;
-        published=adapter.publish_read_ahead(f.work,{},std::move(ready),stopped,true);
-      }else if(!interrupted())throw std::invalid_argument("Grouped extent reply verification failed");
+      }
+      // Publication may contend with a callback after the last digest.
+      // Keep the exact result until the owner checks the target again.
+      if(interrupted() || !adapter.publish_read_ahead(f.work,{},std::move(f.verified_groups),stopped,true))
+        return false;
+      published=true;
     }else {
       auto ready=std::get<detail::NativeLz4ReadExchange>(*f.request).accept(result->response,WorkerExecution::hip);
       s.status.verified_frames+=f.frames;

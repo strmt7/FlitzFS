@@ -2,6 +2,7 @@
 #include "flitzfs/worker_wire.hpp"
 #include "gpu/native_group_decode.hpp"
 #include "native_group_read.hpp"
+#include <optional>
 
 namespace flitzfs::detail {
 struct NativeGroupWireRequest {
@@ -24,6 +25,22 @@ std::size_t native_group_reply_bytes(group_decode::Layout) noexcept;
 std::vector<std::byte> encode_native_group_reply(const NativeGroupWireRequest&,
     std::span<const std::byte> output_and_status,WorkerExecution);
 
+// The capture and the retired worker's immutable reply outlive this verifier.
+class NativeGroupReplyVerifier final {
+ public:
+  enum class State { paused,verified,invalid };
+  State advance(const std::function<bool()>& interrupted={});
+  std::unique_ptr<NativeGroupReadyReads> take_verified() noexcept;
+
+ private:
+  friend class NativeGroupReadExchange;
+  NativeGroupReplyVerifier(NativeGroupReadBatch&,std::span<const std::byte>);
+  NativeGroupReadBatch* capture_;
+  std::span<const std::byte> payload_;
+  std::unique_ptr<NativeGroupReadyReads> ready_;
+  bool complete_=false;
+};
+
 class NativeGroupReadExchange final {
  public:
   static NativeGroupReadExchange prepare(const NativeGroupReadBatch&,std::uint64_t id,
@@ -31,6 +48,8 @@ class NativeGroupReadExchange final {
   SharedWorkerRequest request() const noexcept{return request_;}
   std::size_t reply_capacity() const noexcept{return native_group_reply_bytes(layout_);}
   std::uint64_t device_bytes() const noexcept{return group_decode::slab_bytes(layout_);}
+  std::optional<NativeGroupReplyVerifier> begin_verification(NativeGroupReadBatch&,std::span<const std::byte>,
+      WorkerExecution) const;
   std::unique_ptr<NativeGroupReadyReads> accept(NativeGroupReadBatch&,std::span<const std::byte>,
       WorkerExecution,const std::function<bool()>& interrupted={}) const;
  private:
