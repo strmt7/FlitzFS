@@ -985,7 +985,7 @@ if(FLITZFS_BUILD_WINFSP)
     add_custom_command(TARGET flitzfs_winfsp_paged_tests POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_if_different "${FLITZFS_WINFSP_DLL}" "$<TARGET_FILE_DIR:flitzfs_winfsp_paged_tests>")
     foreach(mode callbacks inline-files faults-4096 faults-65536 ready-lz4-reads ready-group-reads
-        ready-mixed-group-reads ready-segmented-group-reads)
+        ready-mixed-group-reads ready-segmented-group-reads ready-small-stream-group-reads)
       add_test(NAME bounded_winfsp_paged_${mode} COMMAND flitzfs_winfsp_paged_tests --${mode})
       set_tests_properties(bounded_winfsp_paged_${mode} PROPERTIES TIMEOUT 120)
     endforeach()

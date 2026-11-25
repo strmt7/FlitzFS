@@ -1,0 +1,226 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "scope": "Indexed WinFsp read-ahead admission trained exclusively by adjacent 4 KiB requests to grouped data, with checked CPU and prepared delivery",
+  "source": {
+    "baseline": "2c8480e2979479a53dd7c8fc79fe87b46c88502b",
+    "base_tree": "7536d3423df26cc39929977b95b24e1cfdb7f387",
+    "tested_blobs": {
+      "CMakeLists.txt": "c2e9157f8214ec3b5d8ca775c01925b5ce57b9c4",
+      "src/native_group_read.hpp": "561585753264e7a262bcdbfa3e9abd6ce39aa9fb",
+      "src/native_indexed_volume.cpp": "20c5f99c3e6bafab1f08176f779cf5f6bd9c13d1",
+      "src/windows/winfsp_native.cpp": "388c9169d20bb1c8099a96043e5e7e67db6c2e7e",
+      "tests/test_winfsp_paged.cpp": "7a0ffe40207a9e29bb1d95860a4e7801b4d1d545"
+    },
+    "semantic_navigation": {
+      "commit": "2c8480e2979479a53dd7c8fc79fe87b46c88502b",
+      "source_files": 7,
+      "provider_version": "0.2.43",
+      "native_response_sha256": "ed5e344925beb0768d0944470c6c535d83fbbea7b9f015bcda4f5679e23a52e3",
+      "inventory_sha256": "0ae4df779dd6f8b91cd91e8a9d8a92bf18f9fb959a962378c52bbf6f5e670b5a",
+      "actual_searches": 1
+    }
+  },
+  "implementation": [
+    "Measure only the contiguous grouped suffix from checked native reads.",
+    "Accumulate adjacent coverage across callbacks to forecast a complete next extent.",
+    "Use the smaller of two observed extent intervals for a later window, while keeping the first request lead separate.",
+    "Keep existing host and device admission, checked reply publication and independent CPU service."
+  ],
+  "replay": {
+    "request_bytes": 4096,
+    "training_requests": 48,
+    "intervening_cpu_requests": 16,
+    "prepared_requests": 32,
+    "prepared_frames_consumed": 2,
+    "paced_training_gap_ms": 20,
+    "fixture_minimum_lead_ms": 100,
+    "old_controller": {
+      "assertion": "Small reads did not forecast after a complete grouped extent.",
+      "exit_code": 1,
+      "process_tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 15224832,
+      "log_sha256": "c866b52418751d3011c57e8001265ed3ff70688ab6dd6014040cd0ca41946c59"
+    },
+    "corrected_cpu": {
+      "prepared_backing_bytes": 37216,
+      "ordinary_cpu_backing_bytes": 602848,
+      "selected_member_rereads_during_prepared_delivery": 0,
+      "verified_cpu_content": "exact",
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 15712256,
+      "log_sha256": "d79cf567d712abdda1e6a0d58307d6f9cb5af96a88820a878a35ef8012da1290"
+    },
+    "mixed_control": "The raw prefix contributes zero to grouped history. Three verified extents can fund three frames. The four-frame control now reads four verified grouped extents before it expects expansion."
+  },
+  "live_amd": {
+    "manifest_sha256": "43e684fee2b12a0e29ffdb99309c283920a2ceaa2e70e78de3d58f502da971c4",
+    "adapter": "AMD Radeon RX 9070 XT",
+    "architecture": "gfx1201",
+    "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+    "binaries": {
+      "flitzfs_native_lz4_read_worker.exe": {
+        "sha256": "8625a3fa306adce0f3db5a1803ea6b9924147817c73630f75f09d42fdf268ca4",
+        "bytes": 581632
+      },
+      "flitzfs_rocm_native_lz4_decode.dll": {
+        "sha256": "9ac5bb33a7b39ae26712dcdcfcdeb6b4b5fc049175e18dd6f24d047a37b3e128",
+        "bytes": 173568
+      },
+      "winfsp-x64.dll": {
+        "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+        "bytes": 200816
+      },
+      "flitzfs_winfsp_paged_tests.exe": {
+        "sha256": "711a9748aa18f6c30153cf3d49cd43d2505213580bd7feb624bceaf2501ed4b5",
+        "bytes": 2278912
+      }
+    },
+    "compute_launched": false,
+    "initial": {
+      "observation": {
+        "admitted": false,
+        "reason": "Existing host load above the fixture envelope",
+        "utc": "2026-11-25T09:59:42.1670358Z",
+        "driver": "32.0.32029.2010",
+        "build": "26300",
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "luid": "9d75010000000000",
+        "available_bytes": 24656683008,
+        "reserved_bytes": 4294967296,
+        "gpu_peak": 96.98953852395636,
+        "cpu_peak": 11.772233454435366,
+        "target_samples": 800
+      },
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 110592000,
+      "log_sha256": "0018389155ea11076d3a95937c9c92dab803b7a8a877f5c5cdf58b76a73d877f"
+    },
+    "recheck": {
+      "observation": {
+        "admitted": false,
+        "reason": "Existing host load above the fixture envelope",
+        "utc": "2026-11-25T10:01:50.7570838Z",
+        "driver": "32.0.32029.2010",
+        "build": "26300",
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "luid": "9d75010000000000",
+        "available_bytes": 24280100864,
+        "reserved_bytes": 4294967296,
+        "gpu_peak": 99.53321812079717,
+        "cpu_peak": 13.96318570655265,
+        "target_samples": 800
+      },
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 105254912,
+      "log_sha256": "243e6f57b31befc3c53dcc5fb9e1c4c82abe4e184bb66e6a66b13df40881b22c"
+    }
+  },
+  "validation": {
+    "windows": {
+      "ctest_names": [
+        "bounded_native_prepared_packed_reads",
+        "bounded_native_prepared_mixed_reads",
+        "bounded_winfsp_paged_callbacks",
+        "bounded_winfsp_paged_ready-lz4-reads",
+        "bounded_winfsp_paged_ready-group-reads",
+        "bounded_winfsp_paged_ready-mixed-group-reads",
+        "bounded_winfsp_paged_ready-segmented-group-reads",
+        "bounded_winfsp_paged_ready-small-stream-group-reads"
+      ],
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 58056704,
+      "log_sha256": "0f364a75d8ecaa200b75026c83536de1170f6fc77bbd852f778c4936e7fe844a"
+    },
+    "raw_packed": {
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 8884224,
+      "log_sha256": "2cefa36270f60c103ab55e6d56fbf60fdbac0992da511cffe4eb0fb451d96d74"
+    },
+    "asan_packed": {
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 9043968,
+      "log_sha256": "2cefa36270f60c103ab55e6d56fbf60fdbac0992da511cffe4eb0fb451d96d74"
+    },
+    "asan_mixed": {
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 12124160,
+      "log_sha256": "ff3a39ff468de09db72ecd9068ca51951bc9fbf7402079064ee8f7e1565d94c5"
+    },
+    "scoped_residual_processes": 0,
+    "raw_test_sha256": "60e385c1b51bda01fd23c9b177586e355828e28718fc0ee59182664bb5e32e84",
+    "asan_test_sha256": "de70daaea53254f9b53ced3ece3cb16161fc9c58e3b9df39cf3c806a33e785eb"
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "lock_sha256": "01fbef3b628f772e4aba9724b6ced11c0f211d4d3bf51e38d1b9d0039eac997b",
+    "receipt_sha256": "36d0be9f3c755d38961ce1cf9c13fbb5b239d77a20885a923fc7aca969217a70",
+    "pages": [
+      {
+        "name": "windows-timer-cadence",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-gettickcount64",
+        "http_status": 200,
+        "success": true,
+        "markdown_bytes": 26023,
+        "markdown_sha256": "b875542fa80f20a75b92764279345277adcdda034509a380ff352102e760a47f",
+        "capture_sha256": "2f38f6a0581239e24a28a34b9c8b633f8ade4479f05d14e33096fdc343b12c0b",
+        "error": ""
+      },
+      {
+        "name": "win32-file-read",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-readfile",
+        "http_status": 200,
+        "success": true,
+        "markdown_bytes": 49272,
+        "markdown_sha256": "bc8dbd3c0109a620d162728b997074eed639180dfa677e04535a521637b5031f",
+        "capture_sha256": "5752b8278e6b17f7f915bcea665c9953d15af711f849144fd20f233b95498f00",
+        "error": ""
+      },
+      {
+        "name": "winfsp-file-interface",
+        "url": "https://winfsp.dev/doc/WinFsp-API-winfsp.h/",
+        "http_status": 200,
+        "success": true,
+        "markdown_bytes": 73095,
+        "markdown_sha256": "23f2e7b26b2297a12d6e98acb7b612010c44361803cc72c3563f82571cce5837",
+        "capture_sha256": "8737deac0c775a5f2ae141c056652ff281c1cbbac7308b3c7ef3728e168d87f2",
+        "error": ""
+      },
+      {
+        "name": "hip-stream-execution",
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_runtime_api/asynchronous.html",
+        "http_status": 200,
+        "success": true,
+        "markdown_bytes": 48777,
+        "markdown_sha256": "4167596a0f6b6c0281ea842f4eac025a4e457fa0b5627cd88da14196e62a5fdc",
+        "capture_sha256": "e45d467a470bf5a51d14139b20558ffd1d4e4d01bb76f7b84a8c987d0cb3598a",
+        "error": ""
+      }
+    ],
+    "robots": true,
+    "external_llm": false
+  },
+  "release_boundary": {
+    "sdk_callbacks_with_injected_lifecycle": true,
+    "device_delivery_on_this_candidate": false,
+    "installed_mount_exercised": false,
+    "mounted_speedup_qualified": false,
+    "driver_changes": false,
+    "release_qualified": false
+  }
+}

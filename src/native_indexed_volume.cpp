@@ -2366,6 +2366,10 @@ void IndexedSharedBaseCache::clear() noexcept {
 
 Bytes IndexedVolumeView::read(const IndexedInodeInput& selected,std::uint64_t offset,std::uint32_t bytes,
     IndexedSharedBaseCache* retained,NativeLz4ReadRoute* route,NativeGroupReadRoute* groups) const {
+  if(groups) {
+    groups->tiled=false;
+    groups->tiled_suffix_bytes=0;
+  }
   if(selected.lifetime==IndexedLifetime::retiring)fail(Code::not_found,"indexed inode is retired");
   if(selected.directory)fail(Code::is_directory,"cannot read indexed directory");
   if(bytes>kNativeMaxReadBytes)fail(Code::limit,"indexed read budget");
@@ -2384,10 +2388,20 @@ Bytes IndexedVolumeView::read(const IndexedInodeInput& selected,std::uint64_t of
   const auto start=native_extent_key(selected.inode,first?first-1:0);
   const auto range=index_.list(start.parent,first?std::string_view(start.name):std::string_view{},
       static_cast<std::size_t>(last-first+1));
-  const auto copy_payload=[&](std::uint64_t begin,std::span<const std::byte> data) {
+  auto tiled_end=offset;
+  std::uint32_t tiled_bytes=0;
+  const auto copy_payload=[&](std::uint64_t begin,std::span<const std::byte> data,bool tiled) {
     const auto from=(std::max)(begin,offset),to=(std::min)(end,begin+data.size());
     if(from<to)std::copy_n(data.begin()+static_cast<std::ptrdiff_t>(from-begin),
         static_cast<std::size_t>(to-from),output.begin()+static_cast<std::ptrdiff_t>(from-offset));
+    if(groups && tiled) {
+      const auto covered_end=begin+(std::min)(end-begin,std::uint64_t{kNativeExtentBytes});
+      if(tiled_end!=from)tiled_bytes=0;
+      tiled_bytes+=static_cast<std::uint32_t>(covered_end-from);
+      tiled_end=covered_end;
+      groups->tiled=true;
+      if(tiled_end==end)groups->tiled_suffix_bytes=tiled_bytes;
+    }
   };
   IndexedSharedBaseRead cached_base;
   for(const auto& entry:range) {
@@ -2401,9 +2415,8 @@ Bytes IndexedVolumeView::read(const IndexedInodeInput& selected,std::uint64_t of
       auto* ready=pending.find(selected.inode,block,entry.value,(std::max)(begin,offset)-begin);
       if(ready && store_.matches_group_read(ready->record,ready->base,*pending.metadata_)) {
         validate_payload(selected,block,ready->bytes);
-        copy_payload(begin,ready->bytes);
+        copy_payload(begin,ready->bytes,true);
         pending.delivered(*ready,end-begin);
-        groups->tiled=true;
         continue;
       }
     }
@@ -2415,8 +2428,7 @@ Bytes IndexedVolumeView::read(const IndexedInodeInput& selected,std::uint64_t of
     if(!record)fail(Code::corrupt,"indexed object reference missing");
     const auto extent=decode_extent(store_,index_,root_,entry.value,std::move(*record),
         selected,block,false,&cached_base,retained);
-    if(groups && extent.tiled_group)groups->tiled=true;
-    copy_payload(begin,extent.payload());
+    copy_payload(begin,extent.payload(),extent.tiled_group);
   }
   if(retained)(void)retained->bind(store_);
   return output;

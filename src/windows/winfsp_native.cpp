@@ -235,15 +235,17 @@ void detail::plan_group_read_window(WinFspReadAheadWork& work,WinFspGroupReadWin
       now_ms<work.hint_created_ms)return;
   const auto spent=now_ms-work.hint_created_ms;
   if(window.required_lead_ms>maximum-spent)return;
-  // Move in observed request-sized increments, within the demonstrated run.
-  // At least the first later request must fit in the reserved worker window.
-  const auto intervals=1+(spent+window.required_lead_ms-1)/aligned_group_gap_ms;
-  if(intervals<2 || intervals-1>(history-minimum)/request || intervals>maximum/aligned_group_gap_ms)return;
-  const auto skip=(intervals-1)*request;
+  // An adjacent partial request can arrive much sooner than the next full
+  // extent boundary. Count the immediate lead separately from each skip.
+  const auto immediate=(std::min)(work.observed_lead_ms,aligned_group_gap_ms);
+  const auto missing=spent+window.required_lead_ms-immediate;
+  const auto shifts=1+(missing-1)/aligned_group_gap_ms;
+  if(shifts>(history-minimum)/request || shifts>(maximum-immediate)/aligned_group_gap_ms)return;
+  const auto skip=shifts*request;
   const auto frames=(std::min)(limit,history-skip);
   work.offset+=skip*kNativeExtentBytes;
   work.bytes=static_cast<std::uint32_t>(frames*kNativeExtentBytes);
-  work.observed_lead_ms=intervals*aligned_group_gap_ms;
+  work.observed_lead_ms=immediate+shifts*aligned_group_gap_ms;
   work.expanded_group_window=frames>request;
 }
 
@@ -252,6 +254,7 @@ struct WinFspNativeWritable::Impl {
     std::uint64_t end=0,completed_ms=0,idle_before_ms=0,group_idle_before_ms=0;
     std::uint32_t bytes=0,consecutive_group_bytes=0;
     std::uint64_t sequential_since=0;
+    std::uint64_t group_boundary=0,group_boundary_ms=0,group_interval_ms=0;
   };
   struct Slot {
     std::uintptr_t token=0;
@@ -776,7 +779,9 @@ struct WinFspNativeWritable::Impl {
       groups.ready=prepared.groups.get();
     }
     const bool adjacent_window=adjacent && std::uint64_t(previous.bytes)+length>=kNativeExtentBytes;
-    const bool seed_file_cost=file_profile && !file_read_ahead_seeded && adjacent_window;
+    const auto prior_group_bytes=adjacent?previous.consecutive_group_bytes:0;
+    const bool group_window_due=prior_group_bytes && std::uint64_t{prior_group_bytes}+length>=kNativeExtentBytes;
+    const bool seed_file_cost=file_profile && !file_read_ahead_seeded && (adjacent_window || group_window_due);
     std::uint64_t demand_cost=0;
     auto bytes=read_with_demand_sample(slot,offset,length,ready,groups,seed_file_cost,demand_cost);
     if(has_prepared && prepared.consumed()>prior_hits)read_ahead_hits+=prepared.consumed()-prior_hits;
@@ -784,29 +789,48 @@ struct WinFspNativeWritable::Impl {
     if(!length || bytes.size()!=length || offset>maximum-length)return bytes;
     const auto end=offset+length;
     const auto completed_ms=GetTickCount64();
-    const auto group_bytes=groups.tiled?static_cast<std::uint32_t>((std::min)(
-        std::uint64_t{kNativeMaxReadBytes},std::uint64_t{adjacent?previous.consecutive_group_bytes:0}+length)):0;
+    const bool continues_group=prior_group_bytes && groups.tiled_suffix_bytes==length;
+    const auto group_bytes=static_cast<std::uint32_t>((std::min)(std::uint64_t{kNativeMaxReadBytes},
+        std::uint64_t{continues_group?prior_group_bytes:0}+groups.tiled_suffix_bytes));
     const auto same_width_idle=previous.bytes==length?idle:0;
     // Keep samples from adjacent grouped reads even when the width changes.
-    const auto group_idle=previous.consecutive_group_bytes && groups.tiled?idle:0;
+    const auto group_idle=continues_group?idle:0;
     const auto sequential_since=adjacent?previous.sequential_since:slot.read_revision;
     slot.last_read={end,completed_ms,same_width_idle,group_idle,length,group_bytes,sequential_since};
+    const auto gap=(kNativeExtentBytes-end%kNativeExtentBytes)%kNativeExtentBytes;
+    std::uint64_t partial_group_gap=0;
+    if(length<kNativeExtentBytes) {
+      auto& history=slot.last_read;
+      if(continues_group && previous.bytes<kNativeExtentBytes && previous.group_boundary &&
+          previous.group_boundary<=offset && end-previous.group_boundary<=kNativeExtentBytes) {
+        history.group_boundary=previous.group_boundary;
+        history.group_boundary_ms=previous.group_boundary_ms;
+        history.group_interval_ms=previous.group_interval_ms;
+      }
+      if(!gap && group_bytes>=kNativeExtentBytes) {
+        const auto interval=history.group_boundary && end-history.group_boundary==kNativeExtentBytes &&
+            completed_ms>=history.group_boundary_ms?completed_ms-history.group_boundary_ms:0;
+        partial_group_gap=(std::min)(interval,history.group_interval_ms);
+        history.group_boundary=end;
+        history.group_boundary_ms=completed_ms;
+        history.group_interval_ms=interval;
+      }
+    }
     if(has_prepared && prepared.pending() &&
         (end<=prepared.target.offset || end-prepared.target.offset<prepared.target.bytes)) {
       prepared_read=std::move(prepared);
       return bytes;
     }
-    const auto gap=(kNativeExtentBytes-end%kNativeExtentBytes)%kNativeExtentBytes;
-    if(adjacent_window && gap<length && gap<=maximum-end) {
+    if((adjacent_window || (adjacent && group_bytes>=kNativeExtentBytes)) && gap<length && gap<=maximum-end) {
       const auto remaining=length-gap;
       const auto frames=(remaining+kNativeExtentBytes-1)/kNativeExtentBytes;
       const auto window=static_cast<std::uint32_t>(frames*kNativeExtentBytes);
       const auto width_lead=(std::min)(same_width_idle,previous.idle_before_ms);
       const auto group_lead=(std::min)(group_idle,previous.group_idle_before_ms);
       const auto lead=(std::max)(width_lead,group_lead);
-      const auto aligned_group_gap=!gap && length%kNativeExtentBytes==0?(std::min)(width_lead,group_lead):0;
+      const auto aligned_group_gap=!gap && length%kNativeExtentBytes==0?(std::min)(width_lead,group_lead):partial_group_gap;
       if(window<=maximum-end-gap)read_ahead=ReadAhead{slot.token,end+gap,window,completed_ms,
-          lead,demand_cost,groups.tiled,group_bytes,aligned_group_gap};
+          lead,demand_cost,group_bytes!=0,group_bytes,aligned_group_gap};
     }
     return bytes;
   }

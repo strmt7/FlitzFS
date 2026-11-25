@@ -19,6 +19,7 @@ physical AMD run and local profile carries its own source identity.
 [Current code, checks and research receipts](evidence/windows-persistent-inline-reconciliation-2026-11-25.json) ·
 [Controller admission and physical AMD evidence](evidence/windows-read-ahead-group-duty-2026-11-25.json) ·
 [Segmented grouped read evidence](evidence/windows-group-segmented-reads-2026-11-25.json) ·
+[Small grouped stream qualification](evidence/windows-small-group-stream-2026-11-25.json) ·
 [Implementation priorities](#next-decisions-ranked-by-expected-gain)
 [Protected size, source inventory and current decisions](evidence/windows-protected-size-frontier-2026-11-25.json) ·
 [Indexed sampling and source evidence](evidence/windows-indexed-sample-scope-2026-11-25.json) ·
@@ -1220,6 +1221,14 @@ semantics constrain every optimization.
    costs for writes and seek locality.
 
 ### Ready AMD and continuous CPU service
+
+Repeated 4 KiB callbacks can now establish a forecast without a large
+training read. The controller excludes non-grouped coverage and uses
+complete adjacent extent intervals when determining whether it can
+reserve a later window. The replay verified a two-frame forecast after
+48 small training reads and kept CPU service during the intervening frame.
+The production worker still needs current resource and delivery evidence.
+[Small grouped stream evidence](evidence/windows-small-group-stream-2026-11-25.json)
 
 Two verified group frames served 32 adjacent 4 KiB reads on the revised
 callback path. The previous prepared reader discarded the remainder of

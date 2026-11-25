@@ -6,6 +6,17 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "small_group_stream_forecast": {
+    "source_base": "2c8480e2979479a53dd7c8fc79fe87b46c88502b",
+    "evidence": "docs/evidence/windows-small-group-stream-2026-11-25.json",
+    "training_callbacks_and_bytes_per_request": [48, 4096],
+    "cpu_served_intervening_frames": 1,
+    "prepared_frames_consumed": 2,
+    "live_device_status": "deferred_at_preflight_under_existing_device_load",
+    "selected_ctest_passed": 8,
+    "raw_and_addresssanitizer_core_checks_passed": true,
+    "installed_mounted_speedup_qualified": false
+  },
   "segmented_grouped_delivery": {
     "source_base": "05186ed774ba5bf6317ffb92964affc8be2510ea",
     "evidence": "docs/evidence/windows-group-segmented-reads-2026-11-25.json",

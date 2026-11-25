@@ -88,6 +88,7 @@ class NativeGroupReadyReads final {
 struct NativeGroupReadRoute {
   NativeGroupReadyReads* ready=nullptr;
   bool tiled=false;
+  std::uint32_t tiled_suffix_bytes=0;
 };
 
 }

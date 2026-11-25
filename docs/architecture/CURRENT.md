@@ -594,6 +594,16 @@ the normal CPU read path.
 [WinFsp file-system interface](https://winfsp.dev/doc/WinFsp-API-winfsp.h/) ·
 [Segmented CPU and Radeon evidence](../evidence/windows-group-segmented-reads-2026-11-25.json)
 
+An adjacent stream can build its forecast from smaller callbacks. Only the
+contiguous grouped suffix of each verified read extends the coverage. A
+stream that observes a full grouped extent can forecast its next extent.
+When two consecutive extent intervals have been observed, the planner can
+use their shorter interval to price the distance to a later window. It
+counts the lead before the next callback separately. The observed grouped
+distance, current memory grant and worker profile bound the shifted window.
+[Windows tick-count resolution](https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-gettickcount64) ·
+[Sustained small-read evidence](../evidence/windows-small-group-stream-2026-11-25.json)
+
 ```mermaid
 sequenceDiagram
     participant C as WinFsp controller
