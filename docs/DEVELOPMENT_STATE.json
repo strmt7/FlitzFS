@@ -26,8 +26,9 @@
     "packed_tail_continuation_evidence": "docs/evidence/windows-packed-tail-continuation-2026-11-25.json",
     "packed_model_continued_truncations": 4,
     "packed_model_continued_release_bytes": 12845056,
-    "ordinary_mounted_reclamation_evidence": "docs/evidence/windows-expanded-group-read-and-mounted-replay-2026-11-25.json",
-    "ordinary_mounted_copy_steps": 701,
+    "ordinary_mounted_reclamation_evidence": "docs/evidence/windows-bank-spanning-mounted-replay-2026-11-25.json",
+    "ordinary_mounted_copy_steps": 557,
+    "ordinary_mounted_backing_limited_observations": 15,
     "ordinary_mounted_publications": 0,
     "ordinary_detached_verified_allocated_bytes": 6160384,
     "ordinary_detached_verification_evidence": "docs/evidence/windows-rebuild-verification-reads-2026-11-25.json",
@@ -44,7 +45,7 @@
     "bank_spanning_copy_target_writes": {"before": 4656, "after": 1278},
     "bank_spanning_verification_evidence": "docs/evidence/windows-bank-spanning-verification-2026-11-25.json",
     "fragmented_target_reads_per_audit": {"before": 4564, "after": 1342},
-    "next": "Replay the signed populated client with bank-spanning copy and verification. Attribute any remaining work to source audit, copy, index, target checks and publication before adjusting admission."
+    "next": "Capture inner source verification, preserved and re-encoded copy, index and target verification counters. The latest ordinary mounted trace completed with the rebuild still preparing. Use the same client and CPU readback to establish the remaining cost."
   },
   "release_path_review": {
     "evidence": "docs/evidence/release-reconciliation-rolling-lookups-2026-11-25.json",
@@ -76,7 +77,10 @@
       "forecast_frames": {"parent": 2, "candidate": 4},
       "codec_enabled_observed_lead_ms": {"parent": 0, "candidate": 47},
       "verified_sdk_delivery_sizes": [3, 1],
-      "live_candidate_launch": "Deferred by the device load preflight."
+      "initial_live_attempt": "Deferred by the device load preflight.",
+      "live_candidate_evidence": "docs/evidence/windows-amd-mixed-width-live-2026-11-25.json",
+      "live_verified_frames": 4,
+      "live_cpu_readback_and_worker_retirement": true
     },
     "latest_indexed_reopen_evidence": "docs/evidence/windows-bank-spanning-verification-2026-11-25.json",
     "incremental_admission": "Grouping checked reads across mirror banks in both reopen audits reduced backing calls from 72,492 to 60,452 for 16,384 short files and from 33,754 to 21,564 for 2,640 CPython files. Incremental writable authority still needs a shadow ownership differential."
@@ -105,7 +109,16 @@
       "lookups_long_range_single_aligned_posting": {"before": 752, "after": 1880},
       "empty_catalog_lookups": 0
     },
-    "next": "Measure savings and missed profitable candidates on held-out revision histories. Attribute negative lookups before increasing index scope or adding durable postings."
+    "catalog_lookup_pages": {
+      "evidence": "docs/evidence/indexed-coherence-lookup-pages-2026-11-25.json",
+      "catalog_fingerprints": 16384,
+      "compact_missing_page_reads": {"before": 222798, "after": 151924},
+      "legacy_missing_page_reads": {"before": 113574, "after": 92334},
+      "long_range_catalog_reads": {"before": 18822, "after": 14322},
+      "complete_cpython_derived_bytes": 2420736,
+      "posting_payload_rechecked": true
+    },
+    "next": "Measure savings and missed profitable candidates on held-out revision histories, then use sustained lookup cost to decide whether to grow the advisory index."
   },
   "ordinary_amd_write_demand": {
     "evidence": "docs/evidence/windows-ordinary-amd-write-demand-2026-11-23.json",

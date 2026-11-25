@@ -299,9 +299,12 @@ or a new representation.
 - **Mounted settlement.** Record admission, copy phase, verification,
   selector publication, retained references, provider operations and
   allocation in order. Reuse the independent client and CPU oracle.
-  Qualify the bank-spanning candidate first. If it ends before the
-  ordinary controller selects and releases storage, attribute the first
-  unfinished phase before changing the allocator.
+  The bank-spanning candidate matched the signed Win32 trace and remained
+  in private rebuild. Report source verification, preserved and re-encoded
+  payload copy, index assembly and target verification separately. Attribute
+  the first unfinished phase and concurrent backing pressure before changing
+  allocation or pacing.
+  [Latest signed replay](evidence/windows-bank-spanning-mounted-replay-2026-11-25.json)
 - **Useful device delivery.** Feed observed open stream ranges and
   generations to the existing owner. For read, write and collective work,
   compare CPU, cold GPU and a ready lease using identical observations.
@@ -1180,6 +1183,15 @@ recall and query cost on additional revision trees before spending more
 catalog space.
 [Persistent shifted discovery evidence](evidence/indexed-shifted-coherence-2026-11-25.json) ·
 [Secondary rolling lookup evidence](evidence/release-reconciliation-rolling-lookups-2026-11-25.json)
+
+Reusing checked pages in the same catalog view preserves complete candidate
+selection while reducing repeated search work. The compact 16,384-fingerprint
+control used 151,924 page reads for missing keys, down from 222,798. On the
+374-extent projected fixture, catalog reads fell from 18,822 to 14,322 with
+the same published group and measured protected savings.
+Before changing the index or admitting more queries, measure cost and
+profitable recall on held-out revision histories.
+[Catalog page reuse evidence](evidence/indexed-coherence-lookup-pages-2026-11-25.json)
 
 Indexed discovery can start with the extents in a covered history of
 successful foreground writes. In a 1,034-file fixture, checking the changed

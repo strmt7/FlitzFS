@@ -176,7 +176,7 @@ class PagedObjectStoreSnapshot final {
       const detail::PagedReadMetadata&) const noexcept;
   std::optional<std::pair<std::uint64_t,std::vector<std::byte>>> read_first_after(std::uint64_t after,
       std::uint64_t last,std::size_t maximum_decoded_bytes) const;
-  static PagedObjectStoreSnapshot open_impl(std::shared_ptr<StoreByteIo>,PagedStoreLimits,bool retain_tree_root);
+  static PagedObjectStoreSnapshot open_impl(std::shared_ptr<StoreByteIo>,PagedStoreLimits,bool retain_lookup_pages);
   explicit PagedObjectStoreSnapshot(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;
 };
@@ -273,7 +273,7 @@ class PagedObjectStoreWriter final {
   static detail::FoldedCheckpoint rebuild_folded(const PagedObjectStoreSnapshot&,
       std::shared_ptr<StoreByteIo>,StoreIdentity,StoreCompressionOptions,
       std::span<const std::byte> rebound_root,std::size_t identity_offset);
-  PagedObjectStoreSnapshot snapshot_impl(bool retain_tree_root) const;
+  PagedObjectStoreSnapshot snapshot_impl(bool retain_lookup_pages) const;
   PagedObjectStoreSnapshot snapshot_for_staging(bool query_cache=false) const;
   bool concurrent_reads_supported() const noexcept;
   // Pin the selected state without backing I/O. The capture has private query,

@@ -646,6 +646,16 @@ signatures. The scanner revalidates same-image representatives after an
 intervening edit and resamples changed extents. The paged coherence catalog
 can find masked and modular matches outside checkpoint history using the same
 live checks. Each compact posting costs 96 decoded bytes per stored signature.
+
+An immutable catalog view retains the checked root and reuses one branch
+per level and four checked leaf pages for point and alternate lookups.
+Publishing or reopening a new catalog creates a fresh view. Every positive
+lookup still reads and verifies the posting's payload. The maintenance
+controller still rechecks the live extent and protected size before
+publishing a group. The lookup cache changes neither the catalog format
+nor the permitted work per controller advance.
+[Catalog lookup measurements](evidence/indexed-coherence-lookup-pages-2026-11-25.json)
+
 Measured collective AMD benefit across workloads remains open.
 [Restart validation](evidence/persistent-indexed-discovery-2026-11-18.json) ·
 [Automatic indexed discovery](evidence/automatic-indexed-discovery-2026-11-18.json) ·

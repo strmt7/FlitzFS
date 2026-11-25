@@ -97,10 +97,13 @@ remaining work to the inner rebuild phases before choosing the next fix.
 The grouped read controller now carries two adjacent grouped-read timing
 observations across changes in request width. The matched SDK fixture
 qualified four frames and delivered them in 3- and 1-extent reads with
-exact independent CPU recovery. The live variant deferred with 98.4% peak
-GPU-engine use. Continue the matched ready-versus-CPU comparison when
-the device is available.
-[Mixed-width admission evidence](evidence/windows-amd-variable-group-demand-2026-11-25.json)
+exact independent CPU recovery. The first live variant deferred with 98.4%
+peak GPU-engine use. After the device became idle, the RX 9070 XT decoded
+all four frames with matching CPU readback and confirmed worker retirement.
+The SDK fixture waited for the result before issuing its demand reads.
+Measure the ready-versus-CPU comparison on the ordinary mounted path.
+[Mixed-width admission evidence](evidence/windows-amd-variable-group-demand-2026-11-25.json) ·
+[Live mixed-width AMD evidence](evidence/windows-amd-mixed-width-live-2026-11-25.json)
 
 The new copy path groups preserved records across physical banks while
 retaining a checked leaf and CPU work bound. It cut the copy steps from
@@ -149,11 +152,27 @@ A future corpus run will measure the fraction of natural revisions where
 the extra probes earn their cost.
 [Paired controls and scoped verification](evidence/release-reconciliation-rolling-lookups-2026-11-25.json)
 
-The signed ordinary replay of the bank-spanning copy remains pending.
-This checkpoint's host sample showed 7.63 GiB free with no Sandbox client.
-The established 4 GiB guest preflight needs 8 GiB above the host reserve,
-or 12 GiB free on this host. Keep that admission rule and use the published
-mounted trace as the correctness control when headroom returns.
+Caching checked pages within one immutable catalog reduced missing-key
+page reads from 222,798 to 151,924 on the compact 16,384-fingerprint
+fixture. It also reduced catalog reads from 18,822 to 14,322 in the
+long-range projected fixture with the same 4,879 admitted lookups and
+the same group. Positive lookups still read and verify their posting.
+A forced payload read failure was rejected after the related leaf was
+cached. The CPython-derived case kept its 2,420,736-byte settled footprint.
+[Matched compact and legacy catalog controls](evidence/indexed-coherence-lookup-pages-2026-11-25.json)
+
+### Latest signed packed replay
+
+Once the host admitted the 4 GiB guest, the current build matched all
+6,293 Win32 operations, and independent CPU recovery verified all 1,027
+files across three helper lifecycles. The held reads and continued writes
+matched. The ordinary packed controller recorded 557 private rebuild
+advances and fifteen backing-limited outcomes. It reached neither a
+ready candidate nor selector publication in the observation. The guest
+retired its helper and mount and passed the final disposal check.
+Expose the inner copy, index and verification phases before adjusting
+pacing or allocation.
+[Matched mounted replay](evidence/windows-bank-spanning-mounted-replay-2026-11-25.json)
 
 ## Reconciled release gates
 
@@ -162,7 +181,7 @@ mounted trace as the correctness control when headroom returns.
 | S1 · Exact artifacts | Current scoped builds bind source and SDK/CPU artifacts. Earlier real device runs identify their exact ROCm binaries. | Bind one clean Windows 11 update, signed WinFsp pair, helper, workers, CPU decoder table and backing capabilities to the acceptance run. |
 | S2 · Scale | Paged inodes, names and extents are live. Checked replica reads group adjacent frames across banks within each leaf. The complete startup walk still runs. | Verify bounded attach under a versioned authority contract. Fit and validate separate named-file curves for attach, restart, enumeration, mutation and resident memory. |
 | S3 · Space reuse | Sparse backing settled while mounted after preselection on the 1,027-file trace. Packed work continued after detach. The new callback fixture releases an already-selected packed image’s confirmed suffix in bounded continuations. | Select and settle through the ordinary mounted controller. Batched copy makes fewer calls on identical bytes in both local layouts. Use the allocation trace to identify the next cost under pinned readers, sustained churn, constrained free space and interruption. |
-| S4 · AMD and CPU continuity | Prepared AMD frames passed earlier SDK tests. The later live trial verified two mixed device frames after an unrelated callback and independent CPU readback. The measured 1 MiB write shape still favors CPU. | Prove a useful automatic region for each advertised AMD role in installed-client paths. Qualify CPU availability, verified delivery and condition-based device recovery. |
+| S4 · AMD and CPU continuity | The latest installed Radeon SDK trial delivered four exact frames in two different request sizes, with independent CPU readback and confirmed worker retirement. The measured 1 MiB write shape still favors CPU. | Prove a useful automatic region for each advertised AMD role in installed-client paths. Qualify CPU availability, verified delivery and condition-based device recovery. |
 | S5 · Compression | Protected prefix selection can save an allocation pair. Two secondary-key restart controls save 122,880 complete bytes each at the same catalog size. Broader real corpus rebuild controls retained their sizes, with no catalog nominations required. AIT grouping and parity placement showed distinct effects. | Establish a held-out complete-size frontier including metadata and protection. Measure catalog recall and savings with a populated, funded search index. |
 | S6 · Autonomy | Persistent sparse advice, workload samples, yield ranking and resource admission run in the controller. | Measure learning benefit, time to settle, interference, per-volume fairness and bytes written per byte reclaimed across workloads and restart. |
 | S7 · Windows experience | The helper and WinFsp own memory and supported file-backed volumes. Signed guests exercised external clients and verified reopen. | Qualify Explorer and independent apps with the signed candidate. Cover sharing, mapped and cached I/O, names, metadata, repair and clean teardown. |

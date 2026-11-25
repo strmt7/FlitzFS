@@ -2320,6 +2320,7 @@ void indexed_catalog_discovery(CatalogCase scenario,bool projected=false) {
       [&](const auto& key)->std::shared_ptr<StoreByteIo>{return key==id(1)?f.image:nullptr;},
       {StoreCompressionMode::raw,1,false}));
   auto gate=std::make_shared<CatalogReadGate>(backing);
+  const auto catalog_reads_before=backing->read_calls;
   rejects([&]{f.session->bind_indexed_coherence(f.image,{kStoreMaxPhysicalBytes});},
       "native image accepted as optional catalog backing");
   NativeGroupMaintenance controller(*f.session);
@@ -2358,7 +2359,8 @@ void indexed_catalog_discovery(CatalogCase scenario,bool projected=false) {
   if(long_range)std::cout<<"projected_catalog_discovery aligned_only="<<(scenario==CatalogCase::aligned_only)
       <<" intervening_extents="<<noise_count<<" lookups="<<progress.coherence_lookups
       <<" groups="<<progress.published_groups<<" minimum_compacted_bytes_saved="<<progress.minimum_compacted_bytes_saved
-      <<" catalog_bytes="<<progress.coherence_catalog_bytes<<'\n';
+      <<" catalog_bytes="<<progress.coherence_catalog_bytes
+      <<" catalog_read_calls="<<backing->read_calls-catalog_reads_before<<'\n';
 }
 void indexed_catalog_displaced_candidate() {
   constexpr PagedStoreLimits limits{kStoreMaxPhysicalBytes};
@@ -2782,7 +2784,8 @@ void indexed_catalog_sparse_range_reads(unsigned fingerprint_count=4096,
         "catalog snapshots reused a tree root across checkpoints");
   }
   auto persisted=image(std::move(backing->stable),4096);
-  const auto view=IndexedCoherenceSnapshot::open(persisted,id(90),id(1),limits);
+  auto gate=std::make_shared<CatalogReadGate>(persisted);
+  const auto view=IndexedCoherenceSnapshot::open(gate,id(90),id(1),limits);
   const auto info=view.info();
   require(view.has_alternates() && info.height>=2 &&
       info.objects==1+fingerprint_count+fingerprint_count/4 && info.metadata_page_bytes==(legacy?4096U:1024U),
@@ -2816,6 +2819,27 @@ void indexed_catalog_sparse_range_reads(unsigned fingerprint_count=4096,
   const auto descendant_reads=2*static_cast<std::uint64_t>(missing_queries)*info.height;
   require(!persisted->writes && miss_bytes==miss_reads*info.metadata_page_bytes && miss_reads<descendant_reads,
       "empty alternate ranges reread the verified root or followed unrelated leaves");
+
+  require(view.find(0,fingerprint_base)==feature(0,true),"primary warm lookup lost its representative");
+  const auto primary_start=persisted->read_bytes;
+  require(view.find(0,fingerprint_base)==feature(0,true),"primary repeated lookup changed its result");
+  const auto primary_bytes=persisted->read_bytes-primary_start;
+  const auto alternate=view.next_alternate(0,fingerprint_base);
+  require(alternate && alternate->representative==feature(0,false),"alternate warm lookup lost its representative");
+  const auto alternate_start=persisted->read_bytes;
+  const auto repeated=view.next_alternate(0,fingerprint_base);
+  require(repeated && repeated->representative==alternate->representative && repeated->cursor==alternate->cursor,
+      "alternate repeated lookup changed its result");
+  const auto alternate_bytes=persisted->read_bytes-alternate_start;
+  std::cout<<"coherence_hot_lookup primary_bytes="<<primary_bytes<<" alternate_bytes="<<alternate_bytes
+      <<" metadata_page_bytes="<<info.metadata_page_bytes<<'\n';
+  require(primary_bytes && primary_bytes<info.metadata_page_bytes &&
+      alternate_bytes && alternate_bytes<info.metadata_page_bytes,
+      "repeated catalog probes reread checked lookup pages");
+  gate->refuse=true;
+  rejects([&]{(void)view.next_alternate(0,fingerprint_base);},"hot catalog accepted a posting without checking its payload");
+  gate->refuse=false;
+  require(view.find(0,fingerprint_base)==feature(0,true),"failed optional read changed authority");
 
   if(fingerprint_count>4096) {
     auto target=ram(4096);

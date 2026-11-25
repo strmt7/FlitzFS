@@ -317,8 +317,8 @@ Node read_node(const State& s,const Ref& r) {
       total.logical!=r.logical || total.stored!=r.stored)fail("page summary mismatch");
   return n;
 }
-// Lives only in a single native query, with the immutable State that admitted
-// these exact references. Record payloads are still checked on every read.
+// Checked references can be reused within a native query or an immutable
+// coherence catalog snapshot. Record payloads are checked on every read.
 class LookupPages {
  public:
   const Node& get(const State& state,const Ref& reference) {
@@ -1966,10 +1966,11 @@ bool PagedObjectStoreSnapshot::payloads_protected() const noexcept {
   return impl_ && (impl_->state.mirrored || impl_->sealed_payloads);
 }
 PagedObjectStoreSnapshot PagedObjectStoreSnapshot::open_impl(std::shared_ptr<StoreByteIo> image,
-    PagedStoreLimits limits,bool retain_tree_root) {
+    PagedStoreLimits limits,bool retain_lookup_pages) {
   auto p=std::make_unique<Impl>();
-  auto* root=retain_tree_root?&p->retained_root.emplace():nullptr;
+  auto* root=retain_lookup_pages?&p->retained_root.emplace():nullptr;
   p->state=load(std::move(image),limits,nullptr,root);
+  if(retain_lookup_pages)p->lookup_pages.emplace();
   return PagedObjectStoreSnapshot(std::move(p));
 }
 StoreIdentity PagedObjectStoreSnapshot::identity() const noexcept {return impl_?impl_->state.id:StoreIdentity{};}
@@ -2121,10 +2122,11 @@ std::optional<std::pair<std::uint64_t,Bytes>> PagedObjectStoreSnapshot::read_fir
   if(after>=last)return {};
   const auto& state=impl_->state;
   const auto* root=impl_->retained_root?&*impl_->retained_root:nullptr;
+  auto* pages=impl_->lookup_pages?&*impl_->lookup_pages:nullptr;
   auto reference=state.root;
   while(reference.count && reference.last>after && reference.first<=last) {
     Node temporary;
-    const auto& node=lookup_node(state,reference,temporary,nullptr,root);
+    const auto& node=lookup_node(state,reference,temporary,pages,root);
     if(!reference.height) {
       const auto entry=std::ranges::upper_bound(node.entries,after,{},&Entry::id);
       if(entry==node.entries.end() || entry->id>last)return {};
@@ -2591,11 +2593,14 @@ PagedStoreWriteResult PagedObjectStoreWriter::commit_impl(
 PagedObjectStoreSnapshot PagedObjectStoreWriter::snapshot() const {
   return snapshot_impl(false);
 }
-PagedObjectStoreSnapshot PagedObjectStoreWriter::snapshot_impl(bool retain_tree_root) const {
+PagedObjectStoreSnapshot PagedObjectStoreWriter::snapshot_impl(bool retain_lookup_pages) const {
   if(!impl_)fail("moved-from writer");auto p=std::make_unique<PagedObjectStoreSnapshot::Impl>();
   p->state=impl_->state;if(impl_->poisoned)p->state.degraded_roots=true;
   auto root=read_node(p->state,p->state.root);
-  if(retain_tree_root)p->retained_root.emplace(std::move(root));
+  if(retain_lookup_pages) {
+    p->retained_root.emplace(std::move(root));
+    p->lookup_pages.emplace();
+  }
   return PagedObjectStoreSnapshot(std::move(p));
 }
 PagedObjectStoreSnapshot PagedObjectStoreWriter::snapshot_for_staging(bool query_cache) const {

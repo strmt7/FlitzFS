@@ -1,0 +1,107 @@
+{
+  "date": "2026-11-25",
+  "schema": 1,
+  "qualification": "installed Radeon SDK callbacks",
+  "source": {
+    "runtime": {
+      "parent": "2d1acbae104a3819d1420187bcb3e1b4e687d25c",
+      "base_tree": "6e358d4427c40f303b66beb67282dd7a15aeb493",
+      "tree": "dab9c6973fdc611f13d1aeffedb7e7279e724c4d",
+      "elements": [
+        {
+          "path": "src/windows/winfsp_native.cpp",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "8017c4c9a2fc1883918f12913c99f2aaca772a44",
+          "bytes": 109532
+        },
+        {
+          "path": "tests/test_winfsp_paged.cpp",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "cdca4904d28d2406844c368e5dbe8b59ac16a3ec",
+          "bytes": 77541
+        }
+      ]
+    },
+    "current_commit_contains_verified_blobs": "bfb09115c9c8297d46703517196d5b7b83ae0015",
+    "artifacts": {
+      "flitzfs_winfsp_paged_tests.exe": {
+        "bytes": 2248192,
+        "sha256": "702cc5d15d435d92dafdd49641d049694a6a961763d5a444dbcfed98dcf6fe6c"
+      },
+      "winfsp-x64.dll": {
+        "bytes": 200816,
+        "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+      },
+      "flitzfs_native_lz4_read_worker.exe": {
+        "bytes": 581632,
+        "sha256": "8625a3fa306adce0f3db5a1803ea6b9924147817c73630f75f09d42fdf268ca4"
+      },
+      "flitzfs_rocm_native_lz4_decode.dll": {
+        "bytes": 173568,
+        "sha256": "9ac5bb33a7b39ae26712dcdcfcdeb6b4b5fc049175e18dd6f24d047a37b3e128"
+      }
+    },
+    "manifest_sha256": "3d77e6b76cdddc3781316560cfef59289f950e691a0058e770b864675531f6a1"
+  },
+  "admission": {
+    "admitted": true,
+    "utc": "2026-11-25T03:36:41.5285059Z",
+    "windows_build": "26300",
+    "devices": [
+      {
+        "Name": "AMD Radeon RX 9070 XT",
+        "Status": "OK",
+        "DriverVersion": "32.0.32029.2010"
+      }
+    ],
+    "cpu": [
+      8.03,
+      8.73
+    ],
+    "peak_gpu_engine": 0.0,
+    "available_kib": 29358192,
+    "total_kib": 66704480,
+    "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+    "other_fixture_processes": 0
+  },
+  "forecast": {
+    "forecast_frames": 4,
+    "observed_lead_ms": 750,
+    "expanded": 1
+  },
+  "worker": {
+    "mixed": 1,
+    "prepared": 1,
+    "verified": 4,
+    "worker_ms": 1203,
+    "prepared_submit_ms": 1234,
+    "exact_child_retired": 1
+  },
+  "delivery": {
+    "mixed": 1,
+    "ready_hits": 4,
+    "late_refused": 1,
+    "cpu_readback": 1,
+    "backing_writes": 0,
+    "unrelated_callbacks_retained": 1,
+    "checkpoint_change_refused": 0,
+    "expanded": 1,
+    "callbacks": 2,
+    "variable_widths": 1
+  },
+  "runner": {
+    "exit_code": 0,
+    "memory_bytes": 3687841792,
+    "peak_job_bytes": 201134080,
+    "cpu_percent": 18,
+    "tree_retired": true,
+    "residual_children": 0,
+    "inherited_error_mode": 32771,
+    "receipt_sha256": "894475e3c704d2ac5d70ebb57c42663e1ce4d477a754ef0774b5f4952e379f08",
+    "log_sha256": "9af9d0927d450be906f300ddf88ee17b310df8ea0b2aa7f5c5d2e3bae94f125c"
+  },
+  "write_policy": "Memory-backed fixture, independent CPU readback, exact worker retirement.",
+  "scope": "The fixture waits for the bounded exchange before the two requested callbacks. No mounted performance or comparative latency claim."
+}

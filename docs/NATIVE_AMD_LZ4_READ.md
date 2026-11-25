@@ -159,9 +159,15 @@ input, stream revision and checkpoint still govern preparation and delivery.
 In the matched SDK fixture, demand for one, three and two extents retained
 47 ms of measured lead in the codec-enabled run and qualified a four-extent
 forecast. The CPU verified every byte through subsequent three-extent and
-one-extent callbacks. The device trial deferred at the existing live GPU
-load check.
-[Mixed-width demand and validation](evidence/windows-amd-variable-group-demand-2026-11-25.json)
+one-extent callbacks. The first device attempt deferred at the live GPU
+load check. After the device became idle, the installed RX 9070 XT decoded
+four mixed frames from the same request pattern. The SDK fixture waited
+for the worker, then delivered all four across the three-extent and
+one-extent requests. Independent CPU readback matched, late results
+were refused, and the worker retired. The worker took 1,203 ms. The
+matched ordinary-client service comparison remains open.
+[Mixed-width demand and validation](evidence/windows-amd-variable-group-demand-2026-11-25.json) ·
+[Installed Radeon mixed-width run](evidence/windows-amd-mixed-width-live-2026-11-25.json)
 
 The live Radeon SDK fixture used one prepared exchange for four mixed
 grouped extents and delivered them across two reads. It retained the
