@@ -1598,8 +1598,17 @@ std::pair<std::uint64_t,std::uint64_t> indexed_windows_reopen_profile() {
     const auto last=name(files-1);
     auto path=L"\\Data\\"+std::wstring(last.begin(),last.end());
     FSP_FSCTL_FILE_INFO found{};PVOID handle=nullptr;
-    require(fs->Interface->Open(fs,path.data(),FILE_NON_DIRECTORY_FILE|(1U<<24),FILE_READ_DATA,&handle,&found)==STATUS_SUCCESS &&
+    require(fs->Interface->Open(fs,path.data(),FILE_NON_DIRECTORY_FILE|(1U<<24),FILE_READ_DATA|FILE_WRITE_ATTRIBUTES,
+        &handle,&found)==STATUS_SUCCESS &&
         handle && found.IndexNumber==files+2 && found.FileSize==71,"reopened Windows file metadata");
+    require(fs->Interface->GetFileInfo(fs,handle,&found)==STATUS_SUCCESS && found.LastWriteTime==stamp,
+        "checked metadata before checkpoint change");
+    require(fs->Interface->SetBasicInfo(fs,handle,INVALID_FILE_ATTRIBUTES,0,0,stamp+100,stamp+100,&found)==STATUS_SUCCESS,
+        "set metadata at a new checkpoint");
+    require(fs->Interface->GetFileInfo(fs,handle,&found)==STATUS_SUCCESS &&
+        found.IndexNumber==files+2 && found.FileSize==71 &&
+        found.LastWriteTime==stamp+100 && found.ChangeTime==stamp+100,
+        "file-info query did not observe the new checkpoint");
     Bytes output(71);ULONG count=0;
     require(fs->Interface->Read(fs,handle,output.data(),0,static_cast<ULONG>(output.size()),&count)==STATUS_SUCCESS &&
         count==output.size() && output==payload(files-1),"reopened Windows file bytes");
@@ -1612,7 +1621,11 @@ std::pair<std::uint64_t,std::uint64_t> indexed_windows_reopen_profile() {
   for(unsigned i=0;i<files;++i)
     require(cpu.filesystem().read("Data/"+name(i),0,71)==payload(i),"CPU reopen lost an original file");
   require(cpu.filesystem().read("f0",0,83)==data(83,718),"CPU reopen lost an acknowledged Windows write");
-  std::cout<<"indexed_windows_reopen cpu_files="<<files+1<<" callback_read=1 subsequent_write=1 retired=1\n";
+  const auto changed=cpu.filesystem().basic_metadata(files+2);
+  require(changed && changed->last_write_time==stamp+100 && changed->change_time==stamp+100,
+      "CPU reopen lost an acknowledged metadata change");
+  std::cout<<"indexed_windows_reopen cpu_files="<<files+1
+      <<" callback_read=1 subsequent_write=1 metadata_checkpoint=1 retired=1\n";
   return {pre_flush_reads,post_flush_reads};
 }
 

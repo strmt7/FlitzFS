@@ -303,16 +303,24 @@ struct WinFspVolumeController::Impl {
                 (refresh_reference && interrupted()));
             if(!refresh_reference && !stop_requested.load(std::memory_order_acquire) &&
                 host.status()!=MaintenanceHostStatus::waiting) {
+              if(residency && observed.valid)residency->verify_working_set();
+              // A background commit can invalidate the completed read's
+              // checkpoint. Give the admitted reply this quantum first.
+              const bool verify_before_maintenance=read_worker && read_worker->ready_to_verify() && !interrupted();
+              if(verify_before_maintenance) {
+                const detail::MaintenanceBackingScope measure(backing_use);
+                read_ahead_prepared=read_worker->verify_and_publish(
+                    *adapter,observed,GetTickCount64(),stop_requested);
+              }
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
-              if(!interrupted() && write_reference_demand) {
+              if(!read_ahead_prepared && !interrupted() && write_reference_demand) {
                 const detail::MaintenanceBackingScope measure(backing_use);
                 amd_cpu_trial=record_ordinary_cpu_reference(observed,epoch,amd_cpu_trial_attempted);
               }
 #endif
               auto continuation=WinFspMaintenanceContinuation::none;
-              for(;;) {
-                if(amd_cpu_trial_attempted)break;
-                if(residency && observed.valid)residency->verify_working_set();
+              while(!read_ahead_prepared && !amd_cpu_trial_attempted) {
+                if(observed.continued && residency && observed.valid)residency->verify_working_set();
                 if(observed.continued && interrupted())break;
                 const auto backing_before=backing_use.elapsed_ns();
                 auto step=[&] {
@@ -332,7 +340,7 @@ struct WinFspVolumeController::Impl {
                     last_file_rebuild_entry=entry;
                   }
                   const detail::MaintenanceBackingScope measure(backing_use);
-                  if(!observed.continued && read_worker && !interrupted())
+                  if(!verify_before_maintenance && !observed.continued && read_worker && !interrupted())
                     read_ahead_prepared=read_worker->verify_and_publish(
                         *adapter,observed,GetTickCount64(),stop_requested);
                   // A group duty refusal consumes no group work. A pending

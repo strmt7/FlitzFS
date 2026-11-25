@@ -756,6 +756,23 @@ writing, a sparse offset near the 64-bit boundary, capacity rejection and
 continued writes. These are measurements of the development fixtures.
 [Executed writer evidence](evidence/native-indexed-writer-2026-11-18.json)
 
+### Checked file information on open handles
+
+The writable indexed owner retains one bounded query cache for allocation
+and file-info inspection. It holds checked lookup pages and small
+namespace records. Reuse requires the same backing owner, tree and
+checkpoint. A changed checkpoint or observed degradation discards the
+cached proof. Operations still check the inode and its ancestry, and the
+independent reopen and recovery paths verify backing directly.
+
+On the 4,096-file Windows SDK fixture, 64 ordinary file-info callbacks
+read 4,343,289 backing bytes and made 1,599 backing calls. The control used
+7,717,324 bytes and 2,664 calls. Both checks used the same layout and
+metadata. The updated fixture observed a changed timestamp immediately
+and verified it after independent CPU reopen.
+[Matched file-info evidence](evidence/windows-indexed-file-info-reuse-2026-11-25.json) ·
+[WinFsp callback contract](https://winfsp.dev/doc/WinFsp-API-winfsp.h/)
+
 ## Indexed file lifetimes
 
 A delete-pending file retains its name and payload. The owning session refuses

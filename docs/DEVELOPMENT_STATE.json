@@ -6,6 +6,26 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "file_info_and_cold_group_delivery": {
+    "source_base": "9f62a852ceaf9f44d75ce9ff99da8defbc394148",
+    "tested_runtime_tree": "fdf70f2bf9f0d27987f8ede58d5a72bae69df96b",
+    "evidence": "docs/evidence/windows-indexed-file-info-reuse-2026-11-25.json",
+    "file_info_backing_calls_before_after": [
+      2664,
+      1599
+    ],
+    "file_info_backing_bytes_before_after": [
+      7717324,
+      4343289
+    ],
+    "changed_metadata_survived_cpu_reopen": true,
+    "cpu_verified_files": 4097,
+    "mounted_attach_scope": "The controlled Windows SDK reopen kept both verification passes and recorded 15,336 backing calls.",
+    "amd_grouped_frames_consumed": 2,
+    "amd_controller_frames_consumed": 1,
+    "selected_windows_checks": 16,
+    "next": "Continue scalable writable admission with a shadow decision beside the full CPU audit. Qualify useful mounted AMD against the improved CPU control."
+  },
   "grouped_demand_expiry": {
     "source_base": "4293e13d9067e16f068e9999b117a0c36cc466df",
     "tested_runtime_tree": "caa86fbbab5caadb55de6cc3d91094388c9bcb28",

@@ -1183,6 +1183,7 @@ struct NativeFilesystemWriter::Impl {
   std::optional<detail::IndexedVolumeRoot> indexed;
   detail::IndexedDirectoryBackfill directory_backfill;
   detail::IndexedSharedBaseCache shared_base_reads;
+  std::shared_ptr<detail::PagedReadMetadata> allocation_query_metadata;
   std::uint64_t indexed_content_sequence=1;
   detail::IndexedContentChanges indexed_changes;
   std::shared_ptr<SharedBaseOwner> shared_owner=std::make_shared<SharedBaseOwner>();
@@ -1200,27 +1201,31 @@ struct NativeFilesystemWriter::Impl {
     return verify_indexed_root(snapshot,*indexed);
   }
   template<class Read>
-  auto inspect_indexed(Read&& read,detail::PagedReadMetadata* metadata=nullptr) {
+  auto inspect_indexed(Read&& read,detail::PagedReadMetadata* metadata=nullptr,bool retain_allocation_query=false) {
     const auto snapshot=objects.snapshot_for_indexed_read();
-    const auto query=snapshot.paged_if()->scoped_query(metadata);
+    const auto* paged=snapshot.paged_if();
+    const auto query=retain_allocation_query?paged->scoped_query(allocation_query_metadata):paged->scoped_query(metadata);
     const auto view=checked_indexed_view(*snapshot.paged_if());
     return std::forward<Read>(read)(view);
   }
   template<class Read>
-  auto read_indexed(Read&& read,detail::PagedReadMetadata* metadata=nullptr) {
+  auto read_indexed(Read&& read,detail::PagedReadMetadata* metadata=nullptr,bool retain_allocation_query=false) {
     try {
-      return inspect_indexed(std::forward<Read>(read),metadata);
+      return inspect_indexed(std::forward<Read>(read),metadata,retain_allocation_query);
     }catch(const std::bad_alloc&){
       shared_base_reads.clear();
+      allocation_query_metadata.reset();
       fail(Code::limit,"indexed namespace query allocation failure");
     }catch(const NativeFsError& error) {
       if(error.code()==Code::corrupt || error.code()==Code::storage_failure) {
         shared_base_reads.clear();
+        allocation_query_metadata.reset();
         poisoned=true;
       }
       throw;
     }catch(const std::exception&){
       shared_base_reads.clear();
+      allocation_query_metadata.reset();
       poisoned=true;
       fail(Code::storage_failure,"indexed namespace query failed");
     }
@@ -2706,7 +2711,7 @@ NativeInodeAllocationInfo NativeFilesystemWriter::inspect_allocation(std::uint64
   auto& state=checked_impl();
   if(state.indexed)return state.read_indexed([&](const auto& view) {
     return view.allocation_inode(inode,verify_ancestry);
-  });
+  },nullptr,true);
   return state.read_checked_inode(inode,[&](const auto& snapshot,const Node& n) {
     if(verify_ancestry)verify_path_ancestors(snapshot,state.model,n);
     return NativeInodeAllocationInfo{commit_info(n),n.allocation};

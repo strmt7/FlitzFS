@@ -208,11 +208,12 @@ NativeLz4ReadWorker::~NativeLz4ReadWorker(){(void)stop();}
 WinFspGroupReadWindow NativeLz4ReadWorker::group_read_window() const noexcept {
   const auto& s=*impl_;
   const auto& profile=s.profile;
-  if(!profile.prepared_group_submit_lead_ms || s.flight || !s.status.retirement_confirmed ||
+  const auto lead=s.group_timing.start_lead(profile.minimum_lead_ms);
+  if(!profile.packed_groups || !lead || s.flight || !s.status.retirement_confirmed ||
       s.status.configuration_refused || !WorkerExchangeSession::available())return {};
   const auto grant=detail::plan_native_group_preparation(profile.maximum_frames,profile.maximum_slab_bytes,profile.mixed_groups);
   if(grant.maximum_members<profile.minimum_frames)return {};
-  return {grant.maximum_members,s.group_timing.start_lead(profile.minimum_lead_ms),profile.minimum_frames};
+  return {grant.maximum_members,lead,profile.minimum_frames};
 }
 
 bool NativeLz4ReadWorker::prepare_group(const WinFspReadAheadWork& work,const NativeMaintenanceObservation& observed,
@@ -288,8 +289,8 @@ bool NativeLz4ReadWorker::start(WinFspReadAheadWork& work,const NativeMaintenanc
     }catch(...) {++s.status.declined;return false;}
   }
   if(!WorkerExchangeSession::available())return false;
-  const auto lead=profile.minimum_lead_ms?(grouped?s.group_timing.start_lead(profile.minimum_lead_ms):
-      (std::max)(std::uint64_t{profile.minimum_lead_ms},s.status.last_turnaround_ms)):0;
+  const auto lead=grouped?s.group_timing.start_lead(profile.minimum_lead_ms):
+      profile.minimum_lead_ms?(std::max)(std::uint64_t{profile.minimum_lead_ms},s.status.last_turnaround_ms):0;
   if(!s.has_lead(work,lead,GetTickCount64()))return false;
   try {
     std::uint32_t frames=0,encoded=0,decoded=0;

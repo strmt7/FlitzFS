@@ -2035,6 +2035,18 @@ PagedObjectStoreSnapshot::QueryScope::~QueryScope() {
 PagedObjectStoreSnapshot::QueryScope PagedObjectStoreSnapshot::scoped_query(detail::PagedReadMetadata* reusable) const noexcept {
   return QueryScope(*impl_,reusable);
 }
+PagedObjectStoreSnapshot::QueryScope PagedObjectStoreSnapshot::scoped_query(
+    std::shared_ptr<detail::PagedReadMetadata>& retained) const noexcept {
+  if(retained && (!retained->pages || !retained->records || !retained->matches(impl_->state)))retained.reset();
+  if(!retained && can_reuse_query(impl_->state)) {
+    try {
+      retained=std::make_shared<detail::PagedReadMetadata>(impl_->state);
+      retained->pages.emplace();
+      retained->records.emplace();
+    }catch(const std::bad_alloc&){retained.reset();}
+  }
+  return QueryScope(*impl_,retained.get());
+}
 std::shared_ptr<detail::PagedReadMetadata> PagedObjectStoreSnapshot::take_query_metadata() const noexcept {
   if(!impl_->lookup_pages || !impl_->query_metadata || !can_reuse_query(impl_->state))return {};
   try {

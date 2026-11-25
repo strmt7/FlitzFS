@@ -160,6 +160,7 @@ class PagedObjectStoreSnapshot final {
   // Query scratch can follow a verified read-ahead window on the exact same
   // committed backing. Each active query owns it exclusively.
   QueryScope scoped_query(detail::PagedReadMetadata* reusable=nullptr) const noexcept;
+  QueryScope scoped_query(std::shared_ptr<detail::PagedReadMetadata>& retained) const noexcept;
   std::shared_ptr<detail::PagedReadMetadata> take_query_metadata() const noexcept;
   // Consume the span before requesting another metadata object.
   std::span<const std::byte> read_query_metadata(std::uint64_t,std::size_t,

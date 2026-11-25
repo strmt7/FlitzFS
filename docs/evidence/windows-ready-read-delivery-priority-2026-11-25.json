@@ -1,0 +1,134 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "experimental": true,
+  "source": {
+    "parent": "9f62a852ceaf9f44d75ce9ff99da8defbc394148",
+    "base_tree": "456752110af369a1885dc4caddb16aa4fdae3144",
+    "tree": "341243ec111dd89df835d222cf2e8d8109eb83f4",
+    "elements": [
+      {
+        "path": "src/windows/winfsp_controller.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "644cb7db867161b22c7314c690887423a75e7658",
+        "bytes": 65564
+      }
+    ]
+  },
+  "source_routing": {
+    "receipt_sha256": "7978987037d9e83fb9941d47b854aa1c27ac0c57d133018123e50c1e30169248",
+    "commit": "9f62a852ceaf9f44d75ce9ff99da8defbc394148",
+    "source_files": 6,
+    "inventory_sha256": "7f63044d97a6b0c7e8eb392f511abd799e98a65fdbcbcb5c438d388347fa899d",
+    "native_response_sha256": "ac1150f046b12042fce14ac3898f5dc3cf11628b98864989fb890ba4cc480a56",
+    "actual_searches": 1
+  },
+  "checked_order": "A completed AMD reply can be verified before mutation in a fresh controller quantum. The pass preserves the resident backing check, exact process retirement, live grant, foreground yield, and checkpoint binding.",
+  "windows_scoped_results": {
+    "release": {
+      "exit": 0,
+      "tree_retired": true,
+      "log_sha256": "477b235d376eeaf46e8aef9332e239354e29c1e81a2948c7d26dbd6a6962214f",
+      "peak_job_bytes": 41082880,
+      "count": 5,
+      "passed": [
+        "bounded_winfsp_controller",
+        "bounded_winfsp_paged_ready-group-reads",
+        "bounded_winfsp_paged_ready-mixed-group-reads",
+        "bounded_winfsp_paged_ready-segmented-group-reads",
+        "bounded_winfsp_paged_ready-small-stream-group-reads"
+      ]
+    },
+    "raw": {
+      "exit": 0,
+      "tree_retired": true,
+      "log_sha256": "2ebe2f55047c7f19aca10cab3c3d681c844ed2db5852ed92493b94aede13da03",
+      "peak_job_bytes": 23126016,
+      "count": 1,
+      "passed": [
+        "bounded_winfsp_controller"
+      ]
+    },
+    "asan": {
+      "exit": 0,
+      "tree_retired": true,
+      "log_sha256": "d8b10df0786c7149faf1ea5dd5d94fa2f14d71a80785dbe7d78cf14017364f33",
+      "peak_job_bytes": 420888576,
+      "count": 2,
+      "passed": [
+        "windows_asan_runtime_preflight",
+        "bounded_winfsp_controller"
+      ]
+    },
+    "duty": {
+      "exit": 0,
+      "tree_retired": true,
+      "log_sha256": "cd278d9d248433dd4ad0720528884c56f6131b05de1b64cc1e57f7ceb121b2a4",
+      "peak_job_bytes": 10293248,
+      "checks": 44,
+      "work": {
+        "read_ahead_during_group_duty": {
+          "exact_hits": 1,
+          "duty_retained": 1,
+          "owner_retired": 1,
+          "verified_amd_frames": 0
+        }
+      }
+    },
+    "indexed-attach-control": {
+      "exit": 0,
+      "tree_retired": true,
+      "log_sha256": "22739713b5a838490d06e28d42fe95057f0db887eacd9c6ddec23d1662fe5d8c",
+      "peak_job_bytes": 56745984,
+      "checks": 4444,
+      "work": {
+        "indexed_windows_reopen": {
+          "files": 4096,
+          "image_extent_bytes": 17170432,
+          "pre_image_flush_read_bytes": 14361437,
+          "post_image_flush_read_bytes": 7278522,
+          "image_read_calls": 15336,
+          "image_flushes": 1,
+          "head_flushes": 1,
+          "backing_write_bytes": 0,
+          "cpu_files": 4097,
+          "callback_read": 1,
+          "subsequent_write": 1,
+          "retired": 1
+        },
+        "indexed_windows_get_file_info": {
+          "files": 4096,
+          "queries": 64,
+          "backing_read_bytes": 7717324,
+          "backing_read_calls": 2664,
+          "backing_write_bytes": 0
+        }
+      }
+    }
+  },
+  "test_binary_sha256": {
+    "release_controller": "5a34bd856fb0b3b5e3cd441efcd93b900986305039170ad58ed40325b4e070d8",
+    "release_callbacks": "f4ed4efa375448aefcfe9fa661bb19c1f92b4db3d27db631f94ca518d59bed2b",
+    "raw_controller": "47beefba70c73fce776b5a7f4a457f0c4d44969cc16cd3d3b6c8ef27333f2349",
+    "asan_controller": "daa46c3c3e140111e3b521c1a7ddc27006734d940b7f7beaf33603dbcb68b504"
+  },
+  "host_admission": {
+    "exit": 0,
+    "tree_retired": true,
+    "log_sha256": "41229aac1d80a77c14295058801a5e6886b8744e31dd89ff8975bf8f71b48fdc",
+    "peak_job_bytes": 90099712,
+    "admitted": false,
+    "reason": "Existing host load above the fixture envelope",
+    "utc": "2026-11-25T12:20:19.6520056Z",
+    "driver": "32.0.32029.2010",
+    "build": "26300",
+    "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+    "available_bytes": 22813671424,
+    "reserved_bytes": 4294967296,
+    "gpu_peak": 99.16520279957321,
+    "cpu_peak": 17.11413664125899,
+    "target_samples": 816
+  },
+  "qualification": "Windows SDK and independent CPU checks. The attach control records backing work and byte-exact readback. Mounted device delivery and performance remain open."
+}

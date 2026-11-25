@@ -322,6 +322,33 @@ farther eligible group without learning false delay from invalidated work.
 [Bounded Windows checks](evidence/windows-grouped-demand-expiry-2026-11-25.json) ·
 [Windows wait semantics](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitforsingleobject)
 
+### Deliver completed reads before changing their checkpoint
+
+The controller verifies a retired AMD reply before it starts write
+calibration or advances storage maintenance in the current grant. A
+successful publication uses that quantum. The next quantum can resume
+maintenance with the same debt and ownership state. If the worker
+finishes during a maintenance step, the controller can still verify the
+reply at the end of that step. Both checks use the existing host grant
+and exact stream and checkpoint requirements.
+[Controller scheduling and qualification](evidence/windows-ready-read-delivery-priority-2026-11-25.json)
+
+### Later ranges for a cold grouped worker
+
+A qualified packed or mixed group profile can propose a later read
+window when its cold lead estimate exceeds the immediate request gap.
+The profile and observed contiguous reads bound the range. The worker
+checks the same lead again before dispatch. Prepared setup is a
+separate capability, with its own qualification.
+
+In the live small-read fixture, the cold Radeon worker decoded two
+group members for a later range. The intervening extent stayed readable
+on CPU. The callback consumed both members across 32 adjacent 4 KiB
+reads and the CPU audit verified the retained file. The independent
+controller fixture also consumed a device-decoded frame during a group
+duty wait.
+[Live device and CPU verification](evidence/windows-indexed-file-info-reuse-2026-11-25.json)
+
 ## Prepared native reads
 
 The indexed session can capture one owned encoded LZ4 record for a readable
