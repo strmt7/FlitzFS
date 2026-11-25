@@ -197,6 +197,15 @@ the selector. Use the complete-file profile for storage and range
 costs beyond the sampled extents.
 [Executed scope and results](evidence/windows-protected-pair-oracle-2026-11-25.json)
 
+Use `--profile-indexed-subset-reference` on the same Release build to
+price a fixed staged candidate of eight related extents and one rejected
+extent. The fixture verifies the rejected extent's original object and
+revision, the pinned source, and all files and small ranges after
+independent CPU reopen. Compare the compacted image plus selector.
+The four-release CPython and AITDCC 2026 I–P profiles separately measure
+the effect on ordinary automatic discovery.
+[Subset and held-out results](evidence/windows-subset-reference-refinement-2026-11-26.json)
+
 Run `flitzfs_native_group_maintenance_tests --profile-indexed-tail-oracle FILE`
 to price short last extents inside their complete files. The profile
 selects files larger than one extent with a partial last extent,

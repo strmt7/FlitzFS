@@ -6,6 +6,18 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "subset_reference_refinement": {
+    "source_parent": "bc20e10d9977df1bc1ce344305b9e8a0c9e64ad9",
+    "tested_source_tree": "8e941395e59888a6257b374f8a506a2181ad9817",
+    "evidence": "docs/evidence/windows-subset-reference-refinement-2026-11-26.json",
+    "related_extents": 8,
+    "rejected_extents": 1,
+    "mixed_settled_bytes_before": 770048,
+    "mixed_settled_bytes_after": 573440,
+    "cpython_group_then_cold_bytes": 696320,
+    "aitdcc_holdout_group_then_cold_bytes": 35160064,
+    "release_qualified": false
+  },
   "foreground_query_reuse": {
     "source_parent": "03d48a1d92a057949e8b2f019529bfc407a6089f",
     "tested_source_tree": "9f72f76005c69f5deda311ca4507e17dd57c2f7b",

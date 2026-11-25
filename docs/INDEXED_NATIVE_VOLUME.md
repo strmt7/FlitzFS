@@ -439,10 +439,13 @@ The AMD worker compressed the incoming overwrite.
 
 ### Assembled section references
 
-An admitted complete new group can retain its verified extents and try an
+A fully staged new candidate can retain its verified extents and try an
 alternate base after preparing the ordinary encoding. An AMD search can
-supply the same immutable input window. The trial requires enough residual
-payload to save a backing failure unit.
+supply the same immutable input window. When a candidate admits a subset,
+only the retained members contribute to section sampling, encoding and
+pricing. A rejected member keeps its original independent record and
+revision. The residual payload test uses the number of retained members
+and the provider's failure unit.
 It samples one extent per opportunity, finds exact shared sections at
 content-dependent boundaries, and ranks their decoded bytes by reuse across
 members. Retaining source order among the selected sections preserves
@@ -458,6 +461,15 @@ other members still depend on it.
 Successful publication supplies the extent of a linked member as the
 representative for later discovery and reuse.
 [Assembly validation](evidence/indexed-section-references-2026-11-20.json)
+
+In the mixed fixture, eight related extents and one rejected extent
+settled at 560 KiB including the selector. Refinement of the retained
+members reduced the matched 752 KiB control by 192 KiB. The
+compacted CPU reader verified every extent and sampled range. Grouped
+and cold-rewrite sizes matched the controls on the four-release CPython
+and AITDCC held-out corpora.
+[Subset and holdout evidence](evidence/windows-subset-reference-refinement-2026-11-26.json) ·
+[Related-data grouping at FAST 2026](https://www.usenix.org/conference/fast26/presentation/huang)
 
 Later scans can extend the same group. The scanner uses the logical bytes of
 a representative member to find related extents. It can nominate the

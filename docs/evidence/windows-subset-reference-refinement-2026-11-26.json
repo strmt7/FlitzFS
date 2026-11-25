@@ -1,0 +1,481 @@
+{
+  "schema": 1,
+  "date": "2026-11-26",
+  "source_parent": "bc20e10d9977df1bc1ce344305b9e8a0c9e64ad9",
+  "base_tree": "36aa24f09c66cbc22602543cd6a7279b7a08e5d2",
+  "tested_source_tree": "8e941395e59888a6257b374f8a506a2181ad9817",
+  "tested_source_blobs": [
+    {
+      "path": "src/native_indexed_volume.cpp",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ac5fa213dc3a5bdbd41c443c87c31287bcb1dc22",
+      "bytes": 157447
+    },
+    {
+      "path": "tests/test_native_group_maintenance.cpp",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6e4e2bf10e3b4a20b80a0cf8c96bff35d2297f89",
+      "bytes": 249809
+    }
+  ],
+  "baseline_executable_sha256": "112d66553eb487af306e2d9c4ec4ceb2c371c990ff0de91c549a4b999afc404e",
+  "scope": "Windows host CPU-only protected memory fixtures. The mixed profile fixes candidate membership. Both public holdouts use the automatic controller.",
+  "checks": {
+    "mixed_baseline": {
+      "run_receipt_sha256": "c3913215e189affc13e2610bd6eb1f4e56f5adf324f43ac1dc536d0d887b38d6",
+      "output_sha256": "48b340b78d1bbba1799367cddd43f0e24f7e663ccfbce9caf2ac5b51731d9619",
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "job_peak_bytes": 11526144,
+      "job_memory_limit_bytes": 1691353088,
+      "job_cpu_percent_limit": 17
+    },
+    "regressions": {
+      "run_receipt_sha256": "eab71bb5145aa8fb2993440d3b4abef7fd914af4ebd2a04d3504aab88964a1e9",
+      "output_sha256": "16b55c600b5c5e0d473a8cd917f73b18f682c2d565452d53171f5ba4dfaa5ed1",
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "job_peak_bytes": 105570304,
+      "job_memory_limit_bytes": 1006632960,
+      "job_cpu_percent_limit": 20,
+      "passed_tests": 5
+    },
+    "windows_suite": {
+      "run_receipt_sha256": "b7aa2edfb9b6128dd05ccdc7833a143807bfc720e452e6bf0384970480a54f37",
+      "output_sha256": "9124cea81f40f42b5b400f6c9397cd9a700a5fc4a7742481431c8c211a63ab84",
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "job_peak_bytes": 739160064,
+      "job_memory_limit_bytes": 1267728384,
+      "job_cpu_percent_limit": 24,
+      "passed_tests": 236
+    },
+    "raw_suite": {
+      "run_receipt_sha256": "0916502077aef9e2b80e484bd1be329211a17402f3311e0ab98ba6200e7bf919",
+      "output_sha256": "aea53710cc9ff8bcdb2872d8efeb7419aca2d3a58b296a9c5d75489acc256c7e",
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "job_peak_bytes": 104632320,
+      "job_memory_limit_bytes": 930086912,
+      "job_cpu_percent_limit": 16,
+      "passed_tests": 3
+    },
+    "asan_runtime_guard": {
+      "run_receipt_sha256": "739017e1ff7af52658494fcdcbb3991a713e724bf9bfa64b71129c68883b0bac",
+      "output_sha256": "cec82f729a957dd0485248ff3f2a2517c7086e52dfc2ed6adc1c5d83808a48ed",
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "job_peak_bytes": 10547200,
+      "job_memory_limit_bytes": 1075838976,
+      "job_cpu_percent_limit": 10,
+      "passed_tests": 1
+    },
+    "asan_suite": {
+      "run_receipt_sha256": "7393fa94167b955f49c3586c216958cc18413376b4ff63e106bf68c4ee8235ab",
+      "output_sha256": "b2727082e0771aad2e151a26aee2a52eb6533e6313942447270671e12f5b5d6d",
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "job_peak_bytes": 596447232,
+      "job_memory_limit_bytes": 2553282560,
+      "job_cpu_percent_limit": 20,
+      "passed_tests": 6
+    },
+    "cpython_before": {
+      "run_receipt_sha256": "9f6a2b0c0fc29819a47716eb9ea708d986c0db00a83835b319c0c9349c269cea",
+      "output_sha256": "0d80f49c843218621b9b684da5db127da0b825dd08914fc25b3b3f246d914025",
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "job_peak_bytes": 24461312,
+      "job_memory_limit_bytes": 1692401664,
+      "job_cpu_percent_limit": 22
+    },
+    "cpython_after": {
+      "run_receipt_sha256": "ba396b689ea3b2cdbb4c5f949349f00e5bdbe64e34925bb4a20ef1ddaea389b3",
+      "output_sha256": "31b365e5e7c5a30f803610a74954896beca7a1757b1f356cc2c4f13568b024c6",
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "job_peak_bytes": 23990272,
+      "job_memory_limit_bytes": 874512384,
+      "job_cpu_percent_limit": 20
+    },
+    "aitdcc_before": {
+      "run_receipt_sha256": "2efe294359894f8b7296e67f28d299e373147c23aad532b88ba70648fad3ca0b",
+      "output_sha256": "2d944dfc35113262fd6dec9db98a645ba0e5894d07908c966c9abcf027224839",
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "job_peak_bytes": 267931648,
+      "job_memory_limit_bytes": 2259681280,
+      "job_cpu_percent_limit": 24
+    },
+    "aitdcc_after": {
+      "run_receipt_sha256": "c4bd6a0d939a264eb0b984a8371a67f2578c4ee493b45a5d9165c579a44fc73d",
+      "output_sha256": "700580d808be9ce2dba35a9c17ec0abb570984497ae06e67264fcba0b6403b70",
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "job_peak_bytes": 267530240,
+      "job_memory_limit_bytes": 1167065088,
+      "job_cpu_percent_limit": 24
+    },
+    "baseline_build": {
+      "run_receipt_sha256": "50d1b418d51f58f05454b8e9f453daaea1797e5539ce4dd5897e83b2f9fc1677",
+      "output_sha256": "e5099d6f1ab394b9de12812ecbce21f89dc6090e752486ca6363ec23c968dc07",
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "job_peak_bytes": 438734848,
+      "job_memory_limit_bytes": 1854930944,
+      "job_cpu_percent_limit": 23
+    },
+    "final_build": {
+      "run_receipt_sha256": "f740f0bd378a23ef77bbfee6978628560933699eea29c4494816d8527c9b7749",
+      "output_sha256": "8629dcccd6f3d283bacbbc66d9e042ebc1c5703a42c2b23d2db0bff700838667",
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "job_peak_bytes": 612302848,
+      "job_memory_limit_bytes": 1247805440,
+      "job_cpu_percent_limit": 24
+    },
+    "final_raw_build": {
+      "run_receipt_sha256": "cbf76bad82edcff6e152d7ede83cb6371c6bb4c3b314a68af66a2265bf86e402",
+      "output_sha256": "b119b7ae8496e5789248b5aa2eec7c7b1e4aae67320889b6e905d6af9bdfe4ac",
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "job_peak_bytes": 389681152,
+      "job_memory_limit_bytes": 1072693248,
+      "job_cpu_percent_limit": 19
+    },
+    "final_asan_build": {
+      "run_receipt_sha256": "9f4a3e27bb4fb9a057e80b27a0d0c5ea1fcea1a9c48f11705ea28ed97f0ad3c6",
+      "output_sha256": "bb774dd3a26984d0ff69408ce02a6f975fdf7c9e51c16d0499b33f0ea2873ae3",
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "job_peak_bytes": 614080512,
+      "job_memory_limit_bytes": 1391460352,
+      "job_cpu_percent_limit": 21
+    }
+  },
+  "artifacts": {
+    "release_maintenance_tests": {
+      "sha256": "cc6519a5a729567c4cbb96ecf7a0a18e23075351060d6ff8abd2cef5012453dd",
+      "bytes": 2152448
+    },
+    "raw_maintenance_tests": {
+      "sha256": "22e86ce71789955261308df4af4de6aec46f1eb730bdec011e25c094a2f190e5",
+      "bytes": 1641472
+    },
+    "asan_maintenance_tests": {
+      "sha256": "5968d60ebc0e3b2443e7e2b9c9b34c0b970e07c32561370f602147e757789bf8",
+      "bytes": 7054848
+    },
+    "asan_runtime": {
+      "sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed",
+      "bytes": 1731408
+    }
+  },
+  "mixed_candidate": {
+    "baseline": {
+      "assembled_prefix_members": 0,
+      "assembled": 0,
+      "skipped_outlier": 1,
+      "image_bytes": 638976,
+      "selector_bytes": 131072,
+      "independent_cpu_readback": 1,
+      "pinned_exact": 1,
+      "settled_bytes": 770048
+    },
+    "candidate": {
+      "assembled_prefix_members": 8,
+      "assembled": 1,
+      "skipped_outlier": 1,
+      "image_bytes": 442368,
+      "selector_bytes": 131072,
+      "independent_cpu_readback": 1,
+      "pinned_exact": 1,
+      "settled_bytes": 573440
+    },
+    "settled_bytes_saved": 196608,
+    "settled_reduction_percent": 25.53,
+    "provider_failure_unit_bytes": 4096,
+    "rejected_extent_kept_object_and_revision": true,
+    "checked_full_and_range_readback": true,
+    "namespace_and_protection_matched": true
+  },
+  "public_holdouts": {
+    "cpython": {
+      "fixture_sha256": "d053d6acd0551763909205a2ed670d6bf6bc3e61a13ef0cd13ca93e69c5489f9",
+      "fixture_bytes": 2510781,
+      "files": 24,
+      "grouped_bytes_including_selector": 745472,
+      "cold_order": [
+        {
+          "arm": "cold_only",
+          "settled": 1343488,
+          "selector": 131072,
+          "source_read_bytes": 3715302,
+          "target_write_bytes": 1351680,
+          "range_read_bytes": 967366,
+          "selected": 1,
+          "cpu_exact": 1
+        },
+        {
+          "arm": "cold_then_group",
+          "settled": 614400,
+          "selector": 131072,
+          "source_read_bytes": 5570625,
+          "target_write_bytes": 950272,
+          "range_read_bytes": 1066052,
+          "groups": 13,
+          "cpu_exact": 1
+        },
+        {
+          "arm": "group_then_cold",
+          "settled": 565248,
+          "selector": 131072,
+          "source_read_bytes": 1462014,
+          "target_write_bytes": 573440,
+          "range_read_bytes": 1006352,
+          "selected": 1,
+          "cpu_exact": 1
+        }
+      ],
+      "group_then_cold_bytes_including_selector": 696320,
+      "before": {
+        "files": 24,
+        "before_compacted": 1531904,
+        "after_compacted": 614400,
+        "input_bytes": 2510681,
+        "selector_bytes": 131072,
+        "ingested_image_bytes": 2473984,
+        "maintained_image_bytes": 3375104,
+        "before_range_read_bytes": 1027032,
+        "after_range_read_bytes": 1066052,
+        "maintenance_read_bytes": 5730795,
+        "maintenance_read_calls": 2286,
+        "sampled_extents": 63,
+        "reused_features": 0,
+        "maintenance_write_bytes": 1007616,
+        "work_ns": 296915600,
+        "packed_groups": 1,
+        "attempts": 15,
+        "yield_observations": 14,
+        "members": 48,
+        "cpu_exact": 1,
+        "retained_snapshot_exact": 1,
+        "idle_io": 0
+      },
+      "after": {
+        "files": 24,
+        "before_compacted": 1531904,
+        "after_compacted": 614400,
+        "input_bytes": 2510681,
+        "selector_bytes": 131072,
+        "ingested_image_bytes": 2473984,
+        "maintained_image_bytes": 3375104,
+        "before_range_read_bytes": 1027032,
+        "after_range_read_bytes": 1066052,
+        "maintenance_read_bytes": 5730795,
+        "maintenance_read_calls": 2286,
+        "sampled_extents": 63,
+        "reused_features": 0,
+        "maintenance_write_bytes": 1007616,
+        "work_ns": 324863200,
+        "packed_groups": 1,
+        "attempts": 15,
+        "yield_observations": 14,
+        "members": 48,
+        "cpu_exact": 1,
+        "retained_snapshot_exact": 1,
+        "idle_io": 0
+      }
+    },
+    "aitdcc": {
+      "fixture_sha256": "26204e32bf232e5a40d5cce9d4f63a87c25fcb19f6eceadbff7c76321468c159",
+      "fixture_bytes": 25153047,
+      "files": 8,
+      "grouped_bytes_including_selector": 35766272,
+      "cold_order": [
+        {
+          "arm": "cold_only",
+          "settled": 35028992,
+          "selector": 131072,
+          "source_read_bytes": 89207188,
+          "target_write_bytes": 35037184,
+          "range_read_bytes": 661982,
+          "selected": 1,
+          "cpu_exact": 1
+        },
+        {
+          "arm": "cold_then_group",
+          "settled": 35028992,
+          "selector": 131072,
+          "source_read_bytes": 30416701,
+          "target_write_bytes": 0,
+          "range_read_bytes": 661982,
+          "groups": 0,
+          "cpu_exact": 1
+        },
+        {
+          "arm": "group_then_cold",
+          "settled": 35028992,
+          "selector": 131072,
+          "source_read_bytes": 89207188,
+          "target_write_bytes": 35037184,
+          "range_read_bytes": 661982,
+          "selected": 1,
+          "cpu_exact": 1
+        }
+      ],
+      "group_then_cold_bytes_including_selector": 35160064,
+      "before": {
+        "files": 8,
+        "before_compacted": 35635200,
+        "after_compacted": 35635200,
+        "input_bytes": 25153011,
+        "selector_bytes": 131072,
+        "ingested_image_bytes": 36667392,
+        "maintained_image_bytes": 36667392,
+        "before_range_read_bytes": 669843,
+        "after_range_read_bytes": 669843,
+        "maintenance_read_bytes": 30874653,
+        "maintenance_read_calls": 10492,
+        "sampled_extents": 386,
+        "reused_features": 0,
+        "maintenance_write_bytes": 0,
+        "work_ns": 93951500,
+        "packed_groups": 0,
+        "attempts": 1,
+        "yield_observations": 0,
+        "members": 0,
+        "cpu_exact": 1,
+        "retained_snapshot_exact": 1,
+        "idle_io": 0
+      },
+      "after": {
+        "files": 8,
+        "before_compacted": 35635200,
+        "after_compacted": 35635200,
+        "input_bytes": 25153011,
+        "selector_bytes": 131072,
+        "ingested_image_bytes": 36667392,
+        "maintained_image_bytes": 36667392,
+        "before_range_read_bytes": 669843,
+        "after_range_read_bytes": 669843,
+        "maintenance_read_bytes": 30874653,
+        "maintenance_read_calls": 10492,
+        "sampled_extents": 386,
+        "reused_features": 0,
+        "maintenance_write_bytes": 0,
+        "work_ns": 91410600,
+        "packed_groups": 0,
+        "attempts": 1,
+        "yield_observations": 0,
+        "members": 0,
+        "cpu_exact": 1,
+        "retained_snapshot_exact": 1,
+        "idle_io": 0
+      }
+    }
+  },
+  "current_sources": {
+    "receipt_sha256": "6ddc6b5f540c88ddaa8726ef26b42fb848a3d0e18220e29698cd29d82f8a620f",
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "lock_sha256": "01fbef3b628f772e4aba9724b6ced11c0f211d4d3bf51e38d1b9d0039eac997b",
+    "provider_source_identity": {
+      "tools/crawl4ai_tool.py": "e84a0e54ee07e4e13d3d2f35491f641730096a78126068f232c1f2397a467d8c",
+      "tools/crawl4ai_research.py": "ec3cb7a98eceed8fef08f3af806d6eaed35656bd76ca0ee8853d273f790337a5",
+      "tools/requirements/crawl4ai.txt": "6a42b0ff5ff6c63c843c6329ce823b819fd4f6f068e68d1836ab6dbec96e8f2f",
+      "tools/crawl4ai_sites.json": "e8869cb0488d78762a90aea6ecf2c3616bb89f0c89a8800cc512c613a750dc86",
+      "tools/nltk_distribution.py": "19eb3007c226b1a13e1ad0daa79cbd8a7bf6d082a20bf386e36ac060d0000919",
+      "tools/python_wheel.py": "c3c9a62454cb377203abce32154bec07cbf805bc7420cc89386c1c18370b301a",
+      "tools/test_nltk_model_security.py": "8aab7e2a704af875992ecae9137cdf5e5ff6935a4dd49e6751c54b2629a7280b",
+      "tools/requirements/python-build.txt": "9b280d724fda87773ba33a2654362adad84c68c4f79394adc07ff2e0293ca498",
+      "tools/crawl4ai_source_build.py": "5c27c4693fa0880a8db399825f637b694616963fc11f708afed33fa5b2e38b48",
+      "tools/crawl4ai_download_opener.py": "d5fd20b5545fd64c93a06b3ef07732f1c2da7e09ee6cda80662475007db52538",
+      "tools/test_crawl4ai_downloads.py": "ae4cf54c351a9da2de49caeb96306f384bb6a8f487318eabc69db4132d658619",
+      "third_party/upstream/nltk/3.10.4/distribution.json": "3241a8670f12e205525fc096572ed1969c063f77e13cffd70eff5eb656fbe1b0",
+      "nltk_upstream_wheel": "e46d89e59ef949270e3b19ab097da8dbb09350e05cb5a746ff92f6ccf6e8ce90",
+      "crawl4ai_source_build": "7da6376934254d9ad1de9e016a4509dae32c47559955889424435fcbbc7419f5"
+    },
+    "native_pages": [
+      {
+        "name": "rubikfs",
+        "url": "https://www.usenix.org/conference/fast26/presentation/huang",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 10416,
+        "markdown_sha256": "dbc538fff3a57a4c36ef94c8a47e1737270a83880e2fb6957160b9b46f285256",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.288,
+        "capture": "rubikfs.native.json",
+        "capture_sha256": "3d33e287f95fcca7a27d75187fcda1caea143929ae7b184bc593e858e18ef1b7"
+      },
+      {
+        "name": "version-aware",
+        "url": "https://www.mdpi.com/2079-9292/15/20/4712",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 87173,
+        "markdown_sha256": "f7570526def2f58dbcbc0da15c58c48b1ccef7bfd2a156d0c5e423abe3b3f031",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.295,
+        "capture": "version-aware.native.json",
+        "capture_sha256": "b2608685d8b1cc5b229a4fb7432179fef4c078ebf0496ad1169d8debb4822038"
+      },
+      {
+        "name": "prefix-api",
+        "url": "https://github.com/facebook/zstd/blob/v1.6.0/lib/zstd.h",
+        "success": true,
+        "native_success": true,
+        "http_status": 301,
+        "final_http_status": 200,
+        "markdown_bytes": 182114,
+        "markdown_sha256": "3065365e635fe2ad2aef6ca7363ba46d9dda52ec2acff16b67fd9d3528af01b0",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 2.254,
+        "capture": "prefix-api.native.json",
+        "capture_sha256": "5b02baed531f3a1b70b23c3797d4b86f14727217184cc01aaf8d710ee0aaeff9"
+      },
+      {
+        "name": "held-out",
+        "url": "https://aitdcc.github.io/dataset.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 6271,
+        "markdown_sha256": "766801630c0c3f7c80304f41397c0ae265fd0cb79387c2837c920c08b8987676",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.548,
+        "capture": "held-out.native.json",
+        "capture_sha256": "5ce7afbdf800c0b9389c15ac8e25078cdeceef0e93d1297dcfadf9ed713045d2"
+      }
+    ],
+    "robots": true,
+    "timeout_seconds_per_page": 45,
+    "external_LLM": false
+  },
+  "source_navigation": {
+    "commit": "bc20e10d9977df1bc1ce344305b9e8a0c9e64ad9",
+    "inventory_sha256": "a2593d61aa814699d742da81cd439fa8b4e13de09f9b91fc5da64eb8493e3a6f",
+    "native_response_sha256": "34f1d3ade83b43fbe3efa4c39edd79c166e35d3c344b09b2e6540b09f7637af2",
+    "provider_version": "0.2.43",
+    "query": "choose prefixed Zstandard assembled base sections shifted match replace old dependency select protected full size and reprice dictionary when extending or merging existing cold related extent group",
+    "actual_searches": 1
+  },
+  "gpu_worker_started": false,
+  "physical_host_mount": false,
+  "release_qualified": false
+}

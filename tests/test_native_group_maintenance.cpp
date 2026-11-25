@@ -318,7 +318,7 @@ std::vector<Bytes> prefix_family(const Bytes& base=data(kNativeExtentBytes,3819)
   return originals;
 }
 
-void indexed_assembled_prefix() {
+void indexed_assembled_prefix(bool subset=false,bool require_alternate=true) {
   if(!store_zstd_available())return;
   constexpr StoreCompressionOptions policy{StoreCompressionMode::automatic,3,true};
   constexpr NativeImageStorage storage{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes};
@@ -339,17 +339,53 @@ void indexed_assembled_prefix() {
     }
     put(*f.session,name(file),revision);
   }
+  const auto unrelated=subset?data(kNativeExtentBytes,87931):Bytes{};
+  if(subset)put(*f.session,"unrelated",unrelated);
   f.session.reset();
   const auto pinned=NativeFilesystemSnapshot::open_image(f.image,storage);
-  const auto resolve=[&](const StoreIdentity& key)->std::shared_ptr<StoreByteIo>{return key==id(1)?f.image:nullptr;};
-  f.session.emplace(NativeFileSession::resume_closed_indexed_volume(f.head,id(90),1,resolve,policy));
-  NativeMaintenanceProgress progress;
-  {
+  bool assembled=false;
+  std::uint64_t prefixed=0;
+  if(subset) {
+    const auto frozen=PagedObjectStoreSnapshot::open(f.image,{kStoreMaxPhysicalBytes});
+    auto writer=PagedObjectStoreWriter::resume(f.image,id(1),frozen.info().generation,{kStoreMaxPhysicalBytes},policy);
+    const auto source=writer.snapshot();
+    const detail::IndexedVolumeView view(source,source.read(1));
+    auto root=view.root();
+    std::array<NativeExtentSelection,count+1> members;
+    for(std::size_t file=0;file<count;++file)members[file]={view.resolve(name(file)).inode,0};
+    members.back()={view.resolve("unrelated").inode,0};
+    const auto outlier=view.content_at(members.back());
+    require(outlier.has_value(),"subset fixture lost its unrelated extent");
+    detail::IndexedSharedBasePreparation work(source,root,members.front(),members,{},true,false);
+    work.admit_variants(true,true,true,true);
+    require(!work.advance({},nullptr),"mixed candidate did not enter encoding");
+    std::weak_ptr<const void> window;
+    for(std::size_t peer=1;peer<members.size();++peer)
+      require(work.stage_search(members.size()-1,window,NativeSharedBaseSearchPurpose::section_comparison),
+          "mixed candidate did not stage its checked inputs");
+    bool done=false;
+    for(std::size_t step=0;step<8*members.size() && !done;++step)done=work.advance({},nullptr);
+    require(done,"mixed candidate did not complete bounded refinement");
+    const auto result=work.finish(writer,source,root);
+    require(result.applied && result.members==count && result.skipped_objects==std::vector{outlier->object} &&
+        result.reference.inode!=members.back().inode,"mixed candidate failed to retain exactly its related subset");
+    const auto committed=writer.snapshot();
+    const detail::IndexedVolumeView selected(committed,committed.read(1));
+    const auto unchanged=selected.content_at(members.back());
+    require(unchanged && unchanged->object==outlier->object && unchanged->revision==outlier->revision &&
+        !unchanged->grouped,"refinement rewrote or attached the rejected extent");
+    assembled=result.section_reference;
+    prefixed=result.prefixed_zstd_members;
+  } else {
+    const auto resolve=[&](const StoreIdentity& key)->std::shared_ptr<StoreByteIo>{return key==id(1)?f.image:nullptr;};
+    f.session.emplace(NativeFileSession::resume_closed_indexed_volume(f.head,id(90),1,resolve,policy));
     NativeGroupMaintenance maintenance(*f.session);
-    progress=f.finish(maintenance);
+    const auto progress=f.finish(maintenance);
+    assembled=progress.section_reference_groups==1;
+    prefixed=progress.prefixed_zstd_members;
   }
-  require(progress.section_reference_groups==1 && progress.prefixed_zstd_members>0,
-      "normal maintenance did not select Zstandard against the assembled reference");
+  require(!require_alternate || (assembled && prefixed),
+      "eligible group did not select Zstandard against its assembled reference");
   f.session.reset();
   const auto current=NativeFilesystemSnapshot::open_image(f.image,storage);
   const auto group=current.shared_base_info();
@@ -359,6 +395,7 @@ void indexed_assembled_prefix() {
   const auto settled=NativeFilesystemSnapshot::open_image(target,storage);
   for(const auto* reader:{&pinned,&current,&settled}) {
     reader->verify_all();
+    if(subset)require(reader->read("unrelated",0,kNativeExtentBytes)==unrelated,"refinement changed the rejected member");
     for(std::size_t file=0;file<files.size();++file) {
       require(reader->read(name(file),0,kNativeExtentBytes)==files[file],"assembled prefix changed a revision");
       const auto offset=file?file*section-8:0;
@@ -367,8 +404,9 @@ void indexed_assembled_prefix() {
           "assembled prefix changed a small CPU range");
     }
   }
-  std::cout<<"assembled_prefix_members="<<progress.prefixed_zstd_members<<" image_bytes="<<target->extent()
-      <<" selector_bytes="<<f.head->extent()<<" independent_cpu_readback=1 pinned_exact=1\n";
+  std::cout<<"assembled_prefix_members="<<prefixed<<" assembled="<<assembled<<" skipped_outlier="<<subset
+      <<" image_bytes="<<target->extent()<<" selector_bytes="<<f.head->extent()
+      <<" independent_cpu_readback=1 pinned_exact=1\n";
 }
 
 void indexed_prefix_bank_boundary() {
@@ -4171,6 +4209,9 @@ int main(int argc,char** argv){try{
     indexed_prefix_bank_boundary();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-assembled-prefix") {
     indexed_assembled_prefix();
+    indexed_assembled_prefix(true);
+  } else if(argc==2 && std::string_view(argv[1])=="--profile-indexed-subset-reference") {
+    indexed_assembled_prefix(true,false);
   } else if((argc==2 || argc==3) && std::string_view(argv[1])=="--profile-indexed-prefix-extension") {
     indexed_prefix_extension(false,argc==3?argv[2]:nullptr);
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-batched-prefix") {

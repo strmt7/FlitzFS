@@ -1930,9 +1930,16 @@ bool IndexedSharedBasePreparation::stage_section_reference() {
     auto& trial=*section_reference_;
     if(!trial.index) {
       if(trial.sampled<=search_->member_count) {
-        const auto& sample=trial.sampled?search_->bytes->members[trial.sampled-1]:search_->bytes->base;
-        trial.sections.sample(sample);
-        ++trial.sampled;
+        const auto sample=trial.sampled++;
+        auto position=base_index_;
+        if(sample) {
+          position=sample-1;
+          if(position>=base_index_)++position;
+        }
+        if(!members_[position].skipped) {
+          const auto& bytes=sample?search_->bytes->members[sample-1]:search_->bytes->base;
+          trial.sections.sample(bytes);
+        }
         return true;
       }
       trial.base=trial.sections.finish();
@@ -1946,9 +1953,13 @@ bool IndexedSharedBasePreparation::stage_section_reference() {
     }
     const auto position=trial.frames.size();
     if(position==members_.size())return false;
+    const auto& member=members_[position];
+    if(member.skipped) {
+      trial.frames.emplace_back();
+      return true;
+    }
 
     const auto& bytes=position==base_index_?search_->bytes->base:search_->bytes->members[search_slot(position)];
-    const auto& member=members_[position];
     auto frame=encode_native_group_member(bytes,trial.base,kNativeGroupBaseBit+1,1);
     if(auto copies=trial.index->encode(bytes,trial.base,kNativeGroupBaseBit+1,1,
         frame?frame->size():kNativeExtentBytes))frame=std::move(copies);
@@ -2251,11 +2262,13 @@ bool IndexedSharedBasePreparation::complete_member() {
   if(progress_.completed_members!=members_.size())return false;
 
   anchor_index_.reset();
-  if(complete_window && std::ranges::none_of(members_,&Member::skipped)) {
+  if(complete_window) {
+    const auto retained=members_.size()-static_cast<std::size_t>(std::ranges::count(members_,true,&Member::skipped));
     const bool reserved=search_->purpose==NativeSharedBaseSearchPurpose::section_comparison;
     const auto header=extent_header+kNativeGroupMemberHeaderBytes;
-    if(reserved || staged_reference_admitted_) {
-      const auto minimum=base_.size()+members_.size()*header;
+    if(retained>=2 && (reserved || staged_reference_admitted_)) {
+      // Compare against the members that would actually be published.
+      const auto minimum=base_.size()+retained*header;
       compare_sections_=!reusable_anchor_ &&
           progress_.owned_payload_bytes>=minimum+source_.isolation_unit();
       // Automatic compression can try small improvements on the same base.
@@ -2264,7 +2277,7 @@ bool IndexedSharedBasePreparation::complete_member() {
           std::ranges::any_of(members_,[&](const auto& member){return member.frame.size()>header;});
       staged_reference_comparison_=!reserved && (compare_sections_ || compare_prefix_);
     }
-    if(packing_admitted_ && !reusable_anchor_) {
+    if(retained==members_.size() && packing_admitted_ && !reusable_anchor_) {
       std::size_t bytes=0;
       for(const auto& member:members_) {
         if(!member.payload_bytes || member.payload_bytes>kNativeExtentBytes-bytes) {
@@ -2380,6 +2393,7 @@ NativeSharedBaseCommit IndexedSharedBasePreparation::finish(PagedObjectStoreWrit
     try {
       std::map<std::uint64_t,Bytes> replacements;
       for(std::size_t i=0;i<members_.size();++i) {
+        if(members_[i].skipped)continue;
         auto& frame=trial->frames[i];
         if(slices) {
           put(frame,24,anchor);
@@ -2458,6 +2472,8 @@ NativeSharedBaseCommit IndexedSharedBasePreparation::finish(PagedObjectStoreWrit
     const auto slot=static_cast<std::size_t>(reference_member_-1);
     reference_index=slot+(slot>=base_index_);
   }
+  if(replaced_reference && members_[reference_index].skipped)
+    reference_index=static_cast<std::size_t>(std::ranges::find(members_,false,&Member::skipped)-members_.begin());
   result.reference=members_[reference_index].selected;
   result.applied=true;
   return result;
