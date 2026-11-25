@@ -93,7 +93,8 @@ void indexed_reopen_checks_batched_replicas() {
   const std::array<IndexedInodeInput,3> inodes{{
       {1,0,0,1,1,true,""},{2,1,first.size(),1,1,false,"first"},{3,1,second.size(),1,1,false,"second"}}};
   const std::array<IndexedExtentInput,2> extents{{{2,0,first},{3,0,second}}};
-  builder.append(inodes,extents);
+  builder.append(std::span(inodes).first(1));
+  builder.append(std::span(inodes).subspan(1),extents);
   const auto source=builder.finish();
   const auto volume=identity_for(83);
   {auto owner=NativeVolumeHeadWriter::create(head,volume,source);}
@@ -129,51 +130,51 @@ void indexed_reopen_checks_batched_replicas() {
   verify_before_fences(0);
   verify_before_fences(image->failure_unit);
 
-  {
-    // Locate the two frames through the checked object directory. A fault
-    // in a prefetched inode must invalidate the whole primary observation,
-    // even when decoding the first child would not encounter that byte.
-    const auto objects=PagedObjectStoreSnapshot::open(image,limits);
-    const auto first_inode=offset_of(objects.read((1ULL<<63)|2));
-    const auto second_inode=offset_of(objects.read((1ULL<<63)|3));
-    require(first_inode<second_inode && first_inode/image->failure_unit==second_inode/image->failure_unit,
-        "inode read window fixture does not share a bank");
+  // A fault in either bank invalidates the paired observation even when
+  // the first decoded child would not encounter the damaged byte.
+  const auto objects=PagedObjectStoreSnapshot::open(image,limits);
+  const auto first_inode=offset_of(objects.read((1ULL<<63)|2));
+  const auto second_inode=offset_of(objects.read((1ULL<<63)|3));
+  require(first_inode<second_inode && first_inode/image->failure_unit==second_inode/image->failure_unit,
+      "inode read window fixture does not share a bank");
+  for(const auto bank:std::array<std::uint64_t,2>{0,image->failure_unit}) {
     auto snapshot=NativeFilesystemSnapshot::open_image(image,source.image_storage());
     const auto writes=image->write_bytes;
-    image->corrupt_read_offset=second_inode+1;
+    image->corrupt_read_offset=second_inode+bank+1;
     image->corrupt_read_number=1;
     image->matching_reads=0;
     image->corrupted_read_start=Ram::no_read_fault;
     snapshot.verify_all();
     image->corrupt_read_offset=Ram::no_read_fault;
-    require(snapshot.storage_info().degraded_checkpoint && image->corrupted_read_start<=first_inode &&
+    require(snapshot.storage_info().degraded_checkpoint && image->corrupted_read_start<=first_inode+bank &&
         image->write_bytes==writes && snapshot.read_inode(2,0,first.size())==first &&
         snapshot.read_inode(3,0,second.size())==second,
         "namespace run accepted a failed observation or lost checked inode content");
   }
 
-  const auto reject_after_fences=[&](std::uint64_t bank,bool both) {
+  const auto reject_after_fences=[&](std::uint64_t first_frame,std::uint64_t second_frame,std::uint64_t bank,bool both) {
     const auto writes=image->write_bytes+head->write_bytes;
     const auto image_fences=image->flushes,head_fences=head->flushes;
-    image->corrupt_read_offset=second_at+bank+1;
+    image->corrupt_read_offset=second_frame+bank+1;
     image->corrupt_read_number=2;
-    image->corrupt_followup_offset=both?second_at+image->failure_unit+1:Ram::no_read_fault;
+    image->corrupt_followup_offset=both?second_frame+image->failure_unit+1:Ram::no_read_fault;
     image->matching_reads=0;
     image->corrupted_read_start=Ram::no_read_fault;
     refuses(NativeFsErrorCode::invalid_operation,[&] {
       (void)NativeFileSession::resume_closed_indexed_volume(head,volume,1,resolve,raw);
     });
     const auto last_bank=both?image->failure_unit:bank;
-    const auto first_peer_at=first_at+last_bank;
+    const auto first_peer_at=first_frame+last_bank;
     require(image->corrupted_read_start/image->failure_unit==first_peer_at/image->failure_unit &&
         image->corrupted_read_start<=first_peer_at && image->flushes==image_fences+1 &&
         head->flushes==head_fences+1 && image->write_bytes+head->write_bytes==writes,
         "writable reopen did not reject an interior replica observation after both fences");
   };
-  reject_after_fences(0,false);
-  reject_after_fences(image->failure_unit,false);
+  reject_after_fences(first_at,second_at,0,false);
+  reject_after_fences(first_at,second_at,image->failure_unit,false);
+  reject_after_fences(first_inode,second_inode,image->failure_unit,false);
   // Equality between two identically damaged observations is insufficient.
-  reject_after_fences(0,true);
+  reject_after_fences(first_at,second_at,0,true);
   image->corrupt_read_offset=Ram::no_read_fault;
   const auto session=NativeFileSession::resume_closed_indexed_volume(head,volume,1,resolve,raw);
   const auto restored=NativeFilesystemSnapshot::open_image(image,source.image_storage());

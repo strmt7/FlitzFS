@@ -381,7 +381,7 @@ std::optional<Entry> lookup(const State& s,std::uint64_t id,LookupPages* scoped=
       if(i==n.entries.end() || i->id!=id)return {};
       // A local Node dies on return. Only expose entries kept in query storage.
       if(retained_entries && (scoped || (retained_root && !s.root.height)))
-        *retained_entries=std::span(n.entries).subspan(static_cast<std::size_t>(i-n.entries.begin()));
+        *retained_entries=n.entries;
       return *i;
     }
     auto i=std::lower_bound(n.children.begin(),n.children.end(),id,[](const auto& c,auto key){return c.last<key;});
@@ -652,7 +652,7 @@ void verify_decoded_run(const State& s,std::span<Record> records,std::span<const
   }
 }
 void verify(const State& s,const VerifiedObjectVisitor* consume=nullptr,
-    PayloadVerification verification=PayloadVerification::decoded) {
+    PayloadVerification verification=PayloadVerification::decoded,std::span<const std::uint64_t> verified={}) {
   s.image->verify_backing();
   (void)read_node(s,s.root);
   bool done=false;
@@ -671,6 +671,14 @@ void verify(const State& s,const VerifiedObjectVisitor* consume=nullptr,
     while(!entries.empty()) {
       const auto run=mirrored_record_run(s,entries);
       const auto records=entries.first(run.count);
+      if(!verified.empty() && verified.front()<=records.back().id) {
+        if(verified.size()<run.count ||
+            !std::ranges::equal(records,verified.first(run.count),{},&Entry::id))
+          fail("incomplete verified metadata run");
+        verified=verified.subspan(run.count);
+        entries=entries.subspan(run.count);
+        continue;
+      }
       if(run.combines_reads() && verify_stored_run(s,records,run.bytes,scratch)) {
         if(!stored)verify_decoded_run(s,records,std::span<const std::byte>(scratch).first(run.bytes),consume);
       }else {
@@ -681,6 +689,7 @@ void verify(const State& s,const VerifiedObjectVisitor* consume=nullptr,
     return true;
   };
   walk_leaves(s,s.root,0,leaf,done);
+  if(!verified.empty())fail("verified metadata is missing from the inventory");
 }
 std::array<std::byte,page_bytes> root_bytes(const State& s,std::uint64_t generation) {
   std::array<std::byte,page_bytes> b{};set_magic(b,s.compact_roots?compact_root_magic:root_magic);
@@ -2338,61 +2347,112 @@ std::vector<StoreObjectInfo> PagedObjectStoreSnapshot::list_page(std::uint64_t a
   walk(impl_->state,impl_->state.root,after,visitor,done);return result;
 }
 void PagedObjectStoreSnapshot::verify_all() const {if(!impl_)fail("moved-from snapshot");verify(impl_->state);}
-void PagedObjectStoreSnapshot::visit_verified_objects(const VerifiedObjectVisitor& consume) const {
+void PagedObjectStoreSnapshot::visit_verified_objects(const VerifiedObjectVisitor& consume,AuditMetadataReads* audited) const {
   if(!impl_)fail("moved-from snapshot");
-  verify(impl_->state,&consume);
+  std::span<const std::uint64_t> verified;
+  if(audited) {
+    if(&audited->owner!=this || !audited->paired.records.empty())fail("incomplete metadata audit");
+    std::ranges::sort(audited->verified_ids);
+    if(std::ranges::adjacent_find(audited->verified_ids)!=audited->verified_ids.end())
+      fail("duplicate verified metadata in the namespace audit");
+    verified=audited->verified_ids;
+    Bytes{}.swap(audited->primary.frames);
+    Bytes{}.swap(audited->paired.frames);
+  }
+  verify(impl_->state,&consume,PayloadVerification::decoded,verified);
 }
 std::optional<Bytes> PagedObjectStoreSnapshot::read_audit_metadata(AuditMetadataReads& reads,
-    std::uint64_t id,std::uint64_t last_id,std::size_t maximum_decoded_bytes) const {
-  if(!impl_)fail("moved-from snapshot");
+    std::uint64_t id,std::uint64_t last_id,std::size_t maximum_decoded_bytes,bool& verified) const {
+  if(!impl_ || &reads.owner!=this)fail("invalid audit snapshot");
+  verified=false;
   const auto& state=impl_->state;
-  const auto decode=[&](const AuditMetadataReads::Record& record) {
+  const auto decode=[&](const auto& window,const AuditMetadataReads::Record& record) {
     if(record.logical>maximum_decoded_bytes)fail("object exceeds decoded read budget");
-    const auto frame=std::span<const std::byte>(reads.frames).subspan(record.offset,record_header_bytes+record.stored);
+    const auto frame=std::span<const std::byte>(window.frames).subspan(record.offset,record_header_bytes+record.stored);
     return decode_record(state,record.logical,frame.first<record_header_bytes>(),frame.subspan<record_header_bytes>());
   };
-  const auto cached=std::ranges::lower_bound(reads.records,id,{},&AuditMetadataReads::Record::id);
-  if(cached!=reads.records.end() && cached->id==id)return decode(*cached);
+  const auto consume_paired=[&] {
+    auto& window=reads.paired;
+    const auto& record=window.records[reads.next_paired];
+    try {
+      auto decoded=decode(window,record);
+      reads.verified_ids.push_back(record.id);
+      if(++reads.next_paired==window.records.size()) {
+        window.records.clear();
+        reads.next_paired=0;
+      }
+      verified=true;
+      return decoded;
+    }catch(const std::bad_alloc&){throw;}
+    catch(const std::exception&) {
+      state.degraded_payloads=true;
+      throw;
+    }
+  };
+  if(!reads.paired.records.empty() && reads.paired.records[reads.next_paired].id==id)
+    return consume_paired();
+  const auto& primary=reads.primary;
+  const auto cached=std::ranges::lower_bound(primary.records,id,{},&AuditMetadataReads::Record::id);
+  if(cached!=primary.records.end() && cached->id==id)return decode(primary,*cached);
 
-  std::span<const Entry> neighbors;
+  std::span<const Entry> leaf;
   const auto entry=lookup(state,id,impl_->lookup_pages?&*impl_->lookup_pages:nullptr,
-      impl_->retained_root?&*impl_->retained_root:nullptr,&neighbors);
+      impl_->retained_root?&*impl_->retained_root:nullptr,&leaf);
   if(!entry)return {};
   if(entry->logical>maximum_decoded_bytes)fail("object exceeds decoded read budget");
-  if(!state.mirrored || neighbors.size()<2)return read_object(state,*entry);
+  if(!state.mirrored || leaf.size()<2)return read_object(state,*entry);
 
   // Use only consecutive frames in the caller's typed object range.
-  const auto stop=std::ranges::find_if(neighbors,[&](const Entry& neighbor) {
+  const auto first=std::ranges::lower_bound(leaf,id,{},&Entry::id);
+  const auto last=std::find_if(first,leaf.end(),[&](const Entry& neighbor) {
     return neighbor.id>last_id || neighbor.logical>maximum_decoded_bytes;
   });
-  neighbors=neighbors.first(static_cast<std::size_t>(stop-neighbors.begin()));
+  const auto neighbors=std::span(first,last);
   if(neighbors.size()<2)return read_object(state,*entry);
   const auto run=mirrored_record_run(state,neighbors);
   if(run.count<2)return read_object(state,*entry);
 
-  reads.records.clear();
+  // Keep just one paired run pinned across a nested directory walk. Only
+  // consume a full inventory run so missing entries cannot split its I/O.
+  bool pair=false;
+  if(reads.paired.records.empty() && run.count<=reads.verified_ids.capacity()-reads.verified_ids.size()) {
+    auto remaining=leaf;
+    while(!remaining.empty() && remaining.front().id<id)
+      remaining=remaining.subspan(mirrored_record_run(state,remaining).count);
+    pair=!remaining.empty() && remaining.front().id==id &&
+        mirrored_record_run(state,remaining).count==run.count;
+  }
+  auto& window=pair?reads.paired:reads.primary;
+  window.records.clear();
   try {
-    reads.records.reserve(run.count);
-    reads.frames.resize(run.bytes);
-    read_record_bytes(*state.image,entry->offset,0,reads.frames,state.unit);
-    std::size_t offset=0;
-    for(const auto& member:neighbors.first(run.count)) {
-      const auto length=record_header_bytes+member.stored;
-      (void)checked_frame_payload(state,member,std::span(reads.frames).subspan(offset,length));
-      reads.records.push_back({member.id,offset,member.stored,member.logical});
-      offset+=length;
+    window.records.reserve(run.count);
+    const auto records=neighbors.first(run.count);
+    bool checked=true;
+    if(pair)checked=verify_stored_run(state,records,run.bytes,window.frames);
+    else {
+      window.frames.resize(run.bytes);
+      read_record_bytes(*state.image,entry->offset,0,window.frames,state.unit);
+    }
+    if(checked) {
+      std::size_t offset=0;
+      for(const auto& member:records) {
+        const auto length=record_header_bytes+member.stored;
+        if(!pair)(void)checked_frame_payload(state,member,std::span(window.frames).subspan(offset,length));
+        window.records.push_back({member.id,offset,member.stored,member.logical});
+        offset+=length;
+      }
     }
   }catch(const std::bad_alloc&) {
-    reads.records.clear();
+    window.records.clear();
   }catch(const detail::StoreCaptureInterrupted&) {
     throw;
   }catch(const std::exception&) {
     // Keep a failed observation degraded even if separate reads recover it.
     state.degraded_payloads=true;
-    reads.records.clear();
+    window.records.clear();
   }
-  if(reads.records.empty())return read_object(state,*entry);
-  return decode(reads.records.front());
+  if(window.records.empty())return read_object(state,*entry);
+  return pair?consume_paired():decode(window,window.records.front());
 }
 void PagedObjectStoreSnapshot::recheck_verified_mirrors(const PagedObjectStoreSnapshot& audited) const {
   if(!impl_ || !audited.impl_)fail("moved-from snapshot");

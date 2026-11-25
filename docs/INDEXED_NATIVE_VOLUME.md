@@ -1024,6 +1024,29 @@ per file in these layouts. The revised fit predicts the held-out
 4,096-file count to within 0.09%. The audit still traverses the inventory.
 [Paired counts and fault checks](evidence/windows-indexed-namespace-read-window-2026-11-25.json)
 
+### Reuse complete inode replica runs within the decoded audit
+
+The namespace walk can verify a complete mirrored inode run from one
+checked object leaf. Every frame must fit the existing physical run and
+be within the name walk's pending sibling range. Each decoded inode
+passes the same name, parent, lifetime and native accounting checks.
+The owner retains one paired window while nested directories use the
+ordinary scratch. The subsequent object walk consumes the verified IDs
+only at their full run boundary. It still traverses the checked tree
+and checks every other object. Both replicas are read afresh after the
+image and selector flushes.
+
+The 16,384-file Windows memory image used 24,825 provider reads before
+this change and 23,919 after it. Before the image flush it read
+39,081,516 and 36,657,339 bytes. The raw 374-file CPython control recorded
+1,578 provider reads and 2,289,163 pre-flush bytes in both arms. Each
+pair had the same post-flush reads, one flush per backing and zero writes.
+Independent CPU readback matched every file. Fault coverage includes a
+damaged inode in either bank and a fresh peer failure after both flushes.
+The first implementation allowed partial runs and increased calls on
+the CPython tree. The current implementation requires a full run.
+[Matched profiles and replica checks](evidence/windows-whole-run-inode-audit-2026-11-25.json)
+
 Use read grouping to reduce the cost of the complete audit. XFS describes
 readahead in its full metadata repair scans. Btrfs documents separate
 validation of checked tree blocks. Those designs inform batching against

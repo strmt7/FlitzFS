@@ -141,22 +141,29 @@ class PagedObjectStoreSnapshot final {
   friend class detail::NativeWriteCaptureLease;
   friend class detail::NativeNameIndex;
   static PagedObjectStoreSnapshot open_sealed(std::shared_ptr<detail::ProtectedStripeImage>);
-  // Stream decoded objects after checking all of their payload copies.
-  void visit_verified_objects(const std::function<void(std::uint64_t,std::vector<std::byte>)>&) const;
-  // Scoped to the namespace pass of one complete audit. Records come from
-  // one checked leaf and one bounded primary read. Replica verification
-  // always uses its own fresh reads.
+  // Scoped to one snapshot and one complete decoded inventory. Only
+  // successfully decoded records from a checked mirror pair earn reuse.
   struct AuditMetadataReads {
     struct Record {
       std::uint64_t id;
       std::size_t offset;
       std::uint32_t stored,logical;
     };
-    std::vector<Record> records;
-    std::vector<std::byte> frames;
+    struct Window {
+      std::vector<Record> records;
+      std::vector<std::byte> frames;
+    };
+    const PagedObjectStoreSnapshot& owner;
+    Window primary,paired;
+    std::size_t next_paired=0;
+    std::vector<std::uint64_t> verified_ids;
   };
+  // Stream decoded objects after checking all payload copies. Metadata
+  // already consumed in this decoded audit does not visit the caller twice.
+  void visit_verified_objects(const std::function<void(std::uint64_t,std::vector<std::byte>)>&,
+      AuditMetadataReads* audited=nullptr) const;
   std::optional<std::vector<std::byte>> read_audit_metadata(AuditMetadataReads&,std::uint64_t id,
-      std::uint64_t last_id,std::size_t maximum_decoded_bytes) const;
+      std::uint64_t last_id,std::size_t maximum_decoded_bytes,bool& verified) const;
   // For an already decoded and audited checkpoint under the same backing
   // lease. Both stored replicas still receive fresh reads and digest checks.
   void recheck_verified_mirrors(const PagedObjectStoreSnapshot& audited) const;

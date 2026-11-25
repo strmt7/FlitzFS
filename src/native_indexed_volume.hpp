@@ -282,7 +282,7 @@ class IndexedVolumeView final {
   IndexedVolumeView(const PagedObjectStoreSnapshot&,IndexedVolumeRoot root);
   IndexedInodeInput referenced_inode(std::uint64_t id,bool allow_retiring=false) const;
   std::uint64_t verify_namespace(const IndexedInodeInput&,std::size_t path_units,unsigned components,
-      PagedObjectStoreSnapshot::AuditMetadataReads&,const std::function<void(const IndexedInodeInput&)>& visit) const;
+      PagedObjectStoreSnapshot::AuditMetadataReads&,const std::function<void(const IndexedInodeInput&,bool)>& visit) const;
   struct CheckedContent {
     NativeContentToken token;
     IndexedInodeInput inode;

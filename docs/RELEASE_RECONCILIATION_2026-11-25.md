@@ -38,6 +38,14 @@ independent CPU readback and retained-snapshot checks. These are scoped
 native profiles on the Windows host.
 [Paired protected-size evidence](evidence/windows-settled-prepared-records-2026-11-25.json)
 
+The decoded reopen audit can now reuse a full inode replica run checked
+during the namespace walk. The 16,384-file control used 906 fewer
+provider calls and read 2,424,177 fewer bytes before the first flush.
+The CPython control kept its provider count after requiring complete
+runs. The fresh post-flush mirror pass and independent CPU readback
+still cover each image. The next scale gate remains a supported
+incremental authority decision. [Reopen audit evidence](evidence/windows-whole-run-inode-audit-2026-11-25.json)
+
 | Area | What exists and has evidence | Release work |
 | --- | --- | --- |
 | Windows and setup | Owned writable WinFsp memory and volume-file backings. Signed guest clients exercised cached and mapped writes, flush, interruption and reopen. Private packages can be staged. | Bind the exact signed driver, helper and workers to an ordinary Explorer and Win32 matrix. Qualify dependency setup, relocation, upgrade, rollback and teardown. |

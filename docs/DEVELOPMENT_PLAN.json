@@ -52,6 +52,8 @@
     "tested_settled_prepared_records_tree": "8d871205921fec9c209460c3d89b223d2322e94d",
     "latest_source_free_write_trial": "docs/evidence/windows-source-free-write-trials-2026-11-25.json",
     "tested_source_free_write_trial_tree": "620ae659e68410849bbbfcdf329f394dbb2e2e6f",
+    "latest_whole_run_inode_audit": "docs/evidence/windows-whole-run-inode-audit-2026-11-25.json",
+    "tested_whole_run_inode_audit_tree": "7120cede533ff026353ef500ecab203a9bc521a9",
     "latest_native_attach_evidence": "docs/evidence/windows-indexed-namespace-read-window-2026-11-25.json",
     "previous_checked_extent_owner_evidence": "docs/evidence/windows-indexed-extent-owner-audit-2026-11-25.json",
     "latest_chunked_scrub_evidence": "docs/evidence/indexed-scrub-checkpoint-2026-11-23.json",

@@ -1,0 +1,318 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "source": {
+    "parent": "a0c4ac8ddfeb1598d2395bd62b18c4110231a7cc",
+    "base_tree": "2a1ac0b42b93b71dce3f2c29406218a5f79b2219",
+    "tree": "7120cede533ff026353ef500ecab203a9bc521a9",
+    "elements": [
+      {
+        "path": "include/flitzfs/paged_store.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "a15db26eb31823832dedfca728de4add6dee8b65",
+        "bytes": 22551
+      },
+      {
+        "path": "src/native_indexed_volume.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "cb8f914429ee7c60cccfff68c337f69a38880a3b",
+        "bytes": 140510
+      },
+      {
+        "path": "src/native_indexed_volume.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "889af6eaaafeb4536bd02a43ce57cab2e6de4c67",
+        "bytes": 15182
+      },
+      {
+        "path": "src/paged_store.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "d79cbf854c5755158d1c3689d06445f64601b32a",
+        "bytes": 164523
+      },
+      {
+        "path": "tests/test_native_indexed_volume.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "3d3e77dc8b6a558caa350950b7c0bb0192d72cb5",
+        "bytes": 109176
+      }
+    ]
+  },
+  "scope": {
+    "test_boundary": "Closed indexed writable reopen on the Windows host with independently checked memory backing.",
+    "readings": "Provider reads, bytes and exact CPU results. Single elapsed observations carry no general latency claim.",
+    "wire_changed": false,
+    "physical_power_loss_tested": false,
+    "new_gpu_compute": false,
+    "driver_modified": false
+  },
+  "basis": {
+    "baseline_exe_sha256": "24350421968b9a6b40aa22d210f6841a03718769c3f8010662b9a3b160acfde9",
+    "whole_run_exe_sha256": "0cf1db0f3a2146fe74b96b10c8e725acde5c5f3eef36ac94c0c7d185b9aa22a7",
+    "cpython_fixture_sha256": "4660e8c0a9487722e0660f82f10dafd3ecbce03a602b84516750cba51f5e2694"
+  },
+  "profiles": {
+    "baseline_short": {
+      "files": 16384,
+      "image_pre_flush_bytes": 39081516,
+      "image_post_flush_bytes": 24446104,
+      "image_read_calls": 24825,
+      "image_flushes": 1,
+      "head_flushes": 1,
+      "backing_write_bytes": 0,
+      "reopen_ns": 85772400,
+      "logical_bytes": 278528,
+      "workload": "short_files",
+      "objects": 33194,
+      "object_tree_height": 3,
+      "stored_payload_bytes": 6714760
+    },
+    "baseline_cpython": {
+      "files": 374,
+      "image_pre_flush_bytes": 2289163,
+      "image_post_flush_bytes": 1965318,
+      "image_read_calls": 1578,
+      "image_flushes": 1,
+      "head_flushes": 1,
+      "backing_write_bytes": 0,
+      "reopen_ns": 3858400,
+      "logical_bytes": 574237,
+      "workload": "cpython_lib",
+      "objects": 928,
+      "object_tree_height": 1,
+      "stored_payload_bytes": 1349622
+    },
+    "partial_short": {
+      "files": 16384,
+      "image_pre_flush_bytes": 35169086,
+      "image_post_flush_bytes": 24446104,
+      "image_read_calls": 23567,
+      "image_flushes": 1,
+      "head_flushes": 1,
+      "backing_write_bytes": 0,
+      "reopen_ns": 65350000,
+      "logical_bytes": 278528,
+      "workload": "short_files",
+      "objects": 33194,
+      "object_tree_height": 3,
+      "stored_payload_bytes": 6714760
+    },
+    "partial_cpython": {
+      "files": 374,
+      "image_pre_flush_bytes": 2216039,
+      "image_post_flush_bytes": 1965318,
+      "image_read_calls": 1776,
+      "image_flushes": 1,
+      "head_flushes": 1,
+      "backing_write_bytes": 0,
+      "reopen_ns": 3396300,
+      "logical_bytes": 574237,
+      "workload": "cpython_lib",
+      "objects": 928,
+      "object_tree_height": 1,
+      "stored_payload_bytes": 1349622
+    },
+    "whole_short": {
+      "files": 16384,
+      "image_pre_flush_bytes": 36657339,
+      "image_post_flush_bytes": 24446104,
+      "image_read_calls": 23919,
+      "image_flushes": 1,
+      "head_flushes": 1,
+      "backing_write_bytes": 0,
+      "reopen_ns": 81514200,
+      "logical_bytes": 278528,
+      "workload": "short_files",
+      "objects": 33194,
+      "object_tree_height": 3,
+      "stored_payload_bytes": 6714760
+    },
+    "whole_cpython": {
+      "files": 374,
+      "image_pre_flush_bytes": 2289163,
+      "image_post_flush_bytes": 1965318,
+      "image_read_calls": 1578,
+      "image_flushes": 1,
+      "head_flushes": 1,
+      "backing_write_bytes": 0,
+      "reopen_ns": 4806800,
+      "logical_bytes": 574237,
+      "workload": "cpython_lib",
+      "objects": 928,
+      "object_tree_height": 1,
+      "stored_payload_bytes": 1349622
+    }
+  },
+  "discarded_partial_variant": "Read counts increased on the raw CPython fixture. Final replay admits only full inventory runs and preserves the paired window across nested reads.",
+  "integrity": [
+    "Complete coupled primary and peer validation before counting an inode.",
+    "Faults in either namespace bank leave the checkpoint degraded.",
+    "Fresh after-flush peer corruption refuses writable reopen without writing or losing the independently readable file."
+  ],
+  "validation": {
+    "counts": {
+      "release_tests": 4,
+      "raw_tests": 2,
+      "asan_tests": 3
+    },
+    "jobs": {
+      "baseline_build": {
+        "run": "local-run-d107c3be51794e7f84024168c69399dd",
+        "exit_code": 0,
+        "tree_retired": true,
+        "log_sha256": "9799b3bec66c621b1e34e7a3bf55538fdc19297bfdfd41b922f08dd1cac9cccf",
+        "result_sha256": "c99df9b49e7c0966c342bfbd07a2b427f5580576fb4539fe1e1dc51f93069887"
+      },
+      "baseline_short": {
+        "run": "local-run-4f4b8d5e8b194abcb0835236a6b5d060",
+        "exit_code": 0,
+        "tree_retired": true,
+        "log_sha256": "c0987c1501a25e9acc09f7c37c4b20c3746b78d5abd942d02b06bfb87c727487",
+        "result_sha256": "fced13ee280e5c844ec6095bd328c21998b9e2c5ef1505d8423d571cc0cd6508"
+      },
+      "baseline_cpython": {
+        "run": "local-run-dd338acf62ca4905882c99e776c10d42",
+        "exit_code": 0,
+        "tree_retired": true,
+        "log_sha256": "d13b5f85e1592333839dfb4f1f7ce96552d0734a967a365b40fce2005adcca80",
+        "result_sha256": "aecac48c43ad31ea974b37db08215b5d4718e404ef7689b42417468f3587c2b7"
+      },
+      "partial_build": {
+        "run": "local-run-e38e078cf47b45e89292c3049bf69eb4",
+        "exit_code": 0,
+        "tree_retired": true,
+        "log_sha256": "3c494f63fd2e49a7089ba210e6d0296edbd0b1f1850a9b1bfd819856a7d4dab6",
+        "result_sha256": "dbe17e61e6621c96c5a407cca160c44d5e1dd2d178ef643aa6ba56c766774727"
+      },
+      "partial_tests": {
+        "run": "local-run-ff6adfb877ac42689314c3fe5f977ec2",
+        "exit_code": 0,
+        "tree_retired": true,
+        "log_sha256": "fb59717ea5ffdb4cb0b5dd245a84ea5bf118807cbc72946bc03b5d4dcd616919",
+        "result_sha256": "876092a06b48c8486913628172f457bf15a490ce79ccdf37066c8d3918e99e97"
+      },
+      "partial_short": {
+        "run": "local-run-7328f0d41b1041efb16072c26276cc0c",
+        "exit_code": 0,
+        "tree_retired": true,
+        "log_sha256": "3936515bb6a456dbbbad696438e11930d28c2955bd0877fadc9137efcea82f25",
+        "result_sha256": "e54a4c82587a24ef66291ad767a0a2ad908008b50b378ebb29b23876df1d5f4c"
+      },
+      "partial_cpython": {
+        "run": "local-run-027906aa61d94327b44ed69297d27b12",
+        "exit_code": 0,
+        "tree_retired": true,
+        "log_sha256": "10fb9de8faf8b170790ade6ff60b9b160e6f896029be347c9eb5febdfd93e8f5",
+        "result_sha256": "29eedb396e1c7268621c974456d6ab2bc4ae6fd3181c740ccf73e886febf2fbf"
+      },
+      "release_build": {
+        "run": "local-run-b4a64b08ab214390bb15f92ff374fd1c",
+        "exit_code": 0,
+        "tree_retired": true,
+        "log_sha256": "3266166f45479dab580995bdbddbac7e77f17fb36a0cc2fe31d9230f9294f1c4",
+        "result_sha256": "0bed88797ce46ee1d3303da674e1f660625410ec7d4a05717296e6854f5a7eda"
+      },
+      "release_tests": {
+        "run": "local-run-e186ffa483c14bde83a7f69378a97e64",
+        "exit_code": 0,
+        "tree_retired": true,
+        "log_sha256": "dfc8eb8f0d2ff5399ad2f9aedbc009eabdc4ac748d6e5d4f9710e740aae6ce0a",
+        "result_sha256": "4521fe475e90388fea995cc92c41d869f861dc014651464c1532895f4c2e9b4a",
+        "passed": [
+          "bounded_native_indexed_volume",
+          "bounded_native_indexed_reopen_replicas",
+          "bounded_native_indexed_inline_files",
+          "bounded_winfsp_indexed_memory"
+        ]
+      },
+      "whole_short": {
+        "run": "local-run-a769f7c0886f44b9b4575093df313f13",
+        "exit_code": 0,
+        "tree_retired": true,
+        "log_sha256": "4ae022deff9217a015a98491a47d7a5f103a1a99de19fc5fd6fbcd2b265d49fc",
+        "result_sha256": "7006b23b6609b6b667f2741d0e9e345df72939ad0a5ffc19892a4f5e6805e89c"
+      },
+      "whole_cpython": {
+        "run": "local-run-61139f62f5494cf69c262575028d921d",
+        "exit_code": 0,
+        "tree_retired": true,
+        "log_sha256": "c0b62e06225f04b751459128a37dd35f3f77e2f10d3a0e410afb60060660dadd",
+        "result_sha256": "ee4140c138c044a32fb61c5b9410e386b83388bb1660bfbc16130dee9894d4ac"
+      },
+      "raw_build": {
+        "run": "local-run-35eaed7c4db44c9cb56a3da891b53116",
+        "exit_code": 0,
+        "tree_retired": true,
+        "log_sha256": "e8a0276f0d300c4ee681fe656fe307b244075cef2dfebcd40622249d32077e40",
+        "result_sha256": "e4dbe2e799b0759a85d189c222e4c26fe1875e9823bff09791b1d859569f53a5"
+      },
+      "raw_tests": {
+        "run": "local-run-e9501db7749a4145aa677461c327b7a0",
+        "exit_code": 0,
+        "tree_retired": true,
+        "log_sha256": "3e33b65f9ae8465ae535e5daca5242f48bb270a00410894e2daaf0750e811504",
+        "result_sha256": "82b180682a9234a97b2aeabaeca726f3641580d7e11535b917754e1a78414fd7",
+        "passed": [
+          "bounded_native_indexed_reopen_replicas",
+          "bounded_native_indexed_inline_files"
+        ]
+      },
+      "asan_build": {
+        "run": "local-run-7c3c0c8865c34604870b7b6252b591ed",
+        "exit_code": 0,
+        "tree_retired": true,
+        "log_sha256": "10073480b006abb388d41326c655944fc574d6688913a2edc13ffd8cba0e2876",
+        "result_sha256": "f1c6452eedcc45cf379fbd56cd187b5d09b2b5736a7f16e59ee9b07fcf424aaa"
+      },
+      "asan_tests": {
+        "run": "local-run-539c3eb374744eadbe5188deb040b6af",
+        "exit_code": 0,
+        "tree_retired": true,
+        "log_sha256": "a1d582ba768784f4eae7e23aeea3900c64cd691335f8ebbfee8ae48714c7eebd",
+        "result_sha256": "24e81d3a838a56978aea096d9293b4602bbe72461dff68dc46455acbc1060b6b",
+        "passed": [
+          "windows_asan_runtime_preflight",
+          "bounded_native_indexed_reopen_replicas",
+          "bounded_native_indexed_inline_files"
+        ]
+      },
+      "research": {
+        "run": "local-run-554b3ba5311c49f6b41748ec15ef9496",
+        "exit_code": 0,
+        "tree_retired": true,
+        "log_sha256": "c136f36b58b08fa069ed1092ee16d64daa5e1b534ebb255c785c3e8301650892",
+        "result_sha256": "a0309402c736c90ab872ebb6419486ead8d69c04e563f1726c1c7caed54ed890"
+      }
+    },
+    "asan_runtime_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed"
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "a3802fb2d3582437efee9013c8a13d2e428fb4fe0e0ae11c85d30e20b2aa4452",
+    "pages": [
+      {
+        "url": "https://docs.kernel.org/filesystems/xfs/xfs-online-fsck-design.html",
+        "status": 200,
+        "capture_sha256": "a7329beef109dd75170855ed105d0df14cbf44fd2e458c28c76e5846c169418a",
+        "text_sha256": "6db21e649727eb496cd2d62c6448185c446796cd79dc4747407e279d1af259b6"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers",
+        "status": 200,
+        "capture_sha256": "a22ef6df2118ed786c87d0bc74a6f405c7ee0c6e0462a0523c0eb617ec88e7b4",
+        "text_sha256": "116ffcd5a6feba3539c3f668a2c969aa2e38b8f3663a704a7654e7b2a7954e4c"
+      }
+    ]
+  },
+  "navigation": {
+    "actual_searches": 1,
+    "receipt_sha256": "4fe0636343ac0b80725a68fb218c8f05984034cc78c2534d894ac82c955da92b",
+    "response_sha256": "80c1b13a1acc8155b2e5aa4fd6139cafced565cc353f70348bcb29b8bda9a588"
+  },
+  "release_qualified": false
+}

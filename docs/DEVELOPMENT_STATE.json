@@ -6,6 +6,16 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "whole_run_inode_audit": {
+    "source_parent": "a0c4ac8ddfeb1598d2395bd62b18c4110231a7cc",
+    "tested_source_tree": "7120cede533ff026353ef500ecab203a9bc521a9",
+    "evidence": "docs/evidence/windows-whole-run-inode-audit-2026-11-25.json",
+    "profile_16384_read_calls": [24825, 23919],
+    "profile_16384_pre_flush_bytes": [39081516, 36657339],
+    "profile_cpython_read_calls": [1578, 1578],
+    "fresh_post_flush_recheck": true,
+    "release_qualified": false
+  },
   "source_free_prepared_write_trial": {
     "source_parent": "a6b597d86db99b78efa85e5f89b3120e27735336",
     "tested_source_tree": "620ae659e68410849bbbfcdf329f394dbb2e2e6f",

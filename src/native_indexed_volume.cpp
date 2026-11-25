@@ -2669,7 +2669,7 @@ Bytes IndexedVolumeView::materialize_content(NativeContentToken& token,const Ind
 }
 std::uint64_t IndexedVolumeView::verify_namespace(const IndexedInodeInput& directory,std::size_t path_units,
     unsigned components,PagedObjectStoreSnapshot::AuditMetadataReads& reads,
-    const std::function<void(const IndexedInodeInput&)>& visit) const {
+    const std::function<void(const IndexedInodeInput&,bool)>& visit) const {
   IndexedDirectoryShape expected;
   std::uint64_t reachable=1;
   const auto limit=root_.name_profile?kIndexedPathUnits:240;
@@ -2677,10 +2677,11 @@ std::uint64_t IndexedVolumeView::verify_namespace(const IndexedInodeInput& direc
     if(directory.lifetime!=IndexedLifetime::linked || components==kIndexedPathDepth)
       fail(Code::corrupt,"indexed directory contains unreachable children");
     if(!inode || inode>=root_.next_inode)fail(Code::corrupt,"indexed reference has no inode");
+    bool verified=false;
     const auto bytes=[&] {
       try {
         return store_.read_audit_metadata(reads,inode_domain|inode,inode_domain|(std::min)(last_inode,root_.next_inode-1),
-            maximum_inode_bytes);
+            maximum_inode_bytes,verified);
       }catch(const std::bad_alloc&){throw;}
       catch(const std::exception&){fail(Code::storage_failure,"indexed object integrity or read failure");}
     }();
@@ -2695,7 +2696,7 @@ std::uint64_t IndexedVolumeView::verify_namespace(const IndexedInodeInput& direc
       if(!bound)fail(Code::corrupt,"indexed directory shape has an unmeasured child");
       expected.replace({},bound);
     }
-    visit(child);
+    visit(child,verified);
     reachable=add(reachable,child.directory?verify_namespace(child,units,components+1,reads,visit):1);
   });
   if(directory.shape && expected!=*directory.shape)
@@ -2709,27 +2710,36 @@ void IndexedVolumeView::verify_inventory(bool published,const IndexedReopenAdmis
   const auto query=store_.scoped_query();
   const auto names=index_.scoped_audit();
   auto remaining_name_pages=index_.verify_reachable_pages();
-  // The decoded object walk checks both inode copies independently. Retain
-  // only the fields needed for extent validation.
+  std::uint64_t inodes=0,extents=0,charged=0,lifetimes=0,detached=0,retiring=0;
+  std::uint64_t bases=0,members=0;
+  const auto account_inode=[&](const IndexedInodeInput& entry) {
+    ++inodes;charged=add(charged,inode_charge(entry));
+    if(active_lifetime(entry.lifetime))++lifetimes;
+    if(indexed_detached(entry.lifetime))++detached;
+    if(entry.lifetime==IndexedLifetime::retiring)++retiring;
+    if(entry.directory && entry.lifetime!=IndexedLifetime::linked && !index_.list(entry.inode,{},1).empty())
+      fail(Code::corrupt,"indexed deleted directory retains children");
+  };
+  // Retain only the fields needed for extent validation. A checked lookup
+  // remains available for owners that do not fit this bound.
   std::vector<IndexedExtentOwner> namespace_owners;
   constexpr auto capacity=std::uint64_t{kNativeMaxReadBytes/sizeof(IndexedExtentOwner)};
   const auto limit=static_cast<std::size_t>((std::min)({capacity,root_.inodes,root_.extents}));
-  try{namespace_owners.reserve(limit);}catch(const std::bad_alloc&){} // The checked fetch remains available.
-  const auto visit=[&](const IndexedInodeInput& entry) {
+  try{namespace_owners.reserve(limit);}catch(const std::bad_alloc&){}
+  PagedObjectStoreSnapshot::AuditMetadataReads reads{store_};
+  const auto verified_limit=(std::min)(root_.inodes,std::uint64_t{kNativeMaxReadBytes/sizeof(std::uint64_t)});
+  try{reads.verified_ids.reserve(static_cast<std::size_t>(verified_limit));}catch(const std::bad_alloc&){}
+  const auto visit=[&](const IndexedInodeInput& entry,bool verified) {
     if(admission)admission(indexed_inode_allocation(entry),entry.security);
+    if(verified)account_inode(entry);
     if(entry.size && !entry.directory && entry.inline_data.empty() && namespace_owners.size()<limit &&
         namespace_owners.size()<namespace_owners.capacity())namespace_owners.emplace_back(entry);
   };
   const auto root_inode=referenced_inode(1);
-  visit(root_inode);
-  {
-    PagedObjectStoreSnapshot::AuditMetadataReads reads;
-    if(verify_namespace(root_inode,0,0,reads,visit)!=root_.inodes-root_.detached_inodes)
-      fail(Code::corrupt,"indexed namespace has unreachable inodes");
-  }
+  visit(root_inode,false);
+  if(verify_namespace(root_inode,0,0,reads,visit)!=root_.inodes-root_.detached_inodes)
+    fail(Code::corrupt,"indexed namespace has unreachable inodes");
   std::ranges::sort(namespace_owners,{},&IndexedExtentOwner::inode);
-  std::uint64_t inodes=0,extents=0,charged=0,lifetimes=0,detached=0,retiring=0;
-  std::uint64_t bases=0,members=0;
   bool found_root=false;
   IndexedSharedBaseCache checked_bases;
   std::optional<IndexedExtentOwner> extent_owner;
@@ -2739,14 +2749,7 @@ void IndexedVolumeView::verify_inventory(bool published,const IndexedReopenAdmis
         fail(Code::corrupt,"unexpected indexed root publication");
       found_root=true;
     } else if(domain(id)==inode_domain) {
-      const auto entry=decode_inode_with_lifetime(store_,root_,id&ordinal_mask,bytes);
-      ++inodes;charged=add(charged,inode_charge(entry));
-      if(active_lifetime(entry.lifetime))++lifetimes;
-      if(indexed_detached(entry.lifetime))++detached;
-      if(entry.lifetime==IndexedLifetime::retiring)++retiring;
-      if(entry.directory && entry.lifetime!=IndexedLifetime::linked &&
-          !index_.list(entry.inode,{},1).empty())
-        fail(Code::corrupt,"indexed deleted directory retains children");
+      account_inode(decode_inode_with_lifetime(store_,root_,id&ordinal_mask,bytes));
     } else if(domain(id)==lifetime_domain || domain(id)==retirement_domain) {
       const auto entry=referenced_inode(id&ordinal_mask,true);
       if(root_.format<2 || marker_id(entry.inode,entry.lifetime)!=id)
@@ -2781,7 +2784,7 @@ void IndexedVolumeView::verify_inventory(bool published,const IndexedReopenAdmis
       if(!owner.has_allocation)charged=add(charged,1);
     } else if(domain(id)==kNativeNameIndexObject)index_.account_verified_page(id,remaining_name_pages);
     else fail(Code::corrupt,"foreign indexed object domain");
-  });
+  },&reads);
   if(remaining_name_pages)fail(Code::corrupt,"missing name index pages");
   if(found_root!=published || inodes!=root_.inodes || extents!=root_.extents || charged!=root_.charged_extents ||
       lifetimes!=root_.active_lifetimes || detached!=root_.detached_inodes || retiring!=root_.retiring_inodes ||
