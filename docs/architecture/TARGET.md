@@ -7,8 +7,8 @@ sequence in the [development plan](../IMPLEMENTATION_PLAN.md#3-execution-order-a
 The current integration design ties durable publication, bounded AMD work,
 sparse advice and measured settlement to the same Windows operation witness
 and complete occupancy record.
-[Reconciled design](../RELEASE_RECONCILIATION_2026-11-25.md#current-reconciliation-and-prioritized-design) ·
-[Implementation order](../IMPLEMENTATION_PLAN.md#execution-after-the-small-file-layout-comparison)
+[Reconciled design](../RELEASE_RECONCILIATION_2026-11-25.md#design-decisions-from-current-sources) ·
+[Implementation order](../RELEASE_RECONCILIATION_2026-11-25.md#implementation-after-owned-range-packing)
 
 ## 1. Separate volume ownership from presentation and acceleration
 
@@ -229,6 +229,22 @@ flowchart TD
     Publish --> Owner
     Release --> Witness["Independent reopen verifies live bytes and allocation"]
 ```
+
+### Admit migration at an existing reclaim opportunity
+
+The owner evaluates direct and packed staged copies against the same
+selected checkpoint, protection policy and allocation geometry. Offer
+conversion when observed extra reads, likely abandoned work and lost
+cold-compression opportunities justify the expected protected bytes
+saved. A shortfall in transient workspace or foreground headroom
+preserves the ordinary reclaim or repair path. A changed checkpoint
+retires the private candidate and returns to the reconciled path.
+Bind an accepted offer and its accounting to the source image and
+current provider. Feed realized occupied bytes and access cost back
+to the advisory policy. Exercise old-reader refusal and checked export
+before enabling default format activation.
+[Geometry and fallback evidence](../evidence/windows-owned-packed-reclaim-2026-11-25.json) ·
+[Implementation sequence](../RELEASE_RECONCILIATION_2026-11-25.md#implementation-after-owned-range-packing)
 
 ## 4. Optimize complete size with bounded random access
 

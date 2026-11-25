@@ -7,8 +7,8 @@ checking an interrupted AMD reply and only publishes the complete
 verified window. Fresh indexed memory volumes use inline short data
 and both compact checkpoint layers. The persistent factory declares
 a different failure contract.
-[Release reconciliation](../RELEASE_RECONCILIATION_2026-11-25.md#current-reconciliation-and-prioritized-design) ·
-[Layout and verification evidence](../evidence/windows-small-file-layout-frontier-2026-11-25.json) ·
+[Release reconciliation](../RELEASE_RECONCILIATION_2026-11-25.md#reconciliation-after-owned-range-packing) ·
+[Layout and verification evidence](../evidence/windows-owned-packed-reclaim-2026-11-25.json) ·
 [Revised architecture](TARGET.md)
 
 ## 1. Process and build boundaries
@@ -291,6 +291,32 @@ The current writable controller can explicitly invoke this quantum. Fresh
 volume defaults and autonomous activation await settled-size, compatibility
 and ordinary client qualification.
 [Migration and failure model](../INDEXED_NATIVE_VOLUME.md#incremental-packing-of-existing-inodes)
+
+### Packing during owned-range reclamation
+
+The explicit file-owned mode is admitted through the normal logical
+reclaim test. It excludes sealed sources and capacity repair. The
+projected target uses the same provider geometry and protected
+selector as the ordinary copy.
+
+```mermaid
+flowchart TD
+    Admit["Funded reclaim on compatible inline source"] --> Capture["Capture exact checkpoint and owned spare"]
+    Capture --> Price["Price ordinary and packed copies at identical geometry"]
+    Price --> Copy["Copy and verify the chosen protected image"]
+    Copy --> Current{"Selected checkpoint still current?"}
+    Current -->|Stale| Abandon["Retire candidate, preserve foreground source"]
+    Abandon --> Reconcile["Next funded copy reconciles foreground mutations"]
+    Current -->|Current| Select["Verify and publish paired selector"]
+    Select --> CPURestart["Independent CPU reopen verifies selected image"]
+    Select --> Pin["Keep old range until the last reader releases it"]
+    Pin --> Retire["Revalidate selector and retire inactive range"]
+```
+
+The named 64 KiB trial measured the footprint and read cost. The
+paired-range model covered pinned retirement, the stale-candidate
+fallback and interruption during selector publication.
+[Layout and recovery evidence](../evidence/windows-owned-packed-reclaim-2026-11-25.json)
 
 ## 6. CPU range reads and recoverable damage
 

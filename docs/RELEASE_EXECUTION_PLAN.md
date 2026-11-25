@@ -1,12 +1,12 @@
 # FlitzFS stable release execution plan
 
-The next sequence connects ordinary Windows settlement and useful
-automatic AMD delivery to the same client trace. The compact small-file
-baseline isolates structural overhead and supports pricing denser
-protected records. Writable attach and persistent-media recovery retain
-independent evidence requirements.
-[Reconciled evidence](evidence/windows-small-file-layout-frontier-2026-11-25.json) ·
-[Implementation sequence](IMPLEMENTATION_PLAN.md#execution-after-the-small-file-layout-comparison)
+The next sequence uses the populated Windows trace to qualify useful
+automatic AMD work, writable attach and complete settled allocation.
+The wider-geometry owned-range model verifies a priced packing path
+and leaves its controller admission open. Persistent-media recovery
+retains its own acknowledgement and interruption evidence.
+[Reconciled evidence](evidence/windows-owned-packed-reclaim-2026-11-25.json) ·
+[Implementation sequence](RELEASE_RECONCILIATION_2026-11-25.md#implementation-after-owned-range-packing)
 
 Use the [repository overview](REPOSITORY_OVERVIEW.md) for the product snapshot,
 the [current architecture](architecture/CURRENT.md) and [target architecture](architecture/TARGET.md)
@@ -483,10 +483,13 @@ saving in each lane before expanding format or worker variants.
 [Detailed package steps](IMPLEMENTATION_PLAN.md)
 [Next implementation steps](RELEASE_RECONCILIATION_2026-11-25.md#ordered-implementation-and-decision-points)
 
-The [current reconciliation](RELEASE_RECONCILIATION_2026-11-25.md#reconciliation-after-bounded-inode-migration)
-reorders the storage steps around measured write cost and settled footprint.
-Use its migration work alongside the automatic AMD and populated attach
-lanes. [Packed inode migration plan](IMPLEMENTATION_PLAN.md#execution-after-packed-inode-migration)
+The ordered implementation steps add a common acknowledgement witness,
+ordinary Radeon delivery, scale and space reuse, held-out compression
+search, local learning, lifecycle, durability and exact-candidate
+qualification. Use staged packing where its priced copy justifies an
+already funded opportunity.
+[Current release order](RELEASE_RECONCILIATION_2026-11-25.md#implementation-after-owned-range-packing) ·
+[Packed inode migration plan](IMPLEMENTATION_PLAN.md#execution-after-packed-inode-migration)
 
 ### Next integrated qualification
 

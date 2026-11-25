@@ -13,7 +13,7 @@ The compact inline memory layout settled at 176 KiB for 192 held-out
 CPython files, compared with 512 KiB for legacy extents and checkpoints.
 Both contained exact file bytes under the same modeled protection.
 Re-encoding and grouping saved no further allocated bytes on that cohort.
-The next small-file candidate should reduce protected record overhead.
+Subsequent work moved to protected record packing and reclaim.
 [Four-arm comparison](evidence/windows-small-file-layout-frontier-2026-11-25.json)
 
 The recent writable reopen audit saved 906 read calls and 2,424,177
@@ -47,12 +47,14 @@ Use the [target architecture](architecture/TARGET.md),
 [Previous handle and recovery reconciliation](evidence/release-reconciliation-indexed-handle-2026-11-22.json) ·
 [Development state ledger](DEVELOPMENT_STATE.json)
 
-The indexed writer and session now support incremental migration of
-standalone short inodes into protected packed pages. The first successful
-quantum publishes the required capability with its rows, preserving
-the prior checkpoint for held readers. Automatic activation remains a
-qualification item.
-[Current reconciliation and next implementation order](RELEASE_RECONCILIATION_2026-11-25.md#reconciliation-after-bounded-inode-migration)
+The indexed writer supports protected incremental inode packing. The
+owned-range reclaimer also offers explicit packing during a funded
+image copy. At 64 KiB geometry, matched CPython copies settled at
+1,024 KiB and 896 KiB. The owned-range model preserved bytes across
+stale work, pinned retirement and selector failure. Automatic
+activation and backed media qualification remain open.
+[Current reconciliation](RELEASE_RECONCILIATION_2026-11-25.md#reconciliation-after-owned-range-packing) ·
+[Measurements](evidence/windows-owned-packed-reclaim-2026-11-25.json)
 
 ## Assessment
 

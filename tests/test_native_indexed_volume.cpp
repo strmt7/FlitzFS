@@ -2096,7 +2096,8 @@ void profile_cpython_reopen(const char* path,bool compressed=false) {
 }
 
 enum class NamedInlineProfile { inline_control, fresh_packed, migrated, packed_reclaim };
-void profile_named_inline(const std::filesystem::path& path,NamedInlineProfile mode=NamedInlineProfile::inline_control) {
+void profile_named_inline(const std::filesystem::path& path,NamedInlineProfile mode=NamedInlineProfile::inline_control,
+    std::uint32_t unit=4096) {
   const bool compare_packed=mode!=NamedInlineProfile::inline_control;
   const NamedCorpusFixture corpus(path);
   require(store_zstd_available() && corpus.files().size()<=512 && corpus.logical_bytes()<=4ULL*1024*1024,
@@ -2116,10 +2117,28 @@ void profile_named_inline(const std::filesystem::path& path,NamedInlineProfile m
     const bool packed=layout==NativeIndexedDataLayout::packed_small_file_inodes;
     const bool migrate=mode==NamedInlineProfile::migrated && packed;
     const bool staged=mode==NamedInlineProfile::packed_reclaim;
+    const bool wide_seed=staged && unit!=4096;
     auto head=empty(),backing=empty(),compacted=empty();
+    compacted->failure_unit=unit;
     backing->capacity=compacted->capacity=capacity;
     constexpr auto kind=NativeDispositionPolicy::windows_global;
     std::uint64_t reclaim_source_reads=0,reclaim_target_reads=0;
+    bool packed_active=false;
+    const auto reclaim=[&](NativeFileSession& session) {
+      const auto writes=backing->write_bytes,reads=backing->read_bytes;
+      const auto rewrite=packed?PagedRewriteMode::pack_short_inodes:PagedRewriteMode::exact_checkpoint;
+      require(session.begin_idle_compaction(compacted,identity_for(29),rewrite),"named reclaim could not begin");
+      advance_to_compaction_ready(session);
+      require(session.publish_idle_recompression().has_value() && backing->write_bytes==writes,
+          "named reclaim did not select its copy without source writes");
+      reclaim_source_reads=backing->read_bytes-reads;
+      reclaim_target_reads=compacted->read_bytes;
+    };
+    const auto observe_layout=[&](const NativeFileSession& session) {
+      const auto managed=session.managed_foreground();
+      require(managed.has_value(),"named profile lost its managed layout");
+      packed_active=managed->data_layout==NativeIndexedDataLayout::packed_small_file_inodes;
+    };
     {
       auto session=NativeFileSession::create_indexed_volume(head,identity_for(89),backing,identity(),{capacity},
           encoding,kind,NativeVolumeRootMetadata{directory_info,security},NativeVolumePlacement::external,
@@ -2150,16 +2169,37 @@ void profile_named_inline(const std::filesystem::path& path,NamedInlineProfile m
             <<" writes="<<backing->write_bytes-writes<<" write_bound="<<charge<<'\n';
       }
       require(session.stats().contexts==0,"named inline profile retained an open context");
-      if(staged) {
-        const auto writes=backing->write_bytes,reads=backing->read_bytes;
-        const auto rewrite=packed?PagedRewriteMode::pack_short_inodes:PagedRewriteMode::exact_checkpoint;
-        require(session.begin_idle_compaction(compacted,identity_for(29),rewrite),"named reclaim could not begin");
-        advance_to_compaction_ready(session);
-        require(session.publish_idle_recompression().has_value() && backing->write_bytes==writes,
-            "named reclaim did not select its copy without source writes");
-        reclaim_source_reads=backing->read_bytes-reads;
-        reclaim_target_reads=compacted->read_bytes;
+      if(staged && !wide_seed)reclaim(session);
+      observe_layout(session);
+    }
+    if(wide_seed) {
+      // Stage a verified wide image before generating reclaimable history.
+      // This avoids retaining hundreds of wide-unit ingest transactions.
+      auto wide=empty(),wide_head=empty();
+      wide->failure_unit=wide_head->failure_unit=unit;
+      wide->capacity=capacity;
+      const auto source_id=identity_for(88),volume=identity_for(89);
+      {
+        const auto source=NativeVolumeHeadView::open(head,volume,[&](const StoreIdentity& id) {
+          return id==identity()?backing:std::shared_ptr<Ram>{};
+        });
+        (void)NativeFilesystemWriter::compact(source.filesystem(),wide,source_id,encoding);
+        const auto seed=NativeFilesystemSnapshot::open_image(wide,source.filesystem().image_storage());
+        (void)NativeVolumeHeadWriter::create(wide_head,volume,seed);
       }
+      backing=std::move(wide);
+      head=std::move(wide_head);
+      auto session=NativeFileSession::resume_closed_indexed_volume(head,volume,1,[&](const StoreIdentity& id) {
+        return id==source_id?backing:std::shared_ptr<Ram>{};
+      },encoding,kind);
+      const auto& name=corpus.files().front().path;
+      const auto handle=session.open(name,{true,true,true});
+      session.rename(handle,"flitzfs-reclaim-fixture-temporary");
+      session.rename(handle,name);
+      session.cleanup(handle,false);
+      session.close(handle);
+      reclaim(session);
+      observe_layout(session);
     }
     if(!staged) {
       const auto source=NativeVolumeHeadView::open(head,identity_for(89),[&](const StoreIdentity& id) {
@@ -2177,6 +2217,7 @@ void profile_named_inline(const std::filesystem::path& path,NamedInlineProfile m
     const auto name=migrate?"migrated":packed?(staged?"packed_reclaim":"packed"):
         layout==NativeIndexedDataLayout::inline_small_files?"inline":"extents";
     std::cout<<"named_inline_profile layout="<<name
+        <<" failure_unit="<<unit<<" packed_active="<<packed_active
         <<" files="<<corpus.files().size()<<" directories="<<corpus.directories().size()
         <<" logical_bytes="<<corpus.logical_bytes()<<" compacted_bytes="<<compacted->extent()
         <<" selector_bytes="<<head->extent()<<" ingested_bytes="<<backing->extent()
@@ -2225,6 +2266,10 @@ int main(int argc,char** argv) {
     }
     if(argc==3 && std::string_view(argv[1])=="--profile-packed-inode-reclaim"){
       profile_named_inline(argv[2],NamedInlineProfile::packed_reclaim);
+      return 0;
+    }
+    if(argc==3 && std::string_view(argv[1])=="--profile-packed-inode-reclaim-64k"){
+      profile_named_inline(argv[2],NamedInlineProfile::packed_reclaim,65536);
       return 0;
     }
     if(argc==2 && std::string_view(argv[1])=="--reconciled-rebuild"){

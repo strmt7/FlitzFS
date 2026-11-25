@@ -671,6 +671,9 @@ if(FLITZFS_BUILD_TESTS)
   target_include_directories(flitzfs_native_volume_file_tests PRIVATE src)
   target_link_libraries(flitzfs_native_volume_file_tests PRIVATE flitzfs_core)
   add_test(NAME bounded_native_volume_file COMMAND flitzfs_native_volume_file_tests)
+  add_test(NAME bounded_native_volume_file_packed_range
+    COMMAND flitzfs_native_volume_file_tests --packed-range-reclaim)
+  set_tests_properties(bounded_native_volume_file_packed_range PROPERTIES TIMEOUT 60)
   add_test(NAME bounded_native_volume_file_dense_allocation
     COMMAND flitzfs_native_volume_file_tests --dense-allocation)
   add_test(NAME bounded_native_volume_file_dense_session

@@ -412,9 +412,10 @@ Bytes establish_history(NativeFileSession& session) {
   return latest;
 }
 
-Reclaim stage_compaction(NativeFileSession& session,unsigned next=93) {
+Reclaim stage_compaction(NativeFileSession& session,unsigned next=93,
+    NativeVolumeReclaimMode mode=NativeVolumeReclaimMode::logical_only) {
   for(unsigned steps=0;steps<900;++steps) {
-    const auto step=session.advance_persistent_reclamation([next]{return id(next);});
+    const auto step=session.advance_persistent_reclamation([next]{return id(next);},mode);
     if(step!=Reclaim::copying)return step;
   }
   throw std::runtime_error("persistent compaction never reached publication");
@@ -427,6 +428,136 @@ void release_inactive(NativeFileSession& session) {
     if(step==Reclaim::idle)break;
     require(step==Reclaim::retiring,"inactive range did not retire");
   }
+}
+
+void packed_range_reclamation() {
+  using Mode=NativeVolumeReclaimMode;
+  constexpr auto unit=65536U;
+  constexpr PagedStoreLimits room{48ULL*1024*1024};
+  constexpr auto source_at=kNativeVolumeFileImageOffset;
+  constexpr auto spare_at=source_at+room.maximum_physical_bytes;
+  constexpr auto files=112U;
+  constexpr auto payload_bytes=384U;
+  const auto path=[](unsigned i){return "entry-"+std::to_string(i);};
+  const auto payload=[](unsigned i){return data(payload_bytes,500+i);};
+  auto seed=std::make_shared<SparseVolumeRam>(unit,spare_at+room.maximum_physical_bytes+4*1024*1024);
+  {
+    auto session=NativeVolumeFile::create(seed,id(90),id(91),room,raw);
+    for(unsigned i=0;i<files;++i)put(session,path(i),payload(i));
+    require(session.persistent_reclamation_pending(Mode::pack_short_inodes),
+        "wide short-file seed did not admit reclaim");
+  }
+
+  const auto drain=[&](NativeFileSession& session,SparseVolumeRam& io,std::uint64_t offset) {
+    for(unsigned step=0;io.allocated_extent(offset,room.maximum_physical_bytes);++step) {
+      require(step<16 && session.advance_persistent_reclamation({},Mode::pack_short_inodes)==Reclaim::retiring,
+          "owned range did not retire after pin release");
+    }
+  };
+  const auto verify=[&](const NativeFilesystemSnapshot& view,const Bytes& first) {
+    view.verify_all();
+    require(view.list().size()==files,"wide short-file reclaim changed the namespace");
+    for(unsigned i=0;i<files;++i)
+      require(view.read(path(i),0,payload_bytes+1)==(i?payload(i):first),"wide short-file reclaim changed payload");
+  };
+  std::array<std::uint64_t,2> settled{};
+  for(const auto mode:{Mode::logical_only,Mode::pack_short_inodes}) {
+    auto io=seed->replay();
+    const bool packing=mode==Mode::pack_short_inodes;
+    const auto used=io->allocated_extent(source_at,room.maximum_physical_bytes);
+    const auto start=io->io.live.begin()+source_at;
+    const Bytes active(start,start+used);
+    {
+      auto session=NativeVolumeFile::resume(io,id(90),raw);
+      const auto handle=session.open(path(0),{true,true,false});
+      {
+        const auto pin=session.snapshot();
+        require(stage_compaction(session,93,mode)==Reclaim::ready &&
+            session.advance_persistent_reclamation({},mode)==Reclaim::published,
+            "wide owned range could not publish");
+        require(std::equal(active.begin(),active.end(),io->io.live.begin()+source_at) && !io->range_reclaims,
+            "wide owned range copy wrote into the selected source");
+        require(session.volume_info().selection.epoch==2 && session.volume_info().selection.image_identity==id(93) &&
+            session.managed_foreground()->data_layout==(packing?NativeIndexedDataLayout::packed_small_file_inodes:
+                NativeIndexedDataLayout::inline_small_files),"wide owned range selected an unexpected image or layout");
+        require(session.advance_persistent_reclamation({},mode)==Reclaim::pinned &&
+            session.read(handle,0,payload_bytes+1)==payload(0) && pin.read(path(0),0,payload_bytes+1)==payload(0) && !io->range_reclaims,
+            "wide owned range lost a live handle or released a pinned source");
+      }
+      drain(session,*io,source_at);
+      session.cleanup(handle,false);session.close(handle);
+      settled[packing]=io->occupied();
+    }
+    const auto checked=NativeVolumeFile::inspect(io->replay(),id(90));
+    verify(checked.filesystem(),payload(0));
+  }
+  require(settled[1]<settled[0],"wide owned-range packing did not lower settled allocation");
+
+  auto io=seed->replay();
+  Bytes latest=data(payload_bytes,871);
+  {
+    auto session=NativeVolumeFile::resume(io,id(90),raw);
+    const auto handle=session.open(path(0),{true,true,false});
+    require(session.advance_persistent_reclamation([]{return id(93);},Mode::pack_short_inodes)==Reclaim::copying,
+        "wide packed stale test did not start");
+    session.write(handle,0,latest);
+    require(session.advance_persistent_reclamation({},Mode::pack_short_inodes)==Reclaim::retiring &&
+        session.volume_info().selection.epoch==1 && !io->allocated_extent(spare_at,room.maximum_physical_bytes),
+        "a stale exact packing attempt wrote or selected its copy");
+    require(session.advance_persistent_reclamation({},Mode::pack_short_inodes)==Reclaim::retiring &&
+        stage_compaction(session,94,Mode::pack_short_inodes)==Reclaim::ready,
+        "ordinary reclaim did not resume after the stale copy");
+    latest=data(payload_bytes,872);
+    session.write(handle,0,latest);
+    require(session.advance_persistent_reclamation({},Mode::pack_short_inodes)==Reclaim::copying &&
+        stage_compaction(session,95,Mode::pack_short_inodes)==Reclaim::ready &&
+        session.advance_persistent_reclamation({},Mode::pack_short_inodes)==Reclaim::published &&
+        session.volume_info().selection.image_identity==id(94) &&
+        session.managed_foreground()->data_layout==NativeIndexedDataLayout::inline_small_files &&
+        session.read(handle,0,payload_bytes+1)==latest,"ordinary replacement did not reconcile the latest foreground write");
+    session.cleanup(handle,false);session.close(handle);
+    drain(session,*io,source_at);
+  }
+  verify(NativeVolumeFile::inspect(io->replay(),id(90)).filesystem(),latest);
+  io.reset();
+
+  std::array<unsigned,2> recovered{};
+  const auto selector_cut=[&](std::optional<std::size_t> cut,unsigned failure) {
+    auto trial=seed->replay();
+    std::size_t boundaries=0;
+    {
+      auto session=NativeVolumeFile::resume(trial,id(90),raw);
+      require(stage_compaction(session,93,Mode::pack_short_inodes)==Reclaim::ready,
+          "wide packed selector candidate did not verify");
+      const auto before=trial->io.calls;
+      if(cut) {
+        trial->io.fail_at=before+*cut;
+        trial->io.failure=failure;
+      }
+      try {
+        const auto progress=session.advance_persistent_reclamation({},Mode::pack_short_inodes);
+        if(!cut)require(progress==Reclaim::published,"wide packed selector did not publish");
+      }catch(const NativeFsError&){if(!cut)throw;}
+      boundaries=trial->io.calls-before;
+      require(!trial->range_reclaims,"selector uncertainty released an owned range");
+    }
+    const auto checked=NativeVolumeFile::inspect(trial->replay(),id(90));
+    const auto selection=checked.info().selection;
+    require((selection.epoch==1 && selection.image_identity==id(91)) ||
+        (selection.epoch==2 && selection.image_identity==id(93)),
+        "wide packed selector interruption selected an unrelated image");
+    ++recovered[selection.epoch-1];
+    verify(checked.filesystem(),payload(0));
+    return boundaries;
+  };
+  const auto boundaries=selector_cut({},0);
+  require(boundaries>=4 && boundaries<=12,"unbounded wide selector fault matrix");
+  for(unsigned failure=0;failure<3;++failure)
+    for(std::size_t cut=0;cut<boundaries;++cut)(void)selector_cut(cut,failure);
+  require(recovered[0] && recovered[1],"selector cuts did not reach both complete images");
+  std::cout<<"packed_owned_range failure_unit="<<unit<<" files="<<files<<" inline_bytes="<<settled[0]
+      <<" packed_bytes="<<settled[1]<<" latest_acknowledged_verified=1 stale_fallback=1 pinned_source=1"
+      <<" selector_cuts="<<boundaries*3<<" recovered_epochs="<<recovered[0]<<','<<recovered[1]<<'\n';
 }
 
 void durable_cold_coverage() {
@@ -2712,6 +2843,11 @@ void disposable_positioned_file(const std::filesystem::path& base) {
 }
 int main(int argc,char** argv){
   try {
+    if(argc==2 && std::string_view(argv[1])=="--packed-range-reclaim") {
+      packed_range_reclamation();
+      std::cout<<"PASS: "<<checks<<" packed owned-range checks\n";
+      return 0;
+    }
     if(argc==2 && std::string_view(argv[1])=="--dense-allocation") {
       dense_allocation();
       dense_replacement_admission();

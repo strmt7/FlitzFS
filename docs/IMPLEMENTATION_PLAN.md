@@ -1,12 +1,12 @@
 # FlitzFS detailed implementation plan
 
-**Reconciled on 25 November 2026.** The shared Win32 settlement trace
-supports the next ordinary AMD and attach checks. The protected-size
-comparison puts denser small-file records ahead of another codec sweep.
-The E01–E13 acceptance and dependency contracts below define the release exits.
-[Current assessment](RELEASE_RECONCILIATION_2026-11-25.md#current-reconciliation-and-prioritized-design) ·
-[Source, tests and research](evidence/windows-small-file-layout-frontier-2026-11-25.json) ·
-[Next implementation sequence](#execution-after-the-small-file-layout-comparison)
+**Reconciled on 25 November 2026.** Wider-geometry packing has verified
+owned-range selection and CPU recovery. Use one populated Win32 trace
+to drive the ordinary AMD, attach and complete-size comparisons. The
+E01–E13 contracts below define the individual release exits.
+[Current assessment](RELEASE_RECONCILIATION_2026-11-25.md#reconciliation-after-owned-range-packing) ·
+[Source, tests and research](evidence/windows-owned-packed-reclaim-2026-11-25.json) ·
+[Ordered implementation steps](RELEASE_RECONCILIATION_2026-11-25.md#implementation-after-owned-range-packing)
 
 The [current architecture](architecture/CURRENT.md) shows the implementation.
 The [source review](architecture/REVIEW.md) tests the assumptions and the
@@ -2616,9 +2616,13 @@ acknowledged value. [Scope and evidence](INDEXED_NATIVE_VOLUME.md#incremental-pa
    projected footprint. The matched CPython comparison reached the same
    464 KiB settled footprint as the append migration, with zero writes
    to the selected image and lower target writes than ordinary reclaim.
-   Evaluate the read cost on more diverse occupied images and failure
-   geometries. Use the measured cost when admitting automatic offers.
-   [Source-bound reclaim comparison](evidence/windows-packed-reclaim-2026-11-25.json)
+   The 64 KiB geometry run added 446,263 reclaim read bytes and saved
+   131,072 settled bytes. The file-owned trial verified pinned readers,
+   selector cuts and fallback to a foreground-reconciled copy after
+   a source change. Price the read cost, stale attempts and foregone
+   cold work before enabling automatic offers.
+   [4 KiB comparison](evidence/windows-packed-reclaim-2026-11-25.json) ·
+   [64 KiB and owned range comparison](evidence/windows-owned-packed-reclaim-2026-11-25.json)
 3. **Fund the ordinary controller.** Add a separate costed maintenance
    offer to the owning session. Avoid concurrent rotation, pending repair
    and reader-pinned retirement debt. Check interactive I/O pressure

@@ -6,6 +6,23 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "owned_range_packing": {
+    "source_parent": "9780a77359c4c505a4774d6559e96e8a51e24323",
+    "tested_source_tree": "7c64361419c436a15baf98592133d63beb8b1527",
+    "evidence": "docs/evidence/windows-owned-packed-reclaim-2026-11-25.json",
+    "reconciliation": "docs/RELEASE_RECONCILIATION_2026-11-25.md#reconciliation-after-owned-range-packing",
+    "failure_unit_bytes": 65536,
+    "named_plain_settled_bytes": 1048576,
+    "named_packed_settled_bytes": 917504,
+    "target_write_bytes_saved": 131072,
+    "added_reclaim_read_bytes": 446263,
+    "owned_plain_settled_bytes": 786432,
+    "owned_packed_settled_bytes": 655360,
+    "owned_selector_cuts": 12,
+    "automatic_activation_enabled": false,
+    "live_gpu_worker_started": false,
+    "release_qualified": false
+  },
   "packed_reclaim": {
     "source_parent": "03c513a37807fba5630d2ab53bb38371b771aa30",
     "tested_source_tree": "50e4628e0e28c540c648ea85b53f6c07f12e732a",

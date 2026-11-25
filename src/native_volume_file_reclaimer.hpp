@@ -71,6 +71,7 @@ class NativeVolumeFileReclaimer final {
   std::uint64_t base_bytes_=0,scratch_bytes_=0;
   Phase phase_;
   std::uint64_t attempted_obsolete_=0,abandoned_bytes_=0,attempted_repair_=0;
+  bool packed_copy_attempted_=false;
 };
 
 } // namespace flitzfs::detail

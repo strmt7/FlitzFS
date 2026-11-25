@@ -1,16 +1,16 @@
 # Release readiness
 
-FlitzFS is in development qualification. Recent work reduced the
-settled CPython fixture by 21.4% against its compact-selector control.
-Live Windows fixtures tested the new roots across sealing and recovery,
-and a host Radeon delivered checked frames in SDK callbacks. Small
-signed Windows guest trials had already recovered acknowledged cached
-and mapped edits. Release still depends on useful automatic mounted
-AMD operation, writable attach and reuse at scale, held-out complete-size
-improvements, backing-specific recovery and a supported signed
-installation. The owner makes the release decision.
-[Current reconciliation](RELEASE_RECONCILIATION_2026-11-25.md#reconciliation-after-compact-paged-roots) ·
-[Compact roots and device evidence](evidence/windows-compact-paged-roots-2026-11-25.json) ·
+FlitzFS is in development qualification. Staged packing reduced
+the named CPython result by 12.5% at 64 KiB failure geometry.
+An owned-range model passed pinned retirement and CPU restart
+after selector interruptions. Previous live Radeon and signed
+mounted Windows fixtures demonstrated finite device delivery and
+acknowledged recovery. Stable release still needs useful automatic
+AMD operation, scalable attach and reuse, held-out compression wins,
+backing-specific recovery and an exact supported package. The
+owner makes the release decision.
+[Current reconciliation](RELEASE_RECONCILIATION_2026-11-25.md#reconciliation-after-owned-range-packing) ·
+[Current source and measurements](evidence/windows-owned-packed-reclaim-2026-11-25.json) ·
 [Mounted recovery](evidence/windows-mounted-mixed-flush-recovery-2026-11-23.json)
 
 Use the [current gate ledger](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)

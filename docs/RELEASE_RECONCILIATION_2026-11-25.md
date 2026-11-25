@@ -1,5 +1,227 @@
 # FlitzFS release reconciliation · 25 November 2026
 
+## Reconciliation after owned-range packing
+
+The reviewed parent is `9780a77359c4c505a4774d6559e96e8a51e24323`. Its 1,149
+tracked paths include 222 under `src/` and `include/`, 153 under `tests/`,
+67 under `tools/` and 652 under `docs/`. The review incorporates the
+three commits and 30 changed paths since `64f94e514f50`, plus the tested
+owned-range changes. It follows the Windows client, backing ownership, CPU
+recovery, data representation, AMD worker, learning and package paths.
+[Source, tests, and primary research receipts](evidence/windows-owned-packed-reclaim-2026-11-25.json)
+
+### Where the project stands
+
+| Area | Implemented and observed | Remaining proof |
+| --- | --- | --- |
+| Windows client | The writable WinFsp helper provides tray, Explorer and Win32 access. Signed guest traces cover populated cached/mapped writes, flush, rename, held reads, reclamation and fresh writable reopen. | The exact signed candidate needs current Windows 11 install, stop, update and removal verification, plus the client matrix on every advertised backing. [Mounted flush recovery](evidence/windows-mounted-mixed-flush-recovery-2026-11-23.json) |
+| Namespace and startup | The indexed store provides stable inode identities, paged lookup, bounded range reads and independent CPU inspection. Reusing checked owner and sibling reads lowers the cost of the writable audit. | Writable attach still traverses the live object inventory. Measure attach work, scale and memory under fixed locality, then qualify a narrower verification path against the full audit. [Checked sibling reads](evidence/windows-indexed-namespace-read-window-2026-11-25.json) |
+| Allocation and durability | Mirrored selectors and copy-on-write storage support staged handoff, pin-aware retirement and CPU verification. The owned-range packing fixture exercised the wider failure geometry and recovered both complete outcomes after modeled selector cuts. | Sustained mounted churn needs an allocation plateau. Acknowledged writes and repair need scoped qualification for the real flush and atomicity contract of each supported persistent provider. [Owned-range evidence](evidence/windows-owned-packed-reclaim-2026-11-25.json) |
+| Compression | Protected short-file records, shared bases, residuals, prefix frames and packed slices are independently CPU-decodable. Grouping helps measured revision cohorts. | Broader gains need an equal-protection search for profitable groups across unrelated, revised, tiny, sparse and already-compressed data. Price restart cost, metadata, dependency copies and final retirement. [Protected assembled-prefix comparison](evidence/windows-assembled-prefix-2026-11-25.json) |
+| Radeon | Selected fixtures have consumed verified AMD output and preserved CPU readback. Slab-guard reuse cuts upload bytes in the instrumented SDK fixture. Both current host preflights observed a saturated Radeon and left the worker idle. | Prove repeatable benefits in ordinary mounted reads and writes and under a low-priority collective workload. Bind GPU eligibility to the installed runtime and fresh host evidence. [Slab-guard evidence](evidence/windows-uniform-slab-reuse-2026-11-25.json) |
+| Adaptive work | The owner schedules bounded maintenance with demand, headroom and write credit. The protected advisory area, coherence postings and checked outcomes support resumable discovery. | Measure foreground interference and realized savings, bound metadata growth, and make advice loss and workload drift routine. Validate a small offline ranker against the same-budget rules. [Maintenance architecture](architecture/CURRENT.md#8-background-learning-grouping-and-reclamation) |
+| Compatibility and packaging | The current CPU reader understands direct and packed inodes. Required capabilities are committed with their data. The pinned SDK and driver qualification track independent identities. | Test historical reader/writer behavior against frozen binaries and interrupted upgrade. Verify current-compatible export, reversible setup and supported stable dependency tuples. [Compatibility work](IMPLEMENTATION_PLAN.md#12-e09--multi-release-readers-and-gradual-format-migration) |
+| Comparison and stabilization | The named corpus and protected byte ledger can compare matched layouts. Prior signed fixtures give workload and recovery controls. | S1–S12 each need evidence for the same candidate. The current tree has no qualifying live Windows NTFS plain/native-compressed comparative result. [Release gates](RELEASE_EXECUTION_PLAN.md#current-gate-ledger) |
+
+### What the packing measurements change
+
+The held-out 374-file CPython tree with 160 directories used 1,024 KiB
+after the exact compacted control and 896 KiB after packed copy, including
+the selector at 64 KiB failure geometry. Packing saved 131,072 target
+write bytes and added 446,263 total reclaim read bytes. A full CPU
+file sweep fetched 270,956 more backing bytes. Every file matched
+the source. The smaller target occupies 12.5% fewer settled bytes.
+At 4 KiB geometry the earlier matched run saved 208 KiB, or 31.0%.
+
+The file-owned range model independently settled at 768 KiB and 640 KiB
+for 112 short files at 64 KiB geometry. It retained the selected source
+bytes through staging and publication, preserved the pinned view and
+open handle, and released the range after the pin drained. Twelve
+modeled selector cuts recovered a complete old or new image. A write
+that invalidated the exact checkpoint forced the next copy to use
+ordinary foreground reconciliation. A second late write was retained.
+
+Use already funded exact-checkpoint opportunities to amortize packing
+on compatible direct images. The observed copy savings do not pay for
+repeated starts under churn. Price extra reads, stale work and the
+ordinary cold-compression opportunity at the controller boundary. The
+file-owned option stays explicit until the ordinary client proves a net
+gain and old-reader and backing qualification cover activation.
+[Matched byte ledgers and cut outcomes](evidence/windows-owned-packed-reclaim-2026-11-25.json)
+
+### Design decisions from current sources
+
+- **Device residency.** Keep the context, modules, stream and verified
+  scratch slabs ready for arrivals while a demand lease pays for their
+  residency. An idle lease submits device work only when demand arrives.
+  Compare pageable I/O with bounded reusable pinned buffers
+  before adopting a new transfer path. ROCm 10.2.0 documents disabled
+  stream priorities and a fixed blocking issue on repeated batch copies
+  behind long kernels. Control low-priority work by admission, quantum
+  size and measured interference. Bind recovery to changed device or
+  demand evidence after confirmed retirement. Reuse FlitzZip's separation
+  of device proof and ordinary timing, with FlitzFS volume commits and
+  independent CPU recovery as the comparison boundary.
+  [ROCm 10.2.0 release notes](https://rocm.docs.amd.com/en/docs-10.2.0/about/release-notes.html) ·
+  [HIP host memory](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_runtime_api/memory_management/host_memory.html) ·
+  [FlitzZip device qualification](https://github.com/strmt7/FlitzZip/blob/11396b5123505a4a1959173e1db2d0858c10dd6d/docs/development/hip-device-coverage.md)
+- **Sparse similarity.** RubikFS measures the effect of similarity and
+  read-temperature grouping in immutable images. The October 2026
+  Cross-Backup First study gives a separate reason to test version-aware
+  base selection. Test chunk postings and revision hints against the
+  same candidates and byte budget. Require a held-out improvement before
+  retaining a new feature. The filesystem needs immutable bases, bounded
+  decoder work, protected reverse ownership and a read path that can still
+  serve a member after a neighboring file is modified or deleted.
+  [RubikFS at FAST 2026](https://www.usenix.org/conference/fast26/presentation/huang) ·
+  [Cross-Backup First](https://www.mdpi.com/2079-9292/15/20/4712)
+- **Physical authority.** Write and validate the new owner before
+  switching selection. Delay retirement until selectors and pins permit
+  it. Use actual provider allocation and geometry when pricing. Windows
+  allocated ranges can contain zeroes and sparse deallocation is conditional.
+  An API-level flush receipt, a modeled cut and a media restart each
+  answer a different durability question.
+  [Btrfs relocation](https://btrfs.readthedocs.io/en/latest/btrfs-balance.html) ·
+  [Windows file geometry](https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_storage_info) ·
+  [Allocated ranges](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_query_allocated_ranges) ·
+  [Sparse range release](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_zero_data) ·
+  [Windows file caching](https://learn.microsoft.com/en-us/windows/win32/fileio/file-caching)
+- **Recognized controls.** DiskSpd 2.3 changed default affinity and buffer
+  placement. Freeze those choices and completion/cache settings for
+  comparable Windows runs. Use AITDCC 2026 A–H for exploration and I–P
+  as the public holdout, including the published checksums and attribution.
+  The compression corpus measures bytes. The populated Windows workload
+  measures namespace, sharing, durability and lifecycle. Use the native
+  NTFS compression attribute via `compact /C` on a new fixture directory
+  and verify inheritance and actual per-file allocation.
+  [DiskSpd 2.3](https://github.com/microsoft/diskspd/releases/tag/v2.3) ·
+  [AITDCC 2026](https://aitdcc.github.io/dataset.html) ·
+  [Windows compact](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/compact) ·
+  [GetCompressedFileSizeW](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getcompressedfilesizew)
+
+### Implementation after owned-range packing
+
+The steps below govern the next development sequence. They reuse the
+E01–E13 package contracts and S1–S12 acceptance ledger. Effort ranges are
+low-confidence engineering estimates in person-weeks. Re-estimate after
+the first matched client trace and each measured decision. Independent
+lanes can advance while the Radeon or a lab provider is unavailable.
+
+1. **A. Unify the ordinary-client comparison** · E01/E02/E03/E08/E11/E12 · **4–8**.
+   Reuse the 6,293-record populated Win32 witness and attach the exact
+   volume, runtime, build and provider identities. Emit phase counters
+   at callback enqueue, verified input, encoded candidate, write,
+   fence, acknowledged response, selected generation and retirement.
+   A separate client logs acknowledged bytes, metadata and namespace
+   operations. Preserve its expected cursor across helper restart.
+   Run paired memory-backed controls with the same initial volume,
+   operation schedule and live set. Record CPU readback, occupied
+   bytes, allocation debt, service distributions and quiescence.
+   A passes when independent reopen reconciles the transcript and the
+   trace can attribute the dominant observed costs. This supports B,
+   C and D directly and supplies the oracle for G.
+2. **B. Deliver useful automatic AMD work** · E03/E08 · **9–20**.
+   Starting with grouped read windows and eligible write batches, pair
+   CPU-only, cold AMD and retained AMD at fixed demand and resource
+   conditions. Measure ready time, queue delay, staging, device
+   transfers, kernel, verification, fallback, client completion and
+   useful consumed bytes. Keep CPU processing available during
+   activation and failure. Attribute slab reuse and buffer pinning
+   separately. Use observed arrivals, successful byte use and CPU/VRAM
+   headroom to earn each lease. On pressure or loss, stop submissions,
+   finish the CPU response, retire owned work and require fresh
+   evidence for retry. Cross idle, load, device change and failed
+   initialization on the same admitted tuple. Require repeatable
+   client benefit and byte-exact CPU continuity for both compression
+   and decompression. Apply the same accounting to maintenance before
+   increasing its duty cycle.
+3. **C. Make attach and reuse scale** · E01/E02/E09/E11 · **9–20**.
+   Separate verified root and owner state from per-object reads. Test
+   a generation-bound shadow attach beside the full CPU audit. Measure
+   off-path damage, stale ownership, wrong root and interrupted repair.
+   Promote a narrower attach only after its explicit integrity contract
+   agrees with the oracle. Measure ordinary reclaim, packed reclaim and
+   cold work on distinct funded opportunities. Check parent identity,
+   both mirrors, late mutations, spare admission, pinned retirement,
+   waste after abandonment and write credit. Under a fixed live set,
+   settle repeated overwrite, delete and regrow workloads to an
+   occupied-byte plateau. Measure geometric file-count tiers and
+   independently vary extent density and locality. Fit cost against
+   live pages, touched extents and churn, validate on a withheld
+   feasible tier, and report prediction intervals for large populations.
+4. **D. Find substantial protected-byte wins** · E04/E05/E06 · **12–25**.
+   Freeze independent high-level Zstandard, exact reuse, protected
+   dictionaries and current shared-base methods at equal protection.
+   Run a bounded offline oracle on held-out whole-family revisions.
+   Compare existing fixed boundaries with content-defined samples,
+   revision-aware postings and short compatible ranges. Price every
+   candidate as live payload, index, immutable base and recovery copies,
+   advice, padding and retirement overhead. Evaluate single references,
+   grouped prefixes and restartable delta frames against that price.
+   Prefer groupings with a clear settled advantage and acceptable
+   point-read and access-tail amplification. Large groups may span
+   many files through independently readable restart units. Prototype
+   predictors and entropy models outside the durable registry until
+   their complete footprint, decoder work and exact CPU recovery win.
+   D produces a measured representation with a bounded reader cost or
+   an evidence-backed decision to keep the existing method.
+5. **E. Connect local learning and measured background budgets** · E04/E07 · **5–11**.
+   Keep postings sparse and bound lookups using current I/O and memory
+   headroom. Learn from sampled requested ranges, measured savings,
+   interference and rejection outcomes. Compare a compact local ranker
+   with the same-budget rule scorer in shadow mode on disjoint files and
+   time windows. Reserve compute, reads, scratch and expected writes for
+   each resumable quantum. Check live foreground demand again before
+   writing or publishing. Charge abandoned work and settle on actual
+   reclaimed bytes. Persist versioned observations against volume and
+   generation in the reserved area. Loss of advice returns to checked
+   rediscovery. E passes with reproducible savings or lower work at
+   comparable savings, bounded resource use and prompt foreground yield.
+6. **F. Finish supported Windows lifecycle and upgrades** · E08/E09/E10 · **8–17**.
+   Qualify the exclusive volume owner, tray/command lifecycle, Explorer
+   integration, system-backed memory provider and only advertised
+   persistent providers. Discover installed dependencies and capability
+   by the active environment. Stage signed version-bound components and
+   qualify reversible offline setup and clean removal. Test sharing,
+   mapped/cached writes, metadata, rename and deletion using the pinned
+   WinFsp client tests and populated ordinary workflows. Freeze readers
+   across the declared version window. Require older writers to refuse a
+   required new feature before any writes. Qualify resumed migration,
+   new writes after activation, and export of the latest acknowledged
+   generation to an older compatible representation.
+7. **G. Prove the declared durability and repair model** · E02/E11 · **8–17**.
+   Run the cut matrix at payload, mirror, root, selector, allocation,
+   advice and retirement boundaries. Use a separate acknowledgement
+   witness and CPU restore. Model torn units and lost writes, then
+   qualify helper termination, interrupted restart and power-failure
+   behavior on isolated sacrificial backing for each advertised medium.
+   Include near-full repair, unreadable or disappeared backing, stale
+   reader pins, lost advice, removed accelerator and safe continuation.
+   Reconcile the last durable operations byte-for-byte after recovery.
+   Declare the failure model and the backup requirement for complete
+   loss of all copies. G supplies persistent-provider evidence for F
+   and the exact candidate decision.
+8. **H. Compare and stabilize the exact Windows candidate** · E12/E13 · **4–9**.
+   Freeze source, dependencies, installer, driver, CPU reader and
+   runtime binding. Alternate live Windows runs for plain NTFS, native
+   compressed NTFS, FlitzFS CPU, admitted AMD foreground and settled
+   FlitzFS at matched support and backing geometry. Report exact logical
+   and occupied bytes, bytes read/written, latency distributions,
+   CPU/RAM/GPU peaks, useful device bytes, retries and restart time.
+   Keep DiskSpd and named workload reports separate and publish
+   equal-protection and exposed default policies clearly. Complete the
+   declared soak and rerun affected gates after every material fix.
+   The final owner decision packet names the exact verified artifact
+   and the supported Windows, adapter and provider tuples.
+
+The estimate is **59–127 person-weeks** across the eight steps. That
+range covers the remaining development and qualification effort
+under the present support scope. Stable-release readiness requires
+the joined evidence, including ordinary Radeon gains, large-corpus
+settled-size benefits, physical-provider recovery and exact signed
+Windows integration. [Original package definitions](IMPLEMENTATION_PLAN.md) ·
+[Exact release ledger](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
+
 ## Reconciliation after bounded inode migration
 
 The reviewed parent is `64f94e514f50`. Its 1,146 tracked paths include 222

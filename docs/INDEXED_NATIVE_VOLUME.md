@@ -216,6 +216,26 @@ ordinary copy. A complete CPU read of the settled files fetched 1.9%
 more backing bytes. The two layouts produced identical file contents.
 [Copy, recovery and allocation evidence](evidence/windows-packed-reclaim-2026-11-25.json)
 
+#### Packing an owned volume-file range
+
+The file-owned reclaimer accepts this mode on an already reclaimable,
+direct inline image. It uses the existing owned spare range, mirrored
+selector, and reader-retirement checks. Capacity repair and sealed
+images keep their existing paths. A packing attempt binds the exact
+checkpoint. After a stale attempt, later copies for that selected image
+in the session use foreground reconciliation. The next selected image
+can receive a new packing offer. The caller opts in.
+
+At 64 KiB modeled failure geometry, normal and packed CPython copies
+settled at 1,024 KiB and 896 KiB including their selectors. The same
+wide geometry in the owned-range fixture recovered both complete
+layouts across 12 modeled selector cuts. A captured reader held the
+previous range and a live handle continued serving the current bytes.
+The stale attempt left its spare untouched and a later reconciled
+handoff carried two newer foreground writes.
+
+[Owned range and named corpus evidence](evidence/windows-owned-packed-reclaim-2026-11-25.json)
+
 ### Name profiles
 
 Profile 0 keeps the earlier ASCII spelling and lowercase keys. The first

@@ -288,8 +288,8 @@ std::optional<NativeDenseFileSpace> NativeVolumeFileReclaimer::dense_file_space(
 }
 bool NativeVolumeFileReclaimer::dense_work_pending(const NativeFileSession& session,NativeVolumeReclaimMode mode) const {
   const auto* dense=active_->owner->dense_file;
-  if(mode==NativeVolumeReclaimMode::logical_only || !dense || phase_!=Phase::idle ||
-      !session.idle_compaction_context_ready())return false;
+  if(mode==NativeVolumeReclaimMode::logical_only || mode==NativeVolumeReclaimMode::pack_short_inodes ||
+      !dense || phase_!=Phase::idle || !session.idle_compaction_context_ready())return false;
   if(mode==NativeVolumeReclaimMode::shorten_packed_tail)
     return dense->tail_shorten_pending(retirement_quantum) && !image_work_pending(session,false);
   return dense->tail_work_pending(retirement_quantum);
@@ -400,6 +400,7 @@ void NativeVolumeFileReclaimer::adopt_selection() noexcept {
   attempted_obsolete_=0;
   abandoned_bytes_=0;
   attempted_repair_=0;
+  packed_copy_attempted_=false;
   phase_=Phase::retiring;
 }
 void NativeVolumeFileReclaimer::discard_seal() noexcept {
@@ -558,8 +559,18 @@ Progress NativeVolumeFileReclaimer::advance(NativeFileSession& session,const std
         const auto plan=seal_plan(session.volume_info().selection,space.total_bytes-space.free_bytes);
         return plan?begin_seal(session,identity(),*plan,scratch):Progress::idle;
       }
-      if(!session.begin_idle_compaction_impl(NativeVolumeFile::Region::pin_image(spare_),identity(),true,
-          reclaim?PagedRewriteMode::reconcile_foreground:PagedRewriteMode::cold_compression))
+      auto rewrite=reclaim?PagedRewriteMode::reconcile_foreground:PagedRewriteMode::cold_compression;
+      if(reclaim && mode==NativeVolumeReclaimMode::pack_short_inodes && !packed_copy_attempted_ &&
+          !attempted_repair_ && !session.volume_info().selection.sealed_range) {
+        const auto foreground=session.managed_foreground();
+        if(foreground && foreground->data_layout==NativeIndexedDataLayout::inline_small_files) {
+          // Packing binds an exact checkpoint. Use ordinary reconciliation
+          // after the first interrupted or refused attempt on this image.
+          packed_copy_attempted_=true;
+          rewrite=PagedRewriteMode::pack_short_inodes;
+        }
+      }
+      if(!session.begin_idle_compaction_impl(NativeVolumeFile::Region::pin_image(spare_),identity(),true,rewrite))
         return Progress::idle;
       phase_=Phase::copying;
       return Progress::copying;
