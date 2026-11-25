@@ -51,7 +51,15 @@ physical and commit headroom. The native delta subtracts idle time from kernel
 plus user time and rejects decreasing, empty or inconsistent counters. PDH
 converts its percentage to one million units with upward rounding. The core
 separately checks the policy limit on sample duration and the freshness of the
-capture before admitting any optional work. Late windows re-prime the collector.
+capture before admitting any optional work. When the next paid opportunity
+would outlive its CPU reference, pending work on a quiet volume can request
+one reference refresh during the existing wait. The controller schedules it
+inside the accepted sampling window and lets foreground events interrupt
+the wait. The refresh takes no storage step and adds its own elapsed cost
+to the pending duty. The normal opportunity still needs current CPU and
+memory evidence. A live Windows check compared an expired reference with a
+refreshed one at the same paid deadline.
+[Reference refresh evidence](evidence/windows-maintenance-reference-refresh-2026-11-25.json)
 [Windows system timing](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getsystemtimes) ·
 [Processor groups](https://learn.microsoft.com/windows/win32/procthread/processor-groups) ·
 [Native sampling and AMD recovery evidence](evidence/windows-native-cpu-sampling-amd-resume-2026-11-20.json)

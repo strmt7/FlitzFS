@@ -1,6 +1,7 @@
 #pragma once
 #include "flitzfs/native_maintenance.hpp"
 #include <windows.h>
+#include <algorithm>
 #include <memory>
 #include <optional>
 namespace flitzfs {
@@ -13,6 +14,20 @@ struct WindowsProcessorDelta {
 };
 std::optional<WindowsProcessorDelta> windows_processor_delta(
     WindowsProcessorTimes before,WindowsProcessorTimes after) noexcept;
+inline constexpr std::uint64_t maintenance_cpu_sample_ms=1000;
+inline constexpr std::uint64_t maintenance_cpu_window_ms=NativeMaintenancePolicy{}.maximum_cpu_window_ms;
+
+// Keep the reference for the next paid opportunity inside the accepted
+// sample window. Use the midpoint to leave room for event-wake jitter.
+inline std::optional<std::uint64_t> maintenance_reference_delay(std::uint64_t now,std::uint64_t due,
+    std::uint64_t reference,std::uint64_t earliest_sample) noexcept {
+  if(!reference || reference>now || due<=now || due-reference<=maintenance_cpu_window_ms ||
+      due-now<maintenance_cpu_sample_ms)return {};
+  constexpr auto lead=(maintenance_cpu_sample_ms+maintenance_cpu_window_ms)/2;
+  const auto sample=(std::max)(earliest_sample,due>lead?due-lead:0);
+  if(sample>due-maintenance_cpu_sample_ms)return {};
+  return sample>now?sample-now:0;
+}
 enum class MaintenanceFollowup {admit,elapsed,backing};
 inline MaintenanceFollowup maintenance_followup(std::uint64_t budget,std::uint64_t used,
     std::uint64_t previous,std::uint64_t backing_prediction) noexcept {
@@ -46,6 +61,7 @@ class WindowsMaintenanceHost final {
       std::uint64_t backing_prediction_ns=0,bool* backing_limited=nullptr) noexcept;
   MaintenanceHostStatus status() const noexcept;
   std::uint64_t next_delay_ms() const noexcept;
+  std::optional<std::uint64_t> reference_refresh_delay_ms(std::uint64_t now,std::uint64_t due) const noexcept;
  private:
   struct Impl;std::unique_ptr<Impl> impl_;
 };

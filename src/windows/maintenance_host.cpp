@@ -77,6 +77,12 @@ MaintenanceHostStatus WindowsMaintenanceHost::status() const noexcept{return imp
 std::uint64_t WindowsMaintenanceHost::next_delay_ms() const noexcept {
   const auto now=GetTickCount64();return impl_->next>now?impl_->next-now:0;
 }
+std::optional<std::uint64_t> WindowsMaintenanceHost::reference_refresh_delay_ms(
+    std::uint64_t now,std::uint64_t due) const noexcept {
+  const auto& p=*impl_;
+  if(p.state==MaintenanceHostStatus::unavailable)return {};
+  return detail::maintenance_reference_delay(now,due,p.previous,p.next);
+}
 NativeMaintenanceObservation WindowsMaintenanceHost::observe(bool foreground) noexcept {
   auto& p=*impl_;NativeMaintenanceObservation o;o.foreground_pending=foreground;
   p.sample={};p.started=Clock::now();
@@ -87,7 +93,7 @@ NativeMaintenanceObservation WindowsMaintenanceHost::observe(bool foreground) no
   if(before<p.next){p.state=MaintenanceHostStatus::waiting;return o;}
   p.state=MaintenanceHostStatus::warming;
   const auto topology=processor_topology();
-  if(!topology.valid()){p.reset_cpu({});p.next=before+1000;return o;}
+  if(!topology.valid()){p.reset_cpu({});p.next=before+detail::maintenance_cpu_sample_ms;return o;}
   if(topology!=p.topology)p.reset_cpu(topology);
 
   // GetSystemTimes covers the whole machine only with one processor group.
@@ -100,12 +106,12 @@ NativeMaintenanceObservation WindowsMaintenanceHost::observe(bool foreground) no
   }
   const auto captured=GetTickCount64();
   o.captured_ms=captured;
-  p.next=captured+1000;
+  p.next=captured+detail::maintenance_cpu_sample_ms;
   if(processor_topology()!=topology){p.reset_cpu({});return o;}
   const auto previous=std::exchange(p.previous,captured);
   const auto earlier=std::exchange(p.previous_times,times);
   const auto elapsed=previous && captured>=previous?captured-previous:0;
-  if(elapsed<1000 || elapsed>2000)return o;
+  if(elapsed<detail::maintenance_cpu_sample_ms || elapsed>detail::maintenance_cpu_window_ms)return o;
 
   if(times) {
     if(!earlier)return o;

@@ -334,8 +334,20 @@ void backing_maintenance_window() {
   for(unsigned sample=0;sample<4;++sample)timing.observe(1'000'000);
   require(fits(elapsed,previous)==Choice::admit && fits(window,previous)==Choice::elapsed,
       "repeated fast backing evidence did not recover the remaining-window admission");
+  using detail::maintenance_reference_delay;
+  require(!maintenance_reference_delay(1200,2000,1000,2000) &&
+      !maintenance_reference_delay(1200,3000,1000,2000),"current CPU reference requested an extra sample");
+  require(maintenance_reference_delay(1100,4300,1000,2000)==1700 &&
+      maintenance_reference_delay(2800,4300,1000,2000)==0 &&
+      !maintenance_reference_delay(2800,4300,2800,3800),
+      "extended duty wait did not establish a reference for the paid step");
+  require(maintenance_reference_delay(1800,3200,1000,2000)==200 &&
+      !maintenance_reference_delay(3601,4500,1000,2000) &&
+      !maintenance_reference_delay(4000,6000,0,5000),
+      "reference refresh ignored cadence, wake lateness or missing baseline");
   std::cout<<"maintenance_backing_gate slower_refused=1 missing_preserved=1 recovery_after_observation=1"
-      <<" wall_gate_preserved=1 partial_writes_separate=1 isolated_scopes=1\n";
+      <<" wall_gate_preserved=1 partial_writes_separate=1 isolated_scopes=1"
+      <<" long_wait_reference_refresh=1\n";
 }
 void native_rng_initialization() {
   std::array<DWORD,3> observed{};const auto cold=handle_count();

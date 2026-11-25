@@ -41,6 +41,7 @@ struct WinFspControllerView {
   PagedPayloadScrubResult last_payload_scrub_fault;
   std::optional<PagedPayloadCheckpointObservation> last_payload_checkpoint;
   std::uint64_t maintenance_elapsed_ns=0,maximum_quantum_ns=0,backing_limited_continuations=0;
+  std::uint64_t maintenance_reference_refresh_attempts=0;
   detail::MaintenanceBackingUse maintenance_backing;
   std::uint64_t read_ahead_prepared=0,read_ahead_backing_refusals=0,read_ahead_demand_samples=0;
   std::uint64_t gpu_budget_queries=0,gpu_budget_refusals=0;

@@ -86,6 +86,50 @@ comparison. Installed-host performance and ordinary packed settlement have
 separate acceptance runs.
 [Signed replay with backing attribution](evidence/windows-mirrored-source-audit-2026-11-25.json)
 
+## CPU reference refresh during maintenance debt
+
+A paid opportunity can be delayed longer than the accepted two-second CPU
+window. Waiting with the original reference then needs a new sampling
+interval before it supplies valid CPU admission. The controller now
+requests one reference during the existing wait when work remains pending
+and the volume is quiet. The original duty allowance applies. The new
+telemetry cost adds to that debt and the paid opportunity checks current
+resources.
+
+The live Windows control used the same planned deadline for both samplers.
+The original reference measured 3,609 ms and refused the window. The
+refreshed reference supplied a valid 1,500 ms window. The same source
+passed controller, raw-only and AddressSanitizer validation. On the
+installed Radeon, the prepared callback fixture consumed four exact
+decoded frames across requests of different sizes and verified all bytes
+on the CPU. Its worker retired.
+[Source, host, and device evidence](evidence/windows-maintenance-reference-refresh-2026-11-25.json)
+
+Windows background mode supplies CPU, I/O and memory scheduling priority
+for executing maintenance. The application continues to own admission and
+pacing. Recent HATS results motivate evaluating adaptive compaction control
+against foreground interference in the intended workload.
+[Microsoft thread background mode](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadpriority) ·
+[FAST ’26 HATS](https://www.usenix.org/conference/fast26/presentation/ren)
+
+### Ordinary packed publication and backing release
+
+The longer signed replay matched all 6,293 client operations. The normal
+mounted controller published image epoch 2 and reduced provider allocation
+from **839,254,016 to 6,160,384 bytes** while attached. It recorded 163
+continued inactive-range retirement steps, 181 continued packed-tail steps,
+and four CPU reference refresh attempts. This is reclaimed backing space
+after the write and delete workload. An independent detached CPU reopen
+verified all 1,027 files at epoch 2 with no further reclamation pending or
+change in provider allocation.
+
+One maintenance step reported failure and the controller had yet to report
+quiescence at the observation endpoint. Its outcome counter did not identify
+the failed operation. Failure-free settlement remains open. Keep the
+publication and allocation results and the separate final-cleanup result in
+the next replay.
+[Signed publication, backing release and recovery](evidence/windows-maintenance-reference-refresh-2026-11-25.json)
+
 ## Ordinary packed follow-up
 
 The follow-up starts after the 6,293-operation Win32 witness with the
@@ -248,7 +292,7 @@ Attribute resource cost and remaining work before changing either phase.
 | --- | --- | --- |
 | S1 · Exact artifacts | Current scoped builds bind source and SDK/CPU artifacts. Earlier real device runs identify their exact ROCm binaries. | Bind one clean Windows 11 update, signed WinFsp pair, helper, workers, CPU decoder table and backing capabilities to the acceptance run. |
 | S2 · Scale | Paged inodes, names and extents are live. Checked replica reads group adjacent frames across banks within each leaf. The complete startup walk still runs. | Verify bounded attach under a versioned authority contract. Fit and validate separate named-file curves for attach, restart, enumeration, mutation and resident memory. |
-| S3 · Space reuse | Preselected sparse backing settled while mounted. The ordinary packed replay reached payload copy. The native cold-copy control reduced copy advances to 42 from 215 on identical settled bytes. | Select and settle through the ordinary mounted controller. Attribute remaining verified work and idle admission before tuning pacing or allocation under churn, pins and interruption. |
+| S3 · Space reuse | Ordinary packed reclamation published and reduced occupied backing bytes while mounted. Detached CPU reopen verified all live files and found no further work. The observer recorded one maintenance failure and had yet to report quiescence. | Identify the failed operation, require a clean replay, and qualify repeated settled allocation under churn, retained readers, pressure and interruption. |
 | S4 · AMD and CPU continuity | The latest installed Radeon SDK trial delivered four exact frames in two different request sizes, with independent CPU readback and confirmed worker retirement. The measured 1 MiB write shape still favors CPU. | Prove a useful automatic region for each advertised AMD role in installed-client paths. Qualify CPU availability, verified delivery and condition-based device recovery. |
 | S5 · Compression | Protected prefix selection can save an allocation pair. Two secondary-key restart controls save 122,880 complete bytes each at the same catalog size. Broader real corpus rebuild controls retained their sizes, with no catalog nominations required. AIT grouping and parity placement showed distinct effects. | Establish a held-out complete-size frontier including metadata and protection. Measure catalog recall and savings with a populated, funded search index. |
 | S6 · Autonomy | Persistent sparse advice, workload samples, yield ranking and resource admission run in the controller. | Measure learning benefit, time to settle, interference, per-volume fairness and bytes written per byte reclaimed across workloads and restart. |
@@ -506,14 +550,15 @@ before expanding the experiment.
 
 ### 1. Close ordinary mounted settlement · E02, E08, E11
 
-1. Use the recorded phase I/O and candidate cursor to measure remaining
-   work and credit per quiet window on the qualified host. Record CPU and
-   backing time per charged step and why the next step was deferred.
-   Compare grants under active client I/O and confirmed idle. The signed
-   control reached copy cursor 324 of 2,111 during its observation.
-   Retain fresh resource and candidate identity checks at every continuation.
-   Qualify normal mounted publication and settlement with the independent
-   acknowledged-operation witness before expanding the comparison matrix.
+1. Identify the recorded maintenance failure before qualifying settlement.
+   Capture the failing operation, checked selector epoch, and error category
+   in the persistent reclaimer. Distinguish catalog retirement, inactive
+   range retirement, packed-tail work, and the candidate's preparation or
+   publication. Preserve the current authority fence and CPU read access.
+   Reproduce the specific state in the corresponding bounded fixture.
+   Then repeat the signed trace and require publication, occupied-byte
+   release, confirmed controller quiescence, and independent byte-exact
+   readback without further reclamation after detach.
 2. On the same 1,027 live files, compare ordinary churn, a cold-work
    control and detached CPU verification. Track the selected generation,
    selector and provider identities, live bytes, reusable slots, pinned
@@ -636,7 +681,7 @@ before expanding the experiment.
 | Package | First bounded change and evidence needed before expansion |
 | --- | --- |
 | E01 · Scale | Compare a version-bound attach summary with the full audit in shadow mode. Record would-accept, audit result, pages touched and disagreement cause. Use held-out file-count tiers and count metadata residency. |
-| E02 · Allocation | Run the normal packed settlement trace. If copying has ceased to dominate, price the next observed phase. Use checked local evacuation and a shadow retirement ledger only if movement or retained capacity is the measured floor. |
+| E02 · Allocation | Isolate the first ordinary packed witness's maintenance failure. Repeat through clean quiescence after the confirmed publication and backing release. Price phase costs under real load before choosing local evacuation or admission changes. |
 | E03 · AMD | Measure verified-ready and cold delivery on one real grouped-read stream. Charge preparation, transfers, CPU verification, useful delivery and residency. Enroll a repeatable winning shape, then price one representative write shape and one collective job. |
 | E04 · Coherence | Run the funded catalog against a sealed family split. Count candidates retrieved, stale and negative lookups, actual savings and metadata cost versus a bounded exhaustive oracle. Grow discovery where the savings gap justifies additional index space. |
 | E05 · Candidate design | Run independently strong frames, exact reuse, protected bases and short restartable deltas against the same incumbent on held-out families. Add a representation only after locating repeatable residual bytes and bounding CPU access. |

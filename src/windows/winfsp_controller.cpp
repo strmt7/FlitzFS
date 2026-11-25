@@ -168,7 +168,7 @@ struct WinFspVolumeController::Impl {
         constexpr auto maximum_finite_wait=std::uint64_t{INFINITE-1};
         constexpr auto scrub_day_ms=24ULL*60*60*1000;
         std::uint64_t next=0,next_scrub=0;
-        bool scrub_pass_faulted=false,maintenance_quiescent=false;
+        bool reference_refreshed=false,scrub_pass_faulted=false,maintenance_quiescent=false;
         while(!stop_requested.load(std::memory_order_acquire)) {
           if(session->requires_offline() || session->dispatcher_stopped())break;
           if(!disabled && adapter->maintenance_event_failed()) {
@@ -250,8 +250,12 @@ struct WinFspVolumeController::Impl {
             std::lock_guard lock(mutex);
             current.maintenance_quiescent=maintenance_quiescent=quiescent;
           }
-          if(!pending || now<next) {
+          const auto reference_delay=pending && now<next && !reference_refreshed && !adapter->foreground_pending()
+              ?host.reference_refresh_delay_ms(now,next):std::nullopt;
+          const bool refresh_reference=reference_delay && !*reference_delay;
+          if((!pending || now<next) && !refresh_reference) {
             auto delay=pending?(std::min)(next-now,maximum_finite_wait):std::uint64_t{INFINITE};
+            if(reference_delay)delay=(std::min)(delay,*reference_delay);
             if(!disabled && !scrub_due)delay=(std::min)({delay,next_scrub-now,maximum_finite_wait});
             if(gpu)delay=(std::min)({delay,gpu->after_ms-now+1,maximum_finite_wait});
             if(awaiting_anchor) {
@@ -295,8 +299,10 @@ struct WinFspVolumeController::Impl {
               return stop_requested.load(std::memory_order_acquire) || adapter->foreground_pending() ||
                   adapter->foreground_activity()!=epoch;
             };
-            auto observed=host.observe(stop_requested.load(std::memory_order_acquire));
-            if(!stop_requested.load(std::memory_order_acquire) && host.status()!=MaintenanceHostStatus::waiting) {
+            auto observed=host.observe(stop_requested.load(std::memory_order_acquire) ||
+                (refresh_reference && interrupted()));
+            if(!refresh_reference && !stop_requested.load(std::memory_order_acquire) &&
+                host.status()!=MaintenanceHostStatus::waiting) {
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
               if(!interrupted() && write_reference_demand) {
                 const detail::MaintenanceBackingScope measure(backing_use);
@@ -408,6 +414,18 @@ struct WinFspVolumeController::Impl {
           // 1% elapsed-work share charges telemetry and wrapper work too. File
           // activity wakes the owner but never erases accumulated pacing debt.
           const auto duty_ms=maintenance_delay_ms(used);
+          if(refresh_reference) {
+            // This sample refreshes telemetry for the existing grant deadline.
+            // It neither admits backing work nor repays outstanding duty.
+            reference_refreshed=true;
+            next=detail::saturated_backing_sum(next,duty_ms);
+            std::lock_guard lock(mutex);
+            current.host=host.status();current.maintenance_disabled=disabled;
+            ++current.maintenance_reference_refresh_attempts;
+            current.maintenance_elapsed_ns+=used;
+            continue;
+          }
+          reference_refreshed=false;
           const auto delay=(std::max)({std::uint64_t(1),host.next_delay_ms(),result.progress.next_opportunity_delay_ms,duty_ms});
           next=GetTickCount64()+(std::min)(delay,maximum_finite_wait);
           bool notify_integrity_fault=false;

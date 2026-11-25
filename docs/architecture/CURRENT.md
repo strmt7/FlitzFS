@@ -464,8 +464,12 @@ idle observation indicates that no work is eligible at that decision.
 Each admitted reclaimer step can also report the phase of an existing
 paged candidate at entry, its candidate identity, and its object cursor.
 Backing calls, completed bytes and flushes accumulate against that phase
-in a fixed-size array. Optional read-ahead work follows the reclaimer
-measurement scope and is accounted for in the overall totals.
+in a fixed-size array. During a long debt wait with pending work, the
+controller can refresh the CPU reference once under background priority.
+The refresh is charged to the existing deadline. Reclamation still needs
+a valid window and current headroom at the paid step. Optional read-ahead
+follows the reclaimer measurement scope and is included in the overall totals.
+[Windows scheduling and live reference check](../WINDOWS_BACKGROUND_MAINTENANCE.md#trusted-opportunities-and-resource-priority)
 Cold-eligible short frames share the mirrored
 payload batch within a separate cold-input budget. The writer checks both
 replicas and independent CPU bytes before index construction continues.

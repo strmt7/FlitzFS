@@ -299,14 +299,14 @@ or a new representation.
 - **Mounted settlement.** Record admission, copy phase, verification,
   selector publication, retained references, provider operations and
   allocation in order. Reuse the independent client and CPU oracle.
-  The latest signed trace attributed 4,428 reads to source verification.
-  Private payload copy reached entry cursor 324 of 2,111. Measure phase cost,
-  remaining objects and admitted credits on the qualified host. Calibrate
-  continuation to actual idle capacity if waiting limits progress. Price
-  bounded verified gathering or allocation work only where the attributed
-  costs justify it. Require selector publication and occupied-byte settlement
-  with the independent operation witness.
-  [Signed replay and matched native control](evidence/windows-mirrored-source-audit-2026-11-25.json)
+  The latest signed replay published and reduced provider allocation to
+  6,160,384 bytes while mounted. Detached inspection required no reclamation
+  and verified the selected image. One maintenance failure and the missing
+  quiescence observation keep E02 open. Attribute that failure to its exact
+  reclaimer operation, exercise its recovery boundary, and repeat for clean
+  idle settlement. Then measure real-host phase cost and admitted credit
+  under foreground activity and quiet periods.
+  [Mounted publication and failure evidence](evidence/windows-maintenance-reference-refresh-2026-11-25.json)
 - **Useful device delivery.** Feed observed open stream ranges and
   generations to the existing owner. For read, write and collective work,
   compare CPU, cold GPU and a ready lease using identical observations.
