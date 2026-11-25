@@ -990,6 +990,49 @@ The 1,024-file and 8,192-file samples predict the held-out total at
 [Matched audit and recovery evidence](evidence/windows-indexed-extent-owner-audit-2026-11-25.json) ·
 [Microsoft file flush contract](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers)
 
+### Read checked sibling inodes together during reopen
+
+The initial namespace audit can read neighboring primary inode frames in
+one bounded span. The checked name walk advertises consecutive inode IDs
+it will visit in order. The object store coalesces only physically adjacent
+frames on one checked leaf within that range. It validates the stored
+identity and digest of each frame before returning any inode from the
+span. Each inode still goes through the ordinary CPU decoder and native
+name, parent, lifetime and shape checks.
+
+A failed span keeps the view degraded, then the ordinary single-record
+reader can recover a surviving frame. The reader also uses that path if
+it cannot allocate the optional scratch. The scratch ends at the namespace
+pass. The decoded inventory still reads both copies before the fences. The reopened
+checkpoint uses fresh stored reads on both copies after both fences.
+
+| Matched Windows memory image | Baseline provider reads | Grouped provider reads |
+| --- | ---: | ---: |
+| 1,024 short files | 2,639 | 1,662 |
+| 4,096 short files | 10,205 | 6,289 |
+| 16,384 short files | 40,496 | 24,825 |
+| 374 named CPython files | 1,291 | 1,057 |
+
+The short-file tiers read the same bytes on both sides of the fences.
+The CPython tree read 8,253 additional bytes before the first fence and
+the same bytes afterward. An earlier attempt to read neighboring frames
+without pending name demand added 700,815 bytes before the fence on that
+tree. Both versions of the final paired comparisons performed one image
+flush, one selector flush and zero writes. Independent CPU readback
+matched every file. The endpoint slopes are 2.465 and 1.508 provider reads
+per file in these layouts. The revised fit predicts the held-out
+4,096-file count to within 0.09%. The audit still traverses the inventory.
+[Paired counts and fault checks](evidence/windows-indexed-namespace-read-window-2026-11-25.json)
+
+Use read grouping to reduce the cost of the complete audit. XFS describes
+readahead in its full metadata repair scans. Btrfs documents separate
+validation of checked tree blocks. Those designs inform batching against
+an already checked page. FlitzFS binds writable admission to its own
+fresh replica checks, exclusive writer leases and exact checkpoint.
+[XFS scan design](https://docs.kernel.org/filesystems/xfs/xfs-online-fsck-design.html#full-filesystem-scans) ·
+[Btrfs tree checker](https://btrfs.readthedocs.io/en/latest/Tree-checker.html) ·
+[Microsoft sharing modes](https://learn.microsoft.com/en-us/windows/desktop/FileIO/creating-and-opening-files)
+
 ### Stored mirror recheck on healthy writable reopen
 
 The ordinary indexed reopen takes its initial decoded namespace audit from

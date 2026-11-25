@@ -1,0 +1,702 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "release_qualified": false,
+  "source": {
+    "parent": "1721a945390292cb9e216f44a1591d7514b8bd76",
+    "base_tree": "1c8f60865439d97f8fd99d7c5695111d38ca08c5",
+    "tree": "36851a072ba3c224ab3ea863513e366545de3051",
+    "elements": [
+      {
+        "path": "CMakeLists.txt",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "a6472b39be52b1d20e812b1d32a7180be5d36c08",
+        "bytes": 98484
+      },
+      {
+        "path": "include/flitzfs/paged_store.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "6065e4ad1455bddcb60203d8c36755f8a15de6c3",
+        "bytes": 22283
+      },
+      {
+        "path": "src/native_indexed_volume.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "43b1297c54aef7c94ef8bfdaf28e48b0ebe235f7",
+        "bytes": 140169
+      },
+      {
+        "path": "src/native_indexed_volume.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "783abb7f0f19c1a70902b3a7ecaaf6e6a60c5053",
+        "bytes": 15177
+      },
+      {
+        "path": "src/native_name_index.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "24f509504597b9ce7f00051736681f3ceed12dce",
+        "bytes": 31661
+      },
+      {
+        "path": "src/native_name_index.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "74ffadaa2fd58df1acf5aaabd67ebe4702e6ebdb",
+        "bytes": 4906
+      },
+      {
+        "path": "src/paged_store.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "5f3ff2d425c6d95a669104cf5ec44b0b64873336",
+        "bytes": 160883
+      },
+      {
+        "path": "tests/test_native_indexed_volume.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "0a1bba4faa96b1ee10a1023f1bda0cdf83823051",
+        "bytes": 108926
+      },
+      {
+        "path": "tests/test_native_name_index.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "c88f081f82c617ade1d9330b8ceb2733b8fd4a69",
+        "bytes": 14980
+      }
+    ]
+  },
+  "scope": {
+    "windows_host": "Windows 11 26H2 build 26300.10075",
+    "memory_image": "A clean mirrored indexed image retains both flush barriers and performs its complete audits on both sides.",
+    "benchmark": "Counts from the ordinary writable native resume entry point with one in-memory image provider. No mounted throughput claim.",
+    "baseline_binary_sha256": "5c3bac9eec100de92945a603af4aa47e41b3d91781f96e2a2bb2e019248fc87f",
+    "cpython_named_manifest_sha256": "4660e8c0a9487722e0660f82f10dafd3ecbce03a602b84516750cba51f5e2694",
+    "format_changed": false
+  },
+  "paired_provider_counts": {
+    "short_1024": {
+      "baseline": {
+        "run": {
+          "run": "local-run-7212edda8dbf43b1abed0f489dae4ba5",
+          "result_sha256": "45d45f30fc8628dfe788d7d644f4d791cafa1e5f41593860da0ebe9cf6800dcd",
+          "output_sha256": "e7d208746c714d92192ce0429fc3f71ecba9f8c7b68154769c0bdec9e80a70d3",
+          "exit_code": 0,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "memory_bytes": 794820608,
+          "peak_job_bytes": 14880768,
+          "inherited_error_mode": 32771
+        },
+        "reopen": {
+          "files": 1024,
+          "image_pre_flush_bytes": 2370924,
+          "image_post_flush_bytes": 1708918,
+          "image_read_calls": 2639,
+          "image_flushes": 1,
+          "head_flushes": 1,
+          "backing_write_bytes": 0,
+          "reopen_ns": 4993900,
+          "logical_bytes": 17408,
+          "workload": "short_files",
+          "objects": 2082,
+          "object_tree_height": 2,
+          "stored_payload_bytes": 420966
+        },
+        "cpu_readback_exact": true
+      },
+      "checked_sibling_read": {
+        "run": {
+          "run": "local-run-976f9d994a7e468cb79980cd02a7de67",
+          "result_sha256": "93e1fb9ce800fd074a5afe2e57bb5d1dfe612e0a16318a702a3875a1783d5be5",
+          "output_sha256": "86de3242958aab44be24c92eaba07040db461cf4ca91e82fbac593226ac6933e",
+          "exit_code": 0,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "memory_bytes": 887095296,
+          "peak_job_bytes": 15060992,
+          "inherited_error_mode": 32771
+        },
+        "reopen": {
+          "files": 1024,
+          "image_pre_flush_bytes": 2370924,
+          "image_post_flush_bytes": 1708918,
+          "image_read_calls": 1662,
+          "image_flushes": 1,
+          "head_flushes": 1,
+          "backing_write_bytes": 0,
+          "reopen_ns": 5897600,
+          "logical_bytes": 17408,
+          "workload": "short_files",
+          "objects": 2082,
+          "object_tree_height": 2,
+          "stored_payload_bytes": 420966
+        },
+        "cpu_readback_exact": true
+      },
+      "calls_saved": 977,
+      "pre_flush_bytes_change": 0,
+      "call_reduction_percent": 37.02
+    },
+    "short_4096": {
+      "baseline": {
+        "run": {
+          "run": "local-run-74b4b538da0646ceb0b95dbffe673f71",
+          "result_sha256": "d1dd4a578decd1b772aef891ba4b15860ed73860b81417e73c1e89e46cfff0ee",
+          "output_sha256": "9d5782a630ae8bf9510f3cac8cfe35a78166fc7799f3f30037785f0102859c30",
+          "exit_code": 0,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "memory_bytes": 794820608,
+          "peak_job_bytes": 45228032,
+          "inherited_error_mode": 32771
+        },
+        "reopen": {
+          "files": 4096,
+          "image_pre_flush_bytes": 9739470,
+          "image_post_flush_bytes": 6248002,
+          "image_read_calls": 10205,
+          "image_flushes": 1,
+          "head_flushes": 1,
+          "backing_write_bytes": 0,
+          "reopen_ns": 18699200,
+          "logical_bytes": 69632,
+          "workload": "short_files",
+          "objects": 8304,
+          "object_tree_height": 2,
+          "stored_payload_bytes": 1679666
+        },
+        "cpu_readback_exact": true
+      },
+      "checked_sibling_read": {
+        "run": {
+          "run": "local-run-5968e568b1534481ac2f21fee53bd59f",
+          "result_sha256": "9883809591cdf0054eb11f160db4f7af5278eef3220ebb3eb33134bc973d09f4",
+          "output_sha256": "b08547c600161bd9c4b4219bb1811c2ce696b7ecf75a3b1d2a68c80df7a25e2f",
+          "exit_code": 0,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "memory_bytes": 874512384,
+          "peak_job_bytes": 45293568,
+          "inherited_error_mode": 32771
+        },
+        "reopen": {
+          "files": 4096,
+          "image_pre_flush_bytes": 9739470,
+          "image_post_flush_bytes": 6248002,
+          "image_read_calls": 6289,
+          "image_flushes": 1,
+          "head_flushes": 1,
+          "backing_write_bytes": 0,
+          "reopen_ns": 20675000,
+          "logical_bytes": 69632,
+          "workload": "short_files",
+          "objects": 8304,
+          "object_tree_height": 2,
+          "stored_payload_bytes": 1679666
+        },
+        "cpu_readback_exact": true
+      },
+      "calls_saved": 3916,
+      "pre_flush_bytes_change": 0,
+      "call_reduction_percent": 38.37
+    },
+    "short_16384": {
+      "baseline": {
+        "run": {
+          "run": "local-run-cd552f6a424d4c5586566edf22cc83d4",
+          "result_sha256": "01f718ec99b10092ffb9eb746635fd47296e4012d4af3392104a223aca8c75cc",
+          "output_sha256": "0c1b9445abbc4ecc6c30210aa1901144b3f3f76e6aee8792d187c564459e1160",
+          "exit_code": 0,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "memory_bytes": 767557632,
+          "peak_job_bytes": 248610816,
+          "inherited_error_mode": 32771
+        },
+        "reopen": {
+          "files": 16384,
+          "image_pre_flush_bytes": 39081516,
+          "image_post_flush_bytes": 24446104,
+          "image_read_calls": 40496,
+          "image_flushes": 1,
+          "head_flushes": 1,
+          "backing_write_bytes": 0,
+          "reopen_ns": 84379700,
+          "logical_bytes": 278528,
+          "workload": "short_files",
+          "objects": 33194,
+          "object_tree_height": 3,
+          "stored_payload_bytes": 6714760
+        },
+        "cpu_readback_exact": true
+      },
+      "checked_sibling_read": {
+        "run": {
+          "run": "local-run-ad11294aa4ec44fda65ead7eb7c5ab48",
+          "result_sha256": "2e87d3fc7887631f0845203fd05817b19d79cb5ccacc669ed9d434acf22d7143",
+          "output_sha256": "48f39b7700b747b7115a0e0ce1b7fab0004f58a7ecd41c807035ff73c1ac10f8",
+          "exit_code": 0,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "memory_bytes": 874512384,
+          "peak_job_bytes": 248610816,
+          "inherited_error_mode": 32771
+        },
+        "reopen": {
+          "files": 16384,
+          "image_pre_flush_bytes": 39081516,
+          "image_post_flush_bytes": 24446104,
+          "image_read_calls": 24825,
+          "image_flushes": 1,
+          "head_flushes": 1,
+          "backing_write_bytes": 0,
+          "reopen_ns": 84997600,
+          "logical_bytes": 278528,
+          "workload": "short_files",
+          "objects": 33194,
+          "object_tree_height": 3,
+          "stored_payload_bytes": 6714760
+        },
+        "cpu_readback_exact": true
+      },
+      "calls_saved": 15671,
+      "pre_flush_bytes_change": 0,
+      "call_reduction_percent": 38.7
+    },
+    "cpython_named": {
+      "baseline": {
+        "run": {
+          "run": "local-run-2a0f34f49d8b4c8a9de3403ea28b2c20",
+          "result_sha256": "6622e2d8c9c056ad1426b80fe7c59b830318eb0d8ac83f136124d5247080f02c",
+          "output_sha256": "bf948eb32b73814341a46b15970200d43a7a6adab2814536301236db79688748",
+          "exit_code": 0,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "memory_bytes": 786432000,
+          "peak_job_bytes": 8884224,
+          "inherited_error_mode": 32771
+        },
+        "reopen": {
+          "files": 374,
+          "image_pre_flush_bytes": 1238309,
+          "image_post_flush_bytes": 996258,
+          "image_read_calls": 1291,
+          "image_flushes": 1,
+          "head_flushes": 1,
+          "backing_write_bytes": 0,
+          "reopen_ns": 4291300,
+          "logical_bytes": 574237,
+          "workload": "cpython_compressed",
+          "objects": 928,
+          "object_tree_height": 1,
+          "stored_payload_bytes": 380830
+        },
+        "cpu_readback_exact": true
+      },
+      "checked_sibling_read": {
+        "run": {
+          "run": "local-run-1dc64923e3ea458d9f3cdfc38c424670",
+          "result_sha256": "8fc668bf8030eda66e6067e909300199fc492ca586aab8ab0407ed33e6e63e6c",
+          "output_sha256": "b054961d26cedac65802b791b9707847d289761c6be4ddfcf938033935bcc14e",
+          "exit_code": 0,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "memory_bytes": 879755264,
+          "peak_job_bytes": 8962048,
+          "inherited_error_mode": 32771
+        },
+        "reopen": {
+          "files": 374,
+          "image_pre_flush_bytes": 1246562,
+          "image_post_flush_bytes": 996258,
+          "image_read_calls": 1057,
+          "image_flushes": 1,
+          "head_flushes": 1,
+          "backing_write_bytes": 0,
+          "reopen_ns": 3908500,
+          "logical_bytes": 574237,
+          "workload": "cpython_compressed",
+          "objects": 928,
+          "object_tree_height": 1,
+          "stored_payload_bytes": 380830
+        },
+        "cpu_readback_exact": true
+      },
+      "calls_saved": 234,
+      "pre_flush_bytes_change": 8253,
+      "call_reduction_percent": 18.13
+    }
+  },
+  "repeated_16384": {
+    "baseline": {
+      "run": {
+        "run": "local-run-73f2579fab2c42718721080ff8604dc1",
+        "result_sha256": "5dcd28116d10eeef7f377c4f5e332dfd8640675c8ea6221c781176e1835d2144",
+        "output_sha256": "24c98e9e03afdce8d27644b1116175096dff8032fed54b8456a38511b681545b",
+        "exit_code": 0,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "memory_bytes": 878706688,
+        "peak_job_bytes": 249348096,
+        "inherited_error_mode": 32771
+      },
+      "reopen": {
+        "files": 16384,
+        "image_pre_flush_bytes": 39081516,
+        "image_post_flush_bytes": 24446104,
+        "image_read_calls": 40496,
+        "image_flushes": 1,
+        "head_flushes": 1,
+        "backing_write_bytes": 0,
+        "reopen_ns": 83338500,
+        "logical_bytes": 278528,
+        "workload": "short_files",
+        "objects": 33194,
+        "object_tree_height": 3,
+        "stored_payload_bytes": 6714760
+      },
+      "cpu_readback_exact": true
+    },
+    "checked_sibling_read": {
+      "run": {
+        "run": "local-run-c65dd1a3b7784f81aa90bb75758e378b",
+        "result_sha256": "bfe9fb1eff011d2acfc23137f0d1d9f90e02abde184965688806d2505c8b8da4",
+        "output_sha256": "366832e220415b7cdbd50342d98ac725f920c5f4fb33a95a3db3d0d8d941dda0",
+        "exit_code": 0,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "memory_bytes": 875560960,
+        "peak_job_bytes": 248623104,
+        "inherited_error_mode": 32771
+      },
+      "reopen": {
+        "files": 16384,
+        "image_pre_flush_bytes": 39081516,
+        "image_post_flush_bytes": 24446104,
+        "image_read_calls": 24825,
+        "image_flushes": 1,
+        "head_flushes": 1,
+        "backing_write_bytes": 0,
+        "reopen_ns": 78904500,
+        "logical_bytes": 278528,
+        "workload": "short_files",
+        "objects": 33194,
+        "object_tree_height": 3,
+        "stored_payload_bytes": 6714760
+      },
+      "cpu_readback_exact": true
+    },
+    "calls_saved": 15671,
+    "pre_flush_bytes_change": 0,
+    "call_reduction_percent": 38.7
+  },
+  "call_count_fit": {
+    "baseline": {
+      "calls_per_file_at_fitted_endpoints": 2.4646484375,
+      "held_out_files": 4096,
+      "predicted_calls": 10210.400000000001,
+      "observed_calls": 10205,
+      "held_out_absolute_percent_error": 0.05291523762862768
+    },
+    "checked_sibling_read": {
+      "calls_per_file_at_fitted_endpoints": 1.5080078125,
+      "held_out_files": 4096,
+      "predicted_calls": 6294.6,
+      "observed_calls": 6289,
+      "held_out_absolute_percent_error": 0.08904436317380131
+    }
+  },
+  "unretained_neighbor_prefetch": {
+    "reason": "Fetching physically adjacent inodes without checking the pending directory group increased pre-fence bytes on nested named CPython data.",
+    "analysis": {
+      "baseline": {
+        "run": {
+          "run": "local-run-2a0f34f49d8b4c8a9de3403ea28b2c20",
+          "result_sha256": "6622e2d8c9c056ad1426b80fe7c59b830318eb0d8ac83f136124d5247080f02c",
+          "output_sha256": "bf948eb32b73814341a46b15970200d43a7a6adab2814536301236db79688748",
+          "exit_code": 0,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "memory_bytes": 786432000,
+          "peak_job_bytes": 8884224,
+          "inherited_error_mode": 32771
+        },
+        "reopen": {
+          "files": 374,
+          "image_pre_flush_bytes": 1238309,
+          "image_post_flush_bytes": 996258,
+          "image_read_calls": 1291,
+          "image_flushes": 1,
+          "head_flushes": 1,
+          "backing_write_bytes": 0,
+          "reopen_ns": 4291300,
+          "logical_bytes": 574237,
+          "workload": "cpython_compressed",
+          "objects": 928,
+          "object_tree_height": 1,
+          "stored_payload_bytes": 380830
+        },
+        "cpu_readback_exact": true
+      },
+      "checked_sibling_read": {
+        "run": {
+          "run": "local-run-a95aae538dc043a3b228305846dad80f",
+          "result_sha256": "927d0c941594413099c387c821430ec1bface0ff1c7b28322ac4153bbedb5bad",
+          "output_sha256": "acdf747e3af1231b9968e9270c7bd7a05b6ab5f5950c928bb42738d7b4dbd323",
+          "exit_code": 0,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "memory_bytes": 1617952768,
+          "peak_job_bytes": 8769536,
+          "inherited_error_mode": 32771
+        },
+        "reopen": {
+          "files": 374,
+          "image_pre_flush_bytes": 1939124,
+          "image_post_flush_bytes": 996258,
+          "image_read_calls": 1166,
+          "image_flushes": 1,
+          "head_flushes": 1,
+          "backing_write_bytes": 0,
+          "reopen_ns": 5521300,
+          "logical_bytes": 574237,
+          "workload": "cpython_compressed",
+          "objects": 928,
+          "object_tree_height": 1,
+          "stored_payload_bytes": 380830
+        },
+        "cpu_readback_exact": true
+      },
+      "calls_saved": 125,
+      "pre_flush_bytes_change": 700815,
+      "call_reduction_percent": 9.68
+    }
+  },
+  "validation": {
+    "windows_release": {
+      "build": {
+        "run": "local-run-ae66255c900a4e55aa1c49fcf699c615",
+        "result_sha256": "98f5e547b47ff53b00f6527f578b756e902880bab1bfcf6ebb24715f566a25df",
+        "output_sha256": "7f38c46fbb8fa10e83a099774bfc8e122c414d49b7b045298a02c8bac2f1f596",
+        "exit_code": 0,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "memory_bytes": 1401946112,
+        "peak_job_bytes": 802983936,
+        "inherited_error_mode": 32771
+      },
+      "test": {
+        "run": "local-run-1ec8a3725307408da771ea64386f0098",
+        "result_sha256": "67f154f3a396557f2c8bd91377cb8191d1d964e11c8f6f5378d08fa096514b6e",
+        "output_sha256": "f8330d1098fb55fbee0366fd135c5e9d9a32a41b98aff29eda8deab4b7570ece",
+        "exit_code": 0,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "memory_bytes": 714080256,
+        "peak_job_bytes": 62353408,
+        "inherited_error_mode": 32771
+      },
+      "configuration": "Release",
+      "suite": [
+        "bounded_native_name_index",
+        "bounded_native_indexed_volume",
+        "bounded_native_indexed_reopen_replicas",
+        "bounded_native_indexed_inline_files",
+        "bounded_winfsp_indexed_memory"
+      ],
+      "native_test_executable_sha256": "891b61ff70ef9764a77ee5dece9a7d7409a134a7c4d19d3ea32bba2a27b97528"
+    },
+    "raw_only": {
+      "build": {
+        "run": "local-run-9a2d4ed6d4c9498ca57ea07edd29a2a9",
+        "result_sha256": "a2ccf0c8b17c4913cc2b6676ef4289ef80320f70229d2c7d1b9d3a2f58a05cad",
+        "output_sha256": "9bacd800c18034dc30e76dfda461d75d8ba53eda3d6a6de5869bf150dcf765c4",
+        "exit_code": 0,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "memory_bytes": 682622976,
+        "peak_job_bytes": 645378048,
+        "inherited_error_mode": 32771
+      },
+      "test": {
+        "run": "local-run-2b52e4f2dcfd40fd9093aafc99dee738",
+        "result_sha256": "d81ee2e76412b1db22e691e28e1fb923ca2b947e826cabfb2440348fdcd24215",
+        "output_sha256": "4ac4cd782455cf55fc8d71075fd3afa85ac16780a925b07a00d98545f3646c8c",
+        "exit_code": 0,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "memory_bytes": 679477248,
+        "peak_job_bytes": 38146048,
+        "inherited_error_mode": 32771
+      },
+      "configuration": "Release",
+      "suite": [
+        "bounded_native_name_index",
+        "bounded_native_indexed_reopen_replicas",
+        "bounded_native_indexed_inline_files"
+      ],
+      "native_test_executable_sha256": "917d7b93b65c6266102bcff372deeb84c61ae4c1ca38eceb3f1f989a981522fd"
+    },
+    "address_sanitizer": {
+      "build": {
+        "run": "local-run-d38d942a8f03485b9b6cf0afa14f1f51",
+        "result_sha256": "06ea86e6fe475be195863119904957253b733059ab928bdb0aa2b646eed15e2c",
+        "output_sha256": "f44b429966063e51ca933bde3357a74d36d65eb709a56b2902d5250bff23dddc",
+        "exit_code": 0,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "memory_bytes": 1245708288,
+        "peak_job_bytes": 611536896,
+        "inherited_error_mode": 32771
+      },
+      "test": {
+        "run": "local-run-515e03862bae48c59eddc0a1ef5529a0",
+        "result_sha256": "66c653504ff36aa74ea76dda5c3ab98531985c4d4cc0a99e0786b39b419db7cd",
+        "output_sha256": "2a4e593dc75cedf4b053667cb8fe7ac1340aef71121efa3ce80d323e264165d7",
+        "exit_code": 0,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "memory_bytes": 1032847360,
+        "peak_job_bytes": 276107264,
+        "inherited_error_mode": 32771
+      },
+      "configuration": "RelWithDebInfo",
+      "suite": [
+        "windows_asan_runtime_preflight",
+        "bounded_native_name_index",
+        "bounded_native_indexed_reopen_replicas",
+        "bounded_native_indexed_inline_files"
+      ],
+      "native_test_executable_sha256": "485bbc8f08b108c56d47ad34548070ac287347ae95799271c785b6b5443d156a",
+      "runtime_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed"
+    }
+  },
+  "sanitizer_build_retry": {
+    "initial": {
+      "run": "local-run-524d49213fa1456bb73f96b5bfbaaa53",
+      "result_sha256": "a0d555dc8399f437bf7674ca2613089d37cf88492aaec91735375e294aeb4140",
+      "output_sha256": "6c2cacca10ab8a583e7e185e399e158f130e96d4550254cdd78f1069e6e52a11",
+      "exit_code": 1,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "memory_bytes": 678428672,
+      "peak_job_bytes": 678436864,
+      "inherited_error_mode": 32771
+    },
+    "reason": "MSVC reached the initial process-tree memory budget. The serial build used a fresh, slightly larger headroom-derived budget."
+  },
+  "research": {
+    "provider": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "ebfa7a623c854c0f79f7b7fa29cc3bc4ca8027cc2eae044cb53a4a0be661d7c9",
+    "robots": true,
+    "external_llm": false,
+    "pages": [
+      {
+        "name": "xfs-audit",
+        "url": "https://docs.kernel.org/filesystems/xfs/xfs-online-fsck-design.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 275823,
+        "markdown_sha256": "6db21e649727eb496cd2d62c6448185c446796cd79dc4747407e279d1af259b6",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.253,
+        "capture": "xfs-audit.native.json",
+        "capture_sha256": "f081be1450ea2f71d06300b04954b560218a5421ef0137d45ea99492a2abe728"
+      },
+      {
+        "name": "btrfs-pages",
+        "url": "https://btrfs.readthedocs.io/en/latest/Tree-checker.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 9963,
+        "markdown_sha256": "04cd613f422491f43810073e0b38283b6218f8e65df553166bf5ac1286515578",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.993,
+        "capture": "btrfs-pages.native.json",
+        "capture_sha256": "eb794ef7c373e476f54949e4a86f1a9466ac523836ec084f372177335fdbfa2c"
+      },
+      {
+        "name": "windows-file-share",
+        "url": "https://learn.microsoft.com/en-us/windows/desktop/FileIO/creating-and-opening-files",
+        "success": true,
+        "native_success": true,
+        "http_status": 301,
+        "final_http_status": 200,
+        "markdown_bytes": 39073,
+        "markdown_sha256": "30c990b983d90b3fdd7504d2baf0bb35414bfdc69686cfb00f6e4f12f6900a77",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.425,
+        "capture": "windows-file-share.native.json",
+        "capture_sha256": "17054517d2c9e928243d2c8ff1c1ce7e32e35c6eb075dc3e09cd27c1623a5681"
+      }
+    ]
+  },
+  "navigation": {
+    "actual_searches": 1,
+    "source_inventory_sha256": "ca6b8ade448b40f9c4be7e54465ac5aa6bad17040fa42173005929823604b2af",
+    "search_result_sha256": "73ba89b380d9ce87e23bf7054ebe2357a250a10bdc7720addfa3b6d9ee1c3654"
+  },
+  "gpu_check": {
+    "initial": {
+      "admitted": false,
+      "devices": [
+        {
+          "Name": "AMD Radeon RX 9070 XT",
+          "DriverVersion": "32.0.32029.2010",
+          "Status": "OK"
+        }
+      ],
+      "windows_build": "26300",
+      "free_physical_kib": 14723504,
+      "cpu_percent": [
+        13.647550689442124,
+        15.14131692381584
+      ],
+      "peak_gpu_percent": 99.98490123571156,
+      "other_fixture_processes": 0,
+      "utc": "2026-11-25T17:35:04.3516236Z"
+    },
+    "final": {
+      "admitted": false,
+      "devices": [
+        {
+          "Name": "AMD Radeon RX 9070 XT",
+          "DriverVersion": "32.0.32029.2010",
+          "Status": "OK"
+        }
+      ],
+      "windows_build": "26300",
+      "free_physical_kib": 16300696,
+      "cpu_percent": [
+        19.437865599385574,
+        11.655221563949969
+      ],
+      "peak_gpu_percent": 98.92389955292073,
+      "other_fixture_processes": 0,
+      "utc": "2026-11-25T17:52:33.8153268Z"
+    },
+    "device_work_launched": false
+  },
+  "cleanup": {
+    "known_owned_processes": 0,
+    "names": []
+  },
+  "release_gates_open": 12
+}

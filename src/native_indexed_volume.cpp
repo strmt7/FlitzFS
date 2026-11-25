@@ -2668,14 +2668,24 @@ Bytes IndexedVolumeView::materialize_content(NativeContentToken& token,const Ind
   return full_extent(std::move(extent));
 }
 std::uint64_t IndexedVolumeView::verify_namespace(const IndexedInodeInput& directory,std::size_t path_units,
-    unsigned components,const std::function<void(const IndexedInodeInput&)>& visit) const {
+    unsigned components,PagedObjectStoreSnapshot::AuditMetadataReads& reads,
+    const std::function<void(const IndexedInodeInput&)>& visit) const {
   IndexedDirectoryShape expected;
   std::uint64_t reachable=1;
   const auto limit=root_.name_profile?kIndexedPathUnits:240;
-  index_.visit_directory(directory.inode,[&](std::string_view key,std::uint64_t inode) {
+  index_.visit_directory(directory.inode,[&](std::string_view key,std::uint64_t inode,std::uint64_t last_inode) {
     if(directory.lifetime!=IndexedLifetime::linked || components==kIndexedPathDepth)
       fail(Code::corrupt,"indexed directory contains unreachable children");
-    const auto child=referenced_inode(inode);
+    if(!inode || inode>=root_.next_inode)fail(Code::corrupt,"indexed reference has no inode");
+    const auto bytes=[&] {
+      try {
+        return store_.read_audit_metadata(reads,inode_domain|inode,inode_domain|(std::min)(last_inode,root_.next_inode-1),
+            maximum_inode_bytes);
+      }catch(const std::bad_alloc&){throw;}
+      catch(const std::exception&){fail(Code::storage_failure,"indexed object integrity or read failure");}
+    }();
+    if(!bytes)fail(Code::corrupt,"indexed reference has no inode");
+    const auto child=decode_inode_with_lifetime(store_,root_,inode,*bytes);
     if(indexed_detached(child.lifetime) || child.parent!=directory.inode || name_key(child.name)!=key)
       fail(Code::corrupt,"indexed namespace child differs from its name binding");
     const auto units=path_units+(components?1:0)+indexed_utf16_length(child.name);
@@ -2686,7 +2696,7 @@ std::uint64_t IndexedVolumeView::verify_namespace(const IndexedInodeInput& direc
       expected.replace({},bound);
     }
     visit(child);
-    reachable=add(reachable,child.directory?verify_namespace(child,units,components+1,visit):1);
+    reachable=add(reachable,child.directory?verify_namespace(child,units,components+1,reads,visit):1);
   });
   if(directory.shape && expected!=*directory.shape)
     fail(Code::corrupt,"indexed directory shape differs from its children");
@@ -2712,8 +2722,11 @@ void IndexedVolumeView::verify_inventory(bool published,const IndexedReopenAdmis
   };
   const auto root_inode=referenced_inode(1);
   visit(root_inode);
-  if(verify_namespace(root_inode,0,0,visit)!=root_.inodes-root_.detached_inodes)
-    fail(Code::corrupt,"indexed namespace has unreachable inodes");
+  {
+    PagedObjectStoreSnapshot::AuditMetadataReads reads;
+    if(verify_namespace(root_inode,0,0,reads,visit)!=root_.inodes-root_.detached_inodes)
+      fail(Code::corrupt,"indexed namespace has unreachable inodes");
+  }
   std::ranges::sort(namespace_owners,{},&IndexedExtentOwner::inode);
   std::uint64_t inodes=0,extents=0,charged=0,lifetimes=0,detached=0,retiring=0;
   std::uint64_t bases=0,members=0;

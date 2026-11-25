@@ -129,6 +129,29 @@ void indexed_reopen_checks_batched_replicas() {
   verify_before_fences(0);
   verify_before_fences(image->failure_unit);
 
+  {
+    // Locate the two frames through the checked object directory. A fault
+    // in a prefetched inode must invalidate the whole primary observation,
+    // even when decoding the first child would not encounter that byte.
+    const auto objects=PagedObjectStoreSnapshot::open(image,limits);
+    const auto first_inode=offset_of(objects.read((1ULL<<63)|2));
+    const auto second_inode=offset_of(objects.read((1ULL<<63)|3));
+    require(first_inode<second_inode && first_inode/image->failure_unit==second_inode/image->failure_unit,
+        "inode read window fixture does not share a bank");
+    auto snapshot=NativeFilesystemSnapshot::open_image(image,source.image_storage());
+    const auto writes=image->write_bytes;
+    image->corrupt_read_offset=second_inode+1;
+    image->corrupt_read_number=1;
+    image->matching_reads=0;
+    image->corrupted_read_start=Ram::no_read_fault;
+    snapshot.verify_all();
+    image->corrupt_read_offset=Ram::no_read_fault;
+    require(snapshot.storage_info().degraded_checkpoint && image->corrupted_read_start<=first_inode &&
+        image->write_bytes==writes && snapshot.read_inode(2,0,first.size())==first &&
+        snapshot.read_inode(3,0,second.size())==second,
+        "namespace run accepted a failed observation or lost checked inode content");
+  }
+
   const auto reject_after_fences=[&](std::uint64_t bank,bool both) {
     const auto writes=image->write_bytes+head->write_bytes;
     const auto image_fences=image->flushes,head_fences=head->flushes;
@@ -1949,8 +1972,13 @@ int main(int argc,char** argv) {
       profile_cpython_reopen(argv[2],std::string_view(argv[1])=="--profile-cpython-compressed-reopen");
       return 0;
     }
+    if(argc==2 && std::string_view(argv[1])=="--reopen-replicas"){
+      indexed_reopen_checks_batched_replicas();
+      std::cout<<"PASS: pre-fence inode and extent runs, post-fence replica failures, and CPU readback\n";
+      return 0;
+    }
     require(argc==1,"unknown indexed volume test option");
-    populated_native_snapshot();indexed_reopen_checks_batched_replicas();indexed_unreachable_name_page();migration(false);migration(true);growing_native_writer();indexed_capacity_and_metadata();indexed_stable_inode_io();indexed_session_lifetimes();indexed_detach_recovery();
+    populated_native_snapshot();indexed_unreachable_name_page();migration(false);migration(true);growing_native_writer();indexed_capacity_and_metadata();indexed_stable_inode_io();indexed_session_lifetimes();indexed_detach_recovery();
     indexed_large_retirement();indexed_head_independent_sequence();indexed_staged_rebuild();indexed_reconciled_rebuild();
     indexed_managed_handoff();indexed_managed_staged_compaction();indexed_managed_staged_faults();
     indexed_transaction_recovery();indexed_query_page_lifetime();indexed_extent_advice();indexed_extent_read_route();

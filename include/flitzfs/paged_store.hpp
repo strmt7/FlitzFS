@@ -143,6 +143,20 @@ class PagedObjectStoreSnapshot final {
   static PagedObjectStoreSnapshot open_sealed(std::shared_ptr<detail::ProtectedStripeImage>);
   // Stream decoded objects after checking all of their payload copies.
   void visit_verified_objects(const std::function<void(std::uint64_t,std::vector<std::byte>)>&) const;
+  // Scoped to the namespace pass of one complete audit. Records come from
+  // one checked leaf and one bounded primary read. Replica verification
+  // always uses its own fresh reads.
+  struct AuditMetadataReads {
+    struct Record {
+      std::uint64_t id;
+      std::size_t offset;
+      std::uint32_t stored,logical;
+    };
+    std::vector<Record> records;
+    std::vector<std::byte> frames;
+  };
+  std::optional<std::vector<std::byte>> read_audit_metadata(AuditMetadataReads&,std::uint64_t id,
+      std::uint64_t last_id,std::size_t maximum_decoded_bytes) const;
   // For an already decoded and audited checkpoint under the same backing
   // lease. Both stored replicas still receive fresh reads and digest checks.
   void recheck_verified_mirrors(const PagedObjectStoreSnapshot& audited) const;

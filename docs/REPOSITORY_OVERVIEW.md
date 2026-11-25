@@ -16,7 +16,10 @@ over a base assembled from several files. The paired structured revisions
 occupied less space, while the CPython revision cohort retained its
 settled size. The next gates are useful automatic mounted acceleration,
 bounded writable attach, a held-out compression advantage and independent
-verification of acknowledged operations on persistent media.
+verification of acknowledged operations on persistent media. The full
+writable reopen audit now groups requested sibling inode reads. It reduced
+provider read calls by 38.7% on the 16,384-file fixture and kept both
+fresh replica checks and both barriers. [Reopen counts](evidence/windows-indexed-namespace-read-window-2026-11-25.json)
 [Reconciliation](RELEASE_RECONCILIATION_2026-11-25.md#reconciliation-after-protected-assembled-prefix-selection) ·
 [Exact tests and research](evidence/windows-assembled-prefix-2026-11-25.json) ·
 [Current architecture](architecture/CURRENT.md) ·

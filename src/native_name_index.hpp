@@ -69,10 +69,10 @@ class NativeNameIndex final {
   std::optional<std::uint64_t> find(const NativeNameKey&) const;
   std::vector<NativeNameEntry> list(std::uint64_t parent, std::string_view after,
       std::size_t maximum,bool* more=nullptr) const;
-  // Walk an entire directory in key order. The name view is valid for the
-  // callback, which may query or walk another directory in this snapshot.
+  // Walk in key order and report the end of the current consecutive inode
+  // run. The name view remains valid during nested queries and directory walks.
   void visit_directory(std::uint64_t parent,
-      const std::function<void(std::string_view,std::uint64_t)>& visit) const;
+      const std::function<void(std::string_view,std::uint64_t,std::uint64_t)>& visit) const;
   std::optional<NativeNameEntry> next_extent(const std::optional<NativeNameKey>& after) const;
   std::uint64_t extent_count(std::uint64_t inode) const;
   std::uint64_t group_reference_count(std::uint64_t base) const;

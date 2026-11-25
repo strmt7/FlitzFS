@@ -564,13 +564,23 @@ std::vector<NativeNameEntry> NativeNameIndex::list(std::uint64_t parent, std::st
 }
 
 void NativeNameIndex::visit_directory(std::uint64_t parent,
-    const std::function<void(std::string_view,std::uint64_t)>& visit) const {
+    const std::function<void(std::string_view,std::uint64_t,std::uint64_t)>& visit) const {
+  // Only advertise inodes this name walk is already going to visit.
+  const auto visit_rows=[&](auto rows) {
+    while(!rows.empty()) {
+      std::size_t count=1;
+      while(count<rows.size() && rows[count].value==rows[count-1].value+1)++count;
+      const auto run=rows.first(count);
+      for(const auto& row:run)visit(row.key.name,row.value,run.back().value);
+      rows=rows.subspan(count);
+    }
+  };
   NativeNameKey after;
   {
     // Short directories fit the same bounded page as ordinary enumeration.
     bool more=false;
     const auto first=list(parent,{},64,&more);
-    for(const auto& entry:first)visit(entry.key.name,entry.value);
+    visit_rows(std::span(first));
     if(!more)return;
     after=first.back().key;
   }
@@ -601,9 +611,13 @@ void NativeNameIndex::visit_directory(std::uint64_t parent,
     if(page.height) {
       enter(child_reference(page,current.reference,slot));
     }else {
-      const auto& row=page.rows[slot];
-      if(row.key.parent>parent)return;
-      visit(row.key.name,row.value);
+      const auto rows=std::span(page.rows).subspan(slot);
+      const auto end=std::ranges::upper_bound(rows,parent,{},[](const auto& row){return row.key.parent;});
+      const auto count=static_cast<std::size_t>(end-rows.begin());
+      if(!count)return;
+      visit_rows(rows.first(count));
+      current.next+=count-1;
+      if(end!=rows.end())return;
     }
   }
 }

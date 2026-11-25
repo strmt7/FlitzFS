@@ -96,10 +96,10 @@ void ordered_names() {
     const auto split=oracle.lower_bound({2,{}});
     auto expected=oracle.begin();
     const auto midpoint=std::next(expected,std::distance(expected,split)/2);
-    index.visit_directory(1,[&](std::string_view name,std::uint64_t inode) {
+    index.visit_directory(1,[&](std::string_view name,std::uint64_t inode,std::uint64_t run_end) {
       if(expected==midpoint) {
         auto nested=split;
-        index.visit_directory(2,[&](std::string_view child,std::uint64_t id) {
+        index.visit_directory(2,[&](std::string_view child,std::uint64_t id,std::uint64_t) {
           require(nested!=oracle.end() && child==nested->first.name && id==nested->second,
               "nested directory walk changed key order");
           ++nested;
@@ -108,10 +108,17 @@ void ordered_names() {
       }
       require(expected!=split && name==expected->first.name && inode==expected->second,
           "nested reads changed the active directory walk");
+      require(run_end>=inode,"directory read window precedes its child");
+      auto companion=expected;
+      for(auto next=inode;next<run_end;) {
+        ++companion;
+        require(companion!=split && companion->second==++next,
+            "directory read window included an unrequested inode");
+      }
       ++expected;
     });
     require(expected==split,"streamed directory walk skipped entries");
-    index.visit_directory(3,[](std::string_view,std::uint64_t) {
+    index.visit_directory(3,[](std::string_view,std::uint64_t,std::uint64_t) {
       throw std::runtime_error("empty range returned a directory child");
     });
   }

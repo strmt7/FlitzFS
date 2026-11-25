@@ -823,10 +823,14 @@ reference and a held-out file-count tier.
    and local to its exact checkpoint. It cannot stand in for signed-off
    namespace/allocator coverage or for verification after a new lease. The
    current complete audit groups mirrored reads on both sides of the fences.
-   Use that implementation as the comparison baseline. Attribute the remaining
-   read calls to namespace resolution, object verification and shared bases
-   before choosing which metadata path to change.
-   [Decoded reopen evidence](evidence/indexed-decoded-reopen-runs-2026-11-25.json)
+   Its initial namespace pass also groups inode frames when the checked
+   name walk is about to request those consecutive inodes. Use this full
+   audit as the comparison baseline. Bind a shadow decision to one exact
+   selector, native root and backing lease. Attribute verification work
+   separately to names, inode and extent ownership, protected bases and
+   physical replica checks. A matching shadow result leaves admission
+   under the full audit until the fault and coverage criteria below pass.
+   [Complete audit measurements](evidence/windows-indexed-namespace-read-window-2026-11-25.json)
 3. **Check touched dependencies and reconcile.** Prove page and payload
    verification before exposure, including acquired reader pins and both
    protection paths for newly written data. Exercise dirty shutdown, bad peer

@@ -6,6 +6,14 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "namespace_read_window": {
+    "source_commit": "1721a945390292cb9e216f44a1591d7514b8bd76",
+    "tested_source_tree": "36851a072ba3c224ab3ea863513e366545de3051",
+    "evidence": "docs/evidence/windows-indexed-namespace-read-window-2026-11-25.json",
+    "profile_16384_read_calls": [40496, 24825],
+    "admission_still_verifies_full_inventory": true,
+    "release_qualified": false
+  },
   "assembled_prefix": {
     "source_commit": "f3dee8627615e468620d4f006818ee065a6867e3",
     "tested_source_tree": "b4902b863013d30e904a567619b98f4fc693fc10",
