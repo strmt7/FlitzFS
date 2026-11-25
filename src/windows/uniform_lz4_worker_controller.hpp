@@ -55,6 +55,12 @@ class UniformLz4WorkerController final {
   UniformLz4WorkerOutcome outcome() const noexcept;
   unsigned consecutive_failures() const noexcept{return policy_.consecutive_failures();}
  private:
+  friend class ControlledNativeUniformWrite;
+  UniformLz4WorkerStart begin_owned(PreparedUniformLz4&&,const std::filesystem::path&,
+      const std::vector<std::wstring>&,bool consent,bool worthwhile,
+      const GpuHealthEvidence&,std::uint64_t now_ms,const GpuLz4ResidentCost&,
+      GpuLz4WindowPolicy,ProcessBudget,std::uint32_t deadline_ms,
+      std::optional<GpuLz4SweepGrant>,std::shared_ptr<const void>,WorkerExchangeSession* prepared);
   void report(GpuRecoveryOutcome) noexcept;
   void select_cpu(GpuRecoveryOutcome,GpuGateCode,bool finalize=true) noexcept;
   GpuRecoveryPolicy policy_;

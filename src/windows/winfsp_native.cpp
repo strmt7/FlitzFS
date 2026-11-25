@@ -992,14 +992,17 @@ struct WinFspNativeWritable::Impl {
         return dispatch_native_write(s.session,slot.handle,buffer,offset,length,
             append!=FALSE,constrained!=FALSE,{},s.info_policy,count,info,receipt);
       };
-      if(!s.amd_write_demand || !native_amd_write_geometry(s.info_policy,offset,length,append!=FALSE,constrained!=FALSE))
-        return write_cpu();
+      const bool measure=s.amd_write_demand &&
+          native_amd_write_geometry(s.info_policy,offset,length,append!=FALSE,constrained!=FALSE);
       NativeInodeCommitInfo receipt;
-      const auto start=std::chrono::steady_clock::now();
-      const auto written=write_cpu(&receipt);
+      const auto start=measure?std::chrono::steady_clock::now():std::chrono::steady_clock::time_point{};
+      const auto written=write_cpu(measure?&receipt:nullptr);
       if(written.status==STATUS_SUCCESS && !written.offline_required && *count==length) {
-        const auto elapsed=std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now()-start).count();
-        if(elapsed>0)s.record_amd_write_demand(length,static_cast<std::uint64_t>(elapsed),receipt,offset);
+        if(measure) {
+          const auto elapsed=std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now()-start).count();
+          if(elapsed>0)s.record_amd_write_demand(length,static_cast<std::uint64_t>(elapsed),receipt,offset);
+        }
+        if(s.deferred)s.deferred->note_cpu_write_locked(length,offset,append!=FALSE,constrained!=FALSE);
       }
       return written;
     });

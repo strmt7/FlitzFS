@@ -6,6 +6,16 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "prepared_foreground_write": {
+    "source_commit": "1a6f320895e7cf896df73f52d2705d573a370c57",
+    "tested_source_tree": "751c6abb3d887db7aa6d88ee6bcc396a6f3413ae",
+    "evidence": "docs/evidence/windows-prepared-foreground-write-2026-11-25.json",
+    "checks_full_current_funding_before_deferral": true,
+    "preserves_cpu_service_during_preparation": true,
+    "requires_matched_prepared_route_evidence": true,
+    "ordinary_mounted_amd_benefit_qualified": false,
+    "stable_release": false
+  },
   "verified_lz4_allocation": {
     "source_commit": "53574258f125ff1cd9e34044246eecdee07e9cc5",
     "tested_source_tree": "df98e3594595652f3bcaa843c390bdaf3c4a37d5",

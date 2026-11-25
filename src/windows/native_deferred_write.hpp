@@ -44,6 +44,9 @@ struct NativeDeferredWriteOptions {
   std::optional<GpuHealthEvidence> controller_health;
   std::shared_ptr<const HipRoutePins> controller_route_pins;
   std::optional<NativeAmdWriteShape> measured_shape;
+  // Set for a route qualified with preparation outside client service time.
+  // A matching CPU completion requests one funded, source-free worker.
+  bool prepared_only=false;
   NativeWriteHintQuery hint_query=nullptr; // required by the control service
   NativeWriteResponseSink response_sink=nullptr; // required; the adapter supplies SDK defaults
   bool matches_controller_route() const noexcept;
@@ -52,6 +55,8 @@ struct NativeDeferredWriteStats {
   std::uint64_t queued=0,completed=0,cpu_forced=0,worker_submitted=0,advised=0,response_attempts=0;
   bool native_pending=false,worker_busy=false,stopping=false,thread_exited=false;
   bool retirement_confirmed=true,disabled=false;
+  std::uint64_t preparations_started=0,prepared_writes_submitted=0;
+  bool preparation_ready=false;
 };
 struct NativeGpuBudgetTask {
   std::uint64_t sequence=0,after_ms=0;
@@ -76,9 +81,10 @@ class NativeDeferredWriteService final {
       std::uint64_t now) noexcept;
   bool enqueue_locked(FSP_FILE_SYSTEM*,const NativeFileHandle&,std::span<const std::byte>,
       UINT64 offset,bool append,bool constrained);
+  void note_cpu_write_locked(std::size_t,UINT64,bool append,bool constrained) noexcept;
   void drain_locked(std::unique_lock<std::mutex>&);
   bool publication_pending_locked() const noexcept{return stats_.native_pending;}
-  NativeDeferredWriteStats stats_locked() const noexcept{return stats_;}
+  NativeDeferredWriteStats stats_locked() const noexcept;
   // Explicit control-plane observation only; no callback buffer is retained.
   // A new accepted request clears the preceding completion.
   std::optional<NativeUniformWriteResult> completion_receipt_locked() const noexcept{return completion_;}
@@ -100,6 +106,11 @@ class NativeDeferredWriteService final {
     UINT64 offset=0;bool append=false,constrained=false;
   };
   static GpuLz4ResidentCost charge_request(GpuLz4ResidentCost) noexcept;
+  static std::optional<GpuLz4WindowPlan> measured_write_plan(const NativeDeferredWriteOptions&,
+      const GpuHealthEvidence&,std::uint64_t now) noexcept;
+  bool preparation_ready_locked(std::uint64_t now) const noexcept;
+  void wait_for_write_locked(std::unique_lock<std::mutex>&);
+  bool retire_unused_preparation_locked(std::unique_lock<std::mutex>&,NativeUniformWritePreparation&);
   void run() noexcept;
   NativeFileSession& session_;std::mutex& control_;std::atomic<bool>& offline_;
   const NativeDeferredWriteOptions options_;
@@ -112,6 +123,8 @@ class NativeDeferredWriteService final {
   bool budget_for_completion_=false,budget_disabled_=false;
   std::condition_variable changed_;
   std::unique_ptr<Request> request_;
+  std::optional<NativeUniformWritePreparation> preparation_;
+  bool prepare_requested_=false,preparation_starting_=false;
   NativeDeferredWriteStats stats_;
   std::optional<NativeUniformWriteResult> completion_;
   std::atomic_bool force_cpu_{false};

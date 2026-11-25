@@ -249,7 +249,7 @@ int repeated_child(std::wstring_view mode,std::wstring_view token,std::uint32_t 
   if(mode==L"requests-finish-hang")Sleep(5000);
   return mode==L"requests-fail-after"?17:0;
 }
-int child(std::wstring_view mode,std::wstring_view token) {
+int child(std::wstring_view mode,std::wstring_view token,std::uint32_t prepared_timeout=0) {
   if(mode.starts_with(L"uniform-")){
     check_job();auto limits=uniform_fixture_limits();
     if(mode.starts_with(L"uniform-native")){
@@ -257,8 +257,14 @@ int child(std::wstring_view mode,std::wstring_view token) {
       uniform_lz4::Layout layout{};check(uniform_lz4::make_layout(bytes,65536,layout),"native fixture uniform layout");
       limits=uniform_lz4_limits(layout);
     }
-    auto channel=WorkerChannel::open_sized(token,{static_cast<std::size_t>(limits.request_bytes),
-        static_cast<std::size_t>(limits.reply_bytes)});
+    const WorkerChannelCapacity capacity{static_cast<std::size_t>(limits.request_bytes),
+        static_cast<std::size_t>(limits.reply_bytes)};
+    auto channel=prepared_timeout?WorkerChannel::open_prepared_sized(token,capacity,prepared_timeout):
+        WorkerChannel::open_sized(token,capacity);
+    if(prepared_timeout) {
+      check(channel.request().empty(),"prepared uniform worker received input before admission");
+      if(!channel.receive_prepared())return 0;
+    }
     auto request=decode_uniform_lz4_request(channel.request(),limits);
     if(!gpu_lz4_cpu_verification_available())return 17;
     if(mode==L"uniform-hold" || mode==L"uniform-native2-hold" || mode==L"uniform-native16-sweep-hold"){Sleep(5000);return 0;}
@@ -1744,6 +1750,9 @@ int wmain(int argc,wchar_t** argv){try{
       std::wstring_view(argv[2])==kPreparedWorkerBurstArgument))
     return repeated_child(argv[1],argv[3],static_cast<std::uint32_t>(std::stoul(argv[4])),
         std::wstring_view(argv[2])==kPreparedWorkerBurstArgument);
+  if(argc==5 && std::wstring_view(argv[2])==kPreparedWorkerChannelArgument &&
+      std::wstring_view(argv[1]).starts_with(L"uniform-"))
+    return child(argv[1],argv[3],static_cast<std::uint32_t>(std::stoul(argv[4])));
   if(argc==5 && (std::wstring_view(argv[2])==kPreparedWorkerChannelArgument ||
       std::wstring_view(argv[2])==kPreparedWorkerWindowsArgument))
     return prepared_child(argv[1],argv[3],static_cast<std::uint32_t>(std::stoul(argv[4])),

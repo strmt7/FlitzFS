@@ -449,6 +449,30 @@ silently retry or authorize recovery. Existing isolated worker supervision may
 retain its own transport frame until actual child exit; it retains no filesystem
 reference. No perpetual service, scheduled task or driver change is added.
 
+### Preparing for a later write
+
+The measured indexed write route can require a ready worker. A successful,
+matching CPU write requests preparation without supplying source bytes.
+The control thread starts one supervised worker only after funding the
+whole measured shape. The child may initialize its runtime, stream and
+buffers while the CPU remains available to service callbacks.
+
+A subsequent write can use the prepared worker if the protected layout,
+complete extent shape, current budget and device work grant agree. The
+worker must be ready and retain enough of its original job lifetime for
+the qualified service window. A missing, expired or mismatched slot takes
+the CPU path before the caller's data is copied for deferral. The complete
+worker reply is still collected after exact retirement and checked on CPU.
+The volume alone owns commitment and the callback response.
+
+Unused preparation is retired on a resource refusal, scope change,
+expiry or shutdown. A new preparation requires successful matching CPU
+work. A process that fails setup makes the route unavailable for the
+current service. Readiness evidence and immediate-launch evidence qualify
+their own admission modes. Default installed activation still requires a
+matched client comparison establishing benefit.
+[Prepared write evidence](evidence/windows-prepared-foreground-write-2026-11-25.json)
+
 ## Driver-independent control target
 
 The owned service now builds as flitzfs_native_write_control. It consumes the

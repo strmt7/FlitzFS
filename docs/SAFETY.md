@@ -112,6 +112,10 @@ its operation deadline, and independent CPU verification covers the entire
 source before a result can reach storage. Mirrored commit verifies both
 new copies even when verified LZ4 advice fits the same allocation as the
 smallest possible CPU representation and skips CPU re-encoding.
+Prepared write admission checks readiness, current funding and the
+remaining job lifetime before it defers a callback. The unused worker
+owns no file input. Retirement waits run on the service owner outside
+the filesystem control lock.
 [Indexed advice](NATIVE_WINDOWS_LZ4_ADVICE.md#indexed-native-extents) · [Installed route and evidence](AMD_RUNTIME_DISCOVERY.md)
 
 The copy matcher reads a complete word only when both extents have room.

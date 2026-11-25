@@ -8,8 +8,11 @@ for source-level handoffs, and the [current review receipt](evidence/release-pla
 for scope and evidence. The entries below retain implementation history.
 
 Verified LZ4 write candidates can skip CPU re-encoding when they leave
-the protected append size unchanged. The next AMD comparison needs
-ordinary client demand, prepared worker costs and settled volume size.
+the protected append size unchanged. Qualified write routes can prepare
+one worker while the CPU serves callbacks. The next AMD comparison needs
+ordinary client demand, preparation costs, useful output and settled
+volume size.
+[Prepared write evidence](evidence/windows-prepared-foreground-write-2026-11-25.json)
 [Allocation and device evidence](evidence/windows-verified-lz4-allocation-2026-11-25.json)
 
 The decoded indexed audit now groups adjacent mirror reads. The 16,384-file

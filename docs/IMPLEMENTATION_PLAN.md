@@ -348,12 +348,15 @@ compatibility matrices for each step.
    and positive preferences on relevant workload or configuration
    changes. Closing the loop with `qualify_native_amd_writes` is an
    owner change. A detached trial certificate authorizes measurement.
-4. Reuse the existing supervised preparation mechanism for nearby
-   demand. Keep its memory and context resident only while useful.
-   Measure the saved setup cost and full operation cost together. Use
-   bounded outstanding work and restore CPU delivery immediately on
-   refusal, expiry or device failure. Confirm retirement before later
-   accelerator admission and test live refusal followed by recovery.
+4. The owned deferred write service can prepare one worker after a
+   matching CPU completion and use it on a later write only with fresh,
+   full funding. Measure readiness, service, retirement and the complete
+   workload in separate windows. Compare immediate and prepared routes
+   using matched mode-specific evidence. Account for unused preparation
+   as work and test retirement on shutdown and pressure. Use the measured
+   benefit and eligible demand to choose whether to offer the prepared
+   route through the installed controller.
+   [Prepared write evidence](evidence/windows-prepared-foreground-write-2026-11-25.json)
 5. Apply the same proof to read-ahead against the retained CPU tile
    baseline and to collective work against the best CPU search within
    the same resource budget. Count verified bytes delivered or accepted,

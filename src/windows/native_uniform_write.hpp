@@ -34,12 +34,22 @@ struct NativeUniformDispatch {
 NativeUniformDispatch prepare_native_uniform_dispatch(const NativeUniformWorkerBinding&,
     const GpuHealthEvidence&,const PreparedUniformLz4&,WorkerExecution,
     const GpuLz4SweepGrant* admitted_sweep=nullptr,std::uint32_t prepared_requests=0);
+NativeUniformDispatch prepare_native_uniform_dispatch(const NativeUniformWorkerBinding&,
+    const GpuHealthEvidence&,const uniform_lz4::Layout&,WorkerExecution,const GpuLz4SweepGrant*);
+struct NativeUniformWritePreparation {
+  WorkerExchangeSession child;
+  NativeUniformDispatch dispatch;
+  std::uint64_t expires_ms=0;
+  bool matches_quantum(const uniform_lz4::Layout& quantum) const noexcept {
+    return dispatch.quantum_chunks==quantum.chunks && dispatch.device_peak_bytes==quantum.total_bytes;
+  }
+};
 struct NativeUniformWriteStart {
   NativeWindowsIoOutcome admission;
   UniformLz4WorkerStart worker;
   std::uint32_t eligible_bytes=0,quantum_chunks=0,planned_windows=0;
   std::uint64_t device_peak_bytes=0;
-  bool reused=false;
+  bool reused=false,used_preparation=false;
 };
 // Integrity receipts describe verified advice before native publication. They
 // are diagnostic facts, not authentication or a new stored representation.
@@ -93,7 +103,8 @@ class ControlledNativeUniformWrite final {
   void start_advice(NativeUniformWriteStart&,SourceGeometry,const NativeUniformWorkerBinding&,
       bool consent,bool worthwhile,const GpuHealthEvidence&,std::uint64_t,const GpuLz4ResidentCost&,
       GpuLz4WindowPolicy,ProcessBudget,std::uint32_t,bool require_full_window=false,
-      const std::atomic_bool* force_cpu=nullptr,std::shared_ptr<const void> pinned_route={}) noexcept;
+      const std::atomic_bool* force_cpu=nullptr,std::shared_ptr<const void> pinned_route={},
+      NativeUniformWritePreparation* prepared=nullptr) noexcept;
   NativeFileSession& session_;
   WorkerExecution expected_;
   UniformLz4WorkerController controller_;

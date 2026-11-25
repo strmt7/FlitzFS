@@ -1,0 +1,227 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "scope": "Owned Windows deferred-write preparation and admission",
+  "source": {
+    "base": "1a6f320895e7cf896df73f52d2705d573a370c57",
+    "tested_source_tree": "751c6abb3d887db7aa6d88ee6bcc396a6f3413ae",
+    "blobs": {
+      "src/windows/native_amd_write_policy.cpp": "2b9cd880850b6f5301252940d17f3e10e2bad672",
+      "src/windows/native_amd_write_policy.hpp": "721fd32c2d4ed8ab29a19e3fbb263e183a2e25df",
+      "src/windows/native_deferred_write.cpp": "68f04a4a5895fd67296b9097f7e9e8f858256ec5",
+      "src/windows/native_deferred_write.hpp": "eed08881e475144377416be1f7718110d1d82926",
+      "src/windows/native_uniform_write.cpp": "c24e11494f0c305832d1ed41fdcb8b84146755dc",
+      "src/windows/native_uniform_write.hpp": "9fce91ea50b3748e842709782b32421e4da3afc8",
+      "src/windows/uniform_lz4_worker_controller.cpp": "408bdc2deeb91ed76987fc576dd4156032568bb5",
+      "src/windows/uniform_lz4_worker_controller.hpp": "21cc71c4216357f8d4b4ceb240f8cdf7eed94667",
+      "src/windows/winfsp_native.cpp": "db84aded3d0852e8dd0682c512b0d2623432e49b",
+      "tests/test_native_deferred_write_sdk.cpp": "8a98a5f88f6923514034746ecb751b12ad22d52d",
+      "tests/test_worker_exchange.cpp": "2ec9ac88e619bdbeb0561dd8a10c2897f57666fa"
+    }
+  },
+  "research": {
+    "provider": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "0d13e716eee898f02c733f43488a9c818f74d3ad73d935be9dec666a8a53a772",
+    "pages": [
+      {
+        "name": "job-objects",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects",
+        "capture_sha256": "3472ea76008d9891d167fc2b3388a7398fe1233d62f84217c886aa2b2d4bf1ba",
+        "markdown_sha256": "4bc46733360d6cef5ad1b70dfc5030abb79c474b3e872c8615b8fa91f75e02e3",
+        "markdown_bytes": 32816
+      },
+      {
+        "name": "owned-waits",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitforsingleobject",
+        "capture_sha256": "71f00843a540c904d95f0ec84d7ababe54d957a644d5c085094edd9db1413d24",
+        "markdown_sha256": "6deccd861eee49fc4f531e354958bd15423cd9a2df2dff46297c29a430238f40",
+        "markdown_bytes": 32817
+      }
+    ]
+  },
+  "navigation": {
+    "commit": "1a6f320895e7cf896df73f52d2705d573a370c57",
+    "source_files": 6,
+    "provider_version": "0.2.43",
+    "inventory_sha256": "91a827eff8bc2fb25fedb6462db28280bffcdf8b20882243c15ab2b5dd476bb1",
+    "native_response_sha256": "0d30ff72c4c54ed4a7ef12e5b38dcbc7ba2065487a47aa9a4dcd2dcb023d990a",
+    "actual_searches": 1
+  },
+  "codec_builds": {
+    "release_and_asan": {
+      "LZ4": "1.11.1",
+      "Zstandard": "1.6.0"
+    },
+    "raw": "both codecs off"
+  },
+  "tests": {
+    "release": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 24.296000000002095,
+      "peak_job_bytes": 63377408,
+      "log_sha256": "29ab40e8308d4687e39849fbd9d2d05b91b39316dced2d987e218673b56d5c69",
+      "result_sha256": "056b1427db651b6a7fb94c0953e0758bb2ed42084a33b7e5eb9fd4b56ac15ccf",
+      "passed": [
+        "bounded_winfsp_indexed_memory",
+        "owned_native_deferred_write_sdk",
+        "controlled_native_uniform_write_sdk",
+        "bounded_windows_worker_exchange",
+        "bounded_windows_prepared_variable_exchange"
+      ],
+      "sdk_fixture_sha256": "5420e5217d42f9578bc4ad36899564b1117985629ab9e071873c0ad69f57d39f"
+    },
+    "raw": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 11.296999999991385,
+      "peak_job_bytes": 34828288,
+      "log_sha256": "2a7f403d168d2e4a26117b98117ddc1b3d459907240fc0b0c3e6319641790a4f",
+      "result_sha256": "0bb62c3866974449ef613654d32b0d1c28a64f9c6027b182d238da5aef8feff0",
+      "passed": [
+        "owned_native_deferred_write_sdk",
+        "controlled_native_uniform_write_sdk",
+        "bounded_windows_worker_exchange",
+        "bounded_windows_prepared_variable_exchange"
+      ],
+      "sdk_fixture_sha256": "1aa59d529766f81a1c414c6f31e9da54ee24138623a48d1df4200dbead2e1565"
+    },
+    "asan": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 19.139999999999418,
+      "peak_job_bytes": 505413632,
+      "log_sha256": "8f89b78882e9ead00488b8f5f6859a74acb1633f38127028a496effae4102b6e",
+      "result_sha256": "2f1dd26c0dbb0a87dccd4db9515821a48ee25198fbfe2160f6eef252439d2282",
+      "passed": [
+        "windows_asan_runtime_preflight",
+        "owned_native_deferred_write_sdk",
+        "controlled_native_uniform_write_sdk",
+        "bounded_windows_worker_exchange",
+        "bounded_windows_prepared_variable_exchange"
+      ],
+      "sdk_fixture_sha256": "abaf6f9424cac5afac51a88d323ae7f722f33493d5f9ae7a5fdc2f71fe3781d4",
+      "asan_runtime_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed"
+    }
+  },
+  "prepared_cpu_semantic_cases": [
+    {
+      "case": "unused_shutdown",
+      "one_preparation": true,
+      "submitted_prepared": false,
+      "exact_readback": true,
+      "retired": true
+    },
+    {
+      "case": "matching_ready_write",
+      "one_preparation": true,
+      "submitted_prepared": true,
+      "exact_readback": true,
+      "retired": true
+    },
+    {
+      "case": "pressure",
+      "one_preparation": true,
+      "submitted_prepared": false,
+      "exact_readback": true,
+      "retired": true
+    }
+  ],
+  "radeon": {
+    "admission": [
+      {
+        "admitted": false,
+        "devices": [
+          {
+            "Name": "AMD Radeon RX 9070 XT",
+            "DriverVersion": "32.0.32029.2010",
+            "Status": "OK"
+          }
+        ],
+        "windows_build": "26300",
+        "free_physical_kib": 20314692,
+        "cpu_percent": [
+          32.67474591502991,
+          27.7402361489555
+        ],
+        "peak_gpu_percent": 90.52784629673272,
+        "other_fixture_processes": 0,
+        "utc": "2026-11-25T17:01:03.4488348Z"
+      },
+      {
+        "admitted": false,
+        "devices": [
+          {
+            "Name": "AMD Radeon RX 9070 XT",
+            "DriverVersion": "32.0.32029.2010",
+            "Status": "OK"
+          }
+        ],
+        "windows_build": "26300",
+        "free_physical_kib": 21185452,
+        "cpu_percent": [
+          23.37399064293183,
+          15.06153991507848
+        ],
+        "peak_gpu_percent": 93.82543616618024,
+        "other_fixture_processes": 0,
+        "utc": "2026-11-25T17:04:02.1543363Z"
+      },
+      {
+        "admitted": false,
+        "devices": [
+          {
+            "Name": "AMD Radeon RX 9070 XT",
+            "DriverVersion": "32.0.32029.2010",
+            "Status": "OK"
+          }
+        ],
+        "windows_build": "26300",
+        "free_physical_kib": 21002076,
+        "cpu_percent": [
+          18.301288781738744,
+          15.179927205099276
+        ],
+        "peak_gpu_percent": 95.17632620085169,
+        "other_fixture_processes": 0,
+        "utc": "2026-11-25T17:07:15.6785977Z"
+      }
+    ],
+    "staged_members": {
+      "amd/flitzfs_hip_lz4_worker.exe": {
+        "bytes": 622592,
+        "sha256": "5488521657d0be8e91ff497bda27e8ee0c35c1847ec2fd11c5f7def714d97544"
+      },
+      "amd/hip-uniform-lz4/flitzfs_rocm_uniform_lz4_candidate.dll": {
+        "bytes": 322048,
+        "sha256": "179797e791a8aac3e43c1277aca4a88edfe4650122af535d08c8b199d32b89c4"
+      },
+      "amd/qualification-manifest.json": {
+        "bytes": 1342,
+        "sha256": "47e4276bf3d9189e1a293ae67ed1cce3e8dc59f0ef4262c11d64a7f1c3711e9d"
+      },
+      "amd/uniform-write-trial-qualification.json": {
+        "bytes": 517,
+        "sha256": "01b2a8b024d155b15072e44feced412cf6208e1e65616f3fadc55871de031004"
+      },
+      "winfsp-x64.dll": {
+        "bytes": 200816,
+        "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+      },
+      "flitzfs_native_deferred_write_sdk_tests.exe": {
+        "bytes": 2583040,
+        "sha256": "5420e5217d42f9578bc4ad36899564b1117985629ab9e071873c0ad69f57d39f"
+      }
+    },
+    "scope": "live installed AMD worker with injected WinFsp lifecycle",
+    "launched": false,
+    "reason": "GPU engine contention exceeded the live fixture admission allowance"
+  },
+  "qualification": {
+    "cold_and_prepared_evidence_matched_by_mode": true,
+    "cpu_fallback_before_source_copy_when_unready": true,
+    "automatic_installed_production_activation": false,
+    "ordinary_mounted_amd_benefit_qualified": false,
+    "stable_release": false
+  }
+}

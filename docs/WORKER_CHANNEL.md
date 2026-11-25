@@ -654,14 +654,20 @@ The worker retired at the job boundary in every trial.
 [AMD HIP initialization](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/reference/hip_runtime_api/modules/initialization_and_version.html) ·
 [Windows GPU queue power transitions](https://learn.microsoft.com/en-us/windows-hardware/drivers/display/user-mode-work-submission)
 
-For reuse across jobs, qualify an event-driven worker scoped to the active
-volume controller. Start it during CPU preparation when recent eligible
-requests and current headroom justify the setup cost. Keep idle GPU submission
-at zero. Retain only resources covered by the current RAM and VRAM budgets.
-Shrink or retire the worker when demand drops, the host needs resources, the
-adapter changes or the volume closes. A restart after sleep or driver recovery
-requires fresh device admission. Foreground work keeps a CPU path available
-while the worker starts or retires.
+A qualified prepared write route starts a source-free worker after a
+matching CPU completion. It uses the existing one-request prepared
+exchange. A later request needs matching geometry, current budgets and
+enough time remaining in that same job. Unused preparation can be
+canceled while CPU operations continue. Shutdown retains the exact
+supervisor handle until retirement. The child exits before the parent
+uses its reply.
+[Prepared write selection](OWNED_DEFERRED_WRITES.md#preparing-for-a-later-write) ·
+[Windows Job Objects](https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects) ·
+[Windows handle waits](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitforsingleobject)
+
+Proving useful context reuse across multiple independent requests still
+requires matched complete-operation measurements, bounded resources and
+an exact publication boundary.
 
 ### Separately admitted requests
 

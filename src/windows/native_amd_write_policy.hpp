@@ -15,6 +15,7 @@ struct NativeAmdWriteSample {
   std::size_t transactions=1;
   NativeAmdWriteShape shape;
   std::uint32_t stored_lz4_without_cpu_comparison=0;
+  bool prepared_before_write=false;
 };
 
 struct NativeAmdWriteComparison {
@@ -29,6 +30,7 @@ struct NativeAmdWriteEvidence {
   GpuConfigurationId configuration{};
   NativeAmdWriteShape shape;
   std::span<const NativeAmdWriteComparison> comparisons;
+  bool prepared_before_write=false;
 };
 NativeAmdWritePreference evaluate_native_amd_writes(const NativeAmdWriteEvidence&) noexcept;
 

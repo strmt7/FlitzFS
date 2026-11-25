@@ -491,6 +491,13 @@ void native_amd_write_preference() {
   }
   const NativeAmdWriteEvidence evidence{configuration,shape,trials};
   check(evaluate_native_amd_writes(evidence)==Preference::amd,"faster matched AMD writes refused");
+  auto prepared_evidence=evidence;
+  prepared_evidence.prepared_before_write=true;
+  check(evaluate_native_amd_writes(prepared_evidence)==Preference::unqualified,"Cold write qualified a prepared route");
+  for(auto& trial:trials)trial.amd.prepared_before_write=true;
+  check(evaluate_native_amd_writes(prepared_evidence)==Preference::amd &&
+      evaluate_native_amd_writes(evidence)==Preference::unqualified,"Prepared timing authorized a cold route");
+  for(auto& trial:trials)trial.amd.prepared_before_write=false;
   trials[1].amd.shape.storage.layout.shared_banks=true;
   check(evaluate_native_amd_writes(evidence)==Preference::unqualified,"Different protective bank layout compared");
   trials[1].amd.shape=shape;
@@ -668,6 +675,95 @@ void completion_budget_refusal(const std::filesystem::path& worker) {
   check(stopped==NativeDeferredStop::quiescent && h.adapter->deferred_write_stats().response_attempts==1 &&
       !h.adapter->gpu_budget_task() && !h.adapter->requires_offline(),
       "unavailable completion budget retained ownership");
+}
+enum class PreparedWriteCase {stop,submit,pressure};
+void prepared_only_write(const std::filesystem::path& worker,PreparedWriteCase action) {
+  const bool submit=action==PreparedWriteCase::submit;
+  if(!gpu_lz4_cpu_verification_available())return;
+  auto settings=options(worker,1);
+  auto bytes=native_lz4_fixture::source();
+  const auto extent=bytes;
+  bytes.insert(bytes.end(),extent.begin(),extent.end());
+  const auto length=static_cast<ULONG>(bytes.size());
+  settings.binding.cpu_fixture_arguments={L"uniform-native2"};
+  settings.cost.sweep_timing=GpuLz4SweepTiming{10'000'000,5'000'000};
+  settings.deadline_ms=1200;
+  settings.prepared_only=true;
+  settings.measured_shape=NativeAmdWriteShape{length,{fixture_compression,{65536,true}}};
+  settings.controller_health=health();
+  settings.controller_health->memory.captured_ms-=kGpuMaxBudgetAgeMs+1;
+  Harness h(settings,true);
+  check(h.adapter->managed_foreground()==settings.measured_shape->storage,"Prepared write fixture layout");
+  const auto target=h.create(L"\\target");
+  const auto write=[&](UINT64 offset,ULONG size) {
+    ULONG count=0;
+    FSP_FSCTL_FILE_INFO info{};
+    const auto status=h.fs.Interface->Write(&h.fs,target,bytes.data(),offset,size,FALSE,FALSE,&count,&info);
+    check((status==STATUS_SUCCESS && count==size) || (status==STATUS_PENDING && !count),
+        "Prepared write service returned an invalid completion");
+    return status;
+  };
+  const auto refresh=[&](const NativeGpuBudgetTask& task) {
+    auto current=health().memory;
+    eventually([&]{current=health().memory;return current.captured_ms>task.after_ms;},
+        "Prepared write budget observation did not advance");
+    check(h.adapter->complete_gpu_budget_task(task,current,GetTickCount64()),"Prepared write denied a fresh budget");
+    return current.captured_ms;
+  };
+  check(write(0,kNativeExtentBytes)==STATUS_SUCCESS && !h.adapter->gpu_budget_task(),
+      "A different write shape requested a prepared worker");
+  check(write(0,length)==STATUS_SUCCESS,"The write that started preparation waited on device setup");
+  const auto demand=h.adapter->gpu_budget_task();
+  check(demand && !h.adapter->deferred_write_stats().queued,"First CPU write did not fund preparation");
+  const auto prepared_at=refresh(*demand);
+  eventually([&]{return h.adapter->deferred_write_stats().preparation_ready;},
+      "Matching completed CPU write did not prepare a worker");
+  check(h.adapter->deferred_write_stats().preparations_started==1 && !WorkerExchangeSession::available(),
+      "Prepared transport did not keep one exact owned worker");
+  if(submit) {
+    // Keep the worker ready while obtaining an independent, current budget.
+    eventually([&]{return GetTickCount64()-prepared_at>kGpuMaxBudgetAgeMs;},
+        "Prepared admission fixture needed a new budget window");
+    check(write(0,length)==STATUS_SUCCESS,"A stale budget queued a prepared write");
+    const auto use=h.adapter->gpu_budget_task();
+    check(use.has_value(),"Ready worker missed its demand-correlated budget");
+    refresh(*use);
+    check(write(length,length)==STATUS_PENDING,"Fresh matching write did not consume the prepared worker");
+    std::optional<NativeGpuBudgetTask> completion;
+    eventually([&]{completion=h.adapter->gpu_budget_task();return completion.has_value();},
+        "Prepared reply did not request a newer budget after CPU verification");
+    refresh(*completion);
+    const auto response=h.reply(0,[]{});
+    const auto stats=h.adapter->deferred_write_stats();
+    check(response.IoStatus.Status==STATUS_SUCCESS && response.IoStatus.Information==length &&
+        stats.prepared_writes_submitted==1 && stats.worker_submitted==1 && stats.advised==1 &&
+        stats.preparations_started==1,"Prepared write started another helper or lost its verified advice");
+  }else if(action==PreparedWriteCase::pressure) {
+    eventually([&]{return GetTickCount64()-prepared_at>kGpuMaxBudgetAgeMs;},
+        "Prepared pressure fixture needed a new budget window");
+    check(write(0,length)==STATUS_SUCCESS,"Prepared pressure check delayed CPU service");
+    const auto task=h.adapter->gpu_budget_task();
+    check(task.has_value(),"Prepared pressure check received no budget task");
+    auto memory=health().memory;
+    memory.local_usage=memory.local_budget;
+    check(h.adapter->complete_gpu_budget_task(*task,memory,GetTickCount64()),
+        "Prepared worker's pressure observation was refused");
+    eventually([&]{return WorkerExchangeSession::available() && !h.adapter->deferred_write_stats().preparation_ready;},
+        "Reported pressure did not retire unused preparation");
+    check(!h.adapter->deferred_write_stats().queued,"Reported pressure queued a write");
+  }
+  h.close(target);
+  NativeDeferredStop stopped=NativeDeferredStop::running;
+  eventually([&]{stopped=h.adapter->stop_deferred_writes_hosted();return stopped!=NativeDeferredStop::running;},
+      "Prepared write worker did not stop");
+  check(stopped==NativeDeferredStop::quiescent && WorkerExchangeSession::available() &&
+      !h.adapter->requires_offline(),"Prepared write left an unretired worker or fenced the CPU volume");
+  const auto snapshot=h.adapter->snapshot();
+  snapshot.verify_all();
+  check(snapshot.read("target",0,length)==bytes &&
+      (!submit || snapshot.read("target",length,length)==bytes),"CPU data changed in the prepared write fixture");
+  std::cout<<"deferred_prepared_write prepared=1 submitted="<<submit
+      <<" pressure="<<(action==PreparedWriteCase::pressure)<<" verified=1 retired=1\n";
 }
 void run(const std::filesystem::path& worker,unsigned kind,bool indexed){
   Harness h(options(worker,kind),indexed);const auto target=h.create(L"\\target");
@@ -936,7 +1032,7 @@ GpuLz4ResidentCost diagnostic_uniform_cost(const HipDiscoveredRoute& route) {
 NativeAmdWriteSample indexed_trial(const HipDiscoveredRoute* route,bool sweep,
     const std::vector<std::byte>& expected,bool expect_uniform_advice,
     bool prove_owned_input=false,NativeAmdWriteShape* shape=nullptr,bool grouped=false,bool late_activation=false,
-    IndexedWriteFixture fixture={}) {
+    IndexedWriteFixture fixture={},bool use_prepared=false) {
   constexpr auto quantum_chunks=fixture_quantum_chunks;
   check(!expected.empty() && expected.size()%kNativeExtentBytes==0,"incomplete comparison extent");
   const auto chunks=static_cast<std::uint32_t>(expected.size()/kNativeExtentBytes);
@@ -981,7 +1077,9 @@ NativeAmdWriteSample indexed_trial(const HipDiscoveredRoute* route,bool sweep,
   options.binding.ordinal=static_cast<int>(route->ordinal);
   options.binding.runtime_sha256=route->runtime_sha256;
   options.binding.capture_advice_receipt=true;
-  options.budget=diagnostic_worker_budget;options.deadline_ms=options.budget.timeout_ms;
+  options.budget=diagnostic_worker_budget;
+  options.deadline_ms=use_prepared?1200:options.budget.timeout_ms;
+  options.prepared_only=use_prepared;
   const auto& cost=options.cost=diagnostic_uniform_cost(*route);
   options.window={16,cost.qualified_kernel_quantum_ns};
   if(sweep) {
@@ -1013,7 +1111,8 @@ NativeAmdWriteSample indexed_trial(const HipDiscoveredRoute* route,bool sweep,
       check(!NativeDeferredWriteService::measured_write_funded(options,observed,observed.memory.captured_ms),
           "measured sweep was funded with kernel costs alone");
       // The live fixture exercises route activation independently of performance qualification.
-      options.cost.sweep_timing=GpuLz4SweepTiming{3000000000,250000000};
+      options.cost.sweep_timing=use_prepared?GpuLz4SweepTiming{150'000'000,30'000'000}:
+          GpuLz4SweepTiming{3'000'000'000,250'000'000};
       auto mismatch=options;
       mismatch.measured_shape->storage.layout.shared_banks=!storage->layout.shared_banks;
       check(h.controller->offer_qualified_foreground_route(std::move(mismatch)),
@@ -1046,10 +1145,25 @@ NativeAmdWriteSample indexed_trial(const HipDiscoveredRoute* route,bool sweep,
         (!sweep || chunks<=quantum_chunks || single.layout.input_bytes<expected.size()),
         "indexed HIP finite work window not admitted");
     ULONG count=0;FSP_FSCTL_FILE_INFO info{};
+    const auto preparation_started=std::chrono::steady_clock::now();
     check(h.fs.Interface->Write(&h.fs,target,source.data(),0,static_cast<ULONG>(source.size()),FALSE,FALSE,
         &count,&info)==STATUS_SUCCESS && count==expected.size(),"absent fresh GPU budget delayed CPU write");
     eventually([&]{return h.controller->view().gpu_budget_queries==1;},
         "ordinary write did not trigger GPU budget observation");
+    if(use_prepared) {
+      eventually([&]{return h.adapter->deferred_write_stats().preparation_ready;},
+          "The installed AMD worker did not reach readiness");
+      const auto readiness=std::chrono::steady_clock::now()-preparation_started;
+      check(h.adapter->deferred_write_stats().preparations_started==1 && !WorkerExchangeSession::available(),
+          "Installed AMD preparation did not own one worker");
+      std::cout<<"indexed_amd_preparation_ns="
+          <<std::chrono::duration_cast<std::chrono::nanoseconds>(readiness).count()<<std::endl;
+      std::this_thread::sleep_for(std::chrono::milliseconds(kGpuMaxBudgetAgeMs+1));
+      check(h.fs.Interface->Write(&h.fs,target,source.data(),0,static_cast<ULONG>(source.size()),FALSE,FALSE,
+          &count,&info)==STATUS_SUCCESS && count==expected.size(),"Stale prepared admission did not use CPU");
+      eventually([&]{return h.controller->view().gpu_budget_queries==2;},
+          "Ready AMD worker missed the new demand budget");
+    }
     const auto expected_hint=hints.load();
     const auto started=std::chrono::steady_clock::now();
     check(h.fs.Interface->Write(&h.fs,target,source.data(),measured_offset,static_cast<ULONG>(source.size()),FALSE,FALSE,
@@ -1088,7 +1202,7 @@ NativeAmdWriteSample indexed_trial(const HipDiscoveredRoute* route,bool sweep,
       std::cout<<"live_foreground_activation cpu_before=exact shape_refused=1 activated=1 partial_refused=1\n";
     }
     if(stats.advised)
-      eventually([&]{return h.controller->view().gpu_budget_queries==2;},
+      eventually([&]{return h.controller->view().gpu_budget_queries==(use_prepared?3U:2U);},
           "verified GPU completion did not request a fresh budget");
     const auto observations=h.controller->view();
     std::cout<<"indexed_gpu_budget_queries="<<observations.gpu_budget_queries
@@ -1096,6 +1210,8 @@ NativeAmdWriteSample indexed_trial(const HipDiscoveredRoute* route,bool sweep,
     check(observations.gpu_budget_refusals==0,"AMD budget observer rejected its trusted adapter");
     check(stopped==NativeDeferredStop::quiescent && stats.retirement_confirmed && stats.thread_exited &&
         stats.worker_submitted==1 && stats.advised==1 && stats.response_attempts==1 && receipt &&
+        stats.prepared_writes_submitted==static_cast<std::uint64_t>(use_prepared) &&
+        stats.preparations_started==static_cast<std::uint64_t>(use_prepared) &&
         receipt->candidate_count==chunks && receipt->stored_lz4_candidates<=chunks && receipt->advice.captured &&
         (!expect_uniform_advice || receipt->advice.uniform_payloads),
         "indexed HIP verified candidacy or retirement");
@@ -1112,6 +1228,7 @@ NativeAmdWriteSample indexed_trial(const HipDiscoveredRoute* route,bool sweep,
     std::cout<<" image_bytes="<<h.image->extent()<<" response_ns="<<ns<<'\n';
     sample={static_cast<std::uint64_t>(ns),h.image->extent(),detail::record_digest(expected),true,false,true,
         receipt->stored_lz4_candidates,1,selected};
+    sample.prepared_before_write=stats.prepared_writes_submitted!=0;
   }
   check_indexed_retirement();
   check(!GetModuleHandleW(route->runtime_basename.c_str()),"HIP runtime entered the filesystem process");
@@ -1205,13 +1322,14 @@ int compare_file_policy(const std::filesystem::path& corpus,bool cpu_only) {
   }
   return compare_indexed_amd_writes(input,false,false,fixture);
 }
-int installed_late_foreground() {
+int installed_late_foreground(bool use_prepared=false) {
   gpu_probe_fixture::Budget controller_budget;
   const auto discovery=discover_installed_hip_route(diagnostic_worker_budget,4);
   const auto& route=require_indexed_route(discovery);
   check(route.pins->uniform_module_pinned(),"live foreground route has no pinned uniform compute module");
-  const auto sample=indexed_trial(&route,true,indexed_source(fixture_sweep_chunks),true,true,nullptr,false,true);
-  check(sample.device_executed && sample.stored_lz4_candidates && sample.cpu_readback_verified && sample.retirement_confirmed,
+  const auto sample=indexed_trial(&route,true,indexed_source(fixture_sweep_chunks),true,true,nullptr,false,true,{},use_prepared);
+  check(sample.device_executed && sample.stored_lz4_candidates && sample.cpu_readback_verified && sample.retirement_confirmed &&
+      sample.prepared_before_write==use_prepared,
       "live foreground route did not settle the AMD write");
   return 0;
 }
@@ -1771,6 +1889,7 @@ int wmain(int argc,wchar_t** argv){try{
   if(argc==3 && std::wstring_view(argv[1])==L"--compare-installed-amd-arriving-burst")
     return compare_installed_arriving_burst(argv[2]);
   if(argc==2 && std::wstring_view(argv[1])==L"--live-installed-late-foreground")return installed_late_foreground();
+  if(argc==2 && std::wstring_view(argv[1])==L"--live-installed-prepared-foreground")return installed_late_foreground(true);
   if(argc==2 && std::wstring_view(argv[1])==L"--compare-installed-amd")return compare_installed_amd();
   if(argc==2 && std::wstring_view(argv[1])==L"--compare-installed-amd-grouped")
     return compare_installed_amd({},true);
@@ -1825,6 +1944,8 @@ int wmain(int argc,wchar_t** argv){try{
   refused_foreground_offer();
   budget_demand(worker);
   partial_measured_window_uses_cpu(worker);
+  for(const auto action:{PreparedWriteCase::stop,PreparedWriteCase::submit,PreparedWriteCase::pressure})
+    prepared_only_write(worker,action);
   mismatched_measured_layout_uses_cpu(worker);
   completion_budget_refusal(worker);
   for(const auto indexed : {false,true})for(unsigned kind=0;kind<4;++kind){

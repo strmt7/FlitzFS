@@ -33,7 +33,7 @@ bool verified(const NativeAmdWriteSample& sample,bool amd) noexcept {
       sample.input_digest!=decltype(sample.input_digest){} &&
       sample.cpu_readback_verified && sample.retirement_confirmed && sample.device_executed==amd &&
       sample.stored_lz4_without_cpu_comparison<=sample.stored_lz4_candidates &&
-      (amd || !sample.stored_lz4_candidates);
+      (amd || (!sample.stored_lz4_candidates && !sample.prepared_before_write));
 }
 }
 
@@ -51,6 +51,7 @@ NativeAmdWritePreference evaluate_native_amd_writes(const NativeAmdWriteEvidence
   for(const auto& trial:evidence.comparisons) {
     if(trial.amd_first==previous_order || trial.cpu.input_digest!=trial.amd.input_digest ||
         trial.cpu.shape!=shape || trial.amd.shape!=shape ||
+        trial.amd.prepared_before_write!=evidence.prepared_before_write ||
         !verified(trial.cpu,false) || !verified(trial.amd,true) ||
         trial.amd.stored_lz4_candidates>shape.input_bytes/kNativeExtentBytes)
       return Result::unqualified;
@@ -540,7 +541,8 @@ std::optional<NativeDeferredWriteOptions> qualify_native_amd_writes(const HipDis
       !cost.qualified || cost.recovery_generation || !route.pins ||
       !route.pins->uniform_module_pinned() || route.ordinal>=64 ||
       !route.pins->matches(route.helper,route.identity,route.runtime_sha256,static_cast<int>(route.ordinal),route.memory) ||
-      !valid_process_budget(budget) || !deadline || deadline>budget.timeout_ms)
+      !valid_process_budget(budget) || !deadline || deadline>budget.timeout_ms ||
+      (evidence.prepared_before_write && (!sweep || deadline>=budget.timeout_ms)))
     return std::nullopt;
   NativeDeferredWriteOptions result;
   result.binding.helper=route.helper;
@@ -551,6 +553,7 @@ std::optional<NativeDeferredWriteOptions> qualify_native_amd_writes(const HipDis
   result.controller_health=GpuHealthEvidence{route.identity,1,0,true,true,route.memory};
   result.controller_route_pins=route.pins;
   result.measured_shape=evidence.shape;
+  result.prepared_only=evidence.prepared_before_write;
   result.cost=cost;
   result.window=window;
   result.budget=budget;

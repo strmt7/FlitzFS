@@ -41,7 +41,15 @@ UniformLz4WorkerStart UniformLz4WorkerController::begin(PreparedUniformLz4&& inp
     const std::filesystem::path& helper,const std::vector<std::wstring>& arguments,
     bool consent,bool worthwhile,const GpuHealthEvidence& evidence,std::uint64_t now,
     const GpuLz4ResidentCost& cost,GpuLz4WindowPolicy window,ProcessBudget budget,std::uint32_t deadline,
-    std::optional<GpuLz4SweepGrant> sweep,std::shared_ptr<const void> pinned_route){
+    std::optional<GpuLz4SweepGrant> sweep,std::shared_ptr<const void> pinned_route) {
+  return begin_owned(std::move(input),helper,arguments,consent,worthwhile,evidence,now,cost,window,
+      budget,deadline,sweep,std::move(pinned_route),nullptr);
+}
+UniformLz4WorkerStart UniformLz4WorkerController::begin_owned(PreparedUniformLz4&& input,
+    const std::filesystem::path& helper,const std::vector<std::wstring>& arguments,
+    bool consent,bool worthwhile,const GpuHealthEvidence& evidence,std::uint64_t now,
+    const GpuLz4ResidentCost& cost,GpuLz4WindowPolicy window,ProcessBudget budget,std::uint32_t deadline,
+    std::optional<GpuLz4SweepGrant> sweep,std::shared_ptr<const void> pinned_route,WorkerExchangeSession* prepared){
   if(state_==GpuWorkerState::waiting || (ticket_ && pending_ &&
       input.plaintext().size()>pending_->plaintext().size()))
     return {{{GpuRouteReason::worker_busy},GpuGateCode::wrong_state,false},false};
@@ -71,7 +79,10 @@ UniformLz4WorkerStart UniformLz4WorkerController::begin(PreparedUniformLz4&& inp
     return {{{GpuRouteReason::unqualified},last_gate_,false},true};
   }
   auto checked=evidence;
-  checked.supervisor_quiescent=evidence.supervisor_quiescent && !session_ && WorkerExchangeSession::available();
+  // The reserved session has no outstanding request. Consume only the
+  // ready child that the serialized owner already started for this route.
+  checked.supervisor_quiescent=evidence.supervisor_quiescent && !session_ &&
+      (prepared?prepared->wait_prepared():WorkerExchangeSession::available());
   const auto route=policy_.consider(consent,worthwhile,checked,*current_,plan.quantum,now);
   if(!route.try_gpu())return {{route,last_gate_,false},true};
   ticket_=route.ticket;reported_=false;
@@ -95,7 +106,14 @@ UniformLz4WorkerStart UniformLz4WorkerController::begin(PreparedUniformLz4&& inp
       return {{route,last_gate_,false},true};
     }
     auto frame=std::make_shared<const WorkerRequestSnapshot>(encode_uniform_lz4_request(*pending_,generation_));
-    session_.emplace(WorkerExchangeSession::start_sized(helper,arguments,std::move(frame),
+    if(prepared) {
+      session_.emplace(std::move(*prepared));
+      if(!session_->submit_prepared(std::move(frame))) {
+        select_cpu(GpuRecoveryOutcome::temporary_pressure,GpuGateCode::worker_failed);
+        (void)request_cancel();
+        return {{route,last_gate_,false},true};
+      }
+    }else session_.emplace(WorkerExchangeSession::start_sized(helper,arguments,std::move(frame),
         {static_cast<std::size_t>(l.request_bytes),static_cast<std::size_t>(l.reply_bytes)},budget,std::move(pinned_route)));
     state_=GpuWorkerState::waiting;last_gate_=GpuGateCode::admitted;
     return {{route,last_gate_,true},true};

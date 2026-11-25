@@ -31,6 +31,9 @@ NativeDeferredWriteService::NativeDeferredWriteService(NativeFileSession& sessio
     throw std::invalid_argument("invalid deferred backend");
   if(!options_.hint_query||!options_.response_sink)
     throw std::invalid_argument("deferred transport callbacks are required");
+  if(options_.prepared_only && (!options_.measured_shape || !options_.controller_health ||
+      !options_.binding.sweep || options_.deadline_ms>=options_.budget.timeout_ms))
+    throw std::invalid_argument("prepared writes require a measured sweep with separate readiness time");
   if(options_.controller_health) {
     health_=*options_.controller_health;
     budget_disabled_=!options_.matches_controller_route();
@@ -46,22 +49,27 @@ GpuLz4ResidentCost NativeDeferredWriteService::charge_request(GpuLz4ResidentCost
         2*sizeof(NativeUniformWriteResult),cost.fixed_bytes))cost.qualified=false;
   return cost;
 }
-bool NativeDeferredWriteService::measured_write_funded(const NativeDeferredWriteOptions& options,
-    const GpuHealthEvidence& evidence,std::uint64_t now) noexcept {
+std::optional<GpuLz4WindowPlan> NativeDeferredWriteService::measured_write_plan(
+    const NativeDeferredWriteOptions& options,const GpuHealthEvidence& evidence,std::uint64_t now) noexcept {
   if(!options.measured_shape || !valid_process_budget(options.budget) ||
-      !options.deadline_ms || options.deadline_ms>options.budget.timeout_ms)return false;
+      !options.deadline_ms || options.deadline_ms>options.budget.timeout_ms)return {};
   const auto bytes=options.measured_shape->input_bytes;
-  if(!bytes || bytes%kNativeExtentBytes)return false;
+  if(!bytes || bytes%kNativeExtentBytes)return {};
   const auto cost=charge_native_uniform_source(charge_request(options.cost),bytes);
   const auto& sweep=options.binding.sweep;
-  if(sweep && !cost.sweep_timing)return false;
+  if(sweep && !cost.sweep_timing)return {};
   const auto plan=sweep?plan_gpu_lz4_sweep_window(bytes,kNativeExtentBytes,evidence,now,
       cost,options.window,*sweep,options.deadline_ms):
       plan_gpu_lz4_window(bytes,kNativeExtentBytes,evidence,now,cost,options.window);
   UniformLz4Limits limits;
-  return plan.code==GpuGateCode::admitted && plan.layout.input_bytes==bytes &&
-      try_uniform_lz4_limits(plan.layout,limits) &&
-      uniform_worker_host_budget_covers(limits,options.budget,plan.host_peak_bytes);
+  if(plan.code!=GpuGateCode::admitted || plan.layout.input_bytes!=bytes ||
+      !try_uniform_lz4_limits(plan.layout,limits) ||
+      !uniform_worker_host_budget_covers(limits,options.budget,plan.host_peak_bytes))return {};
+  return plan;
+}
+bool NativeDeferredWriteService::measured_write_funded(const NativeDeferredWriteOptions& options,
+    const GpuHealthEvidence& evidence,std::uint64_t now) noexcept {
+  return measured_write_plan(options,evidence,now).has_value();
 }
 bool native_amd_write_geometry(NativeFileInfoAllocation mode,std::uint64_t offset,
     std::size_t bytes,bool append,bool constrained) noexcept {
@@ -92,8 +100,13 @@ bool NativeDeferredWriteService::enqueue_locked(FSP_FILE_SYSTEM* fs,const Native
         request_budget_locked(health_.memory.captured_ms,false);
       return false;
     }
-    if(options_.measured_shape && (!measured_write_funded(options_,health_,now) ||
-        !WorkerExchangeSession::available()))return false;
+    if(options_.measured_shape) {
+      const auto plan=measured_write_plan(options_,health_,now);
+      if(!plan)return false;
+      if(options_.prepared_only) {
+        if(!preparation_ready_locked(now) || !preparation_->matches_quantum(plan->quantum))return false;
+      }else if(!WorkerExchangeSession::available())return false;
+    }
   }
   UINT64 hint=0;
   if(!options_.hint_query(hint))return false;
@@ -114,6 +127,30 @@ bool NativeDeferredWriteService::enqueue_locked(FSP_FILE_SYSTEM* fs,const Native
   stats_.native_pending=true;stats_.worker_busy=true;increment(stats_.queued);
   changed_.notify_all();return true;
 }
+bool NativeDeferredWriteService::preparation_ready_locked(std::uint64_t now) const noexcept {
+  return preparation_ && now<preparation_->expires_ms &&
+      options_.deadline_ms<=preparation_->expires_ms-now && preparation_->child.wait_prepared();
+}
+NativeDeferredWriteStats NativeDeferredWriteService::stats_locked() const noexcept {
+  auto result=stats_;
+  result.preparation_ready=preparation_ready_locked(GetTickCount64());
+  return result;
+}
+void NativeDeferredWriteService::note_cpu_write_locked(std::size_t bytes,UINT64 offset,bool append,
+    bool constrained) noexcept {
+  if(!options_.prepared_only || !options_.allow_gpu || !options_.workload_qualified ||
+      !options_.helper_independent || budget_disabled_ || stats_.stopping || stats_.worker_busy ||
+      offline_.load(std::memory_order_acquire) || !activity_event_ ||
+      preparation_ || preparation_starting_ || prepare_requested_ ||
+      bytes!=options_.measured_shape->input_bytes ||
+      !native_amd_write_geometry(info_policy_,offset,bytes,append,constrained) ||
+      !session_.matches_managed_foreground(options_.measured_shape->storage))return;
+  prepare_requested_=true;
+  const auto now=GetTickCount64();
+  if(check_gpu_memory_budget(health_.memory,health_.memory.luid,health_.memory.node_mask,now,0)==GpuGateCode::stale_budget)
+    request_budget_locked(health_.memory.captured_ms,false);
+  changed_.notify_all();
+}
 void NativeDeferredWriteService::drain_locked(std::unique_lock<std::mutex>& lock){
   if(!stats_.native_pending)return;
   force_cpu_=true;changed_.notify_all();
@@ -127,6 +164,7 @@ void NativeDeferredWriteService::disable_gpu_budget_locked() noexcept {
   budget_task_.reset();
   budget_work_.store(false,std::memory_order_release);
   budget_disabled_=true;
+  prepare_requested_=false;
   if(stats_.native_pending)force_cpu_=true;
   changed_.notify_all();
 }
@@ -169,10 +207,8 @@ bool NativeDeferredWriteService::accept_budget_locked(const NativeGpuBudgetTask&
     changed_.notify_all();
     return true; // A valid pressure observation can still select CPU.
   }
-  if(budget_for_completion_) {
-    force_cpu_=true;
-    changed_.notify_all();
-  }
+  if(budget_for_completion_)force_cpu_=true;
+  changed_.notify_all();
   return false;
 }
 NativeDeferredStop NativeDeferredWriteService::stop(){
@@ -185,6 +221,83 @@ NativeDeferredStop NativeDeferredWriteService::stop(){
   thread_.join();
   return stats_.retirement_confirmed?NativeDeferredStop::quiescent:NativeDeferredStop::retirement_unconfirmed;
 }
+bool NativeDeferredWriteService::retire_unused_preparation_locked(std::unique_lock<std::mutex>& guard,
+    NativeUniformWritePreparation& prepared) {
+  auto& child=prepared.child;
+  const auto handle=static_cast<HANDLE>(child.supervisor_wait_handle());
+  if(!handle)return true; // The operation took ownership of this session.
+  guard.unlock();
+  if(!child.retirement_confirmed()) {
+    (void)child.request_cancel();
+    (void)WaitForSingleObject(handle,4000);
+  }
+  const auto retired=child.retirement_confirmed();
+  guard.lock();
+  if(!retired) {
+    stats_.retirement_confirmed=false;
+    stats_.disabled=true;
+    stats_.stopping=true;
+    disable_gpu_budget_locked();
+  }
+  return retired;
+}
+void NativeDeferredWriteService::wait_for_write_locked(std::unique_lock<std::mutex>& guard) {
+  while(!stats_.native_pending) {
+    const auto now=GetTickCount64();
+    if(preparation_) {
+      const auto* result=preparation_->child.try_result();
+      const auto funded=measured_write_plan(options_,health_,health_.memory.captured_ms);
+      const bool changed=budget_disabled_ || offline_.load(std::memory_order_acquire) ||
+          !session_.matches_managed_foreground(options_.measured_shape->storage) ||
+          !funded || !preparation_->matches_quantum(funded->quantum);
+      if(stats_.stopping || changed || result || now>=preparation_->expires_ms) {
+        if(result && result->code!=WorkerExchangeCode::timed_out && result->code!=WorkerExchangeCode::cancelled)
+          disable_gpu_budget_locked();
+        auto retired=std::move(*preparation_);
+        preparation_.reset();
+        (void)retire_unused_preparation_locked(guard,retired);
+        continue;
+      }
+    }
+    if(stats_.stopping)return;
+    if(!preparation_ && prepare_requested_ && !budget_task_) {
+      prepare_requested_=false;
+      const auto plan=measured_write_plan(options_,health_,now);
+      if(!plan || budget_disabled_ || offline_.load(std::memory_order_acquire) ||
+          !session_.matches_managed_foreground(options_.measured_shape->storage) ||
+          !WorkerExchangeSession::available())continue;
+      const auto observed=health_;
+      preparation_starting_=true;
+      guard.unlock();
+      std::optional<NativeUniformWritePreparation> pending;
+      bool device_ready=true;
+      try {
+        device_ready=!options_.controller_route_pins || options_.controller_route_pins->device_ready();
+        if(device_ready) {
+          const auto limits=uniform_lz4_limits(plan->layout);
+          const GpuLz4SweepGrant grant{plan->quantum.chunks,plan->quantum.total_bytes};
+          auto dispatch=prepare_native_uniform_dispatch(options_.binding,observed,plan->layout,options_.expected,&grant);
+          auto arguments=dispatch.arguments;
+          if(options_.expected==WorkerExecution::hip)arguments.front()=L"--driver-uniform-lz4-prepared-adapter";
+          auto child=WorkerExchangeSession::start_prepared_sized(options_.binding.helper,arguments,
+              {static_cast<std::size_t>(limits.request_bytes),static_cast<std::size_t>(limits.reply_bytes)},
+              options_.budget,options_.controller_route_pins);
+          pending.emplace(NativeUniformWritePreparation{std::move(child),std::move(dispatch),now+options_.budget.timeout_ms});
+        }
+      }catch(const std::exception&) {} // CPU service continues if preparation cannot be created.
+      guard.lock();
+      preparation_starting_=false;
+      if(!device_ready)disable_gpu_budget_locked();
+      if(pending) {
+        preparation_.emplace(std::move(*pending));
+        increment(stats_.preparations_started);
+      }
+      continue;
+    }
+    if(preparation_)changed_.wait_for(guard,std::chrono::milliseconds(preparation_->expires_ms-now));
+    else changed_.wait(guard);
+  }
+}
 void NativeDeferredWriteService::run() noexcept{
   try{
     // Persistent for the configured volume: failure/recovery history survives
@@ -192,8 +305,10 @@ void NativeDeferredWriteService::run() noexcept{
     ControlledNativeUniformWrite operation(session_,options_.expected);
     for(;;){
       std::unique_lock guard(control_);
-      changed_.wait(guard,[this]{return stats_.stopping||stats_.native_pending;});
-      if(!stats_.native_pending){if(stats_.stopping)break;continue;}
+      wait_for_write_locked(guard);
+      if(!stats_.native_pending)break;
+      auto prepared=std::move(preparation_);
+      preparation_.reset();
       if(options_.controller_route_pins && options_.allow_gpu && !force_cpu_ && !stats_.stopping) {
         guard.unlock();
         const auto ready=options_.controller_route_pins->device_ready();
@@ -202,7 +317,8 @@ void NativeDeferredWriteService::run() noexcept{
       }
       const auto started=GetTickCount64();
       const auto charged=charge_request(options_.cost);
-      const bool consent=options_.allow_gpu&&options_.helper_independent&&!force_cpu_&&!stats_.stopping;
+      const bool consent=options_.allow_gpu&&options_.helper_independent&&!force_cpu_&&!stats_.stopping &&
+          (!options_.prepared_only || prepared.has_value());
       NativeUniformWriteStart admission;
       ControlledNativeUniformWrite::SourceGeometry geometry;
       admission.admission=operation.bind_source(request_->handle,request_->bytes,request_->offset,
@@ -215,11 +331,13 @@ void NativeDeferredWriteService::run() noexcept{
         guard.unlock();
         operation.start_advice(admission,geometry,options_.binding,consent,options_.workload_qualified,
             observed,started,charged,options_.window,options_.budget,options_.deadline_ms,
-            options_.measured_shape.has_value(),&force_cpu_,options_.controller_route_pins);
+            options_.measured_shape.has_value(),&force_cpu_,options_.controller_route_pins,prepared?&*prepared:nullptr);
         guard.lock();
       }
-      if(admission.worker.decision.submitted)increment(stats_.worker_submitted);
-      else if(controller_collects_budget()) {
+      if(admission.worker.decision.submitted) {
+        increment(stats_.worker_submitted);
+        if(admission.used_preparation)increment(stats_.prepared_writes_submitted);
+      }else if(controller_collects_budget()) {
         const auto reason=admission.worker.decision.route.reason;
         if(reason==GpuRouteReason::configuration_blocked || reason==GpuRouteReason::device_quarantined ||
             reason==GpuRouteReason::exhausted)disable_gpu_budget_locked();
@@ -275,10 +393,14 @@ void NativeDeferredWriteService::run() noexcept{
       stats_.native_pending=false;increment(stats_.completed);changed_.notify_all();
       guard.unlock();
       options_.response_sink(filesystem,response);
-      guard.lock();increment(stats_.response_attempts);guard.unlock();
-      bool retired=operation.try_retire();
+      guard.lock();increment(stats_.response_attempts);
+      // A failed handoff may leave this job outside the operation. End that
+      // reservation before checking whether the operation can retire.
+      const bool unused_retired=!prepared || retire_unused_preparation_locked(guard,*prepared);
+      guard.unlock();
+      bool retired=unused_retired && operation.try_retire();
       const auto allowance=valid_process_budget(options_.budget)?std::uint64_t(options_.budget.timeout_ms)+4000:4000;
-      while(!retired && GetTickCount64()-started<allowance){
+      while(unused_retired && !retired && GetTickCount64()-started<allowance){
         (void)operation.request_cancel();
         std::unique_lock wait(control_);
         changed_.wait_for(wait,std::chrono::milliseconds(5));wait.unlock();

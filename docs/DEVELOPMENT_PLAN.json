@@ -8,6 +8,8 @@
     "latest_grouped_preparation_reuse": "docs/evidence/windows-prepared-group-reuse-2026-11-25.json",
     "latest_foreground_write_layout": "docs/evidence/windows-foreground-write-layout-2026-11-25.json",
     "latest_verified_lz4_allocation": "docs/evidence/windows-verified-lz4-allocation-2026-11-25.json",
+    "latest_prepared_foreground_write": "docs/evidence/windows-prepared-foreground-write-2026-11-25.json",
+    "tested_prepared_foreground_write_tree": "751c6abb3d887db7aa6d88ee6bcc396a6f3413ae",
     "tested_verified_lz4_allocation_tree": "df98e3594595652f3bcaa843c390bdaf3c4a37d5",
     "reviewed_commit": "7e093970c5440b782d414264ed0f56fab8957ef4",
     "reviewed_tree": "54c6ca8e8098b673f2869caa3c8dee1478b18a8a",
