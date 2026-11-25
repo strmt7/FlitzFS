@@ -638,9 +638,17 @@ void group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={},Group
     if(!worker) {
       const auto offset=first_ready*extent;
       read_slice(offset);
+      const auto checked=h.image->read_bytes;
+      read_slice(offset+slice);
+      const auto warm_bytes=h.image->read_bytes-checked;
+      require(warm_bytes<h.image->failure_unit,"Adjacent CPU tile read fetched a full metadata page");
       file[offset]^=std::byte{1};
       h.write(context,Bytes{file[offset]},offset);
+      const auto changed=h.image->read_bytes;
       read_slice(offset);
+      require(h.image->read_bytes>changed,"Changed checkpoint reused the prior CPU read metadata");
+      std::cout<<"cpu_group_read_query warm_backing_bytes="<<warm_bytes
+          <<" changed_checkpoint_backing_bytes="<<h.image->read_bytes-changed<<'\n';
     }
     h.close(other_context);
     h.close(context);
@@ -888,8 +896,8 @@ void batched_read_ahead() {
       "first demand lost remaining batch or offered overlapping work");
   h.read(context,right,(first+2)*extent);
   const auto prepared=h.image->read_bytes-before;
-  require(h.adapter->native_lz4_read_ahead_hits()==frames && shared<independent && shared+prepared<ordinary,
-      "the complete prepared path did not reuse the captured metadata and frames");
+  require(h.adapter->native_lz4_read_ahead_hits()==frames && shared<independent && prepared<ordinary,
+      "batch capture or ready demand reread backing used by its control");
 
   train();
   auto limited=h.clock.next();
@@ -913,7 +921,10 @@ void batched_read_ahead() {
   h.read(context,right,(first+2)*extent);
   h.image_io->reported_damage=false;
   const auto degraded_backing=h.image->read_bytes-before;
-  require(degraded_backing==ordinary,"reported damage did not restore the ordinary backing verification");
+  // Reported degradation requires stored-record verification, even if
+  // the checked record can still use advisory decoded bytes.
+  require(degraded_backing>=ordinary && degraded_backing>prepared,
+      "reported damage bypassed stored-record verification");
 
   train();
   const auto hits_before_write=h.adapter->native_lz4_read_ahead_hits();
@@ -978,10 +989,18 @@ void ready_lz4_reads() {
   const auto ready_bytes=h.image->read_bytes-before;
   require(h.adapter->native_lz4_read_hits()==1 && ordinary_bytes>=ready_bytes+captured.encoded().size(),
       "SDK read skipped the verified ready result or fetched its payload");
-  before=h.image->read_bytes;
+  // Mirrored record streams can cross bank boundaries in this fixture.
+  const auto encoded=captured.encoded();
+  const auto stored=std::ranges::search(h.image->live,encoded.first((std::min)(encoded.size(),std::size_t{64})));
+  require(!stored.empty(),"could not locate the compressed SDK fixture payload");
+  // A CPU fallback must fetch the payload even when its metadata is warm.
+  h.image->corrupt_read_offset=static_cast<std::uint64_t>(stored.begin()-h.image->live.begin());
+  h.image->corrupt_read_number=(std::numeric_limits<std::uint64_t>::max)();
+  h.image->matching_reads=0;
   h.read(context,plain);
-  require(h.adapter->native_lz4_read_hits()==1 && h.image->read_bytes-before==ordinary_bytes,
+  require(h.adapter->native_lz4_read_hits()==1 && h.image->matching_reads>0,
       "SDK read consumed one result twice or skipped its CPU fallback");
+  h.image->corrupt_read_offset=Ram::no_read_fault;
 
   ready=exchange.accept(reply,WorkerExecution::cpu_semantics);
   require(h.adapter->publish_native_lz4_reads(ready) && !ready,"callback owner rejected second verification");

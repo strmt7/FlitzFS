@@ -1,0 +1,557 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "validation_date_local": "2026-11-26",
+  "source_parent": "03d48a1d92a057949e8b2f019529bfc407a6089f",
+  "base_tree": "30b5a64d6659f5f42163a9d3a55f5a3f5d967244",
+  "tested_source_tree": "9f72f76005c69f5deda311ca4507e17dd57c2f7b",
+  "tested_source_blobs": [
+    {
+      "path": "src/native_filesystem.cpp",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ce3c7e4f994e956b432ef6f167e5360dbb3d565f",
+      "bytes": 175068
+    },
+    {
+      "path": "tests/test_native_lz4_decode.cpp",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e35a779f71cfef1a8d86980c4ffcfabfe30fc932",
+      "bytes": 13436
+    },
+    {
+      "path": "tests/test_winfsp_paged.cpp",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4ef9b0f3a4d72194205c90447b60d1d4597f351d",
+      "bytes": 99975
+    }
+  ],
+  "scope": "Windows SDK callbacks with bounded memory fixtures, exact CPU comparison and live Radeon compression and callback decoding.",
+  "checked_runs": {
+    "baseline": {
+      "run_sha256": "3c2a485a402dd020fce304d694542d280f47eb6eec68ced25356aa24a7d2edca",
+      "log_sha256": "f6f99cbb12605022828d3119464063e394dd3b977d2e7dacdb0540365409a5db",
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "job_peak_bytes": 17219584,
+      "job_memory_limit_bytes": 890241024,
+      "job_cpu_percent_limit": 16,
+      "elapsed_seconds": 1.672000000020489
+    },
+    "regression_suite": {
+      "run_sha256": "3a7154da1fdafd35fe25bc006cedcca71bbf0ae7900b199a5398a819f034bd29",
+      "log_sha256": "f133700a34a16d652fe1a8dd80f736a279718c7998d578f728563e7de72a7ba3",
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "job_peak_bytes": 22437888,
+      "job_memory_limit_bytes": 1891631104,
+      "job_cpu_percent_limit": 20,
+      "elapsed_seconds": 1.7969999999913853,
+      "tests_passed": 4
+    },
+    "preliminary_release_suite": {
+      "run_sha256": "e419e18c7146f680c39b9168597dd1991129e84e727f2903729e062e77951d56",
+      "log_sha256": "153ffea0fc97dcb07a2b8b7de2101d972411e64099b061b59e1c3f8033dd33cb",
+      "exit_code": 8,
+      "process_tree_retired": true,
+      "job_peak_bytes": 693616640,
+      "job_memory_limit_bytes": 1220542464,
+      "job_cpu_percent_limit": 26,
+      "elapsed_seconds": 153.84299999999348
+    },
+    "invalid_zero_read_expectation": {
+      "run_sha256": "8f3848df576bd25cd648192cc5a425ec39d6e3ac2e681f6bc356e97ab7cc9faa",
+      "log_sha256": "155ad7cbb5bb7b1dce8d078061e355f63d6d52115189710254487b08fc50ae50",
+      "exit_code": 8,
+      "process_tree_retired": true,
+      "job_peak_bytes": 20201472,
+      "job_memory_limit_bytes": 1120927744,
+      "job_cpu_percent_limit": 20,
+      "elapsed_seconds": 1.7969999999913853
+    },
+    "whole_stream_watch_failure": {
+      "run_sha256": "41c6cd7838710a976b85c39a7fa6ddb723ebade03740848d0e439b52f7543506",
+      "log_sha256": "5a87dfdb571d474b78e5ff9f2e81786d41bdb7ce52c642b4d1893fc50c971c38",
+      "exit_code": 8,
+      "process_tree_retired": true,
+      "job_peak_bytes": 22220800,
+      "job_memory_limit_bytes": 862978048,
+      "job_cpu_percent_limit": 20,
+      "elapsed_seconds": 1.952999999979511
+    },
+    "full_release_suite": {
+      "run_sha256": "18b55efdd36d8b65f18196e69d5e81ece4de874695ac1c06e3365e4894e8102d",
+      "log_sha256": "7d51d6a3c2d3f4db460f01968e3afecf247491e193770c7145adbbdd84558d51",
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "job_peak_bytes": 694038528,
+      "job_memory_limit_bytes": 2367684608,
+      "job_cpu_percent_limit": 24,
+      "elapsed_seconds": 158.7970000000205,
+      "tests_passed": 236
+    },
+    "raw_only_suite": {
+      "run_sha256": "bc4fc5fa06848e971c3f46e4c52e206616c39815d68fc71d9a8e84d09e5d048f",
+      "log_sha256": "606ffdc05883152d09eb9bf76473df09c3d5d63069fbb158967eeb3ac5334a48",
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "job_peak_bytes": 40542208,
+      "job_memory_limit_bytes": 1529872384,
+      "job_cpu_percent_limit": 16,
+      "elapsed_seconds": 1.514999999984866,
+      "tests_passed": 2
+    },
+    "asan_guard": {
+      "run_sha256": "54a25fc307e2d2ed1857e898e08d7f0b52e8f805c6deb30d5c176c903c39ff5c",
+      "log_sha256": "0e4d9644d656a282cb52b8b890fd1cd536f52e5d0ee1316d1139d4a6ec691278",
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "job_peak_bytes": 10731520,
+      "job_memory_limit_bytes": 1002438656,
+      "job_cpu_percent_limit": 10,
+      "elapsed_seconds": 0.10999999998603016,
+      "tests_passed": 1
+    },
+    "asan_suite": {
+      "run_sha256": "9e002eb286f5d6d646a0f6edade084aac7205cc7a8b81f25b023c1af6505d27e",
+      "log_sha256": "6fce81414ede2da937be17959b5660d015faabca7a4882de01e42648dfebda77",
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "job_peak_bytes": 131579904,
+      "job_memory_limit_bytes": 2172649472,
+      "job_cpu_percent_limit": 20,
+      "elapsed_seconds": 3.7809999999881256,
+      "tests_passed": 5
+    },
+    "radeon_write_gate": {
+      "run_sha256": "1c36da30e9e5508c6f81bb55054b11ac8430cf2cfc0dc902a9a1f12f792503fd",
+      "log_sha256": "3d65311d4166df8e9f579040d11312e2b4151052b48fb22032eba3ab4d522c3a",
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "job_peak_bytes": 91459584,
+      "job_memory_limit_bytes": 487587840,
+      "job_cpu_percent_limit": 10,
+      "elapsed_seconds": 4.062999999994645
+    },
+    "radeon_revised_writer": {
+      "run_sha256": "5b2229cfc1f1478cc3558ac86cde030e7b4ef6cbaf845c78b245ee124b5e51fa",
+      "log_sha256": "7e9057e4b8f9ec41d9f6ed570f42785d51e1d57c1860abe063e5d3366f1c4232",
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "job_peak_bytes": 95371264,
+      "job_memory_limit_bytes": 476053504,
+      "job_cpu_percent_limit": 15,
+      "elapsed_seconds": 4.2039999999979045
+    },
+    "radeon_read_gate": {
+      "run_sha256": "a8e6ba904c0ca3b3e88643568c26179749c676d575e3f93463b90b6d44dcf5b4",
+      "log_sha256": "34c6600eb4f8c290ee25a839f0e266243e6b6ca27c4684c57cda0b757f4e8b3c",
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "job_peak_bytes": 93388800,
+      "job_memory_limit_bytes": 436207616,
+      "job_cpu_percent_limit": 10,
+      "elapsed_seconds": 4.532000000006519
+    },
+    "radeon_final_read_gate": {
+      "run_sha256": "be730bca27ad2bcc298aead1ea79b90eb90d38adfd9a00f6d05334e2ba586683",
+      "log_sha256": "7afeec844a1ed88a0c56ba2b339c31e7122a9d9ff7669a622e203172b76b2520",
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "job_peak_bytes": 96694272,
+      "job_memory_limit_bytes": 959447040,
+      "job_cpu_percent_limit": 10,
+      "elapsed_seconds": 4.3439999999827705
+    },
+    "radeon_callback_read": {
+      "run_sha256": "818079ea275e960c7f382a0d852aae30a8af4059086034240e1c363af8ed2848",
+      "log_sha256": "933c3d92956dfbf416cbf31a9d67de980ebf2983553b0b1e7633d40d71687230",
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "job_peak_bytes": 100499456,
+      "job_memory_limit_bytes": 1344274432,
+      "job_cpu_percent_limit": 18,
+      "elapsed_seconds": 7.875
+    },
+    "final_release_test_build": {
+      "run_sha256": "743199b4e7a8313188ae38f629d4122d46877322387d9f108a5f5dbd5101ed79",
+      "log_sha256": "12ef222272332073300274d7f36d2be2dbac22c2049e53933e035c4433053873",
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "job_peak_bytes": 447033344,
+      "job_memory_limit_bytes": 2207252480,
+      "job_cpu_percent_limit": 23,
+      "elapsed_seconds": 8.0
+    },
+    "final_raw_build": {
+      "run_sha256": "14a60a39deb4f723a3f0d627446e66e0385534c587fffa73b0d6352d72db59e2",
+      "log_sha256": "1abcdb7d74f69b5ac4b260e53a4b412898afc4bdb6274926856dbd9194d0433f",
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "job_peak_bytes": 303226880,
+      "job_memory_limit_bytes": 1736441856,
+      "job_cpu_percent_limit": 16,
+      "elapsed_seconds": 5.9060000000172295
+    },
+    "final_asan_build": {
+      "run_sha256": "4476205d0d8ed771049ebe931a40edf167651a0fee07cd9dc7deec0238fda5a0",
+      "log_sha256": "0ac7f4b43177b7aa56b62383aee88aaa60129d7b668678c56c5abb092fc7ad18",
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "job_peak_bytes": 674172928,
+      "job_memory_limit_bytes": 2172649472,
+      "job_cpu_percent_limit": 20,
+      "elapsed_seconds": 11.735000000015134
+    }
+  },
+  "artifacts": {
+    "release_callback": {
+      "sha256": "bf37646261ff58cabf6b345e4182b5346fd9ef46dae45a6f94d31fb63fb5828f",
+      "bytes": 2357248
+    },
+    "release_native_decode": {
+      "sha256": "d5d7b5dbe639165d8d2162d5cab9e88f01534fa2eb2ee96204079fc2dffa7ca9",
+      "bytes": 1099776
+    },
+    "raw_native_decode": {
+      "sha256": "4c271dfb0742bfd2812eeafc683f6736b8ec18c540e39c5e6382f1ca3f93addf",
+      "bytes": 599552
+    },
+    "asan_callback": {
+      "sha256": "d97df43a082a73530e84b7cb2e8235df18682daaa7f29cc9baab23c719225460",
+      "bytes": 7758336
+    },
+    "guarded_runtime": {
+      "sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed",
+      "bytes": 1731408
+    },
+    "amd_compression_worker": {
+      "sha256": "a169a394fe53564fa70f4f38c4d0df697d073356c62d0e2ac590193f527fb432",
+      "bytes": 624640
+    },
+    "amd_decode_worker": {
+      "sha256": "3376c5a48c9a422302228047982b4d86bd1a1603a2d7695882c048835442fb5c",
+      "bytes": 581120
+    },
+    "amd_decode_module": {
+      "sha256": "9ac5bb33a7b39ae26712dcdcfcdeb6b4b5fc049175e18dd6f24d047a37b3e128",
+      "bytes": 173568
+    }
+  },
+  "cpu_read_reuse": {
+    "baseline": {
+      "callbacks": 32,
+      "delivered_frames": 2,
+      "delivered_bytes": 131072,
+      "published_bytes": 131072,
+      "prepared_backing_bytes": 37216,
+      "cpu_backing_bytes": 341008,
+      "prepared_member_reads": 0,
+      "cpu_member_reads": 1,
+      "device": 0,
+      "small_request_training": 1,
+      "skipped_frames": 1
+    },
+    "candidate": [
+      {
+        "callbacks": 32,
+        "delivered_frames": 2,
+        "delivered_bytes": 131072,
+        "published_bytes": 131072,
+        "prepared_backing_bytes": 37216,
+        "cpu_backing_bytes": 54672,
+        "prepared_member_reads": 0,
+        "cpu_member_reads": 1,
+        "device": 0,
+        "small_request_training": 0,
+        "skipped_frames": 0
+      },
+      {
+        "callbacks": 32,
+        "delivered_frames": 2,
+        "delivered_bytes": 131072,
+        "published_bytes": 131072,
+        "prepared_backing_bytes": 37216,
+        "cpu_backing_bytes": 54672,
+        "prepared_member_reads": 0,
+        "cpu_member_reads": 1,
+        "device": 0,
+        "small_request_training": 1,
+        "skipped_frames": 1
+      }
+    ],
+    "warm_and_after_acknowledged_write": [
+      {
+        "warm_backing_bytes": 1163,
+        "changed_checkpoint_backing_bytes": 75773
+      },
+      {
+        "warm_backing_bytes": 1163,
+        "changed_checkpoint_backing_bytes": 75773
+      }
+    ],
+    "backing_read_savings_bytes": 286336,
+    "backing_read_savings_percent": 83.97,
+    "checkpoint_change_refetched_and_verified": true,
+    "full_four_extent_comparison": {
+      "frames": 4,
+      "partial_grant_frames": 1,
+      "exact": 1,
+      "second_handle_cpu": 1,
+      "revised_backing_bytes": 44653,
+      "degraded_backing_bytes": 53138,
+      "capture_independent_bytes": 71852,
+      "capture_shared_bytes": 43781,
+      "ordinary_backing_bytes": 44645,
+      "ready_backing_bytes": 1728,
+      "total_prepared_bytes": 45509
+    },
+    "stored_lz4_fallback_payload_reads_verified": true,
+    "test_expectation_revision": "The fixture measures warm page reuse and observes the actual compressed payload on fallback. A bank-spanning encoded record is watched by its prefix."
+  },
+  "live_radeon_revised_writer": {
+    "preflight": {
+      "admitted": true,
+      "reason": null,
+      "utc": "2026-11-25T22:41:57.3339181Z",
+      "driver": "32.0.32029.2010",
+      "build": "26300",
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "available_bytes": 17887350784,
+      "reserved_bytes": 4294967296,
+      "gpu_peak": 0.7252064667103507,
+      "cpu_peak": 8.316199301548288,
+      "target_samples": 832
+    },
+    "exchange": {
+      "mode": "finished_prefix",
+      "maximum_requests": 3,
+      "admitted": 2,
+      "verified": 2,
+      "workers": 1,
+      "total_ns": 4117442700,
+      "first_ready_ns": 4022890300,
+      "second_ready_ns": 4068445100,
+      "encoded_bytes": 44912,
+      "first_payload_bytes": 23394,
+      "second_payload_bytes": 21518,
+      "retired": "true",
+      "submit_after_first_ready_ns": 45554800,
+      "input_bytes": 131072
+    },
+    "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+    "manifest_sha256": "f0365e5670d8a99835a31ba5d9dbde80920b47e99aac7cb2bbfa2415028a19cc",
+    "worker_source_tree": "28f3c6993e47af6f2847f1440d8ce01fe872d591",
+    "worker_sha256": "a169a394fe53564fa70f4f38c4d0df697d073356c62d0e2ac590193f527fb432",
+    "inputs": [
+      {
+        "bytes": 65536,
+        "sha256": "35c1aeb74c16acb53caae17adaaac6f47ffc09d4d281bab6ad67341467193a82"
+      },
+      {
+        "bytes": 65536,
+        "sha256": "c330bd2479b21b2e9522956a597fb50644211d4d0f91878506c5251823190bb8"
+      }
+    ]
+  },
+  "read_side_radeon": {
+    "initial_preflight": {
+      "admitted": false,
+      "reason": "Existing host load above the fixture envelope",
+      "utc": "2026-11-25T22:50:56.8917438Z",
+      "driver": "32.0.32029.2010",
+      "build": "26300",
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "available_bytes": 16515432448,
+      "reserved_bytes": 4294967296,
+      "gpu_peak": 99.79496482114565,
+      "cpu_peak": 15.688177104381829,
+      "target_samples": 832
+    },
+    "final_preflight": {
+      "admitted": true,
+      "reason": null,
+      "utc": "2026-11-25T23:04:02.3794180Z",
+      "driver": "32.0.32029.2010",
+      "build": "26300",
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "available_bytes": 31081861120,
+      "reserved_bytes": 4294967296,
+      "gpu_peak": 0.0,
+      "cpu_peak": 13.52165354369339,
+      "target_samples": 816
+    },
+    "worker_started": true,
+    "exchange": {
+      "mixed": 0,
+      "prepared": 0,
+      "verified": 2,
+      "worker_ms": 5875,
+      "prepared_submit_ms": 0,
+      "retargeted": 0,
+      "exact_child_retired": 1
+    },
+    "callback_delivery": {
+      "callbacks": 32,
+      "delivered_frames": 2,
+      "delivered_bytes": 131072,
+      "published_bytes": 131072,
+      "prepared_backing_bytes": 37216,
+      "cpu_backing_bytes": 54672,
+      "prepared_member_reads": 0,
+      "cpu_member_reads": 1,
+      "device": 1,
+      "small_request_training": 1,
+      "skipped_frames": 1
+    },
+    "manifest_sha256": "3879b8647d00df150fdcc2d870f420881703d8835461625e71a2ce49b7181d18",
+    "worker_source_tree": "44fc1cd768035798d224336913810c73a3eed7d5"
+  },
+  "source_routing": {
+    "commit": "03d48a1d92a057949e8b2f019529bfc407a6089f",
+    "inventory_sha256": "beb5f4848a28e686698092506b51b49415b59dbbae04123d3af7281935f15999",
+    "native_response_sha256": "bedf4288d29781d76d9cd1c39bc6ee2c10d2aa052189c2b48f3bc345a7d35cf6",
+    "provider_version": "0.2.43",
+    "query": "ordinary automatic AMD acquisition warm startup deferred worker readiness and subsequent read and write demand while CPU serves foreground fallback preserve prepared capacity",
+    "actual_searches": 1
+  },
+  "current_primary_research": [
+    {
+      "receipt_sha256": "16586a3e7e14de51ce5cb6d96eed1106288335df8944910f76ce52ff21d381bf",
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "lock_sha256": "01fbef3b628f772e4aba9724b6ced11c0f211d4d3bf51e38d1b9d0039eac997b",
+      "provider_source_identity": {
+        "tools/crawl4ai_tool.py": "e84a0e54ee07e4e13d3d2f35491f641730096a78126068f232c1f2397a467d8c",
+        "tools/crawl4ai_research.py": "ec3cb7a98eceed8fef08f3af806d6eaed35656bd76ca0ee8853d273f790337a5",
+        "tools/requirements/crawl4ai.txt": "6a42b0ff5ff6c63c843c6329ce823b819fd4f6f068e68d1836ab6dbec96e8f2f",
+        "tools/crawl4ai_sites.json": "e8869cb0488d78762a90aea6ecf2c3616bb89f0c89a8800cc512c613a750dc86",
+        "tools/nltk_distribution.py": "19eb3007c226b1a13e1ad0daa79cbd8a7bf6d082a20bf386e36ac060d0000919",
+        "tools/python_wheel.py": "c3c9a62454cb377203abce32154bec07cbf805bc7420cc89386c1c18370b301a",
+        "tools/test_nltk_model_security.py": "8aab7e2a704af875992ecae9137cdf5e5ff6935a4dd49e6751c54b2629a7280b",
+        "tools/requirements/python-build.txt": "9b280d724fda87773ba33a2654362adad84c68c4f79394adc07ff2e0293ca498",
+        "tools/crawl4ai_source_build.py": "5c27c4693fa0880a8db399825f637b694616963fc11f708afed33fa5b2e38b48",
+        "tools/crawl4ai_download_opener.py": "d5fd20b5545fd64c93a06b3ef07732f1c2da7e09ee6cda80662475007db52538",
+        "tools/test_crawl4ai_downloads.py": "ae4cf54c351a9da2de49caeb96306f384bb6a8f487318eabc69db4132d658619",
+        "third_party/upstream/nltk/3.10.4/distribution.json": "3241a8670f12e205525fc096572ed1969c063f77e13cffd70eff5eb656fbe1b0",
+        "nltk_upstream_wheel": "e46d89e59ef949270e3b19ab097da8dbb09350e05cb5a746ff92f6ccf6e8ce90",
+        "crawl4ai_source_build": "7da6376934254d9ad1de9e016a4509dae32c47559955889424435fcbbc7419f5"
+      },
+      "native_pages": [
+        {
+          "name": "hip-init",
+          "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/doxygen/html/group___driver.html",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 53581,
+          "markdown_sha256": "6db7a201a4f7b7fabcd8c302244ff94759d533e0cdbf2338d501800d8742c13a",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 1.954,
+          "capture": "hip-init.native.json",
+          "capture_sha256": "8f04c6ca57df698b7d222f8c540ae67bdc1f1f4a51ee2cb8d665e1cbe9b1a481"
+        },
+        {
+          "name": "hip-modules",
+          "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/reference/hip_runtime_api/modules/module_management.html",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 58560,
+          "markdown_sha256": "d7b3ec8d6787eb8ad1085771d56cfb31abe58654c4fedcac4227ca9becf9d740",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.891,
+          "capture": "hip-modules.native.json",
+          "capture_sha256": "37b20e279ee17c8d586c25ffd3cf2764be1eb55aab09fe2f0caaefabf0404a58"
+        },
+        {
+          "name": "winfsp-completion",
+          "url": "https://winfsp.dev/doc/WinFsp-API-winfsp.h/",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 73095,
+          "markdown_sha256": "23f2e7b26b2297a12d6e98acb7b612010c44361803cc72c3563f82571cce5837",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.663,
+          "capture": "winfsp-completion.native.json",
+          "capture_sha256": "5704fbd209280e8a53bb1277d2532260c702cce8b6fbdf115135cb60aa1baa6c"
+        }
+      ],
+      "robots": true,
+      "timeout_seconds_per_page": 45,
+      "external_LLM": false
+    },
+    {
+      "receipt_sha256": "1489c1a29e69ed78b8fb179f711fcc0ce944d6aea6ae400ce86fe1e3c3717f96",
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "lock_sha256": "01fbef3b628f772e4aba9724b6ced11c0f211d4d3bf51e38d1b9d0039eac997b",
+      "provider_source_identity": {
+        "tools/crawl4ai_tool.py": "e84a0e54ee07e4e13d3d2f35491f641730096a78126068f232c1f2397a467d8c",
+        "tools/crawl4ai_research.py": "ec3cb7a98eceed8fef08f3af806d6eaed35656bd76ca0ee8853d273f790337a5",
+        "tools/requirements/crawl4ai.txt": "6a42b0ff5ff6c63c843c6329ce823b819fd4f6f068e68d1836ab6dbec96e8f2f",
+        "tools/crawl4ai_sites.json": "e8869cb0488d78762a90aea6ecf2c3616bb89f0c89a8800cc512c613a750dc86",
+        "tools/nltk_distribution.py": "19eb3007c226b1a13e1ad0daa79cbd8a7bf6d082a20bf386e36ac060d0000919",
+        "tools/python_wheel.py": "c3c9a62454cb377203abce32154bec07cbf805bc7420cc89386c1c18370b301a",
+        "tools/test_nltk_model_security.py": "8aab7e2a704af875992ecae9137cdf5e5ff6935a4dd49e6751c54b2629a7280b",
+        "tools/requirements/python-build.txt": "9b280d724fda87773ba33a2654362adad84c68c4f79394adc07ff2e0293ca498",
+        "tools/crawl4ai_source_build.py": "5c27c4693fa0880a8db399825f637b694616963fc11f708afed33fa5b2e38b48",
+        "tools/crawl4ai_download_opener.py": "d5fd20b5545fd64c93a06b3ef07732f1c2da7e09ee6cda80662475007db52538",
+        "tools/test_crawl4ai_downloads.py": "ae4cf54c351a9da2de49caeb96306f384bb6a8f487318eabc69db4132d658619",
+        "third_party/upstream/nltk/3.10.4/distribution.json": "3241a8670f12e205525fc096572ed1969c063f77e13cffd70eff5eb656fbe1b0",
+        "nltk_upstream_wheel": "e46d89e59ef949270e3b19ab097da8dbb09350e05cb5a746ff92f6ccf6e8ce90",
+        "crawl4ai_source_build": "7da6376934254d9ad1de9e016a4509dae32c47559955889424435fcbbc7419f5"
+      },
+      "native_pages": [
+        {
+          "name": "zfs-cache",
+          "url": "https://openzfs.github.io/openzfs-docs/Basic%20Concepts/Pool%20Structure/Caching.html",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 10187,
+          "markdown_sha256": "926b0a12a3621afe22ed4b4e0e28fcd7897d4611e7cdc401f92c835d0056eeaa",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.614,
+          "capture": "zfs-cache.native.json",
+          "capture_sha256": "0f1c5d260e9dc8049d071b68b717285c5f330389a98278321b9ae3d76f15bb33"
+        },
+        {
+          "name": "tree-generations",
+          "url": "https://btrfs.readthedocs.io/en/latest/dev/On-disk-format.html",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 49808,
+          "markdown_sha256": "54cb7d74d311194bb1fa9445664ef19f5bf69242a7a5d4cc9dafbf8ad9e6859c",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.982,
+          "capture": "tree-generations.native.json",
+          "capture_sha256": "2ed92686c5ba7c0bef4b3d99d52b1158060f659c1aa13624cc3eb5349b41ac21"
+        }
+      ],
+      "robots": true,
+      "timeout_seconds_per_page": 45,
+      "external_LLM": false
+    }
+  ],
+  "mounted_performance_qualified": false,
+  "driver_change": false,
+  "release_qualified": false
+}

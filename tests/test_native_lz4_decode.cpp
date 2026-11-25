@@ -88,10 +88,16 @@ void capture_from_indexed_session() {
   require(read_bytes>=ready_bytes+preserved.encoded().size(),"an indexed ready hit fetched its compressed payload");
 
   ready=prepare(preserved,false);
-  before=io->read_bytes;
+  const auto stored=std::ranges::search(io->live,preserved.encoded());
+  require(!stored.empty(),"could not locate the retained fixture payload");
+  // Watch the compressed bytes directly. Warm metadata may avoid page reads.
+  io->corrupt_read_offset=static_cast<std::uint64_t>(stored.begin()-io->live.begin());
+  io->corrupt_read_number=(std::numeric_limits<std::uint64_t>::max)();
+  io->matching_reads=0;
   require(session.read(handle,0,length,ready.get())==expected && ready->consumed()==1 &&
-      !ready->indexed_consumed() && io->read_bytes-before==read_bytes,
+      !ready->indexed_consumed() && io->matching_reads>0,
       "a generic ready result bypassed stored verification");
+  io->corrupt_read_offset=native_fixture::Ram::no_read_fault;
 
   // Independent images deliberately reuse the same namespace and object IDs.
   // The paged index must distinguish their stored records even at the same generation.

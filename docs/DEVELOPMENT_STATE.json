@@ -1,11 +1,25 @@
 {
   "schema": 2,
-  "updated": "2026-11-25",
+  "updated": "2026-11-26",
   "goal_status": "active",
   "product": "Windows 11 AMD64 filesystem/helper/driver integration; AMD acceleration with independent CPU recovery",
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "foreground_query_reuse": {
+    "source_parent": "03d48a1d92a057949e8b2f019529bfc407a6089f",
+    "tested_source_tree": "9f72f76005c69f5deda311ca4507e17dd57c2f7b",
+    "evidence": "docs/evidence/windows-foreground-query-reuse-2026-11-25.json",
+    "callback_count": 32,
+    "cpu_backing_bytes_before": 341008,
+    "cpu_backing_bytes_after": 54672,
+    "prepared_control_backing_bytes": 37216,
+    "live_radeon_write_extents_verified": 2,
+    "live_radeon_read_extents_delivered": 2,
+    "live_radeon_callback_bytes_delivered": 131072,
+    "ordinary_mounted_speed_qualified": false,
+    "release_qualified": false
+  },
   "owned_range_packing": {
     "source_parent": "9780a77359c4c505a4774d6559e96e8a51e24323",
     "tested_source_tree": "7c64361419c436a15baf98592133d63beb8b1527",

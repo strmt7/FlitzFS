@@ -1183,7 +1183,7 @@ struct NativeFilesystemWriter::Impl {
   std::optional<detail::IndexedVolumeRoot> indexed;
   detail::IndexedDirectoryBackfill directory_backfill;
   detail::IndexedSharedBaseCache shared_base_reads;
-  std::shared_ptr<detail::PagedReadMetadata> allocation_query_metadata;
+  std::shared_ptr<detail::PagedReadMetadata> foreground_query_metadata;
   std::uint64_t indexed_content_sequence=1;
   detail::IndexedContentChanges indexed_changes;
   std::shared_ptr<SharedBaseOwner> shared_owner=std::make_shared<SharedBaseOwner>();
@@ -1201,31 +1201,31 @@ struct NativeFilesystemWriter::Impl {
     return verify_indexed_root(snapshot,*indexed);
   }
   template<class Read>
-  auto inspect_indexed(Read&& read,detail::PagedReadMetadata* metadata=nullptr,bool retain_allocation_query=false) {
+  auto inspect_indexed(Read&& read,detail::PagedReadMetadata* metadata=nullptr,bool retain_foreground_query=false) {
     const auto snapshot=objects.snapshot_for_indexed_read();
     const auto* paged=snapshot.paged_if();
-    const auto query=retain_allocation_query?paged->scoped_query(allocation_query_metadata):paged->scoped_query(metadata);
+    const auto query=retain_foreground_query?paged->scoped_query(foreground_query_metadata):paged->scoped_query(metadata);
     const auto view=checked_indexed_view(*snapshot.paged_if());
     return std::forward<Read>(read)(view);
   }
   template<class Read>
-  auto read_indexed(Read&& read,detail::PagedReadMetadata* metadata=nullptr,bool retain_allocation_query=false) {
+  auto read_indexed(Read&& read,detail::PagedReadMetadata* metadata=nullptr,bool retain_foreground_query=false) {
     try {
-      return inspect_indexed(std::forward<Read>(read),metadata,retain_allocation_query);
+      return inspect_indexed(std::forward<Read>(read),metadata,retain_foreground_query);
     }catch(const std::bad_alloc&){
       shared_base_reads.clear();
-      allocation_query_metadata.reset();
+      foreground_query_metadata.reset();
       fail(Code::limit,"indexed namespace query allocation failure");
     }catch(const NativeFsError& error) {
       if(error.code()==Code::corrupt || error.code()==Code::storage_failure) {
         shared_base_reads.clear();
-        allocation_query_metadata.reset();
+        foreground_query_metadata.reset();
         poisoned=true;
       }
       throw;
     }catch(const std::exception&){
       shared_base_reads.clear();
-      allocation_query_metadata.reset();
+      foreground_query_metadata.reset();
       poisoned=true;
       fail(Code::storage_failure,"indexed namespace query failed");
     }
@@ -2893,9 +2893,11 @@ Bytes NativeFilesystemWriter::read_inode(std::uint64_t inode,std::uint64_t offse
     auto* ready=dynamic_cast<detail::NativeLz4ReadyReads*>(route);
     auto* grouped=groups?groups->ready:nullptr;
     auto* metadata=grouped && grouped->pending()?grouped->metadata_.get():ready?ready->query_metadata():nullptr;
+    // Ordinary reads can reuse the same checked metadata as allocation
+    // queries. An active prepared window keeps its own captured metadata.
     return state.read_indexed([&](const auto& view) {
       return view.read(view.inode(inode),offset,bytes,&state.shared_base_reads,route,groups);
-    },metadata);
+    },metadata,metadata==nullptr);
   }
   return state.read_checked_inode(inode,[&](const auto& snapshot,const Node& n) {
     return read_node(snapshot,state.model,n,offset,bytes);

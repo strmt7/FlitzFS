@@ -635,6 +635,21 @@ submission through verification and retirement. Read-ahead remains
 opt-in pending workload and device qualification.
 [Metadata reuse verification](evidence/prepared-read-metadata-2026-11-22.json)
 
+Ordinary CPU reads now share the owner's checked allocation metadata
+cache. On the 32-callback grouped fixture, the prepared path used
+37,216 backing bytes and the improved CPU control used 54,672.
+The four-frame LZ4 fixture used 45,509 backing bytes for capture and
+prepared demand, compared with 44,645 for the current ordinary CPU
+path. Use the current CPU baseline and full capture cost when choosing
+larger or higher-cost workloads for the device.
+
+On the final host check, the Radeon delivered 131,072 exact bytes
+across the same 32 callbacks and its worker retired. The cold worker
+exchange took 5.875 seconds. The result verifies useful bytes in the
+callback path and leaves mounted speed qualification open.
+[Ordinary CPU reuse](INDEXED_NATIVE_VOLUME.md#checked-metadata-on-ordinary-reads) ·
+[Live Radeon and callback evidence](evidence/windows-foreground-query-reuse-2026-11-25.json)
+
 ### AMD read-ahead in the volume controller
 
 A qualified read profile binds the exact helper, device module and signed HIP

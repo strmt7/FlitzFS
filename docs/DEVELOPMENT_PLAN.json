@@ -1,8 +1,9 @@
 {
   "schema": 1,
-  "updated": "2026-11-25",
+  "updated": "2026-11-26",
   "forward_work_rule": "Use current_release_sequence for integration order, and execution_programme and the implementation plan for package dependencies and exits. Historical checkpoints describe completed or partial evidence.",
   "current_release_sequence": {
+    "latest_foreground_query_reuse": "docs/evidence/windows-foreground-query-reuse-2026-11-25.json",
     "latest_owned_range_packing": "docs/evidence/windows-owned-packed-reclaim-2026-11-25.json",
     "latest_reviewed_parent": "9780a77359c4c505a4774d6559e96e8a51e24323",
     "tested_owned_range_packing_tree": "7c64361419c436a15baf98592133d63beb8b1527",

@@ -910,6 +910,25 @@ and verified it after independent CPU reopen.
 [Matched file-info evidence](evidence/windows-indexed-file-info-reuse-2026-11-25.json) ·
 [WinFsp callback contract](https://winfsp.dev/doc/WinFsp-API-winfsp.h/)
 
+### Checked metadata on ordinary reads
+
+Indexed file reads use the same bounded query cache as allocation
+queries. Its key includes the exact backing owner, root reference,
+data and checkpoint generations, and geometry. Pending repair or
+reported damage disables reuse. A prepared read with captured
+metadata uses its own checked query scope. CPU data decoding and
+independent recovery keep their existing byte checks.
+
+For 32 adjacent 4 KiB callbacks over two grouped extents, CPU
+backing reads decreased from 341,008 to 54,672 bytes. The prepared
+control used 37,216 bytes. An adjacent warm CPU read fetched 1,163
+backing bytes. After an acknowledged write, the next read fetched
+and verified the changed bytes under the new checkpoint. These
+are byte counts from Windows SDK callbacks with a memory provider.
+[Read evidence](evidence/windows-foreground-query-reuse-2026-11-25.json) ·
+[OpenZFS metadata caching](https://openzfs.github.io/openzfs-docs/Basic%20Concepts/Pool%20Structure/Caching.html) ·
+[Btrfs tree generations](https://btrfs.readthedocs.io/en/latest/dev/On-disk-format.html)
+
 ## Indexed file lifetimes
 
 A delete-pending file retains its name and payload. The owning session refuses

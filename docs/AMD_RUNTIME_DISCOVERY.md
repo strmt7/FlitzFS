@@ -265,6 +265,14 @@ identical occupied sizes. [Observed phases and provenance](evidence/amd-route-20
 
 ## Keeping the HIP worker ready during active work
 
+The revised uniform compression worker on Radeon produced two 64 KiB
+CPython extent encodings that matched independent CPU decode. It retired
+cleanly. First readiness arrived at 4.02 seconds. The next readiness followed about 45.6 ms
+later. Treat setup and continued work as separate costs when budgeting
+a burst. The CPU remains available while the device initializes.
+[Live write and CPU read evidence](evidence/windows-foreground-query-reuse-2026-11-25.json) ·
+[HIP initialization contract](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/doxygen/html/group___driver.html)
+
 A prepared worker loads the kernel module, initializes the device, and allocates
 one stream and its buffers before it accepts an owned request. The stream and
 buffers serve every kernel launch in that request. HIP supports reusing this
