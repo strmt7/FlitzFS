@@ -317,6 +317,28 @@ RAM and VRAM, foreground latency, and idle power before promoting a wider
 request class.
 [Prepared request evidence](evidence/windows-prepared-worker-requests-2026-11-24.json)
 
+### Prepared compression and repeated transfers
+
+The physical Radeon completed two CPython extent requests in one
+supervised worker and retired. The CPU verified both replies. First
+readiness took 3.51 seconds and the complete exchange took 4.04 seconds.
+A separate 128 KiB native storage fixture timed 2.97 seconds in device
+initialization and 0.46 seconds in resource retirement. Kernel wait
+was 4.34 milliseconds and independent CPU readback verified the
+published compressed records.
+
+Repeated uniform compression now uploads the input and reset metadata
+for identical layouts after a fully checked quantum. The SDK CPU fixture
+measured 52.6% fewer uploaded bytes across eight equal windows with full
+readback. The narrow timing profile identifies setup and retirement as
+the principal costs for the tested shapes. The matched run of the changed
+worker deferred at preflight because the adapter was already busy.
+The next comparison measures complete startup, reused windows and retirement on equivalent
+hardware and storage before promoting a workload class.
+[Live baseline and transfer qualification](evidence/windows-uniform-slab-reuse-2026-11-25.json) ·
+[Slab and CPU continuity contract](WORKER_CHANNEL.md#reuse-the-checked-device-slab) ·
+[AMD HIP memory operations](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/reference/hip_runtime_api/modules/memory_management.html)
+
 ### Collective copy batches with different group sizes
 
 A verified, fully staged copy batch provides a setup estimate for groups up

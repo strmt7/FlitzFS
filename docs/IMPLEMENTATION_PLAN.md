@@ -1489,6 +1489,14 @@ launches, readback, independent verification and confirmed retirement in the
 cost. Measure delivered bytes, abandoned candidates and foreground tail
 latency before admitting a production profile.
 
+The retained uniform writer reduces upload traffic for repeated canonical
+layouts. It preserves every full CPU readback and the fresh admission
+checks. Use alternating matched device samples to measure the change in
+the upload phase. Then measure the initialized worker on useful admitted
+collective or mounted work, including the cost of retirement and queue
+gaps. Match the real source bytes and CPU storage result before selecting
+any default. [Transfer and startup evidence](evidence/windows-uniform-slab-reuse-2026-11-25.json)
+
 ### Implementation steps
 
 1. Build a trusted configuration identity from OS/architecture, adapter LUID/node,

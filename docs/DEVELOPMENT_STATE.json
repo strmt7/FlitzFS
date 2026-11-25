@@ -6,6 +6,19 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "uniform_slab_reuse": {
+    "source_parent": "996228dd8aa37e41d6ce25912d8ecf8f54557dd7",
+    "tested_source_tree": "28f3c6993e47af6f2847f1440d8ce01fe872d591",
+    "evidence": "docs/evidence/windows-uniform-slab-reuse-2026-11-25.json",
+    "sdk_cpu_assertions": 6395,
+    "sdk_cpu_scenarios": 115,
+    "eight_window_full_upload_bytes": 2626304,
+    "eight_window_reused_upload_bytes": 1245904,
+    "baseline_live_radeon_verified_requests": 2,
+    "new_worker_verified_on_radeon": false,
+    "ordinary_mounted_speed_qualified": false,
+    "release_qualified": false
+  },
   "packed_inode_migration": {
     "source_parent": "64f94e514f50e991da46bdaf05defb642f7a7805",
     "migration_source_tree": "9e4e903e994cc21e25e2e1a2130ff7df40e3fa06",

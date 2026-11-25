@@ -131,6 +131,8 @@ UniformLz4Candidates execute_uniform_lz4_sweep_plan(const HipApi& api,Lz4Attribu
     const auto* request=receive();
     const bool submitted=request!=nullptr;
     bool first_window=true;
+    std::uint64_t verified_input_bytes=0;
+    std::uint32_t verified_chunk_bytes=0;
     const auto compute=[&](const UniformLz4Request& part){
       if(!std::exchange(first_window,false) && await_window && !await_window())throw UniformLz4WindowDeclined{};
       // Admission includes retained setup, complete result capacity, both host
@@ -141,10 +143,22 @@ UniformLz4Candidates execute_uniform_lz4_sweep_plan(const HipApi& api,Lz4Attribu
       const auto plan=part.batch.layout();
       lz4_require(plan.chunks<=sweep.quantum_chunks && plan.total_bytes<=sweep.device_peak_bytes,
           HipWorkerExit::invalid_request,"reused quantum exceeds admitted geometry");
-      std::fill(upload.begin(),upload.end(),std::byte{0xd3});
-      initialize_uniform_lz4_upload(part.batch,std::span(upload).first(static_cast<std::size_t>(plan.total_bytes)));
+      // The exact bound kernel clears its hash table before use and writes
+      // output from the start of each slot. Only reuse guards after a full
+      // readback and admission for the same canonical geometry. Every new
+      // quantum resets the result sizes in its uploaded prefix.
+      const bool reuse_guards=plan.input_bytes==verified_input_bytes && plan.chunk_bytes==verified_chunk_bytes;
+      auto incoming=std::span(upload);
+      if(reuse_guards) {
+        incoming=incoming.first(static_cast<std::size_t>(plan.output_offset));
+        initialize_uniform_lz4_upload_prefix(part.batch,incoming);
+      } else {
+        const auto active=static_cast<std::size_t>(plan.total_bytes);
+        initialize_uniform_lz4_upload(part.batch,incoming.first(active));
+        std::ranges::fill(incoming.subspan(active),std::byte{0xd3});
+      }
       recorder.end(UniformSweepPhase::prepare);recorder.begin(UniformSweepPhase::upload);
-      copy(resources.buffers[0],upload.data(),peak,hipMemcpyHostToDevice,
+      copy(resources.buffers[0],incoming.data(),incoming.size(),hipMemcpyHostToDevice,
           "upload reusable uniform slab",HipWorkerStage::sweep_upload);
       recorder.end(UniformSweepPhase::upload);
       auto* slab=static_cast<unsigned char*>(resources.buffers[0]);
@@ -191,6 +205,8 @@ UniformLz4Candidates execute_uniform_lz4_sweep_plan(const HipApi& api,Lz4Attribu
       recorder.end(UniformSweepPhase::verification);recorder.begin(UniformSweepPhase::completion);
       memory(HipMemoryPoint::completed);
       recorder.end(UniformSweepPhase::completion);
+      verified_input_bytes=plan.input_bytes;
+      verified_chunk_bytes=plan.chunk_bytes;
       return candidate;
     };
     UniformLz4Candidates result;

@@ -57,7 +57,9 @@ struct State {
   bool reuse=false,null_stream=false;
   std::uint64_t allocation_bytes=0,source_offset=0;
   std::size_t allocated_size=0;
-  unsigned waits=0,completion_samples=0;uniform_lz4::Layout current_plan{};
+  unsigned waits=0,completion_samples=0,prefix_uploads=0;
+  std::size_t upload_bytes=0,download_bytes=0;
+  uniform_lz4::Layout current_plan{};
   void* allocation=nullptr;
   explicit State(const UniformLz4Request& input,unsigned wave=32):source(input),expected_input(input.batch.plaintext()),
       arena((input.batch.layout().total_bytes+7)/8+1) {
@@ -160,15 +162,23 @@ hipError_t release(void* value){
   active->allocated=false;active->allocated_size=0;return active->step("release");
 }
 hipError_t copy(void* out,const void* in,std::size_t size,hipMemcpyKind kind){
-  require(active->allocated && size==active->allocated_size,"Copy does not match the exact owned allocation");
-  const auto name=kind==hipMemcpyHostToDevice?"upload":"readback";
-  require(kind==hipMemcpyHostToDevice || kind==hipMemcpyDeviceToHost,"Unexpected copy direction");
-  if(kind==hipMemcpyHostToDevice)require(out==active->allocation,"Upload address");
+  const bool upload=kind==hipMemcpyHostToDevice;
+  require(upload || kind==hipMemcpyDeviceToHost,"Unexpected copy direction");
+  const bool prefix=upload && active->reuse && active->completed && size!=active->allocated_size &&
+      size==active->current_plan.output_offset;
+  require(active->allocated && (size==active->allocated_size || prefix),"Copy does not match the admitted slab");
+  if(upload)require(out==active->allocation,"Upload address");
   else require(in==active->allocation && active->completed,"Read before confirmed completion");
-  const auto status=active->step(name);if(status!=hipSuccess)return status;
+  const auto status=active->step(upload?"upload":"readback");if(status!=hipSuccess)return status;
   std::memcpy(out,in,size);
-  if(active->reuse && kind==hipMemcpyHostToDevice){active->submitted=false;active->completed=false;}
-  if(active->reuse && kind==hipMemcpyDeviceToHost)active->source_offset+=active->current_plan.input_bytes;
+  if(upload) {
+    active->upload_bytes+=size;
+    if(prefix)++active->prefix_uploads;
+    if(active->reuse){active->submitted=false;active->completed=false;}
+  } else {
+    active->download_bytes+=size;
+    if(active->reuse)active->source_offset+=active->current_plan.input_bytes;
+  }
   return hipSuccess;
 }
 hipError_t stream_copy(void* out,const void* in,std::size_t size,hipMemcpyKind kind,hipStream_t stream){
@@ -222,11 +232,14 @@ hipError_t launch(const void* entry,dim3 grid,dim3 block,void** args,std::size_t
     const auto payload=literal(bytes.subspan(static_cast<std::size_t>(part.input),part.input_bytes));
     require(payload.size()<=part.output_capacity,"uniform independent fixture capacity");
     std::copy(payload.begin(),payload.end(),bytes.begin()+static_cast<std::ptrdiff_t>(part.output));
-    word(bytes,static_cast<std::size_t>(part.size_slot),payload.size());last=part;
+    if(active->fault!="reuse-empty-size" || !active->prefix_uploads || i)
+      word(bytes,static_cast<std::size_t>(part.size_slot),payload.size());
+    last=part;
   }
   if(active->fault=="reuse-unused-tail" && allocated<active->allocation_bytes)
     active->bytes()[static_cast<std::size_t>(allocated)]^=std::byte{1};
-  if(active->fault=="guard")bytes[last.output+last.output_capacity]^=std::byte{1};
+  if(active->fault=="guard" || (active->fault=="reuse-guard" && active->prefix_uploads))
+    bytes[last.output+last.output_capacity]^=std::byte{1};
   if(active->fault=="input")bytes[last.input]^=std::byte{1};
   if(active->fault=="padding")bytes[plan.output_offset-1]^=std::byte{1};
   if(active->fault=="size-zero")word(bytes,static_cast<std::size_t>(last.size_slot),0);
@@ -371,6 +384,17 @@ void reused_success(const UniformLz4Request& source,unsigned wave,bool delayed_c
       state.priority_queries==2 && state.source_offset==source.batch.plaintext().size() &&
       !state.allocated && !state.stream_live,"reused sweep incomplete coverage/admission/retirement");
   require(state.completion_samples==windows+delayed_completion,"reused completion sampled beyond its evidence");
+  uniform_lz4::Layout quantum{};
+  require(uniform_lz4::make_layout(2ULL*source.batch.layout().chunk_bytes,source.batch.layout().chunk_bytes,quantum),
+      "reused upload accounting geometry");
+  const auto full_windows=source.batch.plaintext().size()/quantum.input_bytes;
+  const auto prefixes=full_windows?full_windows-1:0;
+  const auto saving=prefixes*(quantum.total_bytes-quantum.output_offset);
+  require(state.prefix_uploads==prefixes && state.download_bytes==state.allocation_bytes*windows &&
+      state.upload_bytes==state.download_bytes-saving,"reused transfer did not preserve full checked readback");
+  if(wave==32 && !delayed_completion)
+    std::cout<<"reused_transfers windows="<<windows<<" prefix_uploads="<<prefixes
+        <<" upload_bytes="<<state.upload_bytes<<" full_upload_bytes="<<state.download_bytes<<'\n';
 }
 enum class PreparedFollowup {same_size,decline,smaller,legacy_smaller};
 void repeated_preparation(const UniformLz4Request& source,PreparedFollowup followup) {
@@ -641,10 +665,11 @@ int wmain(int argc,wchar_t** argv){try{
     for(const auto* name:{"initialize","properties-1","properties-2","select","priority-1","priority-2",
         "attributes-1","attributes-2","stream-create","allocate","upload","launch","wait","readback",
         "stream-destroy","release","reuse-wait-second","reuse-unused-tail","reuse-memory-next",
-        "guard","input","padding","size-zero","size-large","payload"}){
+        "guard","reuse-guard","reuse-empty-size","input","padding","size-zero","size-large","payload"}){
       State state(source);state.fault=name;
       const auto code=state.fault=="allocate" || state.fault=="reuse-memory-next"?HipWorkerExit::temporary_pressure:
           state.fault=="reuse-unused-tail" || state.fault=="guard" || state.fault=="input" ||
+          state.fault=="reuse-guard" || state.fault=="reuse-empty-size" ||
           state.fault=="padding" || state.fault=="size-zero" || state.fault=="size-large" ||
           state.fault=="payload"?HipWorkerExit::integrity_failure:HipWorkerExit::device_fault;
       reused_refused(state,code);

@@ -207,11 +207,22 @@ UniformLz4Candidates accept_uniform_lz4_reply(UniformLz4Bytes f,const PreparedUn
     result.sizes.push_back(static_cast<std::uint32_t>(get(f,kUniformLz4HeaderBytes+8ULL*i+4,4)));
   result.payload.assign(payload.begin(),payload.end());return result;
 }
+void initialize_uniform_lz4_upload_prefix(const PreparedUniformLz4& batch,std::span<std::byte> prefix){
+  if(!batch.ready() || prefix.size()!=batch.layout().output_offset)invalid("uniform LZ4 upload prefix extent");
+  const auto& p=batch.layout();
+  const auto start=static_cast<std::size_t>(p.input_offset);
+  const auto data=batch.plaintext();
+  std::ranges::fill(prefix.first(start),std::byte{0});
+  std::ranges::copy(data,prefix.subspan(start,data.size()).begin());
+  std::ranges::fill(prefix.subspan(start+data.size()),std::byte{0});
+}
 namespace {
 void fill_uniform_lz4_upload(const PreparedUniformLz4& batch,std::span<std::byte> slab,bool clear){
   if(!batch.ready() || slab.size()!=batch.layout().total_bytes)invalid("uniform LZ4 upload extent");
-  const auto& p=batch.layout();if(clear)std::fill(slab.begin(),slab.end(),std::byte{0});
-  std::copy(batch.plaintext().begin(),batch.plaintext().end(),slab.begin()+static_cast<std::ptrdiff_t>(p.input_offset));
+  const auto& p=batch.layout();
+  const auto output=static_cast<std::size_t>(p.output_offset);
+  initialize_uniform_lz4_upload_prefix(batch,slab.first(output));
+  if(clear)std::ranges::fill(slab.subspan(output),std::byte{0});
   for(std::uint32_t i=0;i<p.chunks;++i){
     const auto guard=p.output_offset+std::uint64_t(i)*p.output_stride+p.output_stride-uniform_lz4::guard_bytes;
     std::fill_n(slab.begin()+static_cast<std::ptrdiff_t>(guard),uniform_lz4::guard_bytes,std::byte{0xa7});

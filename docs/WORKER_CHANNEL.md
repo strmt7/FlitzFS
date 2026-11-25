@@ -676,6 +676,28 @@ Proving useful context reuse across multiple independent requests still
 requires matched complete-operation measurements, bounded resources and
 an exact publication boundary.
 
+### Reuse the checked device slab
+
+The uniform compression sweep initializes the full owned slab for its
+first quantum and for any change in canonical input and chunk geometry.
+The pinned compression kernel resets its hash table before using it and
+writes each encoded block from the start of its output slot.
+
+Once a quantum has passed full readback, guard checks, CPU decode and
+completion admission, the next matching quantum uploads just the prefix.
+That prefix resets every result length, replaces all input bytes and
+zeros input alignment padding. It retains previously checked output
+guards and any unused tail in the owned slab. The worker downloads the
+complete slab each time and checks the output guards, unused tail and
+bytes decoded against the independent immutable source. A changed size
+reinitializes the full allocation, including the new unused tail.
+
+The CPU fixture counted 1,245,904 upload bytes over eight equal windows,
+compared with 2,626,304 for full uploads. It exercises a shorter final
+window, a corrupted guard after reuse and a missing result length after
+reuse. A failed copy or verification still discards the burst.
+[Transfer and verified worker evidence](evidence/windows-uniform-slab-reuse-2026-11-25.json)
+
 ### Separately admitted requests
 
 The experimental version 5 exchange uses a finite sequence of same-sized

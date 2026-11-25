@@ -1,0 +1,644 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "source_parent": "996228dd8aa37e41d6ce25912d8ecf8f54557dd7",
+  "tested_source_tree": "28f3c6993e47af6f2847f1440d8ce01fe872d591",
+  "tested_source_blobs": [
+    {
+      "path": "include/flitzfs/uniform_lz4_wire.hpp",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e80b4f92629af46852b12b8e8092b96a97687aa3",
+      "bytes": 3939
+    },
+    {
+      "path": "src/uniform_lz4_wire.cpp",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c8933023dd73a56083c9ec471814550e72ab32be",
+      "bytes": 15885
+    },
+    {
+      "path": "src/windows/hip_uniform_lz4_reuse.hpp",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "cdfff3b9f1c7bcf9e3cf2a62ea2e022cddfba0fc",
+      "bytes": 14221
+    },
+    {
+      "path": "tests/rocm_compile/uniform_lz4_compute_probe.cpp",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7489bf06b2dae83ab53799a6816c7f71e64271b2",
+      "bytes": 47659
+    }
+  ],
+  "process_evidence": {
+    "sdk_build": {
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 1,
+      "cpu_percent": 23,
+      "memory_bytes": 2330984448,
+      "peak_job_bytes": 597528576,
+      "elapsed_seconds": 93.95299999997951,
+      "supervisor_receipt_sha256": "f77fc6efd93938ff976a86e539f0727d36ac195fb88224f53eb7da91db20061a",
+      "stdout_sha256": "60ffb1f1ced9fe0b9c749085bad5368a7a179a750b34600b80397fe8e6b2df63"
+    },
+    "sdk_cpu": {
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 0,
+      "cpu_percent": 16,
+      "memory_bytes": 580911104,
+      "peak_job_bytes": 15908864,
+      "elapsed_seconds": 0.7969999999913853,
+      "supervisor_receipt_sha256": "5434cb8a3f9a7f9f74532285c39a04c6a306385c4592e52f96e4431d92c11961",
+      "stdout_sha256": "5904254f86e8037084b4ce1f900f6906e010a01f7b563e4f80efac3d4439e105"
+    },
+    "release_build": {
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 1,
+      "cpu_percent": 21,
+      "memory_bytes": 2136997888,
+      "peak_job_bytes": 359858176,
+      "elapsed_seconds": 23.860000000015134,
+      "supervisor_receipt_sha256": "9575506c74471ae1006418e83784510a5e0728c061d5df2e19d1d47960ddd7d9",
+      "stdout_sha256": "e590219a72ff23133e4e0539f3ad11451fe179818e76b79c813b03638a44bcf0"
+    },
+    "release_tests": {
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 0,
+      "cpu_percent": 15,
+      "memory_bytes": 1177550848,
+      "peak_job_bytes": 24313856,
+      "elapsed_seconds": 0.6410000000032596,
+      "supervisor_receipt_sha256": "e3e17464196da2b7d8bf31cc24597611a2a77c1074eefe20630fbd9cccc0003b",
+      "stdout_sha256": "42ef0bbb553559de3b8202202042fa03ec5f589da6253237811cbc30e391e2a7"
+    },
+    "raw_build": {
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 0,
+      "cpu_percent": 21,
+      "memory_bytes": 2150629376,
+      "peak_job_bytes": 329732096,
+      "elapsed_seconds": 21.59399999998277,
+      "supervisor_receipt_sha256": "3f0a195850e6cfdb618845d6949559f16b0fdfab5f9a06e8d4e68f1163157f52",
+      "stdout_sha256": "3d6af91f6605376df91820c5d872f84e27b6e7163e6d0214dc922bdf7c8ad671"
+    },
+    "raw_tests": {
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 0,
+      "cpu_percent": 15,
+      "memory_bytes": 1164967936,
+      "peak_job_bytes": 20525056,
+      "elapsed_seconds": 0.625,
+      "supervisor_receipt_sha256": "0a14f0fdb1e2dfdbd9bfcda38af23c12e9ad1556fc8ed2d2a0900ae81a4925a9",
+      "stdout_sha256": "f0f4870bc7a994a5f75fda31c2a537eb9e1c3692e4da957f9de0ea247c921297"
+    },
+    "asan_build": {
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 1,
+      "cpu_percent": 19,
+      "memory_bytes": 1077936128,
+      "peak_job_bytes": 548962304,
+      "elapsed_seconds": 20.187000000005355,
+      "supervisor_receipt_sha256": "3baf464163d53774ba99ec6052e9bec3d814e3b02fc3148e25f2fd5dd30a2ff1",
+      "stdout_sha256": "8705c4d3afcca8ea4a47ecfb61c7fe87dd24ab59120682b21a66621e738a88e7"
+    },
+    "asan_loader": {
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 0,
+      "cpu_percent": 13,
+      "memory_bytes": 540016640,
+      "peak_job_bytes": 10428416,
+      "elapsed_seconds": 0.21899999998277053,
+      "supervisor_receipt_sha256": "126d331e35a7126fdae85b8a505f67b56932be6fc81fa3194d6dae728e7ecb77",
+      "stdout_sha256": "9192bc49ffdeb568fbf577e9147ac71d7365760fdfb2669cc34503d11b567472"
+    },
+    "asan_tests": {
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 0,
+      "cpu_percent": 15,
+      "memory_bytes": 646971392,
+      "peak_job_bytes": 379211776,
+      "elapsed_seconds": 0.5629999999946449,
+      "supervisor_receipt_sha256": "9f0b827a44c2edafc785e9e78c8a7bc99094577748bc85bf40dc4a14c4ee88da",
+      "stdout_sha256": "102da67a7bfb7e17faac9fad4d93d01e5a4899a57bf4d2ae6b962525a83aa7db"
+    },
+    "integration_build": {
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 1,
+      "cpu_percent": 22,
+      "memory_bytes": 1040187392,
+      "peak_job_bytes": 689348608,
+      "elapsed_seconds": 45.062999999994645,
+      "supervisor_receipt_sha256": "96c4aa330ac7cda69772e4e969ab4735c4869c0815e7b603da0c231244711ecf",
+      "stdout_sha256": "79e96fb82b3138abf1b8e662e647c6f8d0968c736a7f96f5f5c956063510e8e9"
+    },
+    "integration_tests": {
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 0,
+      "cpu_percent": 20,
+      "memory_bytes": 717225984,
+      "peak_job_bytes": 38273024,
+      "elapsed_seconds": 2.5320000000065193,
+      "supervisor_receipt_sha256": "bc8d9df19e8e12ab17c08915a9c0cb155d7a02f65cc77f0cd27deb3eed6f463a",
+      "stdout_sha256": "66ab8a3006ebce157d0f20672338b5dc97e898aed6117916c660057b1f148dea"
+    },
+    "preparation_preflight": {
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 0,
+      "cpu_percent": 10,
+      "memory_bytes": 934281216,
+      "peak_job_bytes": 95506432,
+      "elapsed_seconds": 4.3439999999827705,
+      "supervisor_receipt_sha256": "c0fcb75d41bf253d105684b0735fef9a349922a448fbe2f56be0deb4cd6ed1a9",
+      "stdout_sha256": "b8371cfa83dbbb5f4c7e95a72c8702a363a38157a6d19ad55cf1f500dfe15836"
+    },
+    "prepared_baseline": {
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 0,
+      "cpu_percent": 15,
+      "memory_bytes": 1248854016,
+      "peak_job_bytes": 95531008,
+      "elapsed_seconds": 4.125,
+      "supervisor_receipt_sha256": "9401c0f2d7bb2875a524a8938bd88bf126ab8ffbaeb41e8ea9e0a2f6ca7e4354",
+      "stdout_sha256": "e60ecaa271fa56a63b8b52367c4abdb3828d323b42bc5b1ae764a095cdf1f379"
+    },
+    "native_preflight": {
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 0,
+      "cpu_percent": 10,
+      "memory_bytes": 950009856,
+      "peak_job_bytes": 100642816,
+      "elapsed_seconds": 4.2189999999827705,
+      "supervisor_receipt_sha256": "aaa9dbdd6a3f4fa5fa352db4b60290f1fc9d8ae2b74682f0b5510d7a4c99acf2",
+      "stdout_sha256": "4d00669d53cb57745b9c1b07bd5e687930aa2436d66b963f14b192ead58cdf5c"
+    },
+    "native_baseline": {
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 0,
+      "cpu_percent": 15,
+      "memory_bytes": 1238368256,
+      "peak_job_bytes": 101679104,
+      "elapsed_seconds": 3.7030000000086147,
+      "supervisor_receipt_sha256": "196b7b37459f5bd875c708c69cdc06cebc52271e52d458e15a6215e2bebff2ce",
+      "stdout_sha256": "cef62c61e07fbbe97baa37724b46d345fafda3d50b91ac6913bae2d003f7cf2a"
+    }
+  },
+  "verification": {
+    "checks": 6395,
+    "scenarios": 115,
+    "successes": 17,
+    "refusals": 98,
+    "decoder_available": true,
+    "guarded_exit_confirmed": true,
+    "hip_runtime_loaded": false,
+    "gpu_executed": false,
+    "complete": true
+  },
+  "sdk_cpu_transfer_cases": [
+    {
+      "windows": 9,
+      "prefix_uploads": 7,
+      "upload_bytes": 1574192,
+      "full_upload_bytes": 2954592
+    },
+    {
+      "windows": 8,
+      "prefix_uploads": 7,
+      "upload_bytes": 1245904,
+      "full_upload_bytes": 2626304
+    },
+    {
+      "windows": 1,
+      "prefix_uploads": 0,
+      "upload_bytes": 98616,
+      "full_upload_bytes": 98616
+    }
+  ],
+  "equal_geometry_upload_reduction_percent": 52.56,
+  "artifact_identities": {
+    "control": {
+      "tree": "44fc1cd768035798d224336913810c73a3eed7d5",
+      "manifest_sha256": "c87de9186495dcfba8ed009487611048868be8709cccbc4453b66d2341b306f4",
+      "artifacts": {
+        "flitzfs_hip_lz4_worker.exe": {
+          "bytes": 624128,
+          "sha256": "0a79a5735c6ec402d887dcfe40c41e7d90e5b98c9012dd7ffdb9a1bd3b635318"
+        },
+        "flitzfs_lz4_runtime_probe.exe": {
+          "bytes": 1749504,
+          "sha256": "1138023269fc4710aaf9eda56cd395fa2ae11f99433e2bb6d7cda7f77b2b171b"
+        },
+        "hip-lz4/flitzfs_rocm_lz4_candidate.dll": {
+          "bytes": 322048,
+          "sha256": "1ef841997059ddc0b5c6604f8224495e0cb720a15bce79d56205cd17f5d02861"
+        },
+        "hip-uniform-lz4/flitzfs_rocm_uniform_lz4_candidate.dll": {
+          "bytes": 322048,
+          "sha256": "8eb8ed7c8d22129af6a209592d4e81985e8a5c5c4dbed7c4bdefbed68e9cdb00"
+        }
+      }
+    },
+    "candidate": {
+      "tree": "28f3c6993e47af6f2847f1440d8ce01fe872d591",
+      "manifest_sha256": "f0365e5670d8a99835a31ba5d9dbde80920b47e99aac7cb2bbfa2415028a19cc",
+      "artifacts": {
+        "flitzfs_hip_lz4_worker.exe": {
+          "bytes": 624640,
+          "sha256": "a169a394fe53564fa70f4f38c4d0df697d073356c62d0e2ac590193f527fb432"
+        },
+        "flitzfs_lz4_runtime_probe.exe": {
+          "bytes": 1749504,
+          "sha256": "1138023269fc4710aaf9eda56cd395fa2ae11f99433e2bb6d7cda7f77b2b171b"
+        },
+        "hip-lz4/flitzfs_rocm_lz4_candidate.dll": {
+          "bytes": 322048,
+          "sha256": "1ef841997059ddc0b5c6604f8224495e0cb720a15bce79d56205cd17f5d02861"
+        },
+        "hip-uniform-lz4/flitzfs_rocm_uniform_lz4_candidate.dll": {
+          "bytes": 322048,
+          "sha256": "8eb8ed7c8d22129af6a209592d4e81985e8a5c5c4dbed7c4bdefbed68e9cdb00"
+        }
+      }
+    }
+  },
+  "compiler_source": {
+    "repo": "ROCm/hipCOMP-core",
+    "commit": "03df9f7369211ee15d370817165224c73fdc9a46",
+    "inventory_sha256": "8614af434e7bc2ad55587c4a4220e27df6db29962e794123bcfd63e62deb761d",
+    "distribution": "10.2.0",
+    "transformed_header": "b4c8c8ce4e1d45d47e83fa3853cb3a3572a2962c49ece190152881ca07567c7a",
+    "canonical_header": "11db6cb48273de0d105c3131795ab958f0c99760a47e6d26093b9d897490a112"
+  },
+  "public_cpython_extents": [
+    {
+      "bytes": 65536,
+      "sha256": "35c1aeb74c16acb53caae17adaaac6f47ffc09d4d281bab6ad67341467193a82"
+    },
+    {
+      "bytes": 65536,
+      "sha256": "c330bd2479b21b2e9522956a597fb50644211d4d0f91878506c5251823190bb8"
+    }
+  ],
+  "baseline_live": {
+    "manifest_sha256": "e8d2c9c7fc4ad54ba5f4df9befb5a03c4ed45fa66af78e35e952e31dfb9bcd98",
+    "prepared_burst": {
+      "preflight": {
+        "admitted": true,
+        "reason": null,
+        "utc": "2026-11-25T21:33:43.5876628Z",
+        "build": "26300",
+        "driver": "32.0.32029.2010",
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "gpu_peak": 0.28855382146989117,
+        "cpu_peak": 13.902501277910506,
+        "target_samples": 832
+      },
+      "metrics": {
+        "mode": "finished_prefix",
+        "maximum_requests": 3,
+        "admitted": 2,
+        "verified": 2,
+        "workers": 1,
+        "total_ns": 4039902600,
+        "first_ready_ns": 3509927100,
+        "second_ready_ns": 3990236900,
+        "encoded_bytes": 44912,
+        "first_payload_bytes": 23394,
+        "second_payload_bytes": 21518,
+        "retired": "true"
+      }
+    },
+    "native_storage_profile": {
+      "preflight": {
+        "admitted": true,
+        "reason": null,
+        "utc": "2026-11-25T21:36:42.6265137Z",
+        "build": "26300",
+        "driver": "32.0.32029.2010",
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "gpu_peak": 0.09666237504077176,
+        "cpu_peak": 8.481387752034031,
+        "target_samples": 832
+      },
+      "metrics": {
+        "gpu_result_verified": true,
+        "gpu_payload_stored_exactly": true,
+        "CPU_fallback_selected": false,
+        "source_bytes": 131072,
+        "chunks": 2,
+        "device_bytes": 328288,
+        "planned_windows": 1,
+        "quantum_chunks": 2,
+        "window_admissions": 0,
+        "readiness_ns": 0,
+        "clean_window_decline": false,
+        "worker_payload_bytes": 16918,
+        "image_bytes": 983040,
+        "active_payload_bytes": 17037,
+        "exchange_ns": 3631811500,
+        "phase_profile_supported": true,
+        "trace_total_wall_ns": 3566533700,
+        "kernel_wait_wall_ns": 4339700,
+        "phase_wall_ns": [
+          102700,
+          910100,
+          80253800,
+          13402300,
+          8200,
+          2974415600,
+          8234100,
+          8404300,
+          4339700,
+          968200,
+          32800,
+          8000,
+          459823500,
+          30800,
+          15409700
+        ],
+        "sweep_profile_supported": false,
+        "sweep_trace_complete": false,
+        "sweep_trace_total_wall_ns": 0,
+        "sweep_completed_windows": 0,
+        "sweep_maximum_kernel_wall_ns": 0,
+        "sweep_minimum_kernel_wall_ns": 0,
+        "sweep_maximum_quantum_wall_ns": 0,
+        "sweep_phase_wall_ns": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "trace_complete": true,
+        "worker_exit": 0,
+        "worker_peak_commit_bytes": 93507584,
+        "controller_job_peak_commit_bytes": 100368384,
+        "transport_quiescent": true,
+        "independent_native_readback": true,
+        "prior_preserved": true,
+        "retained_source_verified": true,
+        "locked_peak_bytes": 4194304,
+        "locked_after_bytes": 0,
+        "working_set_restored": true,
+        "normal_io_route": false,
+        "cost_profile_qualified": false,
+        "mounted": false,
+        "physical_power_loss_qualified": false
+      },
+      "phase_wall_order": [
+        "request_decode",
+        "bundle_verify",
+        "adapter_admit",
+        "modules_load",
+        "entry_bind",
+        "device_initialize",
+        "stream_allocate",
+        "host_to_device",
+        "kernel_wait",
+        "device_to_host",
+        "cpu_verification",
+        "post_admission",
+        "resources_release",
+        "reply_encode",
+        "modules_release"
+      ]
+    }
+  },
+  "matched_and_candidate_attempts": [
+    {
+      "name": "profile1",
+      "arm": "control",
+      "preflight": {
+        "admitted": false,
+        "reason": "Existing host load above the fixture envelope",
+        "utc": "2026-11-25T21:45:02.1404568Z",
+        "build": "26300",
+        "driver": "32.0.32029.2010",
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "gpu_peak": 99.81014283651018,
+        "cpu_peak": 12.571948536052513,
+        "target_samples": 832
+      },
+      "preflight_receipt": {
+        "exit_code": 0,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "timed_out": false,
+        "residual_children": 0,
+        "cpu_percent": 10,
+        "memory_bytes": 420478976,
+        "peak_job_bytes": 95268864,
+        "elapsed_seconds": 4.35899999999674,
+        "supervisor_receipt_sha256": "bbd8dde26c5f8d46e218bf4edcfe46af1639c0ac83481a1eb30a0d6a9afd3cd7",
+        "stdout_sha256": "b5d4ba6cb0c316b0972e5c017ec7bb31ae1ecdc4de1148622d4ee3e0c80d75e6"
+      },
+      "run": null
+    },
+    {
+      "name": "public",
+      "arm": "candidate",
+      "preflight": {
+        "admitted": false,
+        "reason": "Existing host load above the fixture envelope",
+        "utc": "2026-11-25T21:46:51.0055435Z",
+        "build": "26300",
+        "driver": "32.0.32029.2010",
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "gpu_peak": 100.43948237195113,
+        "cpu_peak": 19.31911323265918,
+        "target_samples": 832
+      },
+      "preflight_receipt": {
+        "exit_code": 0,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "timed_out": false,
+        "residual_children": 0,
+        "cpu_percent": 10,
+        "memory_bytes": 438304768,
+        "peak_job_bytes": 94367744,
+        "elapsed_seconds": 4.437000000005355,
+        "supervisor_receipt_sha256": "813ea2d56e90774275e511d97472a5940c5466f104a40b12b0a8252690352b9e",
+        "stdout_sha256": "10acdc99b05021c042d4e10e25035f0b7dddb05571ba0d2f7f022dde2d3ac941"
+      },
+      "run": null
+    }
+  ],
+  "paired_upload_and_exchange_median_ns": null,
+  "new_worker_verified_on_radeon": false,
+  "normal_mounted_io_or_speed_qualified": false,
+  "release_qualified": false,
+  "source_navigation": {
+    "actual_searches": 1,
+    "receipt_sha256": "80b59c6b913d095fb03381d463588dc201a86f72d2eebbb37415278b00c49a76",
+    "native_response_sha256": "8399f43fd60ed45c22cbf0626e264d2c898ea8cabde345b9e1e09dcf4c594259",
+    "paths": [
+      "src/windows/hip_uniform_lz4_compute.cpp",
+      "src/windows/native_uniform_write.cpp",
+      "src/windows/native_amd_write_policy.cpp",
+      "src/windows/uniform_lz4_worker_controller.cpp"
+    ]
+  },
+  "authoritative_research": [
+    {
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "native_pages": [
+        {
+          "name": "hip-init",
+          "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/doxygen/html/group___driver.html",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 58816,
+          "markdown_sha256": "eaf2866f97093b0f586a73abef82cfc86460735247121afb529cce7db5f8e03b",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 2.197,
+          "capture": "hip-init.native.json",
+          "capture_sha256": "908dec3d2f0e9c0257da9cbcd93f0cf7770980f712d71cfdf74bcd35bd967e0e"
+        },
+        {
+          "name": "hip-module",
+          "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/reference/hip_runtime_api/modules/module_management.html",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 58560,
+          "markdown_sha256": "d7b3ec8d6787eb8ad1085771d56cfb31abe58654c4fedcac4227ca9becf9d740",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 1.623,
+          "capture": "hip-module.native.json",
+          "capture_sha256": "01fcaeb645558f24595295e1ea7848c34f74b0b7382e5e47df8c4ecc4cbc5022"
+        },
+        {
+          "name": "hip-stream",
+          "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/reference/hip_runtime_api/modules/stream_management.html",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 51306,
+          "markdown_sha256": "bee401671f6fc9c05ac9b57c010c93ce535666de88336c70a4d0d7d4d81dae5a",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 1.452,
+          "capture": "hip-stream.native.json",
+          "capture_sha256": "c9c78f837828e985bb8817fdafe439b38b8dbbb1f13a51bbc98828251b84be87"
+        },
+        {
+          "name": "dxgi-budget",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/nf-dxgi1_4-idxgiadapter3-queryvideomemoryinfo",
+          "success": false,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 23102,
+          "markdown_sha256": "16518804a721267999be6db4ee938612d66471e0b16f1e8d82da1194235aeb89",
+          "expected_content": false,
+          "failure_category": "unexpected_content",
+          "error": "",
+          "seconds": 1.055,
+          "capture": "dxgi-budget.native.json",
+          "capture_sha256": "e8c293f59e63a6587e01f6013ea9087decc4db1d1582b25976b67e435cdfb343"
+        }
+      ],
+      "receipt_sha256": "eb27ec25d3473b48fa2055ebe32bed8f510e76153a6168731c3894906568400d"
+    },
+    {
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "native_pages": [
+        {
+          "name": "hip-memory",
+          "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/reference/hip_runtime_api/modules/memory_management.html",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 238326,
+          "markdown_sha256": "bbd4cebac628b64279ec292980e30d4a8ae52ac4f1219f0884a50cdcb0d4ed70",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 1.745,
+          "capture": "hip-memory.native.json",
+          "capture_sha256": "11caf6b11042d7e1389a3139855fa974ce538cdfe285c7b68564b4bf5c846ff1"
+        },
+        {
+          "name": "dxgi-budget",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/nf-dxgi1_4-idxgiadapter3-queryvideomemoryinfo",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 19434,
+          "markdown_sha256": "5b279b15cc64337766a88fc68f660baeadfd4a87f24a43920f5ca7ea669a62df",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 1.173,
+          "capture": "dxgi-budget.native.json",
+          "capture_sha256": "5c93330bbfa324031183a7bf4c89ede67d53d52e25b907dc23b16b025b715e1c"
+        }
+      ],
+      "receipt_sha256": "0c0dd78a69c7d495e1fad4a3363e6e4e62ed59477f74cfadec96120d1f9239a9"
+    }
+  ]
+}
