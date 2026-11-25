@@ -401,6 +401,19 @@ load and completed the second after the adapter became idle.
 [Sequential CPU prefix evidence](evidence/windows-group-read-cpu-prefix-2026-11-25.json) ·
 [Current WinFsp request contract](https://winfsp.dev/doc/WinFsp-API-winfsp.h/)
 
+The controller now also uses measured startup to choose a later range when
+the next request is due sooner. A model with 750 ms gaps and 1,218 ms
+device startup moved forward by the first two extents and reserved the
+following four. The later range fit the observed grouped history and
+the same device and host grants. The model kept the immediate CPU path
+when the stream, remaining lead or complete later demand could not
+support that choice. The Windows SDK fixture captured the later range,
+served the intervening two extents on CPU and delivered four verified
+prepared extents with no backing writes. The guarded physical fixture
+deferred under existing Radeon load. Its second dispatch awaits an
+admissible device observation.
+[Grouped read lead evidence](evidence/windows-amd-later-group-window-2026-11-25.json)
+
 The new copy path groups preserved records across physical banks while
 retaining a checked leaf and CPU work bound. It cut the copy steps from
 931 to 81 and writes from 4,656 to 1,278 on the fragmented medium-record

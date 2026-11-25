@@ -143,6 +143,12 @@
       "physical_radeon_sdk_callback": {"verified_device_extents": 4, "consumed_device_extents": 3, "independent_cpu_exact": true, "worker_retired": true},
       "runtime_tree": "2977732cc73a2d3bd31a90629830f374919742ea"
     },
+    "group_read_later_window": {
+      "evidence": "docs/evidence/windows-amd-later-group-window-2026-11-25.json",
+      "runtime_tree": "894ded5594780d65e402e3c4108d26e67e787d44",
+      "forecast_model": {"observed_gap_ms": 750, "required_startup_ms": 1218, "later_lead_ms": 1500, "skipped_extents": 2, "selected_extents": 4},
+      "verified_callback_model": {"intervening_cpu_extents": 2, "later_ready_extents": 4, "backing_writes": 0}
+    },
     "variable_group_read_forecast": {
       "evidence": "docs/evidence/windows-amd-variable-group-demand-2026-11-25.json",
       "request_widths_extents": [1, 3, 2],

@@ -18,6 +18,7 @@ class WinFspNativeWritable;
 struct WinFspGroupReadWindow {
   std::uint32_t maximum_frames=0;
   std::uint64_t required_lead_ms=0;
+  std::uint32_t minimum_frames=0;
 };
 struct WinFspReadAheadWork {
   const WinFspNativeWritable* owner=nullptr;
@@ -38,6 +39,11 @@ struct WinFspReadAheadWork {
     return spent<observed_lead_ms && required_ms<=observed_lead_ms-spent;
   }
 };
+namespace detail {
+void plan_group_read_window(WinFspReadAheadWork&,WinFspGroupReadWindow,
+    std::uint64_t observed_frames,std::uint64_t available_frames,
+    std::uint64_t aligned_group_gap_ms,std::uint64_t now_ms) noexcept;
+}
 enum class WinFspReadAheadState {current,busy,superseded};
 struct MemoryVolumeBacking;
 // Experimental real writable adapter; qualify backing, runtime and containment.

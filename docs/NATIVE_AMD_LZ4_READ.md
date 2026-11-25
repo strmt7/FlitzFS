@@ -160,6 +160,17 @@ independent records reset the grouped history. If a wider capture declines
 device submission, the controller drops the optional work and demand reads
 decode on CPU.
 
+When learned worker startup exceeds the next request's lead, the controller
+can choose a later range within the demonstrated consecutive grouped
+demand. This requires three aligned grouped requests of the same size.
+The shorter of the two observed gaps estimates the cadence. The plan moves
+in whole requests and reserves at least one complete later request within
+the device and host grants. The intervening requests read normally on CPU.
+The existing capture and submission checks still bind one immutable worker
+exchange to the open handle, checkpoint and selected range.
+[Learned startup and later range evidence](evidence/windows-amd-later-group-window-2026-11-25.json) ·
+[Microsoft sequential access guidance](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/ns-fileapi-createfile2_extended_parameters)
+
 Adjacent reads from the same grouped stream can supply timing observations
 at different request widths. The estimate uses the shorter of two observed
 gaps from grouped reads. Ordinary same-width observations remain available

@@ -558,6 +558,8 @@ single packed or mixed group before pulling the protected payload. It keeps
 the forecast's exact snapshot and range identity. The checked capture can
 queue a shorter immutable request inside the reserved maximum while the child
 prepares HIP. A foreground operation interrupts capture or submission.
+For a stable aligned stream, the controller can reserve a later request
+window if observed device startup would miss the next request.
 An already submitted request can outlast unrelated read-only callbacks.
 The same sequential handle may also read an early extent on CPU while
 the worker runs. A verified reply can still supply the unread extents
@@ -572,6 +574,9 @@ sequenceDiagram
     participant W as Supervised HIP worker
     participant R as Foreground reader
     C->>S: Ask for forecast and protected identity
+    opt Startup exceeds the next request gap
+        C->>C: Select a later complete request within observed demand
+    end
     opt Funded prepared group with valid submission lead
         C->>W: Reserve one bounded request and begin setup
         par Prepare device context and arena
@@ -607,6 +612,7 @@ matched CPU comparison with delivered bytes under real demand.
 [Prepared worker evidence](../evidence/windows-prepared-group-worker-2026-11-24.json) ·
 [Interleaved callback evidence](../evidence/windows-group-read-stream-binding-2026-11-25.json) ·
 [Sequential CPU prefix evidence](../evidence/windows-group-read-cpu-prefix-2026-11-25.json) ·
+[Learned startup evidence](../evidence/windows-amd-later-group-window-2026-11-25.json) ·
 [Live grouped evidence](../evidence/windows-amd-group-supervisor-comparison-2026-11-24.json) ·
 [Native LZ4 device evidence](../NATIVE_AMD_LZ4_READ.md)
 

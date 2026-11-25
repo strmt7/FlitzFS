@@ -29,6 +29,7 @@
     "latest_group_startup_admission": "docs/evidence/windows-amd-group-startup-admission-2026-11-25.json",
     "latest_group_read_stream_binding": "docs/evidence/windows-group-read-stream-binding-2026-11-25.json",
     "latest_sequential_group_read_retention": "docs/evidence/windows-group-read-cpu-prefix-2026-11-25.json",
+    "latest_group_read_startup_forecast": "docs/evidence/windows-amd-later-group-window-2026-11-25.json",
     "latest_prepared_mixed_device_readback": "docs/evidence/windows-amd-mixed-width-live-2026-11-25.json",
     "latest_group_width_admission": "docs/evidence/windows-amd-variable-group-demand-2026-11-25.json",
     "latest_protected_size_evidence": "docs/evidence/windows-collective-cold-order-2026-11-24.json",

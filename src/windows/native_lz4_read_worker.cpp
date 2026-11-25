@@ -212,7 +212,7 @@ WinFspGroupReadWindow NativeLz4ReadWorker::group_read_window() const noexcept {
       s.status.configuration_refused || !WorkerExchangeSession::available())return {};
   const auto grant=detail::plan_native_group_preparation(profile.maximum_frames,profile.maximum_slab_bytes,profile.mixed_groups);
   if(grant.maximum_members<profile.minimum_frames)return {};
-  return {grant.maximum_members,s.group_timing.start_lead(profile.minimum_lead_ms)};
+  return {grant.maximum_members,s.group_timing.start_lead(profile.minimum_lead_ms),profile.minimum_frames};
 }
 
 bool NativeLz4ReadWorker::prepare_group(const WinFspReadAheadWork& work,const NativeMaintenanceObservation& observed,
