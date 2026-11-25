@@ -30,6 +30,15 @@ The twelve-gate audit uses the strongest applicable evidence for each gate.
 
 ## Complete protected size and priorities
 
+The opt-in inline layout now occupies 425,984 bytes on the 192-file
+CPython cohort, down 98,304 bytes from the matching extent layout.
+It keeps the same mirror and selector geometry. The versioned inode
+format and both directions of the extent transition passed independent
+CPU reopen. This changes the next decision to measuring named
+trees, write cost and signed Windows client semantics before choosing
+the default or an upgrade strategy.
+[Inline layout and validation scope](evidence/windows-inline-small-files-2026-11-25.json)
+
 The profile now reconciles settled image length with an inventory of the
 protected data and metadata objects, then prices the same inventory with
 zero encoded data bytes. Each counterfactual preserves the record count,
@@ -548,7 +557,7 @@ Attribute resource cost and remaining work before changing either phase.
 | S2 · Scale | Paged inodes, names and extents are live. Checked replica reads group adjacent frames in a leaf. A single checked view now supplies each maintenance sample. Writable startup still walks the inventory. | Verify bounded attach under a versioned authority contract. Fit and validate separate named-file curves for attach, restart, enumeration, mutation and resident memory. |
 | S3 · Space reuse | The single-view replay released backing bytes while mounted, reported zero maintenance failures and independently verified all 1,027 files. It reached 610 sampled extents with duty still pending. | Trace work grants and refused continuation to the pending cursor. Verify advisory quiescence and repeated settlement under churn, pressure and interruption. |
 | S4 · AMD and CPU continuity | The physical Radeon decoded a four-extent capture while the first extent used CPU service. The callback consumed the three unread GPU extents. The later-window SDK model passed. Physical admission for that model deferred under contention. | Prove an automatic region that beats CPU on the installed-client path. Retain the separate write and collective gates. |
-| S5 · Compression | Retained peers saved 16 KiB in a controlled window transition. The three complete-size profiles expose distinct costs for tiny files, revision families and held-out AITDCC extracts. | Validate fewer small-file records at equal protection, measure profitable-discovery recall and extend the held-out frontier with range and write costs. |
+| S5 · Compression | An opt-in inline format saved 96 KiB on the small-file cohort at equal protection. Retained peers previously saved 16 KiB in a controlled window transition. The complete-size profiles expose distinct costs for tiny files, revision families and held-out AITDCC extracts. | Validate the inline result on a held-out named tree and Windows workload. Measure profitable-discovery recall and extend the held-out frontier with range and write costs. |
 | S6 · Autonomy | Persistent sparse advice, workload samples, yield ranking and resource admission run in the controller. The candidate sampled the same extents with 22–35% fewer backing calls in two local fixtures. | Measure learning benefit, time to settle, interference, per-volume fairness and bytes written per byte reclaimed across workloads and restart. |
 | S7 · Windows experience | The helper and WinFsp own memory and supported file-backed volumes. Signed guests exercised external clients and verified reopen. | Qualify Explorer and independent apps with the signed candidate. Cover sharing, mapped and cached I/O, names, metadata, repair and clean teardown. |
 | S8 · Durability | Interruption fixtures exercised writes, flush, mapping and selector publication with independent CPU readback. | Qualify the acknowledged-operation and survivor-repair envelope for each backing. Explain unrecoverable failures precisely and retain the evidence for recovery. |

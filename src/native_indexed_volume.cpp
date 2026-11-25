@@ -31,7 +31,9 @@ constexpr std::uint32_t anchor_copy_capability=4,packed_xor_capability=5,modular
 constexpr std::uint32_t prefixed_zstd_capability=8,packed_slice_capability=9;
 constexpr std::uint32_t directory_shape_feature=1U<<8;
 constexpr std::uint32_t directory_backfill_complete_feature=1U<<9;
-constexpr std::uint32_t namespace_features=kIndexedOrdinalNames|directory_shape_feature|directory_backfill_complete_feature;
+constexpr std::uint32_t inline_file_feature=1U<<10;
+constexpr std::uint32_t namespace_features=kIndexedOrdinalNames|directory_shape_feature|
+    directory_backfill_complete_feature|inline_file_feature;
 constexpr NativeGroupMethod available_group_method(std::uint32_t capability) noexcept {
   if(capability>=prefixed_zstd_capability)return NativeGroupMethod::prefixed_zstd;
   if(capability>=sparse_xor_capability)return NativeGroupMethod::sparse_xor;
@@ -42,7 +44,8 @@ constexpr NativeGroupMethod available_group_method(std::uint32_t capability) noe
 }
 static_assert(kNativeIndexedDataObject==kNativeGroupBaseBit);
 constexpr std::size_t maximum_inode_bytes=104+kIndexedNameBytes+kNativeMaxSecurityBytes+
-    kIndexedShapeHeaderBytes+kIndexedShapeBucketBytes*(kIndexedPathUnits+kIndexedPathDepth);
+    (std::max)(kIndexedInlineFileBytes,
+        kIndexedShapeHeaderBytes+kIndexedShapeBucketBytes*(kIndexedPathUnits+kIndexedPathDepth));
 
 [[noreturn]] void fail(Code code,const char* message){throw NativeFsError(code,message);}
 std::uint64_t add(std::uint64_t left,std::uint64_t right) {
@@ -96,6 +99,8 @@ NativeIndexKind index_kind(const IndexedVolumeRoot& root) noexcept {
 void validate_header_fields(const IndexedVolumeRoot& root) {
   if(root.directory_backfill_complete && !root.directory_shapes)
     fail(Code::corrupt,"completed indexed backfill lacks shape capability");
+  if(root.inline_files && root.format<2)
+    fail(Code::corrupt,"inline files require indexed lifetime support");
   if(root.identity==StoreIdentity{} || !root.sequence || root.next_inode<2 ||
       root.next_inode>kNativeIndexedInodeLimit || !root.next_extent ||
       root.next_extent>kNativeIndexedInodeLimit || (!root.workload.enabled && root.workload.committed_input_bytes))
@@ -124,6 +129,7 @@ IndexedVolumeRoot decode_root(std::span<const std::byte> bytes) {
   root.name_profile=features&kIndexedOrdinalNames;
   root.directory_shapes=(features&directory_shape_feature)!=0;
   root.directory_backfill_complete=(features&directory_backfill_complete_feature)!=0;
+  root.inline_files=(features&inline_file_feature)!=0;
   const auto expected_size=root.format==1?original_root_size:root.format==2?lifetime_root_size:root_size;
   if(root.format<1 || root.format>packed_slice_capability || bytes.size()!=expected_size)
     fail(Code::corrupt,"indexed native volume capability and length differ");
@@ -149,7 +155,8 @@ Bytes encode_root(const IndexedVolumeRoot& root) {
   put(bytes,64,root.workload.committed_input_bytes);
   std::copy(root.identity.begin(),root.identity.end(),bytes.begin()+kIndexedVolumeIdentityOffset);
   const auto features=root.name_profile|(root.directory_shapes?directory_shape_feature:0)|
-      (root.directory_backfill_complete?directory_backfill_complete_feature:0);
+      (root.directory_backfill_complete?directory_backfill_complete_feature:0)|
+      (root.inline_files?inline_file_feature:0);
   put(bytes,88,kNativeExtentBytes,4);put(bytes,92,features,4);
   return bytes;
 }
@@ -183,6 +190,7 @@ std::uint64_t extent_begin(const IndexedInodeInput& inode,std::uint64_t block) {
   return block*kNativeExtentBytes;
 }
 void validate_payload(const IndexedInodeInput& inode,std::uint64_t block,std::span<const std::byte> payload) {
+  if(!inode.inline_data.empty())fail(Code::corrupt,"inline inode has an external extent");
   const auto begin=extent_begin(inode,block);
   if(payload.empty() || payload.size()>kNativeExtentBytes || payload.size()>inode.size-begin ||
       payload.back()==std::byte{0})
@@ -348,6 +356,9 @@ NativeFileInfo file_info(const IndexedInodeInput& inode,std::string path) {
 }
 std::uint64_t reserved_extents(const IndexedInodeInput& inode) {
   return inode.allocation && *inode.allocation ? 1+(*inode.allocation-1)/kNativeExtentBytes : 0;
+}
+std::uint64_t inode_charge(const IndexedInodeInput& inode) {
+  return inode.allocation?reserved_extents(inode):!inode.inline_data.empty();
 }
 } // namespace
 
@@ -624,6 +635,10 @@ class IndexedVolumeTransaction final {
     std::vector<NativeNameEdit> edits;
     RetiredGroupReferences retired;
     bool content_changed=false,needs_scan=false;
+    if(next_.inline_files) {
+      for(auto& [id,changed]:nodes_)
+        if(changed.value && !changed.value->directory)prepare_inline_data(id,*changed.value);
+    }
     for(const auto& [key,replacement]:names_) {
       const auto expected=index_.find(key);
       if(expected!=replacement)edits.push_back({key,expected,replacement});
@@ -746,6 +761,7 @@ class IndexedVolumeTransaction final {
     std::optional<std::uint64_t> original_size,original_allocation;
     std::uint64_t original_reserved=0;
     IndexedLifetime original_lifetime=IndexedLifetime::linked;
+    bool original_inline=false;
     std::uint64_t added_extents=0,removed_extents=0;
   };
   struct ExtentEdit {
@@ -780,15 +796,15 @@ class IndexedVolumeTransaction final {
   void update_charge(std::uint64_t id,const InodeEdit& n) {
     if(n.original_allocation || (n.value && n.value->allocation)) {
       const auto original=n.original_allocation?n.original_reserved:
-          n.original_size?index_.extent_count(id):0;
+          n.original_size?(n.original_inline?1:index_.extent_count(id)):0;
       subtract(next_.charged_extents,original);
       if(n.value && n.value->allocation)
         next_.charged_extents=add(next_.charged_extents,reserved_extents(*n.value));
       else if(n.value)
         fail(Code::corrupt,"indexed reservation was cleared on a retained inode");
     } else {
-      subtract(next_.charged_extents,n.removed_extents);
-      next_.charged_extents=add(next_.charged_extents,n.added_extents);
+      subtract(next_.charged_extents,n.removed_extents+n.original_inline);
+      next_.charged_extents=add(next_.charged_extents,n.added_extents+(n.value && !n.value->inline_data.empty()));
     }
   }
 
@@ -891,7 +907,8 @@ class IndexedVolumeTransaction final {
       const auto original_allocation=n.allocation;
       const auto reserved=reserved_extents(n);
       const auto lifetime=n.lifetime;
-      it=nodes_.emplace(id,InodeEdit{std::move(n),original_size,original_allocation,reserved,lifetime}).first;
+      const auto inline_file=!n.inline_data.empty();
+      it=nodes_.emplace(id,InodeEdit{std::move(n),original_size,original_allocation,reserved,lifetime,inline_file}).first;
     }
     if(!it->second.value)fail(Code::not_found,"indexed inode was removed in this transaction");
     it->second.value->modified=next_.sequence;
@@ -1092,7 +1109,12 @@ class IndexedVolumeTransaction final {
     const auto& n=nodes_.at(id);
     if(n.original_size) {
       value.original=index_.find(native_extent_key(id,block));
-      if(value.original) {
+      if(n.original_inline && block==0) {
+        if(value.original)fail(Code::corrupt,"inline inode has an external extent");
+        const auto& data=n.value->inline_data;
+        resize(value,data.size());
+        std::ranges::copy(data,value.payload.begin());
+      }else if(value.original) {
         if(domain(*value.original)!=kNativeIndexedDataObject || !(*value.original&ordinal_mask) ||
             (*value.original&ordinal_mask)>=before_.next_extent)
           fail(Code::corrupt,"indexed data identity outside allocator");
@@ -1112,12 +1134,13 @@ class IndexedVolumeTransaction final {
   }
 
   void clear_extent(ExtentEdit& extent) {
-    extent.dirty=extent.dirty || extent.original.has_value();
+    extent.dirty=extent.dirty || extent.original.has_value() || !extent.payload.empty();
     payload_bytes_-=extent.payload.capacity();
     Bytes{}.swap(extent.payload);
   }
 
   void clear_extents(std::uint64_t id,std::uint64_t first) {
+    if(!first && nodes_.at(id).original_inline)(void)load_extent(id,0);
     const auto start=native_extent_key(id,first?first-1:0);
     auto after=first?start.name:std::string{};
     if(nodes_.at(id).original_size)for(;;) {
@@ -1133,6 +1156,24 @@ class IndexedVolumeTransaction final {
   void trim(ExtentEdit& extent) {
     while(!extent.payload.empty() && extent.payload.back()==std::byte{})extent.payload.pop_back();
     if(extent.payload.empty())clear_extent(extent);
+  }
+
+  void prepare_inline_data(std::uint64_t id,IndexedInodeInput& inode) {
+    if(inode.size>kIndexedInlineFileBytes) {
+      if(!inode.inline_data.empty()) {
+        // A sparse extension may leave the leading bytes untouched. Stage
+        // them in the ordinary extent domain in this same publication.
+        load_extent(id,0).dirty=true;
+        inode.inline_data.clear();
+      }
+      return;
+    }
+    const auto found=extents_.find({id,0});
+    if(found==extents_.end())return; // Metadata-only changes preserve the existing placement.
+    auto& extent=found->second;
+    if(extent.payload.size()>inode.size)fail(Code::corrupt,"indexed inline data exceeds file size");
+    inode.inline_data=extent.payload;
+    clear_extent(extent);
   }
 
   static std::uint64_t aligned_size(std::uint64_t size) {
@@ -1223,14 +1264,17 @@ void IndexedDirectoryShape::replace(std::optional<IndexedPathBound> before,std::
   replace_bucket(components,before?before->components:0,after?after->components:0);
 }
 
-IndexedVolumeRoot initialize_indexed_volume(PagedObjectStoreWriter& writer) {
+IndexedVolumeRoot initialize_indexed_volume(PagedObjectStoreWriter& writer,NativeIndexedDataLayout layout) {
   const auto snapshot=writer.snapshot();
   if(writer.poisoned() || snapshot.info().generation!=2 || !snapshot.info().mirrored_payloads ||
       snapshot.info().objects)
     fail(Code::invalid_operation,"indexed initialization requires a new mirrored store");
+  if(layout!=NativeIndexedDataLayout::extents && layout!=NativeIndexedDataLayout::inline_small_files)
+    fail(Code::invalid_operation,"unknown indexed data layout");
   IndexedVolumeRoot root;
   root.identity=snapshot.identity();root.sequence=1;root.inodes=1;root.workload.enabled=true;
   root.format=2;root.directory_shapes=true;root.directory_backfill_complete=true;
+  root.inline_files=layout==NativeIndexedDataLayout::inline_small_files;
   IndexedInodeInput directory;
   directory.inode=1;directory.born=1;directory.modified=1;directory.directory=true;
   directory.shape.emplace();
@@ -2326,13 +2370,20 @@ Bytes IndexedVolumeView::read(const IndexedInodeInput& selected,std::uint64_t of
   if(selected.directory)fail(Code::is_directory,"cannot read indexed directory");
   if(bytes>kNativeMaxReadBytes)fail(Code::limit,"indexed read budget");
   if(!bytes || offset>=selected.size)return {};
-  if(retained && !retained->bind(store_))retained=nullptr;
   const auto count=(std::min)(std::uint64_t(bytes),selected.size-offset);
+  Bytes output(static_cast<std::size_t>(count));
+  if(!selected.inline_data.empty()) {
+    if(offset<selected.inline_data.size()) {
+      const auto data=std::span(selected.inline_data).subspan(static_cast<std::size_t>(offset));
+      std::ranges::copy(data.first((std::min)(data.size(),output.size())),output.begin());
+    }
+    return output;
+  }
+  if(retained && !retained->bind(store_))retained=nullptr;
   const auto end=offset+count,first=offset/kNativeExtentBytes,last=(end-1)/kNativeExtentBytes;
   const auto start=native_extent_key(selected.inode,first?first-1:0);
   const auto range=index_.list(start.parent,first?std::string_view(start.name):std::string_view{},
       static_cast<std::size_t>(last-first+1));
-  Bytes output(static_cast<std::size_t>(count));
   IndexedSharedBaseRead cached_base;
   for(const auto& entry:range) {
     const auto block=native_extent_block(entry.key.name);
@@ -2588,7 +2639,7 @@ void IndexedVolumeView::verify_inventory(bool published,const IndexedReopenAdmis
       found_root=true;
     } else if(domain(id)==inode_domain) {
       const auto entry=decode_inode_with_lifetime(store_,root_,id&ordinal_mask,bytes);
-      ++inodes;charged=add(charged,reserved_extents(entry));
+      ++inodes;charged=add(charged,inode_charge(entry));
       if(active_lifetime(entry.lifetime))++lifetimes;
       if(indexed_detached(entry.lifetime))++detached;
       if(entry.lifetime==IndexedLifetime::retiring)++retiring;
@@ -2687,7 +2738,7 @@ void IndexedVolumeBuilder::append(std::span<const IndexedInodeInput> inodes,std:
       fail(Code::already_exists,"indexed import repeats an inode");
     if(inode.inode!=1)edits.push_back({{inode.parent,name_key(inode.name)},{},inode.inode});
     append_record(id,std::move(frame));
-    ++next.inodes;next.charged_extents=add(next.charged_extents,reserved_extents(inode));
+    ++next.inodes;next.charged_extents=add(next.charged_extents,inode_charge(inode));
   }
   for(const auto& extent:extents) {
     const auto staged=incoming.find(extent.inode);

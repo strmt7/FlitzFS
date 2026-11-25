@@ -34,8 +34,10 @@ struct Clock {
 struct Fixture {
   std::shared_ptr<Ram> head,image;std::optional<NativeFileSession> session;Clock clock;
   explicit Fixture(std::uint32_t unit,unsigned count=8,bool indexed=false,
-      StoreCompressionOptions compression={StoreCompressionMode::raw,1,false}):head(ram(unit)),image(ram(unit)) {
-    if(indexed)session.emplace(NativeFileSession::create_indexed_volume(head,id(90),image,id(1),{kStoreMaxPhysicalBytes},compression));
+      StoreCompressionOptions compression={StoreCompressionMode::raw,1,false},
+      NativeIndexedDataLayout layout=NativeIndexedDataLayout::extents):head(ram(unit)),image(ram(unit)) {
+    if(indexed)session.emplace(NativeFileSession::create_indexed_volume(head,id(90),image,id(1),{kStoreMaxPhysicalBytes},
+        compression,NativeDispositionPolicy::aggregate,{},NativeVolumePlacement::external,layout));
     else session.emplace(NativeFileSession::create_paged_volume(head,id(90),image,id(1),{kStoreMaxPhysicalBytes},compression));
     for(unsigned i=0;i<count;++i)put(*session,"f"+std::to_string(i),family(i));
   }
@@ -738,12 +740,12 @@ void profile_protected_layout(const std::shared_ptr<Ram>& backing,
 }
 
 void profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expected_members=0,
-    bool compare_reencoding=false) {
+    bool compare_reencoding=false,NativeIndexedDataLayout layout=NativeIndexedDataLayout::extents) {
   if(!store_zstd_available())return;
   constexpr StoreCompressionOptions policy{StoreCompressionMode::automatic,3,true};
   constexpr NativeImageStorage storage{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes};
   const auto name=[](std::size_t i){return "pack-profile-"+std::to_string(i);};
-  Fixture f(4096,0,true,policy);
+  Fixture f(4096,0,true,policy,layout);
   std::uint64_t input_bytes=0;
   constexpr std::size_t write_bytes=1024*1024;
   for(std::size_t i=0;i<inputs.size();++i) {
@@ -925,13 +927,14 @@ void profile_retained_short_peer() {
   profile_similarity_packing(inputs,2);
 }
 
-void profile_public_packs(const std::filesystem::path& filename,bool complete_files,bool compare_reencoding=false) {
+void profile_public_packs(const std::filesystem::path& filename,bool complete_files,bool compare_reencoding=false,
+    NativeIndexedDataLayout layout=NativeIndexedDataLayout::extents) {
   if(!store_zstd_available()) {
     require(!complete_files,"complete-file packing profile requires Zstandard");
     return;
   }
   const auto inputs=read_packed_corpus(filename,complete_files);
-  profile_similarity_packing(inputs,0,compare_reencoding);
+  profile_similarity_packing(inputs,0,compare_reencoding,layout);
 }
 
 void indexed_cross_window_pack(bool replace_retained) {
@@ -3923,6 +3926,8 @@ int main(int argc,char** argv){try{
     profile_public_packs(argv[2],true);
   } else if(argc==3 && std::string_view(argv[1])=="--profile-public-reencode") {
     profile_public_packs(argv[2],true,true);
+  } else if(argc==3 && std::string_view(argv[1])=="--profile-public-inline") {
+    profile_public_packs(argv[2],true,true,NativeIndexedDataLayout::inline_small_files);
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-cross-window-pack") {
     indexed_cross_window_pack(false);
     indexed_cross_window_pack(true);

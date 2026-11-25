@@ -637,16 +637,18 @@ NativeFileSession NativeFileSession::create_paged_volume(std::shared_ptr<StoreBy
 NativeFileSession NativeFileSession::create_indexed_volume(std::shared_ptr<StoreByteIo> head,
     StoreIdentity volume,std::shared_ptr<StoreByteIo> image,StoreIdentity image_id,PagedStoreLimits limits,
     StoreCompressionOptions foreground,NativeDispositionPolicy policy,std::optional<NativeVolumeRootMetadata> root,
-    NativeVolumePlacement placement) {
+    NativeVolumePlacement placement,NativeIndexedDataLayout data_layout) {
   if(!limits.maximum_physical_bytes)fail(E::invalid_options,"explicit indexed volume capacity required");
   return create_volume_impl(std::move(head),volume,std::move(image),image_id,
-      {NativeImageKind::indexed_paged,limits.maximum_physical_bytes},foreground,{},policy,root,placement);
+      {NativeImageKind::indexed_paged,limits.maximum_physical_bytes},foreground,{},policy,root,placement,data_layout);
 }
 NativeFileSession NativeFileSession::create_volume_impl(std::shared_ptr<StoreByteIo> head,
     StoreIdentity volume,std::shared_ptr<StoreByteIo> image,StoreIdentity image_id,NativeImageStorage storage,
     StoreCompressionOptions foreground,StoreCheckpointOptions checkpoints,NativeDispositionPolicy policy,
-    std::optional<NativeVolumeRootMetadata> root,NativeVolumePlacement placement) {
+    std::optional<NativeVolumeRootMetadata> root,NativeVolumePlacement placement,NativeIndexedDataLayout data_layout) {
   admit_policy(policy);detail::validate_store_compression(foreground);
+  if(data_layout!=NativeIndexedDataLayout::extents && data_layout!=NativeIndexedDataLayout::inline_small_files)
+    fail(E::invalid_options,"unknown indexed data layout");
   if(volume==StoreIdentity{} || image_id==StoreIdentity{} || volume==image_id || head==image)
     fail(E::invalid_options,"distinct volume/image identities and backends required");
   if(root && (root->security.empty() || !native_security_descriptor_framed(root->security)))
@@ -660,7 +662,7 @@ NativeFileSession NativeFileSession::create_volume_impl(std::shared_ptr<StoreByt
       return NativeFilesystemWriter::initialize(ObjectStoreWriter::create(image,image_id,foreground,checkpoints));
     auto objects=PagedObjectStoreWriter::create_mirrored(image,image_id,{storage.maximum_physical_bytes},foreground);
     if(storage.kind==NativeImageKind::indexed_paged)
-      return NativeFilesystemWriter::initialize_indexed(std::move(objects));
+      return NativeFilesystemWriter::initialize_indexed(std::move(objects),data_layout);
     return NativeFilesystemWriter::initialize_shared_bases(std::move(objects));
   }();
   if(root) {

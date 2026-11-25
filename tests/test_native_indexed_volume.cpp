@@ -1076,11 +1076,12 @@ void indexed_stable_inode_io() {
   writer.snapshot().verify_all();
 }
 
-void indexed_session_lifetimes() {
+void indexed_session_lifetimes(NativeIndexedDataLayout layout=NativeIndexedDataLayout::extents) {
   using Error=NativeFsErrorCode;
   using SessionError=NativeSessionErrorCode;
   auto ram=empty();
-  auto session=NativeFileSession::create(new_writer(ram),NativeDispositionPolicy::windows_global);
+  auto session=NativeFileSession::create(NativeFilesystemWriter::initialize_indexed(
+      PagedObjectStoreWriter::create_mirrored(ram,identity(),limits,raw),layout),NativeDispositionPolicy::windows_global);
   const NativeFileAccess access{true,true,true};
   const auto security=native_security_fixture::descriptor();
   const NativeBasicMetadata file_basic{11,22,33,44,0x20},directory_basic{11,22,33,44,0x10};
@@ -1090,7 +1091,8 @@ void indexed_session_lifetimes() {
   const auto initial=payload(518),extra=payload(529);
   session.write(made.handle,0,initial);
   const auto unreserved=session.allocation_usage();
-  require(unreserved.live_extents==1 && unreserved.charged_extents==1,
+  const auto live_extents=layout==NativeIndexedDataLayout::inline_small_files?0U:1U;
+  require(unreserved.live_extents==live_extents && unreserved.charged_extents==1,
       "indexed unreserved file accounting");
   constexpr std::uint64_t reserved=32U*1024*1024;
   session.reserve_result(made.handle,reserved);
@@ -1155,6 +1157,103 @@ void indexed_session_lifetimes() {
   session.close(replacement.handle);
   require(session.stats().contexts==0 && !session.poisoned(),"indexed session did not retire all contexts");
   session.snapshot().verify_all();
+}
+
+void indexed_inline_transitions() {
+  using Error=NativeFsErrorCode;
+  constexpr auto layout=NativeIndexedDataLayout::inline_small_files;
+  const auto original=payload(174);
+  const auto sentinel=payload(183);
+  constexpr auto tail_offset=kNativeExtentBytes+119;
+  auto grown=original;
+  grown.resize(tail_offset);
+  const auto tail=payload(176);
+  grown.insert(grown.end(),tail.begin(),tail.end());
+  auto sparse_small=original;
+  sparse_small.resize(kIndexedInlineFileBytes);
+
+  for(const bool promote:{true,false}) {
+    auto source=empty();
+    auto writer=NativeFilesystemWriter::initialize_indexed(
+        PagedObjectStoreWriter::create_mirrored(source,identity(),limits,raw),layout);
+    const auto& before=promote?sparse_small:grown;
+    const auto& after=promote?grown:sparse_small;
+    const auto initial=writer.apply(std::array{file_create("target"),file_write("target",0,before),
+        file_create("keep"),file_write("keep",0,sentinel)});
+    const auto pinned=writer.snapshot();
+    pinned.verify_all();
+    const auto initial_extents=promote?0U:2U;
+    const auto final_extents=promote?2U:0U;
+    require(pinned.allocation_usage().live_extents==initial_extents &&
+        pinned.allocation_usage().charged_extents==initial_extents+(promote?2U:1U) &&
+        pinned.read("target",0,kNativeExtentBytes+256)==before,"inline source placement or sparse read differs");
+
+    const std::array changes{promote?file_write("target",tail_offset,tail):
+        file_truncate("target",kIndexedInlineFileBytes),file_rename("target","after")};
+    const auto stable=source->stable;
+    std::size_t boundaries=0;
+    {
+      auto candidate=image(stable,4096);
+      const auto selected=[&] {
+        auto replay=resume_writer(candidate,initial.storage.generation);
+        const auto start=candidate->calls;
+        replay.apply(changes);
+        boundaries=candidate->calls-start;
+        return replay.snapshot();
+      }();
+      selected.verify_all();
+      require(selected.allocation_usage().live_extents==final_extents &&
+          selected.allocation_usage().charged_extents==final_extents+(promote?1U:2U) &&
+          selected.read("after",0,kNativeExtentBytes+256)==after,"inline transition changed bytes or charge");
+      auto compact=empty();
+      auto detached=NativeFilesystemWriter::compact(selected,compact,identity_for(64),raw).snapshot();
+      detached.verify_all();
+      require(detached.read("after",0,kNativeExtentBytes+256)==after,
+          "inline transition failed independent compacted readback");
+    }
+    unsigned previous=0,complete=0;
+    for(unsigned mode=0;mode<3;++mode)for(std::size_t cut=0;cut<boundaries;++cut) {
+      auto candidate=image(stable,4096);
+      auto interrupted=resume_writer(candidate,initial.storage.generation);
+      candidate->failure=mode;
+      candidate->fail_at=candidate->calls+cut;
+      refuses(Error::storage_failure,[&]{(void)interrupted.apply(changes);});
+      require(interrupted.poisoned(),"interrupted inline transition kept its writer");
+      const auto recovered=NativeFilesystemSnapshot::open_image(image(candidate->stable,4096),indexed);
+      recovered.verify_all();
+      require(recovered.read("keep",0,100)==sentinel,"interrupted inline transition changed an unrelated file");
+      if(recovered.sequence()==initial.sequence) {
+        ++previous;
+        require(recovered.read("target",0,kNativeExtentBytes+256)==before &&
+            recovered.allocation_usage().live_extents==initial_extents,"inline recovery mixed the prior layout");
+        refuses(Error::not_found,[&]{(void)recovered.stat("after");});
+      }else {
+        ++complete;
+        require(recovered.sequence()==initial.sequence+1 && recovered.read("after",0,kNativeExtentBytes+256)==after &&
+            recovered.allocation_usage().live_extents==final_extents,"inline recovery mixed the complete layout");
+        refuses(Error::not_found,[&]{(void)recovered.stat("target");});
+      }
+    }
+    require(previous && complete && source->stable==stable &&
+        pinned.read("target",0,kNativeExtentBytes+256)==before,"inline faults failed to preserve both checkpoints");
+    std::cout<<"inline_transition direction="<<(promote?"to_extents":"to_inline")<<" recovery_cases="<<previous+complete
+        <<" previous="<<previous<<" complete="<<complete<<'\n';
+  }
+
+  auto source=empty();
+  auto writer=NativeFilesystemWriter::initialize_indexed(
+      PagedObjectStoreWriter::create_mirrored(source,identity(),limits,raw),layout);
+  writer.apply(std::array{file_create("short"),file_write("short",0,original)});
+  file_apply(writer,file_truncate("short",kIndexedInlineFileBytes+1));
+  auto expected=original;
+  expected.resize(kIndexedInlineFileBytes+1);
+  require(writer.snapshot().allocation_usage().live_extents==1 &&
+      writer.snapshot().read("short",0,1024)==expected,"zero-only growth did not retain leading inline bytes");
+  writer.apply(std::array{file_truncate("short",0),file_truncate("short",kIndexedInlineFileBytes)});
+  const auto sparse=writer.snapshot();
+  sparse.verify_all();
+  require(!sparse.allocation_usage().live_extents && !sparse.allocation_usage().charged_extents &&
+      sparse.read("short",0,1024)==Bytes(kIndexedInlineFileBytes),"truncate and sparse regrowth revived old bytes");
 }
 
 void indexed_detach_recovery() {
@@ -1795,6 +1894,12 @@ void profile_cpython_reopen(const char* path,bool compressed=false) {
 
 int main(int argc,char** argv) {
   try {
+    if(argc==2 && std::string_view(argv[1])=="--inline-small-files"){
+      indexed_session_lifetimes(NativeIndexedDataLayout::inline_small_files);
+      indexed_inline_transitions();
+      std::cout<<"PASS: inline indexed lifecycle, fenced transitions and byte-exact CPU readback\n";
+      return 0;
+    }
     if(argc==2 && std::string_view(argv[1])=="--reconciled-rebuild"){
       indexed_reconciled_rebuild();
       return 0;

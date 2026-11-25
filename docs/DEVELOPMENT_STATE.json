@@ -6,6 +6,16 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "inline_short_files": {
+    "evidence": "docs/evidence/windows-inline-small-files-2026-11-25.json",
+    "initialization": "Experimental indexed volume layout selection",
+    "namespace_feature_bit": 10,
+    "maximum_inline_file_bytes": 512,
+    "matched_extent_and_inline_complete_bytes": [524288, 425984],
+    "modeled_transition_interruptions": 198,
+    "next": "Hold out named directories, exercise actual operation mixes and qualify the signed Windows path before choosing defaults or a migration policy.",
+    "release_qualified": false
+  },
   "protected_size_frontier": {
     "source_reviewed": "de071e900ffb680e6e150de40f54a45249c5fdb9",
     "evidence": "docs/evidence/windows-protected-size-frontier-2026-11-25.json",

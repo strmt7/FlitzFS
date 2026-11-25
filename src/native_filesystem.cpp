@@ -1105,6 +1105,12 @@ Bytes encode_indexed_inode(const IndexedInodeInput& input,const IndexedVolumeRoo
       fail(Code::corrupt,"indexed directory shape outside linked directory");
     append_directory_shape(bytes,*input.shape);
   }
+  if(!input.inline_data.empty()) {
+    if(!root.inline_files || n.directory || n.size>kIndexedInlineFileBytes ||
+        input.inline_data.size()>n.size || input.inline_data.back()==std::byte{})
+      fail(Code::corrupt,"invalid indexed inline data");
+    bytes.insert(bytes.end(),input.inline_data.begin(),input.inline_data.end());
+  }
   return bytes;
 }
 IndexedInodeInput decode_indexed_inode(std::span<const std::byte> bytes,std::uint64_t inode,
@@ -1117,16 +1123,22 @@ IndexedInodeInput decode_indexed_inode(std::span<const std::byte> bytes,std::uin
   try { validate_indexed_inode(node,root); }
   catch(const NativeFsError&) { fail(Code::corrupt,"invalid indexed inode fields"); }
   std::optional<IndexedDirectoryShape> shape;
+  Bytes inline_data;
   if(cursor!=bytes.size()) {
-    if(!root.directory_shapes || !node.directory)fail(Code::corrupt,"unexpected indexed inode extension");
-    shape=decode_directory_shape(bytes.subspan(cursor),root);
-    if((node.delete_pending || node.unlinked) && shape->bound().components)
-      fail(Code::corrupt,"indexed deleted directory shape has children");
+    const auto suffix=bytes.subspan(cursor);
+    if(node.directory && root.directory_shapes) {
+      shape=decode_directory_shape(suffix,root);
+      if((node.delete_pending || node.unlinked) && shape->bound().components)
+        fail(Code::corrupt,"indexed deleted directory shape has children");
+    }else if(!node.directory && root.inline_files && node.size<=kIndexedInlineFileBytes &&
+        suffix.size()<=node.size && suffix.back()!=std::byte{}) {
+      inline_data.assign(suffix.begin(),suffix.end());
+    }else fail(Code::corrupt,"unexpected indexed inode extension");
   }
   return {node.inode,node.parent,node.size,node.born,node.modified,node.directory,std::move(node.name),
       node.basic,std::move(node.security),node.allocation,
       node.delete_pending?IndexedLifetime::pending:
-          node.unlinked?IndexedLifetime::detached:IndexedLifetime::linked,std::move(shape)};
+          node.unlinked?IndexedLifetime::detached:IndexedLifetime::linked,std::move(shape),std::move(inline_data)};
 }
 }
 
@@ -1676,10 +1688,11 @@ NativeFilesystemWriter NativeFilesystemWriter::initialize_inode_records(PagedObj
 NativeFilesystemWriter NativeFilesystemWriter::initialize_indexed_names(PagedObjectStoreWriter objects) {
   return initialize_storage(std::move(objects),true,true);
 }
-NativeFilesystemWriter NativeFilesystemWriter::initialize_indexed(PagedObjectStoreWriter objects) {
+NativeFilesystemWriter NativeFilesystemWriter::initialize_indexed(PagedObjectStoreWriter objects,
+    NativeIndexedDataLayout data_layout) {
   try {
     auto p=std::make_unique<Impl>(detail::NativeObjectWriter(std::move(objects)));
-    p->indexed=detail::initialize_indexed_volume(*p->objects.paged_if());
+    p->indexed=detail::initialize_indexed_volume(*p->objects.paged_if(),data_layout);
     return NativeFilesystemWriter(std::move(p));
   }catch(const std::bad_alloc&){fail(Code::limit,"indexed writer initialization allocation failure");}
   catch(const NativeFsError&){throw;}

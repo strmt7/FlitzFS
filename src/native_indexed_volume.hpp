@@ -9,6 +9,7 @@ class NativeGroupReadBatch;
 inline constexpr std::size_t kIndexedVolumeIdentityOffset=72;
 inline constexpr std::size_t kIndexedVolumeRootMaximumBytes=136;
 inline constexpr std::size_t kIndexedExtentHeaderBytes=24;
+inline constexpr std::size_t kIndexedInlineFileBytes=512;
 struct IndexedVolumeRoot {
   StoreIdentity identity{};
   std::uint64_t sequence=0,next_inode=2,next_extent=1;
@@ -18,6 +19,7 @@ struct IndexedVolumeRoot {
   std::uint32_t name_profile=0;
   bool directory_shapes=false;
   bool directory_backfill_complete=false;
+  bool inline_files=false;
   std::uint64_t active_lifetimes=0,detached_inodes=0,retiring_inodes=0;
   std::uint64_t shared_bases=0,shared_members=0;
   bool operator==(const IndexedVolumeRoot&) const = default;
@@ -61,9 +63,10 @@ struct IndexedInodeInput {
   std::optional<std::uint64_t> allocation;
   IndexedLifetime lifetime=IndexedLifetime::linked;
   std::optional<IndexedDirectoryShape> shape;
+  std::vector<std::byte> inline_data;
 };
-// The indexed format uses the existing canonical inode frame with zero
-// inline extents. Extent locations live in the ordered index.
+// Indexed inodes use the canonical inode frame without legacy extent
+// entries. A capable root permits a short data suffix on regular inodes.
 std::vector<std::byte> encode_indexed_inode(const IndexedInodeInput&,const IndexedVolumeRoot&);
 IndexedInodeInput decode_indexed_inode(std::span<const std::byte>,std::uint64_t,
     const IndexedVolumeRoot&);
@@ -72,7 +75,7 @@ std::vector<std::byte> rebind_indexed_volume_root(IndexedVolumeRoot,StoreIdentit
 NativeInodeAllocationInfo indexed_inode_allocation(const IndexedInodeInput&) noexcept;
 std::optional<NativeBasicMetadata> updated_automatic_basic(const std::optional<NativeBasicMetadata>&,
     bool directory,const NativeAutomaticMetadata&);
-IndexedVolumeRoot initialize_indexed_volume(PagedObjectStoreWriter&);
+IndexedVolumeRoot initialize_indexed_volume(PagedObjectStoreWriter&,NativeIndexedDataLayout);
 enum class NativeInodeAction {path_mutations,create,overwrite,mutate,set_delete,clear_delete,unlink,
     retire,finish_session,cleanup,cleanup_initial,reserve,enable_workload,coalesce_extents};
 struct IndexedVolumeEdit {

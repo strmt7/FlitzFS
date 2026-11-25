@@ -5,6 +5,7 @@
 #include "anchor_search_fixture.hpp"
 #include "native_lz4_fixture.hpp"
 #include "../src/native_lz4_decode_wire.hpp"
+#include "../src/native_indexed_volume.hpp"
 #include "../src/native_name_index.hpp"
 #include "../src/store_codec.hpp"
 #include "windows_app_budget.hpp"
@@ -1103,7 +1104,7 @@ void lifecycle() {
   }
   Lifecycle::active=nullptr;
 }
-void indexed_callbacks(unsigned unit) {
+void indexed_callbacks(unsigned unit,NativeIndexedDataLayout layout=NativeIndexedDataLayout::extents) {
   auto head=ram(unit),backing=ram(unit);
   constexpr PagedStoreLimits capacity{kStoreMaxPhysicalBytes};
   const auto volume=id(70),image_id=id(71);
@@ -1112,7 +1113,7 @@ void indexed_callbacks(unsigned unit) {
     return backing;
   };
   const StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
-  auto adapter=WinFspNativeWritable::create_managed_indexed(head,volume,backing,image_id,capacity,raw);
+  auto adapter=WinFspNativeWritable::create_managed_indexed(head,volume,backing,image_id,capacity,raw,{}, {},layout);
   FSP_FILE_SYSTEM fs{};
   const auto bind=[&] {
     fs={};
@@ -1186,9 +1187,25 @@ void indexed_callbacks(unsigned unit) {
   wchar_t unicode_alias[]=L"\\\u00c9CHANTILLON\U0001f600";
   const auto unicode=create(unicode_name);
   auto unicode_bytes=data(19,937);
+  const auto prior_extents=adapter->snapshot().allocation_usage().live_extents;
   require(fs.Interface->Write(&fs,unicode,unicode_bytes.data(),0,static_cast<ULONG>(unicode_bytes.size()),
       FALSE,FALSE,&bytes,&info)==STATUS_SUCCESS && bytes==unicode_bytes.size(),"indexed SDK Unicode write");
   const auto unicode_id=info.IndexNumber;
+  if(layout==NativeIndexedDataLayout::inline_small_files) {
+    constexpr ULONG sparse_size=static_cast<ULONG>(detail::kIndexedInlineFileBytes+1);
+    require(adapter->snapshot().allocation_usage().live_extents==prior_extents &&
+        fs.Interface->SetFileSize(&fs,unicode,sparse_size,FALSE,&info)==STATUS_SUCCESS &&
+        info.FileSize==sparse_size && adapter->snapshot().allocation_usage().live_extents==prior_extents+1,
+        "indexed SDK inline file did not move its data on growth");
+    auto expected=unicode_bytes;
+    expected.resize(sparse_size);
+    Bytes actual(sparse_size);
+    require(fs.Interface->Read(&fs,unicode,actual.data(),0,sparse_size,&bytes)==STATUS_SUCCESS &&
+        bytes==sparse_size && actual==expected,"indexed SDK sparse growth changed the inline prefix");
+    require(fs.Interface->SetFileSize(&fs,unicode,unicode_bytes.size(),FALSE,&info)==STATUS_SUCCESS &&
+        adapter->snapshot().allocation_usage().live_extents==prior_extents,
+        "indexed SDK shrink did not restore the inline layout");
+  }
   require(fs.Interface->Rename(&fs,unicode,unicode_name,unicode_alias,FALSE)==STATUS_SUCCESS,
       "indexed SDK Unicode case-only rename");
   cleanup(unicode,0);close(unicode);
@@ -1358,7 +1375,8 @@ void indexed_callbacks(unsigned unit) {
   }
   fs.UserContext=nullptr;
   std::cout<<"indexed_winfsp_callbacks unit="<<unit<<" large_write_bytes="<<initial.size()
-      <<" reopened_eof="<<eof+tail.size()<<" occupied_bytes="<<occupied<<'\n';
+      <<" reopened_eof="<<eof+tail.size()<<" occupied_bytes="<<occupied
+      <<" inline_small_files="<<(layout==NativeIndexedDataLayout::inline_small_files)<<'\n';
 }
 
 void publication_faults(unsigned unit) {
@@ -1416,6 +1434,10 @@ int wmain(int argc,wchar_t** argv){try {
   if(mode==L"--callbacks"){
     callbacks(4096);callbacks(65536);directory_pages();directory_pages(true);selected_change();foreground_busy();
     deferred_response_busy();resume_formats();indexed_backfill_opportunities();lifecycle();indexed_callbacks(4096);indexed_callbacks(65536);
+  }
+  else if(mode==L"--inline-files"){
+    indexed_callbacks(4096,NativeIndexedDataLayout::inline_small_files);
+    indexed_callbacks(65536,NativeIndexedDataLayout::inline_small_files);
   }
   else if(mode==L"--ready-lz4-reads")ready_lz4_reads();
   else if(mode==L"--ready-group-reads")group_read_ahead();

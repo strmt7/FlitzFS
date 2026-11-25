@@ -1,0 +1,342 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "qualification": "experimental",
+  "release_qualified": false,
+  "source": {
+    "parent": "5cab7e66b7b2858a40c2cea08e765275fa5ae1c4",
+    "parent_tree": "2b4400d46611ae69edfda6ab74d99268baae4620",
+    "tested_source_tree": "7c623bac33282fbb3e23b781239d6b79c0e3f4f0",
+    "tested_changes": [
+      {
+        "path": "CMakeLists.txt",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "75ced9c4260b7d9fd9a7b68728627203bf812d79",
+        "bytes": 97920
+      },
+      {
+        "path": "include/flitzfs/native_filesystem.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "7b6064de7a4dc203bada7c2f0bc7fba4b2f855aa",
+        "bytes": 43838
+      },
+      {
+        "path": "include/flitzfs/native_session.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "7d75a430bba1f327f045c3997f48acec1c97c29b",
+        "bytes": 36098
+      },
+      {
+        "path": "src/native_filesystem.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "8da1da30499b502af1f5ef6994043b8bb024fea5",
+        "bytes": 172933
+      },
+      {
+        "path": "src/native_indexed_volume.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "6f832ef8fbc921011afbab349b89281bec96ca2a",
+        "bytes": 134651
+      },
+      {
+        "path": "src/native_indexed_volume.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "22194c6f52ff56d549cf957b98fc9fa14b8e618d",
+        "bytes": 14507
+      },
+      {
+        "path": "src/native_session.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "6e8f7f1e570d1a7e679d3ab5a4b329e53149d85f",
+        "bytes": 123397
+      },
+      {
+        "path": "src/windows/winfsp_native.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "684f6b5a2ccda275ece672d979c87ac4c33b6f08",
+        "bytes": 111994
+      },
+      {
+        "path": "src/windows/winfsp_native.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "891f7e4cc5dec4f23adf258806562d49c00f0734",
+        "bytes": 15946
+      },
+      {
+        "path": "tests/test_native_group_maintenance.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "b73ce8678d24bbd88fa4639d2aa6b36d9c245e18",
+        "bytes": 232490
+      },
+      {
+        "path": "tests/test_native_indexed_volume.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "bb09fa1d2fe5dc86b85028d7b32f198b40c7daf0",
+        "bytes": 105405
+      },
+      {
+        "path": "tests/test_winfsp_paged.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "c56fc1a86b752cc3ca72614ae997a0c118ad950f",
+        "bytes": 86197
+      }
+    ],
+    "routing_receipt_sha256": "f7877ca2eebdee1a94511e5e8159717080946fd529564ca63290c7649aca013f",
+    "native_routing_response_sha256": "fa5525820e89961ba95d3e0660336b53fda090b5de883ffda4b8a409b40abc27"
+  },
+  "method": {
+    "namespace_feature_bit": 10,
+    "maximum_inline_file_bytes": 512,
+    "placement": "Explicit creation selection. Both inode copies protect an optional trimmed data suffix. The same transaction retires or publishes the external extent and mapping.",
+    "ordinary_default_changed": false,
+    "qualification_scope": "Local Windows host RAM-backed native and user-mode WinFsp callback checks. Protected size includes selector and both mirrors. Profile names are generated. Read byte counters describe the native modeled backing.",
+    "zstd": "1.6.0",
+    "winfsp_dll_sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+    "release_profile_executable_sha256": "1e54f050cd5ebaea842e74dfbed88211778c8c234e113b2e3ff8d0ce030c2ca2"
+  },
+  "profiles": {
+    "tiny_cpython": {
+      "fixture_sha256": "ac2c855bfcf450bbdd3d571978fbc806554d66c4e0d168d0d21fc5c5e1d07536",
+      "extents": {
+        "files": 192,
+        "input_bytes": 32922,
+        "before_range_read_bytes": 6304308,
+        "ingested_image_bytes": 16515072,
+        "after_range_read_bytes": 6304308,
+        "sampled_extents": 192,
+        "attempts": 37,
+        "maintenance_read_calls": 9967,
+        "maintenance_read_bytes": 24103974,
+        "maintenance_write_bytes": 0,
+        "complete_group_only_bytes": 524288,
+        "complete_preserved_bytes": 524288,
+        "layout": {
+          "arm": "independent_preserved",
+          "objects": 393,
+          "image_bytes": 393216,
+          "selector_bytes": 131072,
+          "mirrored_data_object_bytes": 55474,
+          "mirrored_metadata_object_bytes": 27022,
+          "record_index_and_padding_bytes": 310720,
+          "zero_data_layout_bytes": 466944,
+          "zero_payload_layout_bytes": 442368
+        },
+        "cpu_exact": true,
+        "run": "local-run-e86511537bfa435c9f3007a13bce2a15",
+        "result_sha256": "00333d0caa4c6a6c89217049d5c894f4d471a0d64fd58f60ec6bbaac2c4a86ac",
+        "output_sha256": "045bdbf2be313ed48a84b2b4d470610241334bef04a94048392a8444496a0328",
+        "peak_job_bytes": 75096064,
+        "job_retired": true
+      },
+      "inline": {
+        "files": 192,
+        "input_bytes": 32922,
+        "before_range_read_bytes": 4565231,
+        "ingested_image_bytes": 11108352,
+        "after_range_read_bytes": 4565231,
+        "sampled_extents": 0,
+        "attempts": 0,
+        "maintenance_read_calls": 0,
+        "maintenance_read_bytes": 0,
+        "maintenance_write_bytes": 0,
+        "complete_group_only_bytes": 425984,
+        "complete_preserved_bytes": 425984,
+        "layout": {
+          "arm": "independent_preserved",
+          "objects": 199,
+          "image_bytes": 294912,
+          "selector_bytes": 131072,
+          "mirrored_data_object_bytes": 0,
+          "mirrored_metadata_object_bytes": 69988,
+          "record_index_and_padding_bytes": 224924,
+          "zero_data_layout_bytes": 425984,
+          "zero_payload_layout_bytes": 360448
+        },
+        "cpu_exact": true,
+        "run": "local-run-7754a298f45a448489962e896f6d1753",
+        "result_sha256": "283cadcfe6ad4dbab4b1a89b032c0b208e30f426542d404d45ee7f217447ca6b",
+        "output_sha256": "c68f278df64cab52e3d60cef8d777a7235e5e672512e264d656af4f328c0c3cb",
+        "peak_job_bytes": 51130368,
+        "job_retired": true
+      }
+    },
+    "cpython_revisions": {
+      "fixture_sha256": "1e4415e2c80bd97dd16978c2d68f4c403489cf5ca38916bdbf574a174763aead",
+      "extents": {
+        "files": 24,
+        "input_bytes": 2230850,
+        "before_range_read_bytes": 1030118,
+        "ingested_image_bytes": 2375680,
+        "after_range_read_bytes": 1052927,
+        "sampled_extents": 72,
+        "attempts": 26,
+        "maintenance_read_calls": 3200,
+        "maintenance_read_bytes": 7738981,
+        "maintenance_write_bytes": 1630208,
+        "complete_group_only_bytes": 950272,
+        "complete_preserved_bytes": 1523712,
+        "cpu_exact": true,
+        "run": "local-run-44f6eed60cfd420a965648b638251c60",
+        "result_sha256": "839728f4408e2ca741fe065a3fbdb4628ce409bf58eeea90d5fa5f64799f4ac3",
+        "output_sha256": "fc5879a4bafff15fe264a936027d2c9c555427dbfab5e9210a1af5a99978f997",
+        "peak_job_bytes": 22294528,
+        "job_retired": true
+      },
+      "inline": {
+        "files": 24,
+        "input_bytes": 2230850,
+        "before_range_read_bytes": 1030118,
+        "ingested_image_bytes": 2375680,
+        "after_range_read_bytes": 1052927,
+        "sampled_extents": 72,
+        "attempts": 26,
+        "maintenance_read_calls": 3200,
+        "maintenance_read_bytes": 7738981,
+        "maintenance_write_bytes": 1630208,
+        "complete_group_only_bytes": 950272,
+        "complete_preserved_bytes": 1523712,
+        "cpu_exact": true,
+        "run": "local-run-9f7657caf1264088a00c0bb936c50646",
+        "result_sha256": "4b40741b690d6c1010185bef1e550e54f4875c89f56856f7a244b0fe57baf946",
+        "output_sha256": "82d0243d1e0b7372cee61d8e290c871b5746bacda63912adc3e75325f82e8b36",
+        "peak_job_bytes": 22798336,
+        "job_retired": true
+      }
+    },
+    "aitdcc_held_out_extracts": {
+      "fixture_sha256": "26204e32bf232e5a40d5cce9d4f63a87c25fcb19f6eceadbff7c76321468c159",
+      "extents": {
+        "files": 8,
+        "input_bytes": 25153011,
+        "before_range_read_bytes": 669843,
+        "ingested_image_bytes": 36667392,
+        "after_range_read_bytes": 669843,
+        "sampled_extents": 386,
+        "attempts": 1,
+        "maintenance_read_calls": 10492,
+        "maintenance_read_bytes": 30874653,
+        "maintenance_write_bytes": 0,
+        "complete_group_only_bytes": 35766272,
+        "complete_preserved_bytes": 35766272,
+        "cpu_exact": true,
+        "run": "local-run-2d7499d48467498fb5b322b7124613dd",
+        "result_sha256": "3a6ac8ac712c4d1c96bd89d339f83f92e5f1c794fb42a615ad51946d4085a7f2",
+        "output_sha256": "4bd7c7e20361624755d12781d89998e5001eba8fda334a45f60b991fb803b21e",
+        "peak_job_bytes": 191553536,
+        "job_retired": true
+      },
+      "inline": {
+        "files": 8,
+        "input_bytes": 25153011,
+        "before_range_read_bytes": 669843,
+        "ingested_image_bytes": 36667392,
+        "after_range_read_bytes": 669843,
+        "sampled_extents": 386,
+        "attempts": 1,
+        "maintenance_read_calls": 10492,
+        "maintenance_read_bytes": 30874653,
+        "maintenance_write_bytes": 0,
+        "complete_group_only_bytes": 35766272,
+        "complete_preserved_bytes": 35766272,
+        "cpu_exact": true,
+        "run": "local-run-4b02c8af435a4848ac28f5407ef660f5",
+        "result_sha256": "aed73fc33cd300e9bd23befde7dbc5b1988bd3d0cc20bb1b2a73b9ccd87049b6",
+        "output_sha256": "be84113089b43bfd31d89767ee0315f53a358706d5dfe5a2bdaa1a41c372edad",
+        "peak_job_bytes": 268148736,
+        "job_retired": true
+      }
+    }
+  },
+  "durability": {
+    "write_fault_cases": [
+      {
+        "direction": "to_extents",
+        "recovery_cases": 111,
+        "previous": 103,
+        "complete": 8
+      },
+      {
+        "direction": "to_inline",
+        "recovery_cases": 87,
+        "previous": 79,
+        "complete": 8
+      }
+    ],
+    "independent_cpu_byte_exact": true,
+    "scope": "Every observed modeled write or flush boundary for sparse promotion and demotion, with rename and unrelated-file checks. Both prior and new complete generations recovered.",
+    "run": "local-run-22131eefbbd04d83aa5d4fad007bcae1",
+    "result_sha256": "460d90d92c61400e196bee9a6162bb9148837771453d5f7bae33730ea74e7f25",
+    "output_sha256": "5d5b8f17b1f0fc4f5e74964904a6d2e3ce35939062167931312067c3333b847b",
+    "peak_job_bytes": 4694016,
+    "job_retired": true
+  },
+  "qualification_runs": {
+    "release-0": {
+      "ctest_groups": 2,
+      "run": "local-run-6334dc23a6114a05a33914afdfc5e78d",
+      "result_sha256": "13902ec3c4bb0722cd3cce39099246d02e82111eecf4864c4df6a7117d23f07b",
+      "output_sha256": "7b2393bbb0c1c28e743c0abcf22ca5ae3e9d4355db967a60ab31a295c60c3bcb",
+      "peak_job_bytes": 40566784,
+      "job_retired": true
+    },
+    "release-1": {
+      "ctest_groups": 3,
+      "run": "local-run-2d0cab306edc49609e83fbb7b7832535",
+      "result_sha256": "ba79b86c2aa52f2168bb5391ff02fb842427f3dfc19dc9f38714d0e63776e2b3",
+      "output_sha256": "91f5c8a925769b4e03d3aab88648b6bae6446a8b4320800b0bcc2c4866db116f",
+      "peak_job_bytes": 57835520,
+      "job_retired": true
+    },
+    "raw-0": {
+      "ctest_groups": 1,
+      "run": "local-run-1551b251211e48a99432ef1ae318c162",
+      "result_sha256": "0c4c08bd3e55aaaae98a175cf752f6e07c30ca7bc502220747d4670aceae4857",
+      "output_sha256": "cb83943a62c43100ff6a7a25e57783e735173c31df885c35a4654bce74795a4b",
+      "peak_job_bytes": 9347072,
+      "job_retired": true
+    },
+    "asan-0": {
+      "ctest_groups": 2,
+      "run": "local-run-b4bd84d45ea34c3aabfd13e02fd261f4",
+      "result_sha256": "e604dd099a75856e88df07dcf22c4636cbeeb1e5735c4d30a1fd936b915e8e27",
+      "output_sha256": "c312ad602768fae4c4d65c2600b742207fc98fb3101bd3bad520d6e7d4dd9432",
+      "peak_job_bytes": 389054464,
+      "job_retired": true
+    },
+    "asan-1": {
+      "ctest_groups": 2,
+      "run": "local-run-fd560324cf0548f5946b56c81e67c0f3",
+      "result_sha256": "9e156927bd559e008e89c16a7852e0814930e0b0512c50f3b55d9b92b755ede0",
+      "output_sha256": "e580bce5e505b12390bf86978e989acd57d250c9ebef5fee9ecb918403e5c360",
+      "peak_job_bytes": 326520832,
+      "job_retired": true
+    }
+  },
+  "prepared_amd_recheck": {
+    "staged_manifest_sha256": "8850bf2b96ec6d5dd46cad58d5638d8f1bd4ac066b717da9b0ac41b3211550e8",
+    "admitted": false,
+    "observed_engine_peak_pct": 58.76147428035689,
+    "windows_build": "26300",
+    "run": "local-run-98b4dd5ad8744c7fafeb5603a17648f2",
+    "result_sha256": "065cf0dcf24ebee01c9ab5d69a3e0d04b32fd270f729ed1a32acf2ea75c717f2",
+    "output_sha256": "61438d3132af2590109d5b91016a355de1936ae2549b75a7d72a5ba9f391551f",
+    "peak_job_bytes": 104706048,
+    "job_retired": true,
+    "device_launches": 0,
+    "reason": "Existing host load above the fixture envelope"
+  },
+  "design_primary_sources": "docs/evidence/windows-protected-size-frontier-2026-11-25.json",
+  "next": "Hold out a named tree and a signed client operation shape. Compare complete occupied bytes, rewrite cost and range access under equal protection before selecting defaults or a migration."
+}

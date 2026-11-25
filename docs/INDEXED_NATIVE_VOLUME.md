@@ -35,7 +35,7 @@ check the capability against its exact root length.
 | 64 | 8 | Committed input bytes |
 | 72 | 16 | Exact paged store identity |
 | 88 | 4 | Extent length 65,536 |
-| 92 | 4 | Namespace features. Bit 0 selects Windows ordinal names. Bit 8 admits directory summaries. Bit 9 confirms a tracked root. Other bits are reserved. |
+| 92 | 4 | Namespace features. Bit 0 selects Windows ordinal names. Bit 8 admits directory summaries. Bit 9 confirms a tracked root. Bit 10 permits inline short-file data in capability 2 and later. Other bits are reserved. |
 | 96, 104, 112 | 8 each | Capability 2 and later counts for active lifetime records, detached inodes and retired inodes |
 | 120, 128 | 8 each | Capability 3 and later shared-base and member counts |
 
@@ -54,6 +54,43 @@ shared-base backreferences in the same protected tree.
 | Parent inode, canonical name bytes | Child inode |
 | `(1ULL << 61) \| inode`, 8-byte big-endian block number | Data object ID |
 | `(1ULL << 61) + base ID`, 8-byte big-endian member object ID | Member object ID |
+
+### Inline short-file data
+
+A newly created experimental indexed volume can select
+`NativeIndexedDataLayout::inline_small_files`. Its checked root advertises
+the feature before a regular inode can contain inline data. The same
+reader supports existing extent-based images. An older reader with the
+previous namespace-feature mask refuses a root carrying bit 10. Reopen,
+compaction and a group-capability update preserve the feature.
+
+The canonical inode frame still has zero legacy extent entries. A
+regular file of at most 512 bytes may store its data from offset zero
+through the last nonzero byte after the name and descriptor. The
+suffix length comes from the checked frame length and must fit within
+the logical file size. The read path supplies any
+remaining bytes up to EOF as zeros. Empty and all-zero files need no
+inline suffix. Directory summary framing is unchanged.
+
+Both copies of the inode protect its metadata and inline bytes.
+The live extent count describes mapped external extents. An unreserved
+file with an inline prefix still charges one logical extent. Explicit
+allocation retains its existing charge. The inventory verifier rejects
+an external extent owned by an inline inode.
+
+A data change stages the first extent under the existing transaction
+budget. If the file remains short, the transaction can move that
+payload into the inode and remove the external record and key. Growth
+beyond 512 bytes stages the preserved prefix as an external extent,
+even when a sparse write starts past it. Resize, mapping edits and the
+inode become visible through the same checked root. Pending delete and
+detached handles retain the inode until its lifetime ends. Old
+snapshots retain their previous representation.
+
+The experimental layout is available to native and WinFsp callback
+fixtures. Adoption in ordinary volume creation and migration is tracked
+in the release plan. [Inline layout evidence](evidence/windows-inline-small-files-2026-11-25.json) ·
+[Release design](architecture/ADAPTIVE_STORAGE_EXECUTION.md#protected-short-files-and-complete-size)
 
 ### Name profiles
 
