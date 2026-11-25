@@ -2190,6 +2190,10 @@ bool NativeFileSession::directory_backfill_pending() const noexcept {
 NativeDirectoryBackfillStep NativeFileSession::advance_directory_backfill() {
   return ready().writer.advance_directory_backfill();
 }
+NativePackedInodeMigrationStep NativeFileSession::advance_packed_inode_migration(
+    std::uint64_t after,std::uint64_t maximum_write_bytes) {
+  return ready().writer.advance_packed_inode_migration(after,maximum_write_bytes);
+}
 void NativeFileSession::cancel_directory_backfill() noexcept {
   if(impl_)impl_->writer.cancel_directory_backfill();
 }

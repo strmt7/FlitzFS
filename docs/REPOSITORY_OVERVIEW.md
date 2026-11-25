@@ -47,6 +47,13 @@ Use the [target architecture](architecture/TARGET.md),
 [Previous handle and recovery reconciliation](evidence/release-reconciliation-indexed-handle-2026-11-22.json) ·
 [Development state ledger](DEVELOPMENT_STATE.json)
 
+The indexed writer and session now support incremental migration of
+standalone short inodes into protected packed pages. The first successful
+quantum publishes the required capability with its rows, preserving
+the prior checkpoint for held readers. Automatic activation remains a
+qualification item.
+[Current reconciliation and next implementation order](RELEASE_RECONCILIATION_2026-11-25.md#reconciliation-after-bounded-inode-migration)
+
 ## Assessment
 
 FlitzFS is in **development qualification**. Its indexed engine and Windows

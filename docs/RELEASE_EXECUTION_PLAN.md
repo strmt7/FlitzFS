@@ -483,6 +483,11 @@ saving in each lane before expanding format or worker variants.
 [Detailed package steps](IMPLEMENTATION_PLAN.md)
 [Next implementation steps](RELEASE_RECONCILIATION_2026-11-25.md#ordered-implementation-and-decision-points)
 
+The [current reconciliation](RELEASE_RECONCILIATION_2026-11-25.md#reconciliation-after-bounded-inode-migration)
+reorders the storage steps around measured write cost and settled footprint.
+Use its migration work alongside the automatic AMD and populated attach
+lanes. [Packed inode migration plan](IMPLEMENTATION_PLAN.md#execution-after-packed-inode-migration)
+
 ### Next integrated qualification
 
 The populated packed and sparse runs now share a 6,293-record Win32 transcript

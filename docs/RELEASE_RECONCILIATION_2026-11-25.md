@@ -1,5 +1,169 @@
 # FlitzFS release reconciliation · 25 November 2026
 
+## Reconciliation after bounded inode migration
+
+The reviewed parent is `64f94e514f50`. Its 1,146 tracked paths include 222
+under `src/` and `include/`, 153 under `tests/`, 67 under `tools/` and
+649 under `docs/`. Since `c0ac21c`, three commits changed 31 paths.
+The review follows the writable client, image selection and repair,
+compression representations, device admission, background policy,
+compatibility, and release evidence. The new migration uses one protected
+transaction per eligible inode page. Existing inline volumes can be
+converted incrementally without a whole-image rewrite during activation.
+[Exact source, tests and research receipts](evidence/windows-packed-inode-migration-2026-11-25.json)
+
+| Area | Current evidence | Limiting work |
+| --- | --- | --- |
+| Windows ownership | WinFsp and the helper provide writable client I/O. Signed guest tests cover Explorer interaction, populated cached and mapped operations, and fresh CPU reopen. | Bind installation, removal, stop, update and interactive behavior to the supported client, signed package and backing. Keep driver qualification isolated from live performance runs. |
+| Storage authority and scale | The paged namespace preserves stable inode IDs and serves bounded lookups. Mirrored reopen and staged reclamation have independent CPU verification and mounted traces. | Attach still audits live objects. Prove a checked incremental attach and sustained space reuse under mounted churn with pinned readers, rather than inferring from index capacity. |
+| Allocation and failure | Protected checkpoints, payload readback and fenced selection are exercised by modeled cuts and file-backed guest process termination. | Measure real flush ordering, wider failure-unit behavior and interruption recovery per supported medium. Reconcile acknowledged bytes with a separate reference. |
+| Native compression | Compact roots and packed short inodes materially reduce metadata. Shared bases, delta forms and prefix encoding already decode independently on the CPU. | Price complete groups across held-out families, including replicated dictionaries, indexes, restart costs and reclaim. Keep opaque high-entropy inputs on their best measured path. |
+| AMD | A bound Radeon worker has delivered two verified grouped read extents in the SDK fixture. The latest write preflight measured 99.4% GPU load and did not launch a worker. | Deliver a reproducible benefit for automatically selected ordinary reads, writes and strong background compression. Separate refusal, startup, transfer, compute, verification and consumed bytes. |
+| Maintenance | Existing demand grants, write credits, advisory state and sparse discovery support automatic work and yielding. | Bind a resumable migration cursor and calibrated learner to this owner loop, with measured interference and settled-size effects. |
+| Compatibility | New readers handle both direct and packed inode rows. First packing changes the required feature bit in the same mirrored transaction. | Exercise frozen old readers and writable refusal, reopen after interruption and compatible export through the actual selected volume path. |
+| Publication and comparison | Development keeps its exact source and test receipts. The supported candidate, declared fault model, and matched NTFS controls still need a common qualification run. | S1-S12 remain open; gate closure requires the same package and declared support tuples. |
+
+### Migration result and cost
+
+The 374-file CPython tree with 160 directories settled at 464 KiB
+including the selector, compared with 672 KiB for the same inline
+control. Migration packed 362 inodes over 67 opportunities and added
+2,383,872 backing write bytes before compaction. The write sweep cost
+approximately 11.2 bytes per settled byte saved, plus the compaction
+work. Compacted CPU file reads fetched 14,310,207 backing bytes,
+compared with 14,039,278 for the inline control. Independent CPU
+readback matched every file.
+
+The page-at-a-time mechanism is useful for bounded activation and
+recovery. Favor fresh packed creation after ordinary-client validation.
+For existing volumes, compare multi-page staging with conversion during
+already funded reclamation before enabling the automatic policy.
+[Footprint and modeled recovery](evidence/windows-packed-inode-migration-2026-11-25.json)
+
+### Research decisions
+
+- Preserve the selected root as the sole layout authority. OpenZFS distinguishes
+  activation and read-only compatibility. Btrfs documents that relocating
+  extents can defeat rollback after its conversion. For FlitzFS, a pinned
+  source generation is useful for readers. Downgrade after newer acknowledged
+  writes needs a separate checked export of the current volume. The normal
+  optimizer can discard advisory migration intent without changing format.
+  [OpenZFS feature activation](https://openzfs.github.io/openzfs-docs/man/master/7/zpool-features.7.html) ·
+  [Btrfs conversion and rollback](https://btrfs.readthedocs.io/en/latest/btrfs-convert.html)
+- Keep an initialized HIP context, loaded module, stream and reusable
+  bounded buffers only while a current demand lease earns its cost.
+  Submit work on arrivals. Retire the lease on memory or load pressure,
+  adapter invalidation, loss of demand or service failure. Use the CPU
+  immediately on a failed request. Require confirmed worker retirement
+  and fresh, changed eligibility evidence before the next device attempt.
+  Graphs and concurrent transfer are candidates to measure after the
+  retained-worker case wins. FlitzZip's bound runtime and per-stage device
+  receipts can inform instrumentation and setup.
+  [ROCm Core SDK 10.2.0](https://rocm.docs.amd.com/en/docs-10.2.0/about/release-notes.html) ·
+  [HIP asynchronous execution](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_runtime_api/asynchronous.html) ·
+  [FlitzZip device coverage](https://github.com/strmt7/FlitzZip/blob/11396b5123505a4a1959173e1db2d0858c10dd6d/docs/development/hip-device-coverage.md)
+- Keep the first local learner in the proposal path. The Tufa Labs experiment
+  accounts for weights and decoder in its 105,388,353-byte Wikipedia result.
+  Its larger prior shrank payload further and increased the complete size.
+  Test a small local ranker against sparse-rule proposals first. Evaluate
+  a stored predictor only if it pays for its own protected footprint and
+  independently decodes with bounded random access on the CPU. Use the
+  Large Text Compression Benchmark as a text-specific research control.
+  [Tufa Labs experiment](https://tufalabs.ai/research/tufazip/) ·
+  [Large Text Compression Benchmark](https://mattmahoney.net/dc/text.html) ·
+  [Zstandard dictionary interface](https://github.com/facebook/zstd/blob/v1.6.0/lib/zdict.h)
+- Use DiskSpd 2.3 with equal completion and caching modes and an explicit
+  affinity profile. Pair it with named Win32 workloads and AITDCC 2026.
+  Freeze the canonical training A-H and held-out I-P files independently.
+  AITDCC is a compression corpus. The mounted scenarios measure real
+  file operations. For the Windows control, use native NTFS compression
+  via `compact /C` on newly created disposable test paths, verify
+  compression state and contents, and record per-file compressed sizes
+  and whole-volume allocated bytes. Keep NTFS plain as its own arm.
+  [DiskSpd 2.3](https://github.com/microsoft/diskspd/releases/tag/v2.3) ·
+  [AITDCC 2026 dataset](https://aitdcc.github.io/dataset.html) ·
+  [Windows compact command](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/compact) ·
+  [Windows compressed size API](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getcompressedfilesizew)
+- Qualify against the currently serviced Windows 11 client build and the
+  exact WinFsp driver and SDK independently of the AMD runtime. Discover
+  installation and device capabilities at setup and reopen. Pin a tested
+  stable signed dependency set and qualify newer candidates before promotion.
+  The current vendor references list Windows 11 26H2 and stable WinFsp
+  2026 v2.2. The staged SDK lock already selects the v2.2 package.
+  [Windows 11 release information](https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information) ·
+  [WinFsp release packages](https://github.com/winfsp/winfsp/releases)
+
+### Implementation order and exits after migration
+
+1. **Place new data efficiently and price migration.** Keep the compact inline
+   layout as the control. Run compacted direct, freshly packed and migrated
+   versions of the same named sparse and dense trees. Account for the added
+   append and eventual compaction writes per released byte, point reads and
+   live handles. Integrate one bounded multi-page migration proposal into the
+   ordinary idle controller only where its age, source density, media cost
+   and measured size forecast justify it. Bind progress to image identity,
+   format, a checked cursor and a settled-write credit. Interrupt on foreground
+   demand. Revisit stale advice against the current root. Freeze an old
+   executable and run a zero-write refusal case before default activation.
+2. **Qualify real automatic AMD benefit.** Extend the existing populated
+   Win32 trace with overlapping requests over eligible 64 KiB and larger
+   batches, preserving queue depth and data shape across the CPU-only, cold
+   device and lease-reuse arms. Check independent decoded bytes and selected
+   allocation, actual device commands and CPU fallback. Trace GPU queue and
+   host resource interference. Require useful verified bytes to be consumed
+   by the normal client and a repeatable benefit at equal correctness.
+   Where the CPU wins, retain its calibrated route. Repeat at pressure and
+   refusal boundaries before exposing any default.
+3. **Make attach and reuse scale.** Shadow incremental generation validation
+   against a full CPU audit, including interrupted metadata repair and
+   long-lived reader pins. Drive a fixed live set through sustained mounted
+   churn and settle every allocation class. Run geometric count tiers with
+   the same file-size and locality mix. Track pages looked up, bytes read,
+   allocator debt and peak memory separately from time. Fit attach cost
+   against live inode, index-page and extent counts, with churn and pinning
+   as separate variables. Check point lookups against tree height and cold
+   page reads. Validate with a withheld feasible tier, then report prediction
+   intervals and the largest measured population. Label tens-of-millions
+   outcomes as projections until measured.
+4. **Search for large settled compression gains.** Reuse stable extent samples
+   and persisted sparse postings. Start with exact deduplication and narrow
+   cohorts, then compare bounded content-defined boundaries and chunk
+   sketches with independent Zstandard, dictionaries, verified delta and
+   shared-base controls. Bound each query's candidate count and scratch by
+   measured host headroom. Group sizes are an effect of byte benefit and
+   access cost. A group can span a large set of files while its restart units
+   remain independently decodable. Compare a trained local ranker with the
+   same-budget rule baseline on disjoint
+   repository families and time windows. Admit winners only after complete
+   occupied-byte, range access, CPU decode and interrupted-publication checks.
+5. **Qualify launch and recovery.** Exercise the exact Windows client package
+   with no GPU runtime, no compatible GPU, driver reset, stop/remove and
+   clean upgrade. Separate scoped persistent tests by media contract and
+   isolate power and kernel failures. Match each durable client
+   acknowledgement to selected CPU state across the cut and repair matrix.
+   Protect reserved optimization records with staged publications and prove
+   correct writable reopen when the entire advice area is lost. Use provider
+   geometry, observed read and write cost and workload headroom to budget
+   reclamation for RAM, solid-state, rotational and removable backing.
+   Qualify each advertised provider and use conservative budget grants
+   when geometry or behavior remains unknown.
+6. **Measure and stabilize the same candidate.** Run alternating real-host
+   comparisons on equivalent backing, with separate cache, data and access
+   modes and CPU/GPU availability receipts. Cover NTFS plain, native NTFS
+   compressed, fast FlitzFS foreground and settled FlitzFS compression.
+   Publish exact files, logical and allocated bytes, readback, latency
+   distributions, resource peaks, setup/stop results and representative
+   repeat variation. Complete the owner-review packet against all twelve gates.
+
+The remaining estimate is still **59-127 person-weeks**, with low confidence
+and no reliable limit on the stronger compression research. Re-estimate after
+the first ordinary automatic AMD benefit, the held-out group result, the
+populated attach and reuse curves, and persistent-media recovery. The current
+migration closes one storage mechanism, while the evidence and integration
+for S2, S3, S6, S8 and S9 remain open.
+[Detailed package plan](IMPLEMENTATION_PLAN.md#12-e09--multi-release-readers-and-gradual-format-migration) ·
+[Gate ledger and completion dependencies](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
+
 ## Current reconciliation and prioritized design
 
 **Development qualification.** FlitzFS has a writable Windows

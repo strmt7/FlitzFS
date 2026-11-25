@@ -490,6 +490,8 @@ class NativeFileSession final {
   bool directory_backfill_pending() const noexcept;
   NativeDirectoryBackfillStep advance_directory_backfill();
   void cancel_directory_backfill() noexcept;
+  NativePackedInodeMigrationStep advance_packed_inode_migration(
+      std::uint64_t after,std::uint64_t maximum_write_bytes);
   std::optional<NativeManagedForeground> managed_foreground() const noexcept;
   bool matches_managed_foreground(const NativeManagedForeground&) const noexcept;
   NativeFilesystemSnapshot snapshot() const;

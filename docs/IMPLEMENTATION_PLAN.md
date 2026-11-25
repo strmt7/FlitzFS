@@ -2585,13 +2585,65 @@ owner host. **Existing ledger:** W01, D01; scalable completion also requires E01
 **Reuse:** existing flat/paged capabilities, typed heads, compatible resume,
 immutable representations and COW handoff. **Planning effort:** 3–6 person-weeks.
 
+### Execution after packed inode migration
+
+The writer and session expose a protected incremental conversion from
+inline-capable standalone rows to packed inode pages. The first
+publication activates bit 11 with the rows and standalone removals.
+The paged writer independently checks both new copies before trying the
+root publication. The logical namespace sequence stays at the previously
+acknowledged value. [Scope and evidence](INDEXED_NATIVE_VOLUME.md#incremental-packing-of-existing-inodes)
+
+1. **Compare fresh and existing volumes.** Replay the same named held-out
+   tree in compact inline, fresh packed and migrated packed modes. Keep
+   content, metadata and failure geometry matched. Measure steady-state
+   allocation and p95/p99 point reads, then divide additional append and
+   settlement writes by the final bytes saved. Include sparse page
+   occupancy, metadata-heavy files, mixed lengths and foreground churn.
+   Use the result to rank fresh layout promotion and existing-volume
+   migration independently.
+2. **Amortize production migration.** Extend the one-page writer quantum
+   to prepare several eligible pages under the admitted time, scratch
+   and write grant. Keep a retryable cursor at the final checked page.
+   Compare append-batched conversion with conversion during the existing
+   copied checkpoint. Reuse the copy if it reaches the same verified
+   representation with fewer writes and acceptable read amplification.
+   Keep planning local to checked pages. Avoid a complete compacted-size
+   scan for each small proposal.
+3. **Fund the ordinary controller.** Add a separate costed maintenance
+   offer to the owning session. Avoid concurrent rotation, pending repair
+   and reader-pinned retirement debt. Check interactive I/O pressure
+   between candidate pages and immediately before publication. Bind
+   advice to selected image identity, format and the bounded cursor.
+   On budget refusal or source change, retain only retryable progress.
+   Count spent rewrite credit and use actual settled savings to tune
+   subsequent offers. A missing or damaged cursor restarts a checked
+   survey.
+4. **Qualify feature activation.** Freeze a pre-feature executable, the
+   current CPU reader and the candidate. Exercise prior inline,
+   partially converted and fully compacted roots through ordinary
+   open and Windows volume selection. Require zero writes on refusal,
+   exact old-format reads on supported software, preserved open handles
+   and matching namespace and metadata. Repeat cut points at every
+   write or barrier on each backing being qualified.
+5. **Qualify reclamation and compatible export.** Use the existing
+   handoff and retention proof. Release old bytes only after independent
+   recovered readback and expiration of every relevant reader pin.
+   Check the export path after acknowledged changes in the new format.
+   Compare the exported current filesystem with the reference operation
+   log using an older reader. Record the supported compatibility window
+   per published format feature.
+
+[Current architecture](architecture/CURRENT.md#packing-standalone-short-inodes) ·
+[Round priorities and measurements](RELEASE_RECONCILIATION_2026-11-25.md#reconciliation-after-bounded-inode-migration)
+
 ### First migration implementation
 
 Fresh dense and range volume files now set the short-file feature at
 creation. The modeled growth and shrink cuts verified copy-on-write
-representation changes with the feature already active. Older selected
-roots still require migration qualification. Use this format for the
-first end-to-end gradual upgrade.
+representation changes with the feature already active. Older extent-only roots need their own migration qualification. Follow the
+same selection, budget and compatibility contracts after the packed-inode
+path establishes them.
 
 1. **Freeze selection and refusal.** Capture old extent-only and new inline
    images at both root and volume-file boundaries. Run the oldest retained

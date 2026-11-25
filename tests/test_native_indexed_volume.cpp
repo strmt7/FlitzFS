@@ -1333,6 +1333,79 @@ void indexed_inode_page_inventory() {
       "reclaiming an inode page changed a pinned view");
 }
 
+void indexed_packed_inode_migration() {
+  using Error=NativeFsErrorCode;
+  constexpr auto standalone=1ULL<<63;
+  constexpr auto packed=kIndexedInodePageObject|1;
+  const auto first=payload(271),second=payload(272);
+  const auto large=data(kIndexedInlineFileBytes+1,273);
+  constexpr NativeBasicMetadata metadata{11,22,33,44,0x20};
+  for(const auto unit:{4096U,65536U}) {
+    auto backing=empty();
+    backing->failure_unit=unit;
+    auto writer=NativeFilesystemWriter::initialize_indexed(
+        PagedObjectStoreWriter::create_mirrored(backing,identity(),limits,raw,PagedStoreBankLayout::compact),
+        NativeIndexedDataLayout::inline_small_files);
+    const std::array changes{file_create("first"),file_write("first",0,first),
+        file_create("second"),file_write("second",0,second),file_create("large"),file_write("large",0,large)};
+    const NativeBasicMutation basic{0,1,metadata};
+    const auto created=writer.apply_with_basic(changes,{&basic,1});
+    const auto first_id=created.created_inodes.front(),second_id=created.created_inodes.at(1);
+    const auto large_id=created.created_inodes.back();
+    const auto pinned=writer.snapshot();
+    const auto source=backing->stable;
+    const auto earlier=PagedObjectStoreSnapshot::open(backing,limits);
+    const auto before_calls=backing->calls;
+    refuses(Error::limit,[&]{(void)writer.advance_packed_inode_migration(0,0);});
+    require(!writer.poisoned() && backing->calls==before_calls && backing->stable==source,
+        "packed migration used storage without a write grant");
+    const auto verify=[&](const std::shared_ptr<Ram>& image,bool migrated) {
+      const auto snapshot=NativeFilesystemSnapshot::open_image(image,indexed);
+      snapshot.verify_all();
+      const auto store=PagedObjectStoreSnapshot::open(image,limits);
+      require(snapshot.sequence()==pinned.sequence() && snapshot.basic_metadata(first_id)==metadata &&
+          snapshot.stat("first").inode==first_id && snapshot.stat("second").inode==second_id &&
+          snapshot.read("first",0,100)==first && snapshot.read("second",0,100)==second &&
+          snapshot.read("large",0,1024)==large && store.stat(standalone|large_id),
+          "packed migration changed names, inode identities, metadata or contents");
+      require(bool(store.stat(packed))==migrated && bool(store.stat(standalone|first_id))!=migrated &&
+          bool(store.stat(standalone|second_id))!=migrated,
+          "packed migration mixed physical representations");
+    };
+
+    const auto writes=backing->write_bytes;
+    const auto step=writer.advance_packed_inode_migration(0,8*kStoreCommitUnit);
+    const auto boundaries=backing->calls-before_calls;
+    require(step.complete && step.packed_inodes==2 && step.scanned_through==large_id &&
+        step.write_bytes_upper_bound>=backing->write_bytes-writes && step.write_bytes_upper_bound>0,
+        "packed migration accounted for a different set of rows or writes");
+    verify(backing,true);
+    require(pinned.read_inode(first_id,0,100)==first && earlier.read(standalone|second_id).size()>second.size() &&
+        !earlier.stat(packed),"packed migration invalidated the prior checkpoint");
+    const auto done=writer.advance_packed_inode_migration(step.scanned_through,0);
+    require(done.complete && !done.packed_inodes && backing->calls==before_calls+boundaries,
+        "completed packed migration issued extra writes");
+
+    std::size_t previous=0,complete=0;
+    for(unsigned mode=0;mode<3;++mode)for(std::size_t cut=0;cut<boundaries;++cut) {
+      auto candidate=image(source,unit);
+      auto interrupted=resume_writer(candidate,created.storage.generation);
+      candidate->failure=mode;
+      candidate->fail_at=candidate->calls+cut;
+      refuses(Error::storage_failure,[&]{(void)interrupted.advance_packed_inode_migration(0,8*kStoreCommitUnit);});
+      require(interrupted.poisoned(),"interrupted packed inode writer accepted further operations");
+      const auto recovered=image(candidate->stable,unit);
+      const bool migrated=PagedObjectStoreSnapshot::open(recovered,limits).stat(packed).has_value();
+      verify(recovered,migrated);
+      if(migrated)++complete;
+      else ++previous;
+    }
+    require(previous && complete,"packed migration faults did not reach both checkpoints");
+    std::cout<<"packed_inode_migration unit="<<unit<<" cuts="<<previous+complete
+        <<" previous="<<previous<<" complete="<<complete<<" write_bound="<<step.write_bytes_upper_bound<<'\n';
+  }
+}
+
 void indexed_detach_recovery() {
   using Error=NativeFsErrorCode;
   auto original=empty();
@@ -1940,7 +2013,7 @@ void profile_cpython_reopen(const char* path,bool compressed=false) {
   },encoding);
 }
 
-void profile_named_inline(const std::filesystem::path& path,bool compare_packed=false) {
+void profile_named_inline(const std::filesystem::path& path,bool compare_packed=false,bool migrate_packed=false) {
   const NamedCorpusFixture corpus(path);
   require(store_zstd_available() && corpus.files().size()<=512 && corpus.logical_bytes()<=4ULL*1024*1024,
       "named inline profile exceeds the admitted cohort or lacks Zstandard");
@@ -1956,13 +2029,14 @@ void profile_named_inline(const std::filesystem::path& path,bool compare_packed=
   const auto head_layout=compare_packed?NativeVolumeHeadLayout::compact:NativeVolumeHeadLayout::legacy;
   const auto image_layout=compare_packed?PagedStoreBankLayout::compact:PagedStoreBankLayout::shared;
   for(const auto layout:layouts) {
+    const bool migrate=migrate_packed && layout==NativeIndexedDataLayout::packed_small_file_inodes;
     auto head=empty(),backing=empty(),compacted=empty();
     backing->capacity=compacted->capacity=capacity;
     constexpr auto kind=NativeDispositionPolicy::windows_global;
     {
       auto session=NativeFileSession::create_indexed_volume(head,identity_for(89),backing,identity(),{capacity},
-          encoding,kind,NativeVolumeRootMetadata{directory_info,security},NativeVolumePlacement::external,layout,
-          head_layout,image_layout);
+          encoding,kind,NativeVolumeRootMetadata{directory_info,security},NativeVolumePlacement::external,
+          migrate?NativeIndexedDataLayout::inline_small_files:layout,head_layout,image_layout);
       for(const auto& directory:corpus.directories())session.create_entry(directory,true,directory_info,security);
       for(const auto& file:corpus.files()) {
         session.create_entry(file.path,false,file_info,security);
@@ -1970,6 +2044,23 @@ void profile_named_inline(const std::filesystem::path& path,bool compare_packed=
         session.write(handle,0,corpus.read(file));
         session.cleanup(handle,false);
         session.close(handle);
+      }
+      if(migrate) {
+        const auto writes=backing->write_bytes;
+        std::uint64_t after=0,charge=0;
+        std::size_t packed_count=0,opportunities=0;
+        for(;;) {
+          const auto step=session.advance_packed_inode_migration(after,8*kStoreCommitUnit);
+          charge+=step.write_bytes_upper_bound;
+          packed_count+=step.packed_inodes;
+          ++opportunities;
+          if(step.complete)break;
+          require(step.scanned_through>after && opportunities<=count,"packed inode migration cursor did not advance");
+          after=step.scanned_through;
+        }
+        require(charge>=backing->write_bytes-writes,"packed inode migration exceeded the observed write budget");
+        std::cout<<"named_inode_migration rows="<<packed_count<<" opportunities="<<opportunities
+            <<" writes="<<backing->write_bytes-writes<<" write_bound="<<charge<<'\n';
       }
       require(session.stats().contexts==0,"named inline profile retained an open context");
     }
@@ -1984,7 +2075,7 @@ void profile_named_inline(const std::filesystem::path& path,bool compare_packed=
       require(selected.read(file.path,0,static_cast<std::uint32_t>(file.bytes))==corpus.read(file),
           "named inline profile changed CPU bytes");
     }
-    const auto name=layout==NativeIndexedDataLayout::packed_small_file_inodes?"packed":
+    const auto name=migrate?"migrated":layout==NativeIndexedDataLayout::packed_small_file_inodes?"packed":
         layout==NativeIndexedDataLayout::inline_small_files?"inline":"extents";
     std::cout<<"named_inline_profile layout="<<name
         <<" files="<<corpus.files().size()<<" directories="<<corpus.directories().size()
@@ -2011,6 +2102,7 @@ int main(int argc,char** argv) {
       indexed_session_lifetimes(layout);
       indexed_inline_transitions(layout);
       indexed_inode_page_inventory();
+      indexed_packed_inode_migration();
       std::cout<<"PASS: packed indexed inode lifecycle, fenced transitions and byte-exact CPU readback\n";
       return 0;
     }
@@ -2020,6 +2112,10 @@ int main(int argc,char** argv) {
     }
     if(argc==3 && std::string_view(argv[1])=="--profile-named-packed-inodes"){
       profile_named_inline(argv[2],true);
+      return 0;
+    }
+    if(argc==3 && std::string_view(argv[1])=="--profile-packed-inode-migration"){
+      profile_named_inline(argv[2],true,true);
       return 0;
     }
     if(argc==2 && std::string_view(argv[1])=="--reconciled-rebuild"){

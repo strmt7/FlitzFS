@@ -219,14 +219,39 @@ void damage_detached_replica(const WinFspVolumeFileSelection& file) {
   const auto& backing=std::get<std::shared_ptr<StoreByteIo>>(file.backing);
   std::vector<std::byte> bytes(static_cast<std::size_t>(backing->extent()));
   backing->read_exact(0,bytes);
+  const auto baseline=NativeVolumeFile::inspect(backing,file.volume);
+  constexpr std::uint64_t inode_domain=1ULL<<63;
+  const auto inode_record=inode_domain|baseline.filesystem().stat("retained.txt").inode;
+  const auto selected_generation=baseline.filesystem().storage_info().generation;
+  constexpr std::string_view magic="FLTXDAT1";
+  constexpr std::size_t header_size=128;
+  std::uint64_t generation=0;
+  std::size_t primary=0,peer=0;
+  auto scan=bytes.begin()+kNativeVolumeFileImageOffset;
+  while(scan!=bytes.end()) {
+    const auto hit=std::search(scan,bytes.end(),magic.begin(),magic.end(),
+        [](std::byte a,char b){return a==static_cast<std::byte>(b);});
+    if(bytes.end()-hit<static_cast<std::ptrdiff_t>(header_size))break;
+    scan=hit+magic.size();
+    std::uint64_t object=0,revision=0;
+    std::memcpy(&object,&hit[16],sizeof(object));
+    std::memcpy(&revision,&hit[24],sizeof(revision));
+    if(object!=inode_record || !revision || revision<generation || revision>selected_generation)continue;
+    const auto offset=static_cast<std::size_t>(hit-bytes.begin());
+    if(revision>generation) {
+      generation=revision;
+      primary=offset;
+      peer=0;
+    }else if(offset-primary>=backing->contract().write_failure_unit_bytes &&
+        std::equal(hit,hit+header_size,bytes.begin()+primary)) {
+      peer=offset;
+    }
+  }
+  require(peer!=0,"Detached fixture did not contain a current inode replica pair");
+  // Exercise the exact protected record regardless of the foreground codec.
+  const auto damage=bytes[peer]^std::byte{1};
+  backing->write_exact(peer,std::span(&damage,1));backing->flush();
   const auto expected=std::as_bytes(std::span(contents.data(),contents.size()));
-  const auto first=std::search(bytes.begin()+kNativeVolumeFileImageOffset,bytes.end(),expected.begin(),expected.end());
-  require(first!=bytes.end(),"Detached fixture did not contain the raw payload");
-  const auto at=static_cast<std::size_t>(first-bytes.begin())+backing->contract().write_failure_unit_bytes;
-  require(at<=bytes.size() && expected.size()<=bytes.size()-at &&
-      std::equal(expected.begin(),expected.end(),bytes.begin()+at),"Detached fixture did not contain the peer");
-  const auto damage=bytes[at]^std::byte{1};
-  backing->write_exact(at,std::span(&damage,1));backing->flush();
   const auto verified=NativeVolumeFile::inspect(backing,file.volume);
   require(verified.filesystem().storage_info().degraded_checkpoint &&
       std::ranges::equal(verified.filesystem().read("retained.txt",0,4096),expected),

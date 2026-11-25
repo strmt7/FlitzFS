@@ -49,6 +49,12 @@ enum class NativeFsErrorCode {
   invalid_operation,limit,corrupt,storage_failure,replica_repair_pending
 };
 enum class NativeDirectoryBackfillStep {idle,scanning,published,capacity};
+struct NativePackedInodeMigrationStep {
+  std::uint64_t scanned_through=0;
+  std::uint64_t write_bytes_upper_bound=0;
+  std::size_t packed_inodes=0;
+  bool complete=false;
+};
 class NativeFsError final:public std::runtime_error {
  public:
   enum class MissingPath {name,parent};
@@ -634,6 +640,12 @@ class NativeFilesystemWriter final {
   bool directory_backfill_pending() const noexcept; // Cached, with no backing I/O.
   NativeDirectoryBackfillStep advance_directory_backfill();
   void cancel_directory_backfill() noexcept;
+  // Revisit one inode-page range on the live checkpoint. Start after zero,
+  // then pass scanned_through; a capacity refusal leaves the cursor unchanged.
+  // Only mirrored inline-capable images are eligible. The grant includes
+  // appended bytes and both root writes. This never changes the namespace sequence.
+  NativePackedInodeMigrationStep advance_packed_inode_migration(
+      std::uint64_t after,std::uint64_t maximum_write_bytes);
   // Single-control-thread committed view for the owning Windows engine.
   // Verify namespace against the last acknowledged model; reads privately
   // verify every touched record. These do not expose an unchecked snapshot.

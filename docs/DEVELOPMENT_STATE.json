@@ -6,6 +6,19 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "packed_inode_migration": {
+    "source_parent": "64f94e514f50e991da46bdaf05defb642f7a7805",
+    "migration_source_tree": "9e4e903e994cc21e25e2e1a2130ff7df40e3fa06",
+    "release_suite_source_tree": "ac892e3f85773dd8b3cd78feb0c75b3fb2698b7d",
+    "evidence": "docs/evidence/windows-packed-inode-migration-2026-11-25.json",
+    "reconciliation": "docs/RELEASE_RECONCILIATION_2026-11-25.md#reconciliation-after-bounded-inode-migration",
+    "modeled_interruption_cuts": 150,
+    "named_cpython_inline_settled_bytes": 688128,
+    "named_cpython_migrated_settled_bytes": 475136,
+    "migration_write_bytes": 2383872,
+    "automatic_migration_enabled": false,
+    "release_qualified": false
+  },
   "hip_startup_budget_renewal": {
     "source_parent": "721ad5782c358d01b4822b07d6caeb9d0d22267b",
     "tested_source_tree": "44fc1cd768035798d224336913810c73a3eed7d5",

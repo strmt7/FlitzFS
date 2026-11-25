@@ -38,8 +38,9 @@ struct Fixture {
       StoreCompressionOptions compression={StoreCompressionMode::raw,1,false},
       NativeIndexedDataLayout layout=NativeIndexedDataLayout::extents,
       NativeVolumeHeadLayout head_layout=NativeVolumeHeadLayout::legacy,
-      PagedStoreBankLayout image_layout=PagedStoreBankLayout::shared):head(ram(unit)),image(ram(unit)) {
-    if(indexed)session.emplace(NativeFileSession::create_indexed_volume(head,id(90),image,id(1),{kStoreMaxPhysicalBytes},
+      PagedStoreBankLayout image_layout=PagedStoreBankLayout::shared,
+      PagedStoreLimits live_limits={kStoreMaxPhysicalBytes}):head(ram(unit)),image(ram(unit)) {
+    if(indexed)session.emplace(NativeFileSession::create_indexed_volume(head,id(90),image,id(1),live_limits,
         compression,NativeDispositionPolicy::aggregate,{},NativeVolumePlacement::external,layout,head_layout,image_layout));
     else session.emplace(NativeFileSession::create_paged_volume(head,id(90),image,id(1),{kStoreMaxPhysicalBytes},compression));
     for(unsigned i=0;i<count;++i)put(*session,"f"+std::to_string(i),family(i));
@@ -1844,10 +1845,22 @@ void indexed_batch_reclaims_append_space() {
       "Reclamation did not price the proved append-space shortfall");
   constexpr auto members=anchor_search_fixture::indexed_batch_members;
   constexpr auto families=anchor_search_fixture::indexed_batch_families;
-  Fixture f(kStoreCommitUnit,0,true);
   const auto original=anchor_search_fixture::indexed_batch_files();
-  for(std::size_t i=0;i<original.size();++i)put(*f.session,"f"+std::to_string(i),original[i]);
+  const auto seed=[&](Fixture& fixture) {
+    for(std::size_t i=0;i<original.size();++i)put(*fixture.session,"f"+std::to_string(i),original[i]);
+  };
+  // Reproduce the populated checkpoint with no append room. Its exact
+  // footprint can change as representations and allocation improve.
+  const auto occupied=[&] {
+    Fixture calibration(kStoreCommitUnit,0,true);
+    seed(calibration);
+    return calibration.image->extent();
+  }();
+  Fixture f(kStoreCommitUnit,0,true,{StoreCompressionMode::raw,1,false},NativeIndexedDataLayout::extents,
+      NativeVolumeHeadLayout::legacy,PagedStoreBankLayout::shared,{occupied});
+  seed(f);
   const auto extent=f.image->extent();
+  require(extent==occupied,"Capacity fixture changed the calibrated checkpoint");
   const auto committed=f.image->calls;
   NativeGroupMaintenance controller(*f.session);
   NativeMaintenanceProgress progress;

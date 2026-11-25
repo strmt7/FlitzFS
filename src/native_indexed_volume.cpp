@@ -292,6 +292,15 @@ class IndexedInodeUpdates {
     }
   }
 
+  void pack_standalone(std::uint64_t id,Bytes frame) {
+    open_page(inode_page_object(id));
+    auto& row=rows_[id%inode_page_slots];
+    if(!row.empty())fail(Code::corrupt,"indexed inode already occupies a page slot");
+    records_.push_back({inode_domain|id,true,{}});
+    row=std::move(frame);
+    dirty_=true;
+  }
+
   void flush_page() {
     if(!dirty_)return;
     std::size_t size=inode_page_header;
@@ -1542,6 +1551,61 @@ void advance_indexed_retirement(PagedObjectStoreWriter& writer,const PagedObject
   if(closed_session)transaction.finish_context(id);
   else transaction.reclaim(id);
   (void)transaction.finish(writer,current);
+}
+
+NativePackedInodeMigrationStep advance_indexed_packed_inode_migration(PagedObjectStoreWriter& writer,
+    const PagedObjectStoreSnapshot& source,IndexedVolumeRoot& current,std::uint64_t after,
+    std::uint64_t maximum_write_bytes) {
+  const auto last=current.next_inode-1;
+  if(!source.info().mirrored_payloads || after>=last || last==1)return {after,0,0,true};
+  const auto require_healthy=[&] {
+    const auto info=source.info();
+    if(info.degraded_roots || info.degraded_metadata)
+      fail(Code::storage_failure,"packed inode migration needs healthy metadata");
+    if(info.degraded_payloads)
+      fail(Code::replica_repair_pending,"packed inode migration needs verified payload repair");
+  };
+  require_healthy();
+  const NativeNameIndex index(source);
+  if(decode_root(required(source,namespace_object,root_size))!=current ||
+      index.kind()!=index_kind(current) || index.size()!=index_entries(current))
+    fail(Code::corrupt,"packed inode migration source changed");
+
+  const auto entries=source.list_page(inode_domain|(std::max)(after,std::uint64_t{1}),inode_page_slots);
+  if(entries.empty() || domain(entries.front().id)!=inode_domain)return {last,0,0,true};
+  const auto group_last=(std::min)(last,(entries.front().id&ordinal_mask)|(inode_page_slots-1));
+  NativePackedInodeMigrationStep result{group_last,0,0,group_last==last};
+  std::vector<std::pair<std::uint64_t,Bytes>> rows;
+  for(const auto& entry:entries) {
+    if(domain(entry.id)!=inode_domain)break;
+    const auto id=entry.id&ordinal_mask;
+    if(id>group_last)break;
+    if(entry.logical_bytes>maximum_packed_inode_bytes)continue;
+    auto frame=required(source,entry.id,maximum_packed_inode_bytes);
+    if(packable_inode(decode_inode_with_lifetime(source,current,id,frame),frame.size()))
+      rows.emplace_back(id,std::move(frame));
+  }
+  require_healthy();
+  // Amortize the page header and tree edits over multiple standalone rows.
+  // A later compacted-size comparison decides whether this pays at volume scale.
+  if(rows.size()<2)return result;
+  auto next=current;
+  next.packed_inodes=true;
+  std::vector<StoreMutation> records;
+  IndexedInodeUpdates updates(source,current,next,records);
+  for(auto& [id,frame]:rows)updates.pack_standalone(id,std::move(frame));
+  updates.flush_page();
+  records.push_back({namespace_object,false,encode_root(next)});
+  require_healthy();
+  try {
+    result.write_bytes_upper_bound=writer.commit_with_write_budget(records,maximum_write_bytes).write_bytes_upper_bound;
+  }catch(const PagedStoreCapacityError& error) {
+    if(writer.poisoned())fail(Code::storage_failure,"packed inode migration failed after admission");
+    throw NativeFsError(Code::limit,error.what(),error.append_shortfall_bytes());
+  }
+  current=next;
+  result.packed_inodes=rows.size();
+  return result;
 }
 
 NativeDirectoryBackfillStep advance_indexed_directory_backfill(PagedObjectStoreWriter& writer,

@@ -265,6 +265,33 @@ bytes matter independently of whether a client already received success.
 · [physical commit and checkpoint slots](../../src/paged_store.cpp)
 · [outer selector publication](../../src/volume_head.cpp#L233)
 
+### Packing standalone short inodes
+
+An explicit writer or session call receives an advisory inode cursor and
+a write grant. The caller can retain the cursor across idle opportunities.
+The storage engine validates the current selected root and name index
+before reading one eligible page of standalone rows. Its storage write
+bound includes the append span and both root writes.
+
+```mermaid
+flowchart TD
+    Owner["Writer or session call with cursor and write grant"] --> Scan["Checked indexed snapshot and next live standalone IDs"]
+    Scan --> Eligible{"At least two eligible inodes in the page?"}
+    Eligible -->|No| Advance["Return next cursor"]
+    Eligible -->|Yes| Stage["Preserve canonical rows and stage standalone removals"]
+    Stage --> Price{"Paged transaction fits the grant?"}
+    Price -->|No| Refuse["Refuse before writes or flushes"]
+    Price -->|Yes| Verify["Write protected rows and verify independent copies"]
+    Verify --> Publish["Publish page, removals and required capability together"]
+    Publish --> New["Current decoder serves packed or direct inode"]
+    Publish --> Old["Pinned reader retains original direct inode"]
+```
+
+The current writable controller can explicitly invoke this quantum. Fresh
+volume defaults and autonomous activation await settled-size, compatibility
+and ordinary client qualification.
+[Migration and failure model](../INDEXED_NATIVE_VOLUME.md#incremental-packing-of-existing-inodes)
+
 ## 6. CPU range reads and recoverable damage
 
 The writable adapter resolves an open context to a native file handle. The

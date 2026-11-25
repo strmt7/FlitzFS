@@ -206,6 +206,9 @@ NativeFsCommit commit_indexed_volume(PagedObjectStoreWriter&,const PagedObjectSt
     IndexedContentWatch);
 void advance_indexed_retirement(PagedObjectStoreWriter&,const PagedObjectStoreSnapshot&,
     IndexedVolumeRoot&,bool closed_session,IndexedContentWatch);
+NativePackedInodeMigrationStep advance_indexed_packed_inode_migration(PagedObjectStoreWriter&,
+    const PagedObjectStoreSnapshot&,IndexedVolumeRoot&,std::uint64_t after,
+    std::uint64_t maximum_write_bytes);
 NativeDirectoryBackfillStep advance_indexed_directory_backfill(PagedObjectStoreWriter&,
     const PagedObjectStoreSnapshot&,IndexedVolumeRoot&,IndexedDirectoryBackfill&,IndexedContentWatch);
 NativeInodeStorageMutationCommit write_indexed_inode(PagedObjectStoreWriter&,const PagedObjectStoreSnapshot&,

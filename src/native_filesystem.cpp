@@ -2761,6 +2761,14 @@ NativeDirectoryBackfillStep NativeFilesystemWriter::advance_directory_backfill()
     throw;
   }
 }
+NativePackedInodeMigrationStep NativeFilesystemWriter::advance_packed_inode_migration(
+    std::uint64_t after,std::uint64_t maximum_write_bytes) {
+  auto& state=checked_impl();
+  if(!state.indexed || !state.indexed->inline_files)return {after,0,0,true};
+  return state.mutate_indexed([&](auto& writer,const auto& source,auto& root,auto) {
+    return detail::advance_indexed_packed_inode_migration(writer,source,root,after,maximum_write_bytes);
+  });
+}
 void NativeFilesystemWriter::cancel_directory_backfill() noexcept {
   if(impl_)impl_->directory_backfill={};
 }

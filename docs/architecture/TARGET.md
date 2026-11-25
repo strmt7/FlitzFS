@@ -582,10 +582,16 @@ An older reader may read a compatible pinned view only while that compatibility
 is supported and verified. Unknown required capabilities must fail before
 mutation.
 
-For the first gradual migration, keep format intent in the rebuildable
-advice area. An intent or discarded candidate does not affect existing
-readers. Start with linked, standalone extent-backed files whose checked
-EOF is at most 512 bytes. Use the normal indexed scan's coordinate,
+Keep format intent in the rebuildable advice area. Apply it through the
+ordinary owner after a current size and write grant. For existing inline
+volumes, reuse the delivered packed-inode quantum or incorporate its row
+conversion into an already funded checkpoint copy. Prefer the candidate
+that meets the read envelope and releases the most space per additional
+write. Confirm that resumption starts from the selected image and format.
+[Migration sequence](../IMPLEMENTATION_PLAN.md#execution-after-packed-inode-migration)
+
+For extent-only volumes, start with linked, standalone extent-backed
+files whose checked EOF is at most 512 bytes. Use the normal indexed scan's coordinate,
 object identity, payload generation and inode revision. Price the
 combined inode and mapping changes against the selected volume,
 including both copies and actual geometry. Decline if the estimate

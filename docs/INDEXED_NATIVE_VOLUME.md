@@ -152,6 +152,33 @@ on 4 KiB and 64 KiB modeled failure units. The layout remains explicit
 while ordinary mounted I/O and gradual migration are qualified.
 [Footprint, read costs and recovery](evidence/windows-packed-inodes-and-radeon-2026-11-25.json)
 
+### Incremental packing of existing inodes
+
+`advance_packed_inode_migration` accepts a cursor and an upper bound on
+backing writes. Each call considers at most eight standalone records in
+one stable inode-page range. It can skip sparse ID ranges through the
+ordered object index. At least two eligible standalone rows are needed
+to stage a conversion. Large records, directory records and active
+lifetimes retain their direct encoding.
+
+The publication uses the existing mirroring and readback checks. It
+copies exact canonical inode frames into the page, removes the standalone
+records and sets feature bit 11 in the same transaction. The namespace
+sequence, inode IDs, names, attributes and content remain valid. Readers
+already holding the older storage root retain its original records.
+
+The paged writer prices the append span and both root writes before
+permitting any writes or flushes. A denied grant or preflight capacity
+refusal can retry the same cursor. A failed publication fences the
+writer and modeled recovery selects a complete prior or new root.
+After resumption, rediscover candidates against the selected checkpoint.
+
+This entry point is explicit. The write sweep appends data. Occupied
+bytes drop when the existing reclamation path settles the superseded
+records. Bind future automatic offers to measured release, write
+credit and verified compatibility.
+[Windows migration and fault evidence](evidence/windows-packed-inode-migration-2026-11-25.json)
+
 ### Name profiles
 
 Profile 0 keeps the earlier ASCII spelling and lowercase keys. The first
