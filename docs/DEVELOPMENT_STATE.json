@@ -6,6 +6,19 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "packed_retirement_flush_attribution": {
+    "source_base": "db573e903381a539376541f0617920c6c9c1c378",
+    "tested_runtime_tree": "83fff72784e2bfcb9e460f818fb637852465f9a6",
+    "evidence": "docs/evidence/windows-packed-retirement-flushes-2026-11-25.json",
+    "clean_retirement_flushes_before_and_after": [3, 2],
+    "dirty_retirement_and_new_owner_flushes": [3, 3],
+    "signed_guest_trace_records": 6293,
+    "signed_guest_cpu_verified_files": 1027,
+    "retirement_and_total_maintenance_flushes": [625, 643],
+    "allocated_bytes_after_churn_attached_and_detached": [835584000, 6815744, 6094848],
+    "signed_guest_adaptive_quiescence": false,
+    "next": "Measure payload and index padding within every small foreground commit. Price shared fresh banks and ready operation grouping without reducing the qualified failure unit."
+  },
   "mirrored_transaction_runs": {
     "source_base": "aae3fae9c9abe8d3fd5e52208629894f35dfe0f9",
     "evidence": "docs/evidence/windows-mirrored-transaction-runs-2026-11-25.json",

@@ -2151,6 +2151,8 @@ void observe_mounted_reclamation(const MountedFileActivation& activation,StoreIo
       <<" read_calls="<<reads.completed<<" read_bytes="<<reads.completed_bytes
       <<" write_calls="<<writes.completed<<" write_bytes="<<writes.completed_bytes
       <<" flush_calls="<<flushes.completed
+      <<" retirement_flush_calls="<<view.file_retirement_backing[Io::flush].completed
+      <<" retirement_write_bytes="<<view.file_retirement_backing[Io::write].completed_bytes
       <<" final_phase="<<phase_names[static_cast<std::size_t>(view.maintenance.phase)]
       <<" final_deferral="<<refusal_names[static_cast<std::size_t>(view.maintenance.deferral)]
       <<" requested_delay_ms="<<view.maintenance.next_opportunity_delay_ms

@@ -1,0 +1,221 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "qualification": "experimental",
+  "source": {
+    "base_commit": "db573e903381a539376541f0617920c6c9c1c378",
+    "base_tree": "bd32e741d2dc183679045861303abc1a62b16104",
+    "tested_tree": "83fff72784e2bfcb9e460f818fb637852465f9a6",
+    "changed_source_blobs": {
+      "src/dense_volume_backing.cpp": "013ae92e63cec65f1755fa82f2a62c84a68d5b65",
+      "src/windows/winfsp_controller.cpp": "84560b6def3b277a46417a54b36a35ae880ab4a0",
+      "src/windows/winfsp_controller.hpp": "0097137ee0377d786043968ff382d78c88109c3a",
+      "tests/test_native_volume_file.cpp": "4139241fbe592bcb0dba6423c4979f4e0ce75459",
+      "tests/windows_volume_app_tests.cpp": "8cf8d2dfb6d04b4d004b0cf30901c196c25becdc"
+    }
+  },
+  "deterministic_ordinary_file_models": {
+    "leading_data_and_directory_flushes": {
+      "before": {
+        "clean": 3,
+        "new_owner": 3,
+        "dirty": 3,
+        "unchanged": 1
+      },
+      "after": {
+        "clean": 2,
+        "new_owner": 3,
+        "dirty": 3,
+        "unchanged": 1
+      }
+    },
+    "directory_exchange_cuts": [
+      36,
+      33
+    ],
+    "windows_selected_ctest": [
+      "bounded_native_volume_file_dense_allocation",
+      "bounded_native_volume_file_dense_session",
+      "bounded_native_volume_file_dense_session_cuts",
+      "bounded_native_volume_file_dense_tail",
+      "bounded_native_volume_file_dense_cross_group",
+      "bounded_winfsp_volume_file"
+    ],
+    "raw_only_selected_passes": 2,
+    "addresssanitizer_selected_passes": 2,
+    "acknowledged_bytes_independently_verified": true
+  },
+  "mounted_windows_guest": {
+    "controller": {
+      "allocated_after": 6094848,
+      "allocated_before": 835584000,
+      "allocated_while_attached": 6815744,
+      "compaction_failures": 0,
+      "continued_packed_tail": 159,
+      "continued_range_retirement": 149,
+      "flush_calls": 643,
+      "publications": 1,
+      "quanta": 404,
+      "quiescent": 0,
+      "rebuild_publishing_flushes": 5,
+      "rebuild_ready_flushes": 2,
+      "retirement_flush_calls": 625,
+      "retirement_write_bytes": 5365216,
+      "sampled_extents": 337,
+      "step_retiring": 402,
+      "write_bytes": 15108010,
+      "write_calls": 1294
+    },
+    "final_deferral": "duty",
+    "final_phase": "deferred",
+    "guest_build": "26100",
+    "guest_memory_mib": 4096,
+    "guest_receipt_sha256": "948087c7ee87ead2b96f04ae2cddbaab53b7353990a5c78423ec1a5d22f7e154",
+    "historical_client_trace_equal": true,
+    "manifest_sha256": "a46421058c6dc1be621fd40dc13b75f0773938b075ff444d290c329f08f7a3ab",
+    "sandbox_receipt_sha256": "93167cbac1392a69165737c129dee17bd13f0cd7dc397a6a7e83f40b686c90a2",
+    "sandbox_retired": true,
+    "signed_artifacts_verified": 6,
+    "signed_driver_sha256": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+    "trace": {
+      "bytes": 1134259,
+      "counts": {
+        "conflicting_open": 1,
+        "cpu_verified": 3,
+        "create": 1030,
+        "enumerate": 3,
+        "flush": 1077,
+        "flush_cached": 3,
+        "flush_mapped": 4,
+        "flush_view": 4,
+        "held_read": 3,
+        "lookup_deleted": 2,
+        "mkdir": 1,
+        "overwrite_open": 1,
+        "range_read": 3,
+        "read": 3076,
+        "rename_replace": 1,
+        "unlink": 2,
+        "write": 1079
+      },
+      "cycles": 3,
+      "files": 1027,
+      "independent_population_blake3": "24b7b9b2afa3ee9c8043d757ccb4229c4321e8af5352b9800d6a599b8b70faa4",
+      "logical_bytes": 2291854,
+      "records": 6293,
+      "sha256": "a819bc8c0ba49580f45c3985470cbf88f3934aa3ac88cb910c4b72b72a984af1"
+    }
+  },
+  "interpretation": {
+    "prior_run_separate_source": "windows-mounted-sample-and-zstd-2026-11-25.json",
+    "recorded_measurements": "Backing operations, allocated bytes and exact client trace in a disposable guest. No throughput, latency or physical power-loss measurements.",
+    "remaining_decision": "Attribute initial packed growth to payload, index, padding and owner transactions. Compare ready operation grouping with compact fresh bank placement."
+  },
+  "supervisor_runs": [
+    {
+      "run": "mountFlushBaselineDense",
+      "exit": 0,
+      "process_tree_retired": true,
+      "residual_children": 0,
+      "output_sha256": "8444a455671076ec2389332407262adb5022411c6fa8def73a3e5bfe8661ac34",
+      "peak_job_bytes": 7282688
+    },
+    {
+      "run": "mountFlushCandidateTests",
+      "exit": 0,
+      "process_tree_retired": true,
+      "residual_children": 0,
+      "output_sha256": "fb2cd1c73b51d864317293954ecfb8407e7b5f8c34d110265827e1da3c2abae4",
+      "peak_job_bytes": 232837120
+    },
+    {
+      "run": "mountFlushRawTests",
+      "exit": 0,
+      "process_tree_retired": true,
+      "residual_children": 0,
+      "output_sha256": "b5b0fe62ccc0ca15fcc486d75275ad5f9ce60702c44e16e5919aba11cab91785",
+      "peak_job_bytes": 28536832
+    },
+    {
+      "run": "mountFlushAsanTests",
+      "exit": 0,
+      "process_tree_retired": true,
+      "residual_children": 0,
+      "output_sha256": "5bb9aa66a7ce08b69f1910a74b308fd5c5156c5a9d259770d01bd775bb35ab87",
+      "peak_job_bytes": 449015808
+    },
+    {
+      "run": "mountFlushGuestRun",
+      "exit": 0,
+      "process_tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 49737728
+    }
+  ],
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "robots_checked": true,
+    "captures": [
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/security/application-security/application-isolation/windows-sandbox/windows-sandbox-cli",
+        "status": 200,
+        "final_status": 200,
+        "accepted": true,
+        "markdown_bytes": 28404,
+        "markdown_sha256": "b70ff3702185a5bf7e30cc89252fe6032b294326b1f55a7f1f7749e45a1cb805",
+        "native_capture_sha256": "c08840ee3b6c5ed5fc17a0930fc1bfbe082fb6cf5f96b57cd8698325947b85f7",
+        "failure": null
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/security/threat-protection/windows-sandbox/windows-sandbox-configure-using-wsb-file",
+        "status": 301,
+        "final_status": 200,
+        "accepted": true,
+        "markdown_bytes": 35046,
+        "markdown_sha256": "2e88cb947a778ba3cca2f437aac49fcfb6c150ffcfe432f8098b977d102bd8f2",
+        "native_capture_sha256": "f04f9f1b8ff958f2338a14e9284b608c8eab7e66054bf11945204e000649d690",
+        "failure": null
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/etw/fileio",
+        "status": 200,
+        "final_status": 200,
+        "accepted": true,
+        "markdown_bytes": 25283,
+        "markdown_sha256": "4210a865bbc4705b8b22e39f5832db2d92c7874669fdb6fd52dc88bd46082e97",
+        "native_capture_sha256": "21d24e7a9d065ff0681a624fa8f621e3e425d52d5532ef1988d8b2098c3143d5",
+        "failure": null
+      },
+      {
+        "url": "https://btrfs.readthedocs.io/en/stable/mkfs.btrfs.html",
+        "status": 200,
+        "final_status": 200,
+        "accepted": false,
+        "markdown_bytes": 38158,
+        "markdown_sha256": "a6dede81769dc422a827d317a79d4f231b902a948b2013b025c5ddc61380f8c3",
+        "native_capture_sha256": "d90804835eb2d362cbda3ab9a72c73a5f15b51b181ab23c4833c1567b881d781",
+        "failure": "unexpected_content"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_storage_info",
+        "status": 200,
+        "final_status": 200,
+        "accepted": true,
+        "markdown_bytes": 38550,
+        "markdown_sha256": "96eb61b8d84492d40c69389ae9accb7c7e68de6ef34ffd863c808e44c8dca279",
+        "native_capture_sha256": "c983c81c43582774586ef13049a8a443af7d476dbb8b6d2da02eb4768d79db55",
+        "failure": null
+      },
+      {
+        "url": "https://btrfs.readthedocs.io/en/stable/mkfs.btrfs.html",
+        "status": 200,
+        "final_status": 200,
+        "accepted": true,
+        "markdown_bytes": 38158,
+        "markdown_sha256": "a6dede81769dc422a827d317a79d4f231b902a948b2013b025c5ddc61380f8c3",
+        "native_capture_sha256": "0c9c0dfe7b0a8e16b127279ed1e2d36b0cfe3cbe83c0679ef451fddbc327e216",
+        "failure": null
+      }
+    ]
+  }
+}

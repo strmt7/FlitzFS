@@ -389,6 +389,7 @@ struct DenseVolumeBacking::Impl {
   const bool writable;
   std::uint64_t physical_end, admitted_end = 0, used_slots = 0;
   bool fenced = false, needs_open_barrier = false, pending_release = false;
+  bool physical_writes_pending = false;
   std::optional<unsigned> anchor_repair;
   Anchor anchor;
   std::array<std::optional<DirectoryRepair>, 2> move_repairs;
@@ -468,7 +469,13 @@ struct DenseVolumeBacking::Impl {
     const auto end = at + bytes.size();
     if (end > admitted_end) admit(end);
     physical->write_exact(at, bytes);
+    physical_writes_pending = true;
     physical_end = (std::max)(physical_end, end);
+  }
+
+  void flush_physical() {
+    physical->flush();
+    physical_writes_pending = false;
   }
 
   std::uint64_t group_end(std::uint64_t group) const noexcept {
@@ -579,9 +586,9 @@ struct DenseVolumeBacking::Impl {
 
   void write_pair(std::uint64_t base, unsigned first, std::span<const std::byte> record) {
     write(base + first * unit, record);
-    physical->flush();
+    flush_physical();
     write(base + (1 - first) * unit, record);
-    physical->flush();
+    flush_physical();
   }
 
   void publish_anchor(const Anchor& next) {
@@ -596,7 +603,7 @@ struct DenseVolumeBacking::Impl {
       if (!verified_move_bytes(range.source, bytes, anchor.move->payload))
         fail(Code::corrupt, "dense relocation source changed during recovery");
       write(range.destination * unit, bytes);
-      physical->flush();
+      flush_physical();
       if (!verified_move_bytes(range.destination, bytes, anchor.move->payload))
         fail(Code::storage_failure, "dense relocation recovery could not verify its destination");
     }
@@ -609,7 +616,7 @@ struct DenseVolumeBacking::Impl {
             directory_record(geometry, index, directory.sequence, directory.physical));
       } else {
         write_directory(index, first, directory.sequence);
-        physical->flush();
+        flush_physical();
       }
     }
     publish_anchor({anchor.sequence + 1, {}});
@@ -628,7 +635,7 @@ struct DenseVolumeBacking::Impl {
       const auto& group = groups[index];
       if (group.repair_slot) write_directory(index, *group.repair_slot, group.directory.sequence);
     }
-    physical->flush();
+    flush_physical();
     anchor_repair.reset();
     for (auto& group : groups) group.repair_slot.reset();
     if (anchor.move) recover_move();
@@ -645,7 +652,7 @@ struct DenseVolumeBacking::Impl {
     if (!group.directory.sequence) {
       write_directory(index, 0, 1);
       write_directory(index, 1, 1);
-      physical->flush();
+      flush_physical();
       group.directory.sequence = 1;
     }
     if (group.directory.sequence == maximum_sequence)
@@ -726,7 +733,10 @@ struct DenseVolumeBacking::Impl {
   }
 
   void publish() {
-    physical->flush();
+    // Retirement can change directory ownership after the last completed
+    // physical flush, without writing data. Both directory fences still
+    // precede reuse. New writes need a leading fence before changing a peer.
+    if (dirty_groups.empty() || !pending_release || physical_writes_pending) flush_physical();
     if (dirty_groups.empty()) return;
     // Data reaches stable storage before either directory records its owners.
     // Separate barriers keep one usable peer during a directory update.
@@ -734,12 +744,12 @@ struct DenseVolumeBacking::Impl {
       const auto sequence = groups[static_cast<std::size_t>(index)].directory.sequence + 1;
       write_directory(index, static_cast<unsigned>(sequence % 2), sequence);
     }
-    physical->flush();
+    flush_physical();
     for (const auto index : dirty_groups) {
       const auto sequence = groups[static_cast<std::size_t>(index)].directory.sequence + 1;
       write_directory(index, 1 - static_cast<unsigned>(sequence % 2), sequence);
     }
-    physical->flush();
+    flush_physical();
     for (const auto index : dirty_groups) ++groups[static_cast<std::size_t>(index)].directory.sequence;
     dirty_groups.clear();
     pending_release = false;
@@ -747,7 +757,7 @@ struct DenseVolumeBacking::Impl {
 
   void shorten(std::uint64_t end) {
     file->shorten_file(physical_end, end);
-    physical->flush();
+    flush_physical();
     if (physical->extent() != end) fail(Code::storage_failure, "dense shorter extent was not confirmed");
     physical_end = end;
     admitted_end = (std::min)(admitted_end, end);
@@ -788,7 +798,7 @@ struct DenseVolumeBacking::Impl {
     Bytes source(static_cast<std::size_t>(move.units * unit)), checked(source.size());
     physical->read_exact(move.source * unit, source);
     write(move.destination * unit, source);
-    physical->flush();
+    flush_physical();
     physical->read_exact(move.destination * unit, checked);
     if (source != checked) fail(Code::storage_failure, "dense relocated bytes differ from their source");
 
@@ -859,7 +869,7 @@ std::shared_ptr<DenseVolumeBacking> DenseVolumeBacking::create(std::shared_ptr<S
   state->admit(unit + anchor.size());
   state->write(0, anchor);
   state->write(unit, anchor);
-  state->physical->flush();
+  state->flush_physical();
   return std::shared_ptr<DenseVolumeBacking>(new DenseVolumeBacking(std::move(state)));
 }
 

@@ -162,6 +162,21 @@ score with a read-only trace of ready-transaction grouping and the
 existing packed tail path before creating a new format.
 [Ordered mounted investigation](../RELEASE_RECONCILIATION_2026-11-25.md#1-reduce-occupied-bytes-and-repeated-writes-along-the-ordinary-client-path)
 
+For small commits, price placing append-only payloads and new index
+pages in the same new mirrored bank pair. Keep the existing failure
+unit and the two disjoint replicas. The current page grammar places the
+payload replicas before the new page's primary offset, so this change
+needs an explicit reader capability. A candidate must prove that frame
+and page ranges are disjoint within each bank, all new pages follow
+their children in both replicas, and no committed unit can be reused
+before the existing reader and recovery checks release it. Compare
+this option with grouping already-ready callbacks under the same
+durability contract. Keep the sector-geometry observation in the receipt
+and qualify a smaller declared failure unit separately.
+[Current page grammar](../../src/paged_store.cpp#L301) ·
+[Btrfs mixed allocation design](https://btrfs.readthedocs.io/en/stable/mkfs.btrfs.html) ·
+[Windows file storage geometry](https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_storage_info)
+
 ```mermaid
 stateDiagram-v2
     [*] --> Current

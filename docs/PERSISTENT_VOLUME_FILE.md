@@ -181,6 +181,14 @@ contract.
 [Windows EOF operation](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fsa/5555bcb6-bc29-4f8a-900c-e469b792faab) ·
 [Windows allocation operation](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/0201c69b-50db-412d-bab3-dd97aeede13b)
 
+Packed range retirement can remove directory mappings immediately after
+the last successful backing flush. With no intervening writes, it
+publishes the two directory copies with one flush each. Pending writes
+still require a leading data flush. Reuse waits for both directory copies,
+and writable reopen retains its initial backing fence. The backing model
+checks these boundaries and independently verifies the retained bytes.
+[Packed retirement evidence](evidence/windows-packed-retirement-flushes-2026-11-25.json)
+
 Following a confirmed truncation, the WinFsp controller can spend the remaining
 idle observation on another truncation. It checks the durable selection,
 settled allocation state, available memory, backing time and foreground

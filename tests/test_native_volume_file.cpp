@@ -906,6 +906,7 @@ void dense_allocation() {
     dense->admit_contiguous_growth(dense->extent(),remote+32,remote+33);
     rejects([&]{dense->admit_contiguous_growth(remote+2*unit,remote+unit,remote+2*unit);},
         "growth beyond the physical cap was admitted");
+    const auto before_retirement=io->flushes;
     dense->reclaim_range(unit,unit);
     require(dense->allocated_extent(unit,unit)==0 && dense->allocated_extent(0,3*unit)==3*unit,
         "removing a middle slice damaged the surrounding runs");
@@ -913,7 +914,9 @@ void dense_allocation() {
     // must settle first, and the reused private slot must be zero-initialized.
     dense->admit_contiguous_growth(dense->extent(),5*unit,6*unit);
     dense->write_exact(5*unit+19,late);
+    const auto retirement_flushes=io->flushes-before_retirement;
     dense->flush();
+    const auto new_owner_flushes=io->flushes-before_retirement-retirement_flushes;
     require(io->extent()==occupied,"reuse extended an already full ordinary backing");
     Bytes actual(3*unit),range(unit);
     dense->read_exact(0,actual);
@@ -923,6 +926,23 @@ void dense_allocation() {
     Bytes replacement(unit);
     std::copy(late.begin(),late.end(),replacement.begin()+19);
     require(actual==expected && range==replacement,"dense split or partial reuse changed logical bytes");
+    // Dirty data in a retained slot still needs its own leading fence before
+    // either copy of the directory changes.
+    dense->write_exact(0,std::span<const std::byte>(early).first(32));
+    const auto before_dirty_retirement=io->flushes;
+    dense->reclaim_range(5*unit,unit);
+    dense->flush();
+    const auto dirty_retirement_flushes=io->flushes-before_dirty_retirement;
+    dense->flush();
+    const auto unchanged_flushes=io->flushes-before_dirty_retirement-dirty_retirement_flushes;
+    Bytes retained(3*unit);
+    dense->read_exact(0,retained);
+    require(retained==expected,"dirty retirement changed retained bytes");
+    require(retirement_flushes==2 && new_owner_flushes==3 && dirty_retirement_flushes==3 &&
+        unchanged_flushes==1,"dense retirement or new-owner fence accounting differs");
+    std::cout<<"dense_retirement_flushes clean="<<retirement_flushes
+        <<" new_owner="<<new_owner_flushes<<" dirty="<<dirty_retirement_flushes
+        <<" unchanged="<<unchanged_flushes<<'\n';
   }
   auto recovered=detail::DenseVolumeBacking::open(image(io->stable,4096),false);
   const auto late=data(337,63);

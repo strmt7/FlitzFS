@@ -34,6 +34,7 @@ struct WinFspControllerView {
   std::uint64_t continued_preparation_steps=0,continued_compaction_steps=0,payload_repairs=0;
   std::uint64_t continued_range_retirement_steps=0,continued_packed_tail_steps=0;
   std::array<std::uint64_t,static_cast<std::size_t>(NativeVolumeReclaimProgress::failed)+1> file_reclamation_steps{};
+  detail::MaintenanceBackingUse file_retirement_backing;
   std::array<WinFspRebuildPhaseUse,static_cast<std::size_t>(PagedRewritePhase::declined)+1> file_rebuild_phases{};
   std::optional<PagedRewriteProgress> last_file_rebuild_entry;
   bool maintenance_quiescent=false;

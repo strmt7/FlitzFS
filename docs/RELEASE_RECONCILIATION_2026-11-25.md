@@ -74,6 +74,24 @@ and maintenance progress in the same trace. The flush count alone
 cannot distinguish required durable transitions from private preparation.
 [Signed mounted control](evidence/windows-mounted-sample-and-zstd-2026-11-25.json)
 
+The current packed provider retires an already-settled range with two
+directory flushes. Its deterministic control previously used three.
+The leading data flush remains when writes are pending. The pre-reuse
+directory checks and writable reopen fence still apply.
+
+The current disposable Windows replay matched the earlier 6,293-record
+client transcript and independently verified all 1,027 files. The
+controller attributed 625 of 643 maintenance flushes to retirement,
+with seven in rebuild publication and readiness. Backing allocated
+835,584,000 bytes after churn and 6,815,744 while attached after
+reclamation. Detached allocation measured 6,094,848 bytes. The
+observation ended with adaptive work pending. Prior and current runs
+have different source and maintenance progress, so its matched
+per-retirement comparison comes from the deterministic control.
+The next storage decision is the cost of the foreground commit
+layout that creates the backing growth.
+[Mounted attribution and ownership proof](evidence/windows-packed-retirement-flushes-2026-11-25.json)
+
 ### 1. Reduce occupied bytes and repeated writes along the ordinary client path
 
 1. Extend the existing Win32 operation witness and controller receipt

@@ -286,7 +286,7 @@ struct WinFspVolumeController::Impl {
           decltype(WinFspControllerView::file_reclamation_steps) file_reclamation_steps{};
           decltype(WinFspControllerView::file_rebuild_phases) file_rebuild_phases{};
           std::optional<PagedRewriteProgress> last_file_rebuild_entry;
-          detail::MaintenanceBackingUse backing_use;
+          detail::MaintenanceBackingUse backing_use,file_retirement_backing;
           bool backing_limited=false,read_ahead_prepared=false,read_ahead_backing_refused=false;
           bool read_ahead_demand_sampled=false;
           bool amd_cpu_trial_attempted=false;
@@ -322,6 +322,8 @@ struct WinFspVolumeController::Impl {
                     return advance(observed,continuation,scrub_due);
                   }();
                   backing_use.add(step_backing);
+                  if(step.file_reclamation==NativeVolumeReclaimProgress::retiring)
+                    file_retirement_backing.add(step_backing);
                   if(step.file_rebuild_entry) {
                     const auto& entry=*step.file_rebuild_entry;
                     auto& measured=file_rebuild_phases[static_cast<std::size_t>(entry.phase)];
@@ -445,6 +447,7 @@ struct WinFspVolumeController::Impl {
             current.continued_packed_tail_steps+=continued_packed_tail;
             for(std::size_t i=0;i<file_reclamation_steps.size();++i)
               current.file_reclamation_steps[i]+=file_reclamation_steps[i];
+            current.file_retirement_backing.add(file_retirement_backing);
             for(std::size_t i=0;i<file_rebuild_phases.size();++i) {
               auto& phase=current.file_rebuild_phases[i];
               phase.steps+=file_rebuild_phases[i].steps;
