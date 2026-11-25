@@ -6,6 +6,18 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "compact_volume_selector": {
+    "source_commit": "ae90510fd3325b9a4a2339e7838f97d67f37d1fb",
+    "tested_source_tree": "fe96349c54288d816adf3fd2d7f2d2dc62c49c03",
+    "evidence": "docs/evidence/windows-compact-volume-selector-2026-11-25.json",
+    "default_for_new_indexed_windows_memory_volumes": true,
+    "four_kib_provider_selector_bytes": [131072, 8192],
+    "windows_locked_memory_bytes": [434176, 311296],
+    "cpython_four_release_complete_bytes": [696320, 573440],
+    "modeled_publication_fault_cases": 132,
+    "next": "Price paged image-root spacing while preserving legacy readers and failure isolation.",
+    "release": false
+  },
   "compaction_inventory_reuse": {
     "source_commit": "07585fb51dfc3784a6b8878ef7e8c6cc0f8dd1e6",
     "tested_source_tree": "10c211571a3c63edc87d05d03a144784ba7f106f",

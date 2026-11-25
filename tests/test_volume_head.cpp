@@ -1,3 +1,4 @@
+#include "flitzfs/native_session.hpp"
 #include "flitzfs/volume_head.hpp"
 #include "native_fs_fixture.hpp"
 #include "native_security_fixture.hpp"
@@ -38,10 +39,13 @@ std::shared_ptr<Ram> copied(std::shared_ptr<Ram> source,StoreIdentity next,Store
 }
 struct Fixture {
   std::shared_ptr<Ram> source,target,head;StoreCompressionMode mode;bool compact;
-  Fixture(StoreCompressionMode m,bool c):source(seed(m,c)),target(copied(source,id(2),m,c)),
-      head(std::make_shared<Ram>()),mode(m),compact(c) {
+  std::uint64_t head_bytes=kVolumeHeadBytes;
+  Fixture(StoreCompressionMode m,bool c,NativeVolumeHeadLayout layout=NativeVolumeHeadLayout::legacy)
+      :source(seed(m,c)),target(copied(source,id(2),m,c)),head(std::make_shared<Ram>()),mode(m),compact(c) {
     head->failure_unit=c?4096:65536;
-    auto w=NativeVolumeHeadWriter::create(head,id(90),view(source));
+    if(layout==NativeVolumeHeadLayout::compact)head_bytes=2*head->failure_unit;
+    auto w=NativeVolumeHeadWriter::create(head,id(90),view(source),NativeVolumePlacement::external,layout);
+    require(head->extent()==head_bytes,"head geometry differs on creation");
     require(source->live.size()+target->live.size()+head->live.size()<=3U*1024*1024,"combined handoff fixture cap");
     require(target->live.size()<source->live.size(),"compaction did not remove source history");
   }
@@ -193,7 +197,7 @@ void continue_selected(Fixture& f) {
       active_view.storage_info().generation,{f.mode,6,false}));
     const std::array<NativeFileMutation,2> ops{{file_create("continued"),file_write("continued",0,data(71,7))}};
     native.apply(ops);}
-  expected(f.open().filesystem(),true);require(f.head->extent()==kVolumeHeadBytes,"head grew during continuation");
+  expected(f.open().filesystem(),true);require(f.head->extent()==f.head_bytes,"head grew during continuation");
 }
 void trace(std::string_view phase,StoreCompressionMode mode,bool compact,bool head,std::size_t steps,unsigned peer=0) {
   std::cout<<"Native volume-head evidence: {\"schema\":1,\"trace_only\":true,\"phase\":\""<<phase
@@ -201,14 +205,14 @@ void trace(std::string_view phase,StoreCompressionMode mode,bool compact,bool he
       <<"\",\"layout\":\""<<(compact?"compact":"fixed")<<"\",\"domain\":\""<<(head?"head":"image")
       <<"\",\"lost_peer\":"<<peer<<",\"io_steps\":"<<steps<<"}\n";
 }
-void publish_faults(StoreCompressionMode mode,bool compact) {
+void publish_faults(StoreCompressionMode mode,bool compact,NativeVolumeHeadLayout layout=NativeVolumeHeadLayout::legacy) {
   for(bool on_head:{true,false}) {
-    Fixture probe(mode,compact);auto w=NativeVolumeHeadWriter::resume(probe.head,id(90),1,view(probe.source));
+    Fixture probe(mode,compact,layout);auto w=NativeVolumeHeadWriter::resume(probe.head,id(90),1,view(probe.source));
     reset(probe.head);reset(probe.target);w.publish_compacted(view(probe.source),view(probe.target));
     const auto steps=(on_head?probe.head:probe.target)->calls;require(steps>0,"missing handoff I/O trace");
     trace("publish",mode,compact,on_head,steps);
     for(unsigned failure=0;failure<3;++failure)for(std::size_t step=0;step<steps;++step) {
-      Fixture f(mode,compact);const auto original=f.source->stable;
+      Fixture f(mode,compact,layout);const auto original=f.source->stable;
       {
         auto h=NativeVolumeHeadWriter::resume(f.head,id(90),1,view(f.source));
         reset(f.head);reset(f.target);auto fault=on_head?f.head:f.target;
@@ -225,51 +229,110 @@ void publish_faults(StoreCompressionMode mode,bool compact) {
             "poisoned owner released its exclusive head lease");
       }
       require(f.source->stable==original,"handoff failure changed source");
-      f.head=image(f.head->stable);f.target=image(f.target->stable,compact?4096:65536);
+      f.head=image(f.head->stable,f.head->failure_unit);f.target=image(f.target->stable,compact?4096:65536);
       auto read=f.open();require(read.info().selection.epoch==1||read.info().selection.epoch==2,"invalid crash selection");
       expected(read.filesystem());continue_selected(f);++cases;
     }
   }
 }
-void create_faults(StoreCompressionMode mode,bool compact) {
+void create_faults(StoreCompressionMode mode,bool compact,NativeVolumeHeadLayout layout=NativeVolumeHeadLayout::legacy) {
   for(bool on_head:{true,false}) {
     auto source=seed(mode,compact),head=std::make_shared<Ram>();head->failure_unit=compact?4096:65536;
-    reset(source);{auto h=NativeVolumeHeadWriter::create(head,id(90),view(source));}
+    reset(source);{auto h=NativeVolumeHeadWriter::create(head,id(90),view(source),NativeVolumePlacement::external,layout);}
     const auto steps=(on_head?head:source)->calls;require(steps>0,"missing initial I/O trace");
     trace("create",mode,compact,on_head,steps);
     for(unsigned failure=0;failure<3;++failure)for(std::size_t step=0;step<steps;++step) {
       auto data_image=seed(mode,compact),control=std::make_shared<Ram>();control->failure_unit=compact?4096:65536;
       const auto original=data_image->stable;reset(data_image);auto fault=on_head?control:data_image;
       fault->failure=failure;fault->fail_at=step;
-      rejects([&]{auto h=NativeVolumeHeadWriter::create(control,id(90),view(data_image));});
+      rejects([&]{auto h=NativeVolumeHeadWriter::create(control,id(90),view(data_image),NativeVolumePlacement::external,layout);});
       require(data_image->stable==original,"failed initial head changed source bytes");
       control=image(control->stable);
       bool complete=false;
       try{auto v=NativeVolumeHeadView::open(control,id(90),[&](const auto&){return data_image;});expected(v.filesystem());complete=true;}
       catch(const NativeFsError& e){require(e.code()==NativeFsErrorCode::corrupt,"unexpected initial recovery failure");}
-      if(complete)require(control->extent()==kVolumeHeadBytes,"partial initial head exposed");++cases;
+      if(complete)require(control->extent()==head->extent(),"partial initial head exposed");++cases;
     }
   }
 }
-void repair_faults(StoreCompressionMode mode,bool compact) {
+void repair_faults(StoreCompressionMode mode,bool compact,NativeVolumeHeadLayout layout=NativeVolumeHeadLayout::legacy) {
   for(unsigned lost=0;lost<2;++lost)for(bool on_head:{true,false}) {
-    Fixture probe(mode,compact);{auto w=NativeVolumeHeadWriter::resume(probe.head,id(90),1,view(probe.source));w.publish_compacted(view(probe.source),view(probe.target));}
-    std::fill_n(probe.head->live.begin()+lost*kStoreCommitUnit,kStoreCommitUnit,std::byte{});probe.head->stable=probe.head->live;
+    Fixture probe(mode,compact,layout);{auto w=NativeVolumeHeadWriter::resume(probe.head,id(90),1,view(probe.source));w.publish_compacted(view(probe.source),view(probe.target));}
+    std::fill_n(probe.head->live.begin()+lost*probe.head_bytes/2,probe.head_bytes/2,std::byte{});probe.head->stable=probe.head->live;
     reset(probe.head);reset(probe.target);
     {auto h=NativeVolumeHeadWriter::resume(probe.head,id(90),2,view(probe.target));}
     const auto steps=(on_head?probe.head:probe.target)->calls;require(steps>0,"missing head repair trace");
     trace("repair",mode,compact,on_head,steps,lost);
     for(unsigned failure=0;failure<3;++failure)for(std::size_t step=0;step<steps;++step) {
-      Fixture f(mode,compact);{auto h=NativeVolumeHeadWriter::resume(f.head,id(90),1,view(f.source));h.publish_compacted(view(f.source),view(f.target));}
-      std::fill_n(f.head->live.begin()+lost*kStoreCommitUnit,kStoreCommitUnit,std::byte{});f.head->stable=f.head->live;
+      Fixture f(mode,compact,layout);{auto h=NativeVolumeHeadWriter::resume(f.head,id(90),1,view(f.source));h.publish_compacted(view(f.source),view(f.target));}
+      std::fill_n(f.head->live.begin()+lost*f.head_bytes/2,f.head_bytes/2,std::byte{});f.head->stable=f.head->live;
       reset(f.head);reset(f.target);auto fault=on_head?f.head:f.target;fault->failure=failure;fault->fail_at=step;
       rejects([&]{auto h=NativeVolumeHeadWriter::resume(f.head,id(90),2,view(f.target));});
-      f.head=image(f.head->stable);f.target=image(f.target->stable,compact?4096:65536);
+      f.head=image(f.head->stable,f.head->failure_unit);f.target=image(f.target->stable,compact?4096:65536);
       require(f.open().info().selection.epoch==2&&f.open().info().selection.image_identity==id(2),
           "repair fell back to previous image");continue_selected(f);++cases;
     }
   }
 }
+void compact_head_geometry() {
+  constexpr auto layout=NativeVolumeHeadLayout::compact;
+  constexpr auto place=NativeVolumePlacement::external;
+  const auto source=seed(StoreCompressionMode::raw,true);
+  for(const auto unit:{4096U,8192U,16384U,32768U,65536U}) {
+    auto head=std::make_shared<Ram>();head->failure_unit=unit;
+    {auto writer=NativeVolumeHeadWriter::create(head,id(90),view(source),place,layout);}
+    const auto marker=unit==kStoreCommitUnit?"FLTVH001":"FLTVH002";
+    require(head->extent()==2ULL*unit &&
+        std::string_view(reinterpret_cast<const char*>(head->live.data()),8)==marker,
+        "head encoding does not match its qualified failure unit");
+    auto relocated=image(head->stable,kStoreCommitUnit);
+    const auto selector=NativeVolumeHeadView::inspect_selector(*relocated,id(90));
+    require(selector.selection.image_identity==id(1) && !selector.degraded,"CPU could not read relocated head");
+    if(unit<kStoreCommitUnit) {
+      const auto source_calls=source->calls;
+      rejects_code([&]{auto writer=NativeVolumeHeadWriter::resume(relocated,id(90),1,view(source));},
+          NativeFsErrorCode::invalid_operation);
+      require(relocated->calls==0 && source->calls==source_calls && relocated->stable==head->stable,
+          "incompatible head provider changed bytes or issued a barrier");
+    }
+  }
+}
+
+void compact_indexed_resume_fence() {
+  auto head=std::make_shared<Ram>(),backing=std::make_shared<Ram>();
+  head->failure_unit=backing->failure_unit=4096;
+  constexpr PagedStoreLimits limits{kStoreMaxPhysicalBytes};
+  constexpr StoreCompressionOptions policy{StoreCompressionMode::raw,1,false};
+  const auto plaintext=data(3105,337);
+  {
+    auto writer=NativeFileSession::create_indexed_volume(head,id(90),backing,id(1),limits,policy,
+        NativeDispositionPolicy::aggregate,{},NativeVolumePlacement::external,NativeIndexedDataLayout::extents,
+        NativeVolumeHeadLayout::compact);
+    writer.create_entry("kept");
+    const auto file=writer.open("kept",{true,true,false});
+    writer.write(file,0,plaintext);
+    writer.cleanup(file,false);
+    writer.close(file);
+  }
+  auto lost=head->stable;
+  std::fill_n(lost.begin(),lost.size()/2,std::byte{});
+  auto moved=image(lost,kStoreCommitUnit);
+  const auto resolve=[&](const StoreIdentity& selected)->std::shared_ptr<StoreByteIo>{
+    return selected==id(1)?backing:nullptr;
+  };
+  const auto readable=NativeVolumeHeadView::open(moved,id(90),resolve);
+  require(readable.info().degraded && readable.filesystem().read("kept",0,plaintext.size())==plaintext,
+      "compact indexed head lost the remaining read-only owner");
+  const auto write_calls=backing->calls;
+  rejects_code([&]{auto session=NativeFileSession::resume_closed_indexed_volume(moved,id(90),1,resolve,policy);},
+      NativeFsErrorCode::invalid_operation);
+  require(!moved->calls && backing->calls==write_calls,"incompatible degraded head reached image repair");
+  auto compatible=image(lost,4096);
+  auto repaired=NativeFileSession::resume_closed_indexed_volume(compatible,id(90),1,resolve,policy);
+  require(!repaired.volume_info().degraded &&
+      repaired.snapshot().read("kept",0,plaintext.size())==plaintext,"compatible indexed head did not repair");
+}
+
 void recompression_invariants(bool compact) {
   auto source=seed(StoreCompressionMode::raw,compact);
   auto original=view(source);const auto old=source->live;
@@ -343,7 +406,16 @@ void recompression_faults(bool compact) {
 }
 int main(int argc,char** argv){try {
   if(argc!=2)throw std::runtime_error("head test phase required");const std::string_view phase=argv[1];
-  if(phase=="--recompress-invariants") {
+  if(phase=="--compact-head") {
+    compact_head_geometry();
+    compact_indexed_resume_fence();
+    constexpr auto layout=NativeVolumeHeadLayout::compact;
+    for(const auto mode:{StoreCompressionMode::raw,StoreCompressionMode::automatic}) {
+      create_faults(mode,true,layout);
+      publish_faults(mode,true,layout);
+      repair_faults(mode,true,layout);
+    }
+  } else if(phase=="--recompress-invariants") {
     for(bool compact:{false,true})recompression_invariants(compact);
   } else if(phase=="--recompress-4096")recompression_faults(true);
   else if(phase=="--recompress-65536")recompression_faults(false);
@@ -355,6 +427,6 @@ int main(int argc,char** argv){try {
     else throw std::runtime_error("unknown head test phase");
   }
   std::cout<<"Native volume-head evidence: {\"schema\":1,\"phase\":\""<<phase<<"\",\"checks\":"<<checks
-      <<",\"fault_cases\":"<<cases<<",\"head_bytes\":"<<kVolumeHeadBytes
+      <<",\"fault_cases\":"<<cases<<",\"head_bytes\":"<<(phase=="--compact-head"?8192:kVolumeHeadBytes)
       <<",\"files_created\":false,\"mounted\":false,\"gpu\":false,\"complete\":true}\n";return 0;
 }catch(const std::exception& e){std::cerr<<"Volume head failure: "<<e.what()<<"\n";return 1;}}

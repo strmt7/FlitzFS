@@ -101,7 +101,8 @@ class WinFspNativeWritable final {
       std::shared_ptr<StoreByteIo> empty_image,StoreIdentity image_identity,
       PagedStoreLimits,StoreCompressionOptions foreground={},
       std::shared_ptr<StoreByteIo> empty_advice={},NativeMaintenancePolicy group_policy={},
-      NativeIndexedDataLayout=NativeIndexedDataLayout::extents);
+      NativeIndexedDataLayout=NativeIndexedDataLayout::extents,
+      NativeVolumeHeadLayout=NativeVolumeHeadLayout::legacy);
   // Start the same indexed callbacks with a qualified memory allocation owner.
   static std::unique_ptr<WinFspNativeWritable> create_indexed_memory(
       MemoryVolumeBacking&,StoreCompressionOptions foreground={},NativeMaintenancePolicy group_policy={});

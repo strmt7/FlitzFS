@@ -1219,11 +1219,12 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_managed_paged
 std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_managed_indexed(
     std::shared_ptr<StoreByteIo> head,StoreIdentity volume,std::shared_ptr<StoreByteIo> image,
     StoreIdentity image_id,PagedStoreLimits limits,StoreCompressionOptions foreground,
-    std::shared_ptr<StoreByteIo> advice,NativeMaintenancePolicy group_policy,NativeIndexedDataLayout data_layout) {
+    std::shared_ptr<StoreByteIo> advice,NativeMaintenancePolicy group_policy,NativeIndexedDataLayout data_layout,
+    NativeVolumeHeadLayout head_layout) {
   const auto security=owner_security();const auto stamp=native_cleanup_utc();
   const NativeVolumeRootMetadata root{{stamp,stamp,stamp,stamp,FILE_ATTRIBUTE_DIRECTORY},security};
   auto session=NativeFileSession::create_indexed_volume(std::move(head),volume,std::move(image),image_id,
-      limits,foreground,NativeDispositionPolicy::windows_global,root,NativeVolumePlacement::external,data_layout);
+      limits,foreground,NativeDispositionPolicy::windows_global,root,NativeVolumePlacement::external,data_layout,head_layout);
   if(advice)session.create_budgeted_optimization_area(std::move(advice),1);
   return from_indexed_session(std::move(session),volume,stamp,group_policy);
 }
@@ -1243,7 +1244,8 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_indexed_memor
       !backing.domain->owns(*backing.advice))
     throw std::invalid_argument("Indexed initialization requires privately owned memory backing");
   auto adapter=create_managed_indexed(backing.head,backing.volume_identity,backing.image,backing.image_identity,
-      {backing.layout.image_capacity},foreground,backing.advice,group_policy,NativeIndexedDataLayout::inline_small_files);
+      {backing.layout.image_capacity},foreground,backing.advice,group_policy,
+      NativeIndexedDataLayout::inline_small_files,NativeVolumeHeadLayout::compact);
   adapter->configure_memory_maintenance(backing);
   return adapter;
 }

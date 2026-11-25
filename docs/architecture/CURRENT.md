@@ -173,7 +173,7 @@ coherence postings can be rebuilt from the selected image.
 
 ```mermaid
 flowchart LR
-    V["Paired outer volume selector (volume, image, epoch, placement and floor)"] --> Image["Selected indexed paged image"]
+    V["Two outer selector slots, legacy or compact"] --> Image["Selected indexed paged image"]
     V -. "staged publication can select" .-> Alternate["Alternate image when provider supports it"]
     Image --> R["Paired image checkpoint slots"]
     R --> Tree["Checked paged object tree and mirrored metadata references"]
@@ -187,11 +187,13 @@ flowchart LR
 ```
 
 The memory provider reserves address space and commits pages on demand under a
-shared resource domain. A qualified file provider can hold paired image and
-catalog regions with independent lifetime pins. A linear file placement is also
+shared resource domain. New indexed memory volumes use compact selector slots
+sized by the provider's qualified failure unit. Paired volume files use fixed
+legacy selector slots and can hold image and catalog regions with independent
+lifetime pins. A linear file placement is also
 readable under its narrower contract. [Memory allocation](../../src/windows/memory_volume.cpp#L79)
 · [file regions](../../src/native_volume_file.cpp#L376)
-· [selector binding](../../src/volume_head.cpp#L106)
+· [selector binding](../VOLUME_HEAD.md#compact-external-encoding)
 · [typed records](../../src/native_indexed_volume.cpp#L22)
 · [coherence backing](../../include/flitzfs/indexed_coherence.hpp#L92)
 

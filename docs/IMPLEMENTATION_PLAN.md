@@ -340,14 +340,15 @@ contracts supply the wider acceptance matrices.
    a local learned selection policy in shadow mode once there are
    enough complete-cost labels. Promote it only after held-out workload
    drift, restart, advice loss and multi-volume interference checks.
-   For the protected-layout experiment, report reserved checkpoint
-   bytes, actual allocated pages, both recovery copies and payload.
-   Compare the existing image with a private sparse placement model
-   that preserves slot separation and checked logical bytes. Record
-   first-write and post-retirement space, then verify the same
-   surviving root and acknowledged bytes after each modeled cut.
-   Price changes to checkpoint geometry with mixed readers and
-   writers before promoting a new stored format.
+   The compact external selector reduced checked locked use by
+   122,880 bytes on Windows and passed creation, handoff and peer
+   repair cuts. Next price the paged image's root spacing separately.
+   Freeze both protected copies, record sizes and provider alignment.
+   Compare full occupied bytes after the first write and after
+   retirement. Exercise old readers, mixed generations, relocation
+   to a wider failure unit and interruption at every authority change
+   before advancing the image format.
+   [Selector evidence](evidence/windows-compact-volume-selector-2026-11-25.json)
 3. **Close the automatic mounted AMD read lane · E03, E08.** Carry
    client arrival, open-file identity, IO offset, cache state, CPU
    decode, transfer, kernel, verification and delivered byte counts

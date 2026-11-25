@@ -1,0 +1,506 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "experimental": true,
+  "source": {
+    "parent": "ae90510fd3325b9a4a2339e7838f97d67f37d1fb",
+    "base_tree": "81081990b9d1eb7a8369959e3ee53556f58845a8",
+    "tree": "fe96349c54288d816adf3fd2d7f2d2dc62c49c03",
+    "elements": [
+      {
+        "path": "CMakeLists.txt",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "4b6b9d7d622a4ddac8dd14ac9cac6d159bce0153",
+        "bytes": 98112
+      },
+      {
+        "path": "include/flitzfs/native_session.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "b26c2d4a59d0bc8c620c0db5cb9460b5f27e7566",
+        "bytes": 36220
+      },
+      {
+        "path": "include/flitzfs/volume_head.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "1e65250b1f4755bd0f2aae47c110a5a89f684caf",
+        "bytes": 5703
+      },
+      {
+        "path": "src/native_session.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "a9b79d85090c32f16790af9920d311479e731f4a",
+        "bytes": 124193
+      },
+      {
+        "path": "src/volume_head.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "8fb95cad52a9dcead6f72360d0177597bc50e8f0",
+        "bytes": 28386
+      },
+      {
+        "path": "src/windows/winfsp_native.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "227a4294c8a84328f67e1bdd2257bf8fe6491d0a",
+        "bytes": 113515
+      },
+      {
+        "path": "src/windows/winfsp_native.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "98c8850ba82350d60c367dd7c53575870cc68c55",
+        "bytes": 16021
+      },
+      {
+        "path": "tests/test_native_group_maintenance.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "28d5c013a1445d5e924dcbc25def1d6dc9148908",
+        "bytes": 242484
+      },
+      {
+        "path": "tests/test_volume_head.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "c15a84b67fc27fb446e028c486a1aa6de4b549d3",
+        "bytes": 28890
+      },
+      {
+        "path": "tests/test_winfsp_controller.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "eb7bd993c1ced0cfeb989bb8ad5e5a46bafc6ed1",
+        "bytes": 328050
+      },
+      {
+        "path": "tests/test_winfsp_paged.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "6687e80bdf83b3c9f56e5cbcbe6151538856bec0",
+        "bytes": 92110
+      }
+    ]
+  },
+  "previous_legacy_parser_source_sha256": "9757de0577583cde5f97a051c62679a7a339fc4bd1df62a1690473d572924ba7",
+  "semantic_routing": {
+    "provider_version": "0.2.43",
+    "receipt_sha256": "a07a8a52a45ea910d439d5aa3a11634b49372de4b87f195f59f5144e959c260d",
+    "native_response_sha256": "af8d2fa59220923cb6ee32308f7e42ee14218ae2f690fc2475fa37e7f4230dd5",
+    "source_files": 6
+  },
+  "provider_research": {
+    "version": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "afa06bd363cbadef4968384f76d3f6c47c7114156789f85970eee162d2dc8034",
+    "pages": [
+      {
+        "name": "windows-virtualalloc",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc",
+        "http_status": 200,
+        "final_http_status": 200,
+        "capture_sha256": "3d9037e4417a45f5cfce0b675207ecda5707bd11954bfb746c2c85b5c286ed7b",
+        "markdown_sha256": "47e0fded2a401359330ccb8d3fe33c75a8afd9dee5a285c0e2e6d2c162b9a4b2",
+        "markdown_bytes": 39607
+      },
+      {
+        "name": "windows-sector-geometry",
+        "url": "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/ns-ntddk-_file_fs_sector_size_information",
+        "http_status": 200,
+        "final_http_status": 200,
+        "capture_sha256": "b652c54557c26a6f922dcda0c7d1522d9bb713b8e6f088f25ff9e5b2578bca22",
+        "markdown_sha256": "6d277b64acbcbeb115e290502b4249229941c225b3045fe5e6690512031105ae",
+        "markdown_bytes": 32595
+      },
+      {
+        "name": "windows-sparse-operations",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/fileio/sparse-file-operations",
+        "http_status": 200,
+        "final_http_status": 200,
+        "capture_sha256": "363232fcc37c66d062a0476d604d868716c0d06aa3c727a4cc51a6b365ddb3a8",
+        "markdown_sha256": "eed273290b6796fd828d8bcfa91df2a5c7483fc809a0b708d9e1652466b3b304",
+        "markdown_bytes": 21067
+      },
+      {
+        "name": "erofs-layout",
+        "url": "https://docs.kernel.org/7.1/filesystems/erofs.html",
+        "http_status": 200,
+        "final_http_status": 200,
+        "capture_sha256": "016cbae93ff1ad4dd6f9d29817c681246ac24e0378f28ff4de614568e3d255a0",
+        "markdown_sha256": "fd75b4dc505d330f646f8b43bfe00a68840a0780ec5c7fb88d16670896e0eca7",
+        "markdown_bytes": 22009
+      }
+    ]
+  },
+  "matched_complete_cpython": {
+    "fixture_sha256": "d053d6acd0551763909205a2ed670d6bf6bc3e61a13ef0cd13ca93e69c5489f9",
+    "layouts": {
+      "legacy": {
+        "exit_code": 0,
+        "tree_retired": true,
+        "cpu_percent": 22,
+        "peak_job_bytes": 24006656,
+        "memory_bytes": 1298137088,
+        "result_sha256": "06c8a84d56c3c033ca2d7d48506c763be8bf46762ebbe5e0e8c4c0ca804f0dcf",
+        "log_sha256": "6d10cfec09799b734ccc26f0f10beb4a0388473e1d21c225c84538c9206a7410",
+        "arms": {
+          "independent_preserved": {
+            "objects": 78,
+            "image_bytes": 1531904,
+            "selector_bytes": 131072,
+            "mirrored_data_object_bytes": 1346594,
+            "mirrored_metadata_object_bytes": 4426,
+            "record_index_and_padding_bytes": 180884,
+            "zero_data_layout_bytes": 311296,
+            "zero_payload_layout_bytes": 311296,
+            "occupied_bytes": 1662976
+          },
+          "independent_level_3": {
+            "objects": 78,
+            "image_bytes": 1531904,
+            "selector_bytes": 131072,
+            "mirrored_data_object_bytes": 1346594,
+            "mirrored_metadata_object_bytes": 4426,
+            "record_index_and_padding_bytes": 180884,
+            "zero_data_layout_bytes": 311296,
+            "zero_payload_layout_bytes": 311296,
+            "occupied_bytes": 1662976
+          },
+          "independent_level_9": {
+            "objects": 78,
+            "image_bytes": 1409024,
+            "selector_bytes": 131072,
+            "mirrored_data_object_bytes": 1222472,
+            "mirrored_metadata_object_bytes": 3966,
+            "record_index_and_padding_bytes": 182586,
+            "zero_data_layout_bytes": 311296,
+            "zero_payload_layout_bytes": 311296,
+            "occupied_bytes": 1540096
+          },
+          "cold_only": {
+            "objects": 78,
+            "image_bytes": 1343488,
+            "selector_bytes": 131072,
+            "mirrored_data_object_bytes": 1161868,
+            "mirrored_metadata_object_bytes": 4426,
+            "record_index_and_padding_bytes": 177194,
+            "zero_data_layout_bytes": 311296,
+            "zero_payload_layout_bytes": 311296,
+            "occupied_bytes": 1474560
+          },
+          "cold_then_group": {
+            "objects": 91,
+            "image_bytes": 614400,
+            "selector_bytes": 131072,
+            "mirrored_data_object_bytes": 429292,
+            "mirrored_metadata_object_bytes": 5080,
+            "record_index_and_padding_bytes": 180028,
+            "zero_data_layout_bytes": 319488,
+            "zero_payload_layout_bytes": 311296,
+            "occupied_bytes": 745472
+          },
+          "group_only": {
+            "objects": 91,
+            "image_bytes": 614400,
+            "selector_bytes": 131072,
+            "mirrored_data_object_bytes": 429338,
+            "mirrored_metadata_object_bytes": 5080,
+            "record_index_and_padding_bytes": 179982,
+            "zero_data_layout_bytes": 319488,
+            "zero_payload_layout_bytes": 311296,
+            "occupied_bytes": 745472
+          },
+          "group_then_cold": {
+            "objects": 91,
+            "image_bytes": 565248,
+            "selector_bytes": 131072,
+            "mirrored_data_object_bytes": 378180,
+            "mirrored_metadata_object_bytes": 5080,
+            "record_index_and_padding_bytes": 181988,
+            "zero_data_layout_bytes": 319488,
+            "zero_payload_layout_bytes": 311296,
+            "occupied_bytes": 696320
+          }
+        }
+      },
+      "compact": {
+        "exit_code": 0,
+        "tree_retired": true,
+        "cpu_percent": 22,
+        "peak_job_bytes": 23588864,
+        "memory_bytes": 1276116992,
+        "result_sha256": "2b9020451329a5fabdb681d16dcd00650578be42f99a0f4b4b1bd164c2ec6962",
+        "log_sha256": "27467943b91eba5637e22a9a25f8511e7ce45f6589e64ac7c1130f2889634f23",
+        "arms": {
+          "independent_preserved": {
+            "objects": 78,
+            "image_bytes": 1531904,
+            "selector_bytes": 8192,
+            "mirrored_data_object_bytes": 1346594,
+            "mirrored_metadata_object_bytes": 4426,
+            "record_index_and_padding_bytes": 180884,
+            "zero_data_layout_bytes": 188416,
+            "zero_payload_layout_bytes": 188416,
+            "occupied_bytes": 1540096
+          },
+          "independent_level_3": {
+            "objects": 78,
+            "image_bytes": 1531904,
+            "selector_bytes": 8192,
+            "mirrored_data_object_bytes": 1346594,
+            "mirrored_metadata_object_bytes": 4426,
+            "record_index_and_padding_bytes": 180884,
+            "zero_data_layout_bytes": 188416,
+            "zero_payload_layout_bytes": 188416,
+            "occupied_bytes": 1540096
+          },
+          "independent_level_9": {
+            "objects": 78,
+            "image_bytes": 1409024,
+            "selector_bytes": 8192,
+            "mirrored_data_object_bytes": 1222472,
+            "mirrored_metadata_object_bytes": 3966,
+            "record_index_and_padding_bytes": 182586,
+            "zero_data_layout_bytes": 188416,
+            "zero_payload_layout_bytes": 188416,
+            "occupied_bytes": 1417216
+          },
+          "cold_only": {
+            "objects": 78,
+            "image_bytes": 1343488,
+            "selector_bytes": 8192,
+            "mirrored_data_object_bytes": 1161868,
+            "mirrored_metadata_object_bytes": 4426,
+            "record_index_and_padding_bytes": 177194,
+            "zero_data_layout_bytes": 188416,
+            "zero_payload_layout_bytes": 188416,
+            "occupied_bytes": 1351680
+          },
+          "cold_then_group": {
+            "objects": 91,
+            "image_bytes": 614400,
+            "selector_bytes": 8192,
+            "mirrored_data_object_bytes": 429292,
+            "mirrored_metadata_object_bytes": 5080,
+            "record_index_and_padding_bytes": 180028,
+            "zero_data_layout_bytes": 196608,
+            "zero_payload_layout_bytes": 188416,
+            "occupied_bytes": 622592
+          },
+          "group_only": {
+            "objects": 91,
+            "image_bytes": 614400,
+            "selector_bytes": 8192,
+            "mirrored_data_object_bytes": 429338,
+            "mirrored_metadata_object_bytes": 5080,
+            "record_index_and_padding_bytes": 179982,
+            "zero_data_layout_bytes": 196608,
+            "zero_payload_layout_bytes": 188416,
+            "occupied_bytes": 622592
+          },
+          "group_then_cold": {
+            "objects": 91,
+            "image_bytes": 565248,
+            "selector_bytes": 8192,
+            "mirrored_data_object_bytes": 378180,
+            "mirrored_metadata_object_bytes": 5080,
+            "record_index_and_padding_bytes": 181988,
+            "zero_data_layout_bytes": 196608,
+            "zero_payload_layout_bytes": 188416,
+            "occupied_bytes": 573440
+          }
+        }
+      }
+    }
+  },
+  "windows_memory_provider": {
+    "exit_code": 0,
+    "tree_retired": true,
+    "cpu_percent": 22,
+    "peak_job_bytes": 9334784,
+    "memory_bytes": 1374683136,
+    "result_sha256": "e9a88631e02910f8054b253f969c330de7076a173d769831ebbb03f47fd18b09",
+    "log_sha256": "a50dddee07dbd796504562de2599bb2b25588dbcc08ab496bcb093a60f3fc9c1",
+    "observed": {
+      "legacy_head": 131072,
+      "compact_head": 8192,
+      "legacy_locked": 434176,
+      "compact_locked": 311296,
+      "cpu_verified": 1
+    }
+  },
+  "selector_fault_model": {
+    "exit_code": 0,
+    "tree_retired": true,
+    "cpu_percent": 22,
+    "peak_job_bytes": 9752576,
+    "memory_bytes": 1375731712,
+    "result_sha256": "f5677c9fd008cb96e37a2b687ec2c4bf3386d36764392472d2cd813ac6959496",
+    "log_sha256": "83f48acddd0748a1b65aeff188f6829579a5e6f9c9c3877a0beef2d9c5809917",
+    "observed": {
+      "schema": 1,
+      "phase": "--compact-head",
+      "checks": 1778,
+      "fault_cases": 132,
+      "head_bytes": 8192,
+      "files_created": false,
+      "mounted": false,
+      "gpu": false,
+      "complete": true
+    },
+    "tested_slot_width_bytes": [
+      4096,
+      8192,
+      16384,
+      32768,
+      65536
+    ],
+    "wider_provider_read_only": true,
+    "wrong_geometry_rejected_before_degraded_indexed_image_repair": true
+  },
+  "cpu_grouped_callback": {
+    "exit_code": 0,
+    "tree_retired": true,
+    "cpu_percent": 23,
+    "peak_job_bytes": 17920000,
+    "memory_bytes": 1373634560,
+    "result_sha256": "a564c13aa0cbe0aa7a49903940ad0b27848f09df27f7123433f1069ae353207f",
+    "log_sha256": "ba9ba871553dc00232ed0a1313707ccfdeb78972e953418cb52cbb2512a696e5",
+    "observed": {
+      "callbacks": 32,
+      "delivered_frames": 2,
+      "prepared_backing_bytes": 37216,
+      "cpu_backing_bytes": 341008,
+      "prepared_member_reads": 0,
+      "cpu_member_reads": 1,
+      "device": 0,
+      "small_request_training": 1,
+      "skipped_frames": 1
+    }
+  },
+  "amd_grouped_callback": {
+    "exit_code": 0,
+    "tree_retired": true,
+    "cpu_percent": 20,
+    "peak_job_bytes": 103817216,
+    "memory_bytes": 1050673152,
+    "result_sha256": "fd17c03b895d1e4af8259715923a4d8a882973dc244f58b4a7068c0311980f2b",
+    "log_sha256": "e0ffd9777a0683670b50acd0e2fd26fc958121ac5bbcd670c1e84232090cf018",
+    "preflight": {
+      "admitted": false,
+      "reason": "Existing host load above the fixture envelope",
+      "utc": "2026-11-25T14:13:43.7781597Z",
+      "driver": "32.0.32029.2010",
+      "build": "26300",
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "luid": "9d75010000000000",
+      "available_bytes": 22082961408,
+      "reserved_bytes": 4294967296,
+      "gpu_peak": 100.15931954164255,
+      "cpu_peak": 8.273626509995802,
+      "target_samples": 800
+    },
+    "manifest_sha256": "1b1c979fc5c7b25fdd70eee93c7f4bd263e950498132d686c5665e09c9763082",
+    "artifacts": {
+      "flitzfs_native_lz4_read_worker.exe": {
+        "sha256": "8625a3fa306adce0f3db5a1803ea6b9924147817c73630f75f09d42fdf268ca4",
+        "bytes": 581632
+      },
+      "flitzfs_rocm_native_lz4_decode.dll": {
+        "sha256": "9ac5bb33a7b39ae26712dcdcfcdeb6b4b5fc049175e18dd6f24d047a37b3e128",
+        "bytes": 173568
+      },
+      "winfsp-x64.dll": {
+        "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+        "bytes": 200816
+      },
+      "flitzfs_winfsp_paged_tests.exe": {
+        "sha256": "4cc42548cf397bf4063f59d81a95449a6ca1aee1f82ad327676fdaf39232c2f1",
+        "bytes": 2293760
+      }
+    }
+  },
+  "qualification": {
+    "release": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "cpu_percent": 23,
+      "peak_job_bytes": 62423040,
+      "memory_bytes": 1484783616,
+      "result_sha256": "75287a2197119a73c0f370abe7c57139bf4c357f93dea007e46554184b6614ec",
+      "log_sha256": "5339bbc8dbd70c220492c7c2ae876388393e8b89980a02d94caa1a2616247f48",
+      "passed": 10
+    },
+    "raw": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "cpu_percent": 23,
+      "peak_job_bytes": 30478336,
+      "memory_bytes": 1639972864,
+      "result_sha256": "f3720b0c11f378771c66ec05d50f00ef4f01b35ba25ebb478725abe0428071dc",
+      "log_sha256": "e33fc371f2d982b71cb7774c2cf36bb91e6986669b2239e50f0bb1f832935998",
+      "passed": 2
+    },
+    "asan": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "cpu_percent": 23,
+      "peak_job_bytes": 500150272,
+      "memory_bytes": 1632632832,
+      "result_sha256": "0629f80d834970b0a674c88ba9da682c64b51b33f83dcb6aca8564cd2e3b45ad",
+      "log_sha256": "c7cdfceddfb6d9249be341d0d0d46608754a24b6b4d8db261d255d964118e129",
+      "passed": 3
+    },
+    "windows_memory_lifecycle": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "cpu_percent": 23,
+      "peak_job_bytes": 27144192,
+      "memory_bytes": 1466957824,
+      "result_sha256": "c6d49bc07ddef952c8815aaedbfe84dd48cc4bf2e9beb5929f5ead7b479dee32",
+      "log_sha256": "d80a5bad04f4291447f93149c1e622dfba07c461b2cf0ba979201640b358cea9"
+    },
+    "sanitizer_runtime_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed",
+    "builds": {
+      "release": {
+        "exit_code": 0,
+        "tree_retired": true,
+        "cpu_percent": 25,
+        "peak_job_bytes": 683442176,
+        "memory_bytes": 1761607680,
+        "result_sha256": "822f68807614caf27ee684a61dd2fd6f8b20b14bb35a93f79ca9f4fe5141a7a6",
+        "log_sha256": "56fd343b9ece96ca35abab0e52a64d718966dd361eae64350c6135741e8daaab"
+      },
+      "raw": {
+        "exit_code": 0,
+        "tree_retired": true,
+        "cpu_percent": 25,
+        "peak_job_bytes": 578150400,
+        "memory_bytes": 1781530624,
+        "result_sha256": "4049f489bc6ab3471fd05e4849a8f67c10a0abed91b703d5a8151e0e0e0111ff",
+        "log_sha256": "669d2e7c0d366e5e7c784e29265797bea5866c91da1d2c99828e0edb7f3f1827"
+      },
+      "asan": {
+        "exit_code": 0,
+        "tree_retired": true,
+        "cpu_percent": 25,
+        "peak_job_bytes": 665219072,
+        "memory_bytes": 1805647872,
+        "result_sha256": "be9ef36f969732ab4d6898d821259717e07055c61f657ab4edb865589ebcc87e",
+        "log_sha256": "161ad86eabec4e90206040149e2e74c35677066acef9fbdd7659b45778eb150f"
+      }
+    }
+  },
+  "scope": {
+    "backing": "Windows locked memory and bounded failure-model fixtures",
+    "physical_host_mount": false,
+    "actual_power_loss": false,
+    "physical_media": false,
+    "gpu_driver_change": false,
+    "timing_win_claim": false,
+    "release": false
+  }
+}

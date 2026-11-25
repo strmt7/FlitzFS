@@ -11,8 +11,12 @@ namespace {
 using Bytes=std::vector<std::byte>;
 using Code=NativeFsErrorCode;
 [[noreturn]] void fail(Code code,const char* message){throw NativeFsError(code,message);}
-constexpr std::size_t digest_at=kStoreCommitUnit-32;
-constexpr char magic[]="FLTVH001";
+constexpr std::size_t minimum_slot_bytes=4096;
+constexpr std::size_t digest_bytes=32;
+constexpr char magic[]="FLTVH001",compact_magic[]="FLTVH002";
+const char* slot_magic(std::size_t bytes) noexcept {
+  return bytes==kStoreCommitUnit?magic:compact_magic;
+}
 constexpr auto paired_file_capability=4U,paired_catalog_capability=5U;
 constexpr auto sealed_file_capability=6U,sealed_catalog_capability=7U;
 void put(Bytes& b,std::size_t at,std::uint64_t v,unsigned n=8) {
@@ -50,20 +54,22 @@ void valid(const NativeVolumeSelection& s,Code code) {
       (!indexed && s.parent_checkpoint>=s.minimum_checkpoint))
     fail(code,"invalid compacted volume head parent");
 }
-void contract(const StoreByteIo& io) {
+void contract(const StoreByteIo& io,std::size_t slot_bytes=kStoreCommitUnit) {
   const auto c=io.contract();const auto u=c.write_failure_unit_bytes;
-  if(!u||u>kStoreCommitUnit||(u&(u-1))||kStoreCommitUnit%u||!c.successful_flush_persists)
+  if(!u||u>slot_bytes||(u&(u-1))||slot_bytes%u||!c.successful_flush_persists)
     fail(Code::invalid_operation,"volume head requires qualified disjoint failure units and persistence");
 }
-Bytes encoded(const NativeVolumeSelection& s,unsigned slot) {
-  valid(s,Code::invalid_operation);Bytes b(kStoreCommitUnit);
+Bytes encoded(const NativeVolumeSelection& s,unsigned slot,std::size_t slot_bytes) {
+  valid(s,Code::invalid_operation);
+  Bytes b(slot_bytes);
+  const auto digest_at=slot_bytes-digest_bytes;
   const auto kind=static_cast<std::uint32_t>(s.storage.kind);
   auto capability=kind+1;
   if(s.placement==NativeVolumePlacement::paired_file_catalog_ranges)
     capability=s.sealed_range?sealed_catalog_capability:paired_catalog_capability;
   else if(s.placement==NativeVolumePlacement::paired_file_ranges)
     capability=s.sealed_range?sealed_file_capability:paired_file_capability;
-  std::memcpy(b.data(),magic,8);put(b,8,capability,4);put(b,12,slot,4);put(b,16,s.epoch);
+  std::memcpy(b.data(),slot_magic(slot_bytes),8);put(b,8,capability,4);put(b,12,slot,4);put(b,16,s.epoch);
   std::copy(s.volume_identity.begin(),s.volume_identity.end(),b.begin()+24);
   std::copy(s.image_identity.begin(),s.image_identity.end(),b.begin()+40);
   std::copy(s.parent_identity.begin(),s.parent_identity.end(),b.begin()+56);
@@ -75,6 +81,7 @@ Bytes encoded(const NativeVolumeSelection& s,unsigned slot) {
 }
 std::optional<NativeVolumeSelection> decoded(std::span<const std::byte> b,unsigned slot,
     const std::optional<StoreIdentity>& expected) {
+  const auto digest_at=b.size()-digest_bytes;
   const auto digest=detail::record_digest(b.first(digest_at));
   if(!std::equal(digest.begin(),digest.end(),b.begin()+digest_at))return {};
   // Intact unsupported/contradictory metadata is NEVER an excuse to roll back.
@@ -83,7 +90,8 @@ std::optional<NativeVolumeSelection> decoded(std::span<const std::byte> b,unsign
   const bool sealed=capability>=sealed_file_capability;
   const auto kind=paired?static_cast<std::uint64_t>(NativeImageKind::indexed_paged):capability-1;
   const auto reserved_at=sealed?128:(capability>1?112:96);
-  if(std::memcmp(b.data(),magic,8)||capability<1||capability>sealed_catalog_capability||get(b,12,4)!=slot||
+  if(std::memcmp(b.data(),slot_magic(b.size()),8)||capability<1||capability>sealed_catalog_capability||
+      (paired && b.size()!=kStoreCommitUnit)||get(b,12,4)!=slot||
       (capability>1 && (get(b,96,4)!=kind || get(b,100,4)!=0)) ||
       !std::all_of(b.begin()+reserved_at,b.begin()+digest_at,[](auto x){return x==std::byte{};}))
     fail(Code::corrupt,"intact volume head framing unsupported");
@@ -99,18 +107,21 @@ std::optional<NativeVolumeSelection> decoded(std::span<const std::byte> b,unsign
   if(expected && s.volume_identity!=*expected)fail(Code::corrupt,"volume head identity mismatch");
   return s;
 }
-struct Loaded {NativeVolumeHeadInfo info;unsigned selected_slot=0;};
+struct Loaded {NativeVolumeHeadInfo info;std::size_t slot_bytes;unsigned selected_slot;};
 Loaded load(const StoreByteIo& io,std::optional<StoreIdentity> expected) {
   if(expected && zero(*expected))fail(Code::invalid_operation,"missing expected volume identity");
-  if(io.extent()!=kVolumeHeadBytes)fail(Code::corrupt,"volume head must have its exact fixed extent");
-  Bytes scratch(kStoreCommitUnit);std::optional<NativeVolumeSelection> slots[2];
-  for(unsigned i=0;i<2;++i){io.read_exact(i*kStoreCommitUnit,scratch);slots[i]=decoded(scratch,i,expected);}
+  const auto extent=io.extent();
+  if(extent<2*minimum_slot_bytes || extent>kVolumeHeadBytes || (extent&(extent-1)))
+    fail(Code::corrupt,"unsupported volume head extent");
+  const auto slot_bytes=static_cast<std::size_t>(extent/2);
+  Bytes scratch(slot_bytes);std::optional<NativeVolumeSelection> slots[2];
+  for(unsigned i=0;i<2;++i){io.read_exact(i*slot_bytes,scratch);slots[i]=decoded(scratch,i,expected);}
   if(!slots[0]&&!slots[1])fail(Code::corrupt,"no intact volume head");
-  if(!slots[0])return {{*slots[1],true},1};
-  if(!slots[1])return {{*slots[0],true},0};
+  if(!slots[0])return {{*slots[1],true},slot_bytes,1};
+  if(!slots[1])return {{*slots[0],true},slot_bytes,0};
   if(slots[0]->epoch==slots[1]->epoch) {
     if(*slots[0]!=*slots[1])fail(Code::corrupt,"same-epoch volume heads disagree");
-    return {{*slots[1],false},1};
+    return {{*slots[1],false},slot_bytes,1};
   }
   const unsigned newer=slots[0]->epoch>slots[1]->epoch?0:1,older=1-newer;
   const auto& n=*slots[newer];const auto& o=*slots[older];
@@ -118,7 +129,7 @@ Loaded load(const StoreByteIo& io,std::optional<StoreIdentity> expected) {
       n.epoch-o.epoch!=1||n.parent_identity!=o.image_identity||
       n.parent_checkpoint<o.minimum_checkpoint||n.namespace_sequence<o.namespace_sequence)
     fail(Code::corrupt,"volume head transition is not a bound successor");
-  return {{n,true},newer};
+  return {{n,true},slot_bytes,newer};
 }
 void admit_binding(const NativeVolumeSelection& selected,const NativeFilesystemSnapshot& image,
     bool writable,bool indexed_recovery) {
@@ -145,13 +156,17 @@ NativeVolumeSelection initial(StoreIdentity volume,const NativeFilesystemSnapsho
   s.minimum_checkpoint=source.storage_info().checkpoint_generation;s.namespace_sequence=source.sequence();
   valid(s,Code::invalid_operation);return s;
 }
-void write_slot(StoreByteIo& io,const NativeVolumeSelection& s,unsigned slot) {
-  const auto bytes=encoded(s,slot);io.write_exact(slot*kStoreCommitUnit,bytes);io.flush();
+void write_slot(StoreByteIo& io,const NativeVolumeSelection& s,unsigned slot,std::size_t slot_bytes) {
+  const auto bytes=encoded(s,slot,slot_bytes);
+  io.write_exact(slot*slot_bytes,bytes);
+  io.flush();
 }
 }
 struct NativeVolumeHeadView::Impl {
   NativeVolumeHeadInfo info;NativeFilesystemSnapshot filesystem;
-  Impl(NativeVolumeHeadInfo i,NativeFilesystemSnapshot f):info(i),filesystem(std::move(f)){}
+  std::size_t slot_bytes;
+  Impl(const Loaded& selected,NativeFilesystemSnapshot f)
+      :info(selected.info),filesystem(std::move(f)),slot_bytes(selected.slot_bytes){}
 };
 NativeVolumeHeadView::NativeVolumeHeadView(std::unique_ptr<Impl> p) noexcept:impl_(std::move(p)){}
 NativeVolumeHeadView::NativeVolumeHeadView(NativeVolumeHeadView&&) noexcept=default;
@@ -176,7 +191,8 @@ NativeVolumeHeadView NativeVolumeHeadView::open_impl(std::shared_ptr<StoreByteIo
     const NativeVolumeImageResolver& resolve,bool indexed_recovery,const detail::IndexedReopenAdmission& admission) {
   if(!head||!resolve)fail(Code::invalid_operation,"missing volume head/image resolver");
   try {
-    const auto selected=load(*head,volume).info;
+    const auto loaded=load(*head,volume);
+    const auto& selected=loaded.info;
     if(indexed_recovery && selected.selection.storage.kind!=NativeImageKind::indexed_paged)
       fail(Code::invalid_operation,"indexed recovery requires the indexed volume head kind");
     auto image=resolve(selected.selection.image_identity);
@@ -189,12 +205,16 @@ NativeVolumeHeadView NativeVolumeHeadView::open_impl(std::shared_ptr<StoreByteIo
     auto view=NativeFilesystemSnapshot::open_image(std::move(image),selected.selection.storage);
     admit_binding(selected.selection,view,false,indexed_recovery);
     view.verify_all(admission);
-    return NativeVolumeHeadView(std::make_unique<Impl>(selected,std::move(view)));
+    return NativeVolumeHeadView(std::make_unique<Impl>(loaded,std::move(view)));
   }catch(const std::bad_alloc&){fail(Code::limit,"volume head reader allocation");}
   catch(const NativeFsError&){throw;}
   catch(const std::exception&){fail(Code::storage_failure,"volume head/image read failed; no fallback");}
 }
 NativeVolumeHeadInfo NativeVolumeHeadView::info() const noexcept{return impl_?impl_->info:NativeVolumeHeadInfo{};}
+void NativeVolumeHeadView::admit_writable_provider(const StoreByteIo& head) const {
+  if(!impl_)fail(Code::invalid_operation,"moved-from volume view");
+  contract(head,impl_->slot_bytes);
+}
 const NativeFilesystemSnapshot& NativeVolumeHeadView::filesystem() const {
   if(!impl_)fail(Code::invalid_operation,"moved-from volume view");return impl_->filesystem;
 }
@@ -209,7 +229,9 @@ struct NativeVolumeHeadWriter::Impl {
     Lease(const Lease&)=delete;Lease& operator=(const Lease&)=delete;
   };
   Lease owner;NativeVolumeSelection selected{};bool poisoned=false;
+  std::size_t slot_bytes=kStoreCommitUnit;
   explicit Impl(std::shared_ptr<StoreByteIo> io):owner(std::move(io)){}
+  std::uint64_t occupied_bytes() const noexcept {return 2*slot_bytes;}
   static std::shared_ptr<StoreByteIo> backing(const NativeFilesystemSnapshot& image) {
     return image.backing_for_volume_head();
   }
@@ -254,17 +276,22 @@ struct NativeVolumeHeadWriter::Impl {
   }
   void check() const {
     if(poisoned)fail(Code::storage_failure,"volume head writer is terminal");
+    contract(*owner.io,slot_bytes);
     const auto now=load(*owner.io,selected.volume_identity);
-    if(now.info.degraded||now.info.selection!=selected)fail(Code::corrupt,"volume head changed outside owner");
+    if(now.slot_bytes!=slot_bytes || now.info.degraded || now.info.selection!=selected)
+      fail(Code::corrupt,"volume head changed outside owner");
   }
   void pair(const NativeVolumeSelection& next,unsigned first=0) {
-    owner.io->admit_write(kVolumeHeadBytes);
+    owner.io->admit_write(occupied_bytes());
     publish_pair(next,first);
   }
   void publish_pair(const NativeVolumeSelection& next,unsigned first=0) {
-    write_slot(*owner.io,next,first);write_slot(*owner.io,next,1-first);
+    contract(*owner.io,slot_bytes);
+    write_slot(*owner.io,next,first,slot_bytes);
+    write_slot(*owner.io,next,1-first,slot_bytes);
     const auto observed=load(*owner.io,next.volume_identity);
-    if(observed.info.degraded||observed.info.selection!=next)fail(Code::corrupt,"volume head publication readback");
+    if(observed.slot_bytes!=slot_bytes || observed.info.degraded || observed.info.selection!=next)
+      fail(Code::corrupt,"volume head publication readback");
     selected=next;
   }
 };
@@ -272,19 +299,28 @@ NativeVolumeHeadWriter::NativeVolumeHeadWriter(std::unique_ptr<Impl> p) noexcept
 NativeVolumeHeadWriter::NativeVolumeHeadWriter(NativeVolumeHeadWriter&&) noexcept=default;
 NativeVolumeHeadWriter& NativeVolumeHeadWriter::operator=(NativeVolumeHeadWriter&&) noexcept=default;
 NativeVolumeHeadWriter::~NativeVolumeHeadWriter()=default;
+std::uint64_t NativeVolumeHeadWriter::occupied_bytes() const noexcept {
+  return impl_?impl_->occupied_bytes():0;
+}
 NativeVolumeHeadWriter NativeVolumeHeadWriter::create(std::shared_ptr<StoreByteIo> head,
-    StoreIdentity volume,const NativeFilesystemSnapshot& source,NativeVolumePlacement placement) {
+    StoreIdentity volume,const NativeFilesystemSnapshot& source,NativeVolumePlacement placement,
+    NativeVolumeHeadLayout layout) {
+  if(layout!=NativeVolumeHeadLayout::legacy &&
+      (layout!=NativeVolumeHeadLayout::compact || placement!=NativeVolumePlacement::external))
+    fail(Code::invalid_operation,"unsupported volume head layout");
   const auto next=initial(volume,source,placement);auto image=Impl::backing(source);
   if(head==image)fail(Code::invalid_operation,"volume head aliases image");
   auto p=std::make_unique<Impl>(std::move(head));Impl::Lease image_lease(image);
   contract(*p->owner.io);contract(*image);
   if(p->owner.io->extent())fail(Code::invalid_operation,"volume head requires a new empty backend");
-  p->owner.io->admit_write(kVolumeHeadBytes);
+  if(layout==NativeVolumeHeadLayout::compact)
+    p->slot_bytes=(std::max)(minimum_slot_bytes,static_cast<std::size_t>(p->owner.io->contract().write_failure_unit_bytes));
+  p->owner.io->admit_write(p->occupied_bytes());
   bind(next,source,true);auto before=Impl::fresh(image,next.storage);Impl::exact(source,before);
   image->flush();auto after=Impl::fresh(image,next.storage);Impl::exact(source,after);
   // Establish complete zero extent before the first self-contained selector.
-  Bytes zeroes(kStoreCommitUnit);
-  p->owner.io->write_exact(0,zeroes);p->owner.io->write_exact(kStoreCommitUnit,zeroes);
+  Bytes zeroes(p->slot_bytes);
+  p->owner.io->write_exact(0,zeroes);p->owner.io->write_exact(p->slot_bytes,zeroes);
   p->pair(next);
   return NativeVolumeHeadWriter(std::move(p));
 }
@@ -294,8 +330,10 @@ NativeVolumeHeadWriter NativeVolumeHeadWriter::resume(std::shared_ptr<StoreByteI
 }
 NativeVolumeHeadWriter NativeVolumeHeadWriter::resume_impl(std::shared_ptr<StoreByteIo> head,
     StoreIdentity volume,std::uint64_t epoch,const NativeFilesystemSnapshot& image,bool closed_indexed) {
-  auto p=std::make_unique<Impl>(std::move(head));contract(*p->owner.io);
+  auto p=std::make_unique<Impl>(std::move(head));
   const auto current=load(*p->owner.io,volume);
+  p->slot_bytes=current.slot_bytes;
+  contract(*p->owner.io,p->slot_bytes);
   if(!epoch||epoch!=current.info.selection.epoch)fail(Code::invalid_operation,"stale volume head epoch");
   auto backing=Impl::backing(image);
   if(backing==p->owner.io)fail(Code::invalid_operation,"volume head aliases image");
@@ -311,7 +349,7 @@ NativeVolumeHeadWriter NativeVolumeHeadWriter::resume_impl(std::shared_ptr<Store
   if(sealed_repair)p->owner.io->flush();
   else backing->flush();
   auto after=Impl::fresh(backing,current.info.selection.storage);Impl::exact(image,after);
-  p->selected=current.info.selection;p->owner.io->admit_write(kVolumeHeadBytes);
+  p->selected=current.info.selection;p->owner.io->admit_write(p->occupied_bytes());
   // Repair peer FIRST, preserving the selected durable survivor.
   if(current.info.degraded)p->pair(p->selected,1-current.selected_slot);
   else {p->owner.io->flush();p->check();}
@@ -321,8 +359,10 @@ std::optional<NativeVolumeHeadWriter::IndexedReopen> NativeVolumeHeadWriter::ret
     std::shared_ptr<StoreByteIo> head,const NativeVolumeHeadView& audited,StoreCompressionOptions foreground) {
   const auto selected=audited.info().selection;
   const auto& verified=audited.filesystem();
-  auto p=std::make_unique<Impl>(std::move(head));contract(*p->owner.io);
+  auto p=std::make_unique<Impl>(std::move(head));
   const auto current=load(*p->owner.io,selected.volume_identity);
+  p->slot_bytes=current.slot_bytes;
+  contract(*p->owner.io,p->slot_bytes);
   if(current.info.selection!=selected)fail(Code::invalid_operation,"indexed reopen selector changed");
   if(current.info.degraded)return std::nullopt;
 
@@ -333,7 +373,7 @@ std::optional<NativeVolumeHeadWriter::IndexedReopen> NativeVolumeHeadWriter::ret
   admit_binding(selected,verified,true,false);
   const auto extent=backing->extent();
   p->selected=selected;
-  p->owner.io->admit_write(kVolumeHeadBytes);
+  p->owner.io->admit_write(p->occupied_bytes());
   // The image lease checks the exact verified checkpoint, flushes the image,
   // and rechecks the root before the selector fence. Both leases are held.
   auto writer=NativeFilesystemWriter::lease_verified_indexed_reopen(verified,foreground);
@@ -364,7 +404,7 @@ NativeVolumeHeadInfo NativeVolumeHeadWriter::publish_compacted_impl(
   Impl::Lease source_lease(source_io,!sealed_repair),target_lease(target_io);
   bool mutation=false;
   try {
-    p.check();contract(*source_io);contract(*target_io);p.owner.io->admit_write(kVolumeHeadBytes);
+    p.check();contract(*source_io);contract(*target_io);p.owner.io->admit_write(p.occupied_bytes());
     bind(p.selected,source,p.selected.storage.kind==NativeImageKind::flat,closed_indexed);
     const auto target_info=target.storage_info();
     if(!target_info.replicated_checkpoint||target_info.degraded_checkpoint||target_info.degraded_root)
@@ -412,7 +452,7 @@ NativeVolumeHeadInfo NativeVolumeHeadWriter::publish_indexed_rebuild(
     auto candidate=NativeFilesystemSnapshot::open_image(target_io,next.storage);
     Impl::exact(target,candidate);
     admit_binding(next,candidate,true,false);
-    p.owner.io->admit_write(kVolumeHeadBytes);
+    p.owner.io->admit_write(p.occupied_bytes());
   }catch(const std::bad_alloc&){fail(Code::limit,"volume handoff allocation failure");}
   catch(const NativeFsError&){throw;}
   catch(const std::exception&){fail(Code::storage_failure,"indexed handoff target or resource check failed");}

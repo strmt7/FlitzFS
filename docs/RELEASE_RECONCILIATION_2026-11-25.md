@@ -611,6 +611,30 @@ a measured cost decomposition of protected records, shared restart
 frames and checkpoint spacing before choosing a new storage layout.
 [EROFS kernel documentation](https://docs.kernel.org/7.1/filesystems/erofs.html)
 
+### Protected selector footprint
+
+New indexed Windows memory volumes choose selector slots using the
+provider's qualified write-failure unit. With the observed 4 KiB unit,
+the selector occupies 8,192 bytes. The locked-memory fixture measured
+434,176 bytes with the legacy selector and 311,296 with the compact
+selector. Standalone custom backends and paired files use the legacy
+encoding by default. Current CPU readers accept both.
+
+The matched four-release CPython benchmark reached 573,440 occupied
+bytes with the compact selector, compared with 696,320 with the legacy
+selector. Image lengths and verified file contents matched. The modeled
+create, publish and peer-repair tests exercised separate slot flushes
+and surviving authority. A degraded compact selector moved to a backing
+with a wider failure unit remains readable and rejects writable startup
+before image repair.
+
+Price the fixed root spacing inside the paged image in its own cohort.
+Require a conservative reader transition, exact capacity and recovery
+checks before advancing that format. Qualify allocation and persistence
+against the intended providers.
+[Selector wire and recovery](VOLUME_HEAD.md#compact-external-encoding) ·
+[Source-bound measurements](evidence/windows-compact-volume-selector-2026-11-25.json)
+
 ## One checked snapshot per indexed sample
 
 In the previous scan, obtaining an extent token and reading the extent

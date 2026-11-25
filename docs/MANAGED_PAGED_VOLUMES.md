@@ -32,7 +32,10 @@ Model residency remain; this is not million-file qualification.
 
 ## Typed head encoding
 
-The separate `FLTVH001` head still occupies two disjoint 65,536-byte slots.
+The separate legacy `FLTVH001` selector occupies two disjoint 65,536-byte
+slots. A new managed indexed Windows memory volume can use the compact
+external selector defined by the provider's qualified failure unit.
+[Selector formats and recovery](VOLUME_HEAD.md#compact-external-encoding)
 Flat capability-1 records remain byte-for-byte unchanged. Capability 2 selects
 paged images, retaining all identity/epoch/checkpoint/sequence fields and adding:
 

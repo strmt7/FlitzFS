@@ -207,6 +207,13 @@ Each accepted candidate must reduce actual protected occupancy and pass
 a full CPU reopen and end-of-file range comparison.
 [Executed tail and comparison controls](evidence/windows-shared-compaction-inventory-2026-11-25.json)
 
+Use `--profile-public-compact-selector FILE` with the same fixture and
+settings to measure compact selectors. This repeats the full-file
+controls with the qualified narrower head and counts its actual length
+in every arm. The WinFsp selector footprint fixture reports logical head
+length and verified locked memory for matched Windows memory volumes.
+[Executed comparison](evidence/windows-compact-volume-selector-2026-11-25.json)
+
 Run `flitzfs_native_group_maintenance_tests --profile-public-reencode FILE`
 for independent rebuilds at native Zstandard policy levels 3 and 9 and
 three arms using the ordinary stronger staged copy. The latter measure a

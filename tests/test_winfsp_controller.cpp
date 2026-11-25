@@ -3548,6 +3548,34 @@ void memory_paged_footprint() {
            <<" selected_extent="<<selected<<" resident="<<backing.domain->usage().resident<<'\n';
 }
 
+void memory_selector_footprint() {
+  const auto measure=[](bool compact) {
+    auto backing=MemoryVolumeBacking::create(false);
+    constexpr StoreCompressionOptions policy{StoreCompressionMode::raw,1,false};
+    const auto unit=backing.head->contract().write_failure_unit_bytes;
+    const auto expected=compact?2ULL*(std::max)(4096U,unit):kVolumeHeadBytes;
+    auto adapter=compact?WinFspNativeWritable::create_indexed_memory(backing,policy):
+        WinFspNativeWritable::create_managed_indexed(backing.head,backing.volume_identity,backing.image,
+            backing.image_identity,{backing.layout.image_capacity},policy,backing.advice,{},
+            NativeIndexedDataLayout::inline_small_files);
+    require(backing.head->extent()==expected,"owned Windows selector geometry differs");
+    const auto view=NativeVolumeHeadView::open(backing.head,backing.volume_identity,
+        [&](const StoreIdentity& id)->std::shared_ptr<StoreByteIo>{
+          return id==backing.image_identity?backing.image:nullptr;
+        });
+    require(!view.info().degraded && view.filesystem().stat_inode(1).directory,
+        "independent CPU selector did not verify the new root");
+    backing.domain->verify_resident();
+    return std::pair{expected,backing.domain->usage().resident};
+  };
+  const auto [legacy,legacy_locked]=measure(false);
+  const auto [compact,compact_locked]=measure(true);
+  require(legacy_locked>=compact_locked && legacy_locked-compact_locked==legacy-compact &&
+      MemoryVolumeDomain::cleanup_healthy(),"selector did not release the expected locked pages");
+  std::cout<<"memory_selector_footprint legacy_head="<<legacy<<" compact_head="<<compact
+      <<" legacy_locked="<<legacy_locked<<" compact_locked="<<compact_locked<<" cpu_verified=1\n";
+}
+
 void memory_coherence_lifecycle() {
   auto backing=MemoryVolumeBacking::create(true);
   const auto volume=backing.volume_identity,image=backing.image_identity;
@@ -5202,6 +5230,7 @@ int main(int argc,char** argv){try {
   // The system-preferred RNG initializes process-wide native handles on first
   // use. Prove native-only stabilization before measuring factory ownership.
   const bool remount=argc==2 && std::string_view(argv[1])=="--memory-remount";
+  const bool selector_footprint=argc==2 && std::string_view(argv[1])=="--selector-footprint";
   const bool volume_file=argc==2 && std::string_view(argv[1])=="--volume-file";
   const bool indexed_startup=argc==2 && std::string_view(argv[1])=="--indexed-startup-profile";
   const bool read_ahead_group_duty=argc==2 && std::string_view(argv[1])=="--live-read-ahead-group-duty";
@@ -5219,7 +5248,8 @@ int main(int argc,char** argv){try {
       (argc==2 && std::string_view(argv[1])=="--live-indexed-repair");
   const bool reconciled_compaction=argc==2 && std::string_view(argv[1])=="--live-indexed-reconcile";
   const bool indexed_compaction=reconciled_compaction || (argc==2 && std::string_view(argv[1])=="--live-indexed-compaction");
-  if(lifetime_only || shifted_grouping || checkpoint || remount || volume_file || screened_public || screened_packed || indexed_compaction ||
+  if(lifetime_only || shifted_grouping || checkpoint || remount || selector_footprint || volume_file ||
+      screened_public || screened_packed || indexed_compaction ||
       live_payload_repair || indexed_startup || read_ahead || amd_cpu_replay || amd_cpu_group || amd_write_pair ||
       amd_write_interrupt || amd_write_arrival ||
       (argc==2 && (std::string_view(argv[1])=="--memory" || std::string_view(argv[1])=="--memory-handles" ||
@@ -5232,6 +5262,7 @@ int main(int argc,char** argv){try {
   require(GetProcessHandleCount(GetCurrentProcess(),&before)!=FALSE,"initial handle count");
   if(argc==1){windows_processor_windows();backing_maintenance_window();event_ownership();lifecycle();idle_until_owner_stop(100);invalid_and_unexpected();live_opportunities();}
   else if(lifetime_only)idle_until_owner_stop(31000);
+  else if(selector_footprint)memory_selector_footprint();
   else if(read_ahead)live_read_ahead_admission(read_ahead_group_duty);
   else if(amd_cpu_replay || amd_cpu_group)amd_write_cpu_replay(true,amd_cpu_group);
   else if(amd_write_arrival) {

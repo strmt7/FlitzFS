@@ -36,10 +36,10 @@ std::uint64_t occupied_indexed_image(const StoreByteIo& backing,std::uint64_t or
   return hybrid?hybrid->occupied():ordinary_extent;
 }
 
-std::uint64_t cold_compaction_input_cost(std::uint64_t candidate_writes) noexcept {
+std::uint64_t cold_compaction_input_cost(std::uint64_t candidate_writes,std::uint64_t head_bytes) noexcept {
   // Cover the selector, advisory pair and private copy. At most two
   // maintenance bytes may be reserved per settled foreground input byte.
-  return candidate_writes/2+candidate_writes%2+(kVolumeHeadBytes+kOptimizationAreaBytes)/2;
+  return candidate_writes/2+candidate_writes%2+(head_bytes+kOptimizationAreaBytes)/2;
 }
 NativeFilesystemWriter resume_image(const std::shared_ptr<StoreByteIo>& image,
     const NativeFilesystemSnapshot& view,StoreCompressionOptions compression) {
@@ -166,7 +166,7 @@ struct NativeFileSession::Impl {
         !NativeFileSession::handoff_contexts_resolved(*this) || writer.indexed_capacity_repair_generation() ||
         (evaluated_image==volume->active_id && evaluated_generation==writer.recompression_generation()))return 0;
     const auto end=writer.maintenance_physical_end();
-    return end?cold_compaction_input_cost(end+detail::kPagedStoreCheckpointWriteBytes):0;
+    return end?cold_compaction_input_cost(end+detail::kPagedStoreCheckpointWriteBytes,volume->head->occupied_bytes()):0;
   }
   bool has_cold_compaction_credit(std::uint64_t cost) const noexcept {
     const auto* advice=ready_funded_advice();
@@ -190,8 +190,8 @@ struct NativeFileSession::Impl {
         NativeFileSession::handoff_contexts_resolved(*this) && !writer.indexed_capacity_repair_generation()) {
       const auto writes=persistent_reclaimer->projected_seal_writes(volume->head->info().selection,
           writer.indexed_append_floor());
-      if(writes && input-floor>=cold_compaction_input_cost(writes))
-        return input-cold_compaction_input_cost(writes);
+      const auto seal_cost=cold_compaction_input_cost(writes,volume->head->occupied_bytes());
+      if(writes && input-floor>=seal_cost)return input-seal_cost;
     }
     return input;
   }
@@ -295,12 +295,12 @@ struct NativeFileSession::Impl {
   }
   bool reserve_cold_compaction(std::uint64_t bytes) {
     auto* advice=ready_funded_advice();
-    if(!advice)return false;
+    if(!advice || !volume->head)return false;
     const auto input=writer.snapshot().workload_info();
     if(!input.enabled)return false;
     try {
       return advice->reserve_rewrite(input.committed_input_bytes,
-          cold_compaction_input_cost(bytes),current_cold_coverage());
+          cold_compaction_input_cost(bytes,volume->head->occupied_bytes()),current_cold_coverage());
     }catch(...) {
       retire_failed_advice_charge(*advice,input.committed_input_bytes);
       throw;
@@ -637,16 +637,20 @@ NativeFileSession NativeFileSession::create_paged_volume(std::shared_ptr<StoreBy
 NativeFileSession NativeFileSession::create_indexed_volume(std::shared_ptr<StoreByteIo> head,
     StoreIdentity volume,std::shared_ptr<StoreByteIo> image,StoreIdentity image_id,PagedStoreLimits limits,
     StoreCompressionOptions foreground,NativeDispositionPolicy policy,std::optional<NativeVolumeRootMetadata> root,
-    NativeVolumePlacement placement,NativeIndexedDataLayout data_layout) {
+    NativeVolumePlacement placement,NativeIndexedDataLayout data_layout,NativeVolumeHeadLayout head_layout) {
   if(!limits.maximum_physical_bytes)fail(E::invalid_options,"explicit indexed volume capacity required");
   return create_volume_impl(std::move(head),volume,std::move(image),image_id,
-      {NativeImageKind::indexed_paged,limits.maximum_physical_bytes},foreground,{},policy,root,placement,data_layout);
+      {NativeImageKind::indexed_paged,limits.maximum_physical_bytes},foreground,{},policy,root,placement,data_layout,head_layout);
 }
 NativeFileSession NativeFileSession::create_volume_impl(std::shared_ptr<StoreByteIo> head,
     StoreIdentity volume,std::shared_ptr<StoreByteIo> image,StoreIdentity image_id,NativeImageStorage storage,
     StoreCompressionOptions foreground,StoreCheckpointOptions checkpoints,NativeDispositionPolicy policy,
-    std::optional<NativeVolumeRootMetadata> root,NativeVolumePlacement placement,NativeIndexedDataLayout data_layout) {
+    std::optional<NativeVolumeRootMetadata> root,NativeVolumePlacement placement,NativeIndexedDataLayout data_layout,
+    NativeVolumeHeadLayout head_layout) {
   admit_policy(policy);detail::validate_store_compression(foreground);
+  if(head_layout!=NativeVolumeHeadLayout::legacy &&
+      (head_layout!=NativeVolumeHeadLayout::compact || placement!=NativeVolumePlacement::external))
+    fail(E::invalid_options,"unsupported volume head layout");
   if(data_layout!=NativeIndexedDataLayout::extents && data_layout!=NativeIndexedDataLayout::inline_small_files)
     fail(E::invalid_options,"unknown indexed data layout");
   if(volume==StoreIdentity{} || image_id==StoreIdentity{} || volume==image_id || head==image)
@@ -673,7 +677,7 @@ NativeFileSession NativeFileSession::create_volume_impl(std::shared_ptr<StoreByt
     writer.apply_with_metadata({},{&basic,1},{&security,1});
   }
   auto source=writer.snapshot();retire(writer);
-  owner->head.emplace(NativeVolumeHeadWriter::create(head,volume,source,placement));
+  owner->head.emplace(NativeVolumeHeadWriter::create(head,volume,source,placement,head_layout));
   owner->epoch=owner->head->info().selection.epoch;
   auto session=create(resume_image(image,source,foreground),policy);
   owner->budget_new=true;
@@ -721,6 +725,8 @@ NativeFileSession NativeFileSession::resume_volume_impl(std::shared_ptr<StoreByt
   auto selected=NativeVolumeHeadView::open_impl(head,volume,select,closed_indexed,admission);
   if(selected.info().selection.epoch!=epoch)
     fail(E::invalid_options,"stale volume session epoch");
+  // The slow startup path may repair the image before taking the head lease.
+  selected.admit_writable_provider(*head);
   if(!closed_indexed && selected.filesystem().needs_session_recovery())
     fail(E::delete_pending,"old file-context state requires qualified recovery");
   // A file attachment can retain the checked backing before either writer
@@ -1293,8 +1299,9 @@ bool NativeFileSession::idle_cold_compaction_pending() const noexcept {
   return impl_->has_cold_compaction_credit(impl_->cold_compaction_cost());
 }
 bool NativeFileSession::idle_seal_funded(std::uint64_t bytes) const noexcept {
-  return !poisoned() && impl_->volume_file_bound && !impl_->recompression && bytes &&
-      impl_->has_cold_compaction_credit(cold_compaction_input_cost(bytes));
+  return !poisoned() && impl_->volume_file_bound && impl_->volume && impl_->volume->head &&
+      !impl_->recompression && bytes &&
+      impl_->has_cold_compaction_credit(cold_compaction_input_cost(bytes,impl_->volume->head->occupied_bytes()));
 }
 bool NativeFileSession::reserve_idle_seal(std::uint64_t bytes) {
   if(!idle_seal_funded(bytes))return false;

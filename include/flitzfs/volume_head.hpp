@@ -4,6 +4,7 @@
 namespace flitzfs {
 // Experimental custom-backend control record. No path/mount/worker/deletion API.
 inline constexpr std::uint64_t kVolumeHeadBytes=2*kStoreCommitUnit;
+enum class NativeVolumeHeadLayout {legacy,compact};
 enum class NativeVolumePlacement {external, paired_file_ranges, paired_file_catalog_ranges};
 constexpr bool paired_volume_file(NativeVolumePlacement placement) noexcept {
   return placement==NativeVolumePlacement::paired_file_ranges ||
@@ -46,6 +47,7 @@ class NativeVolumeHeadView final {
   const NativeFilesystemSnapshot& filesystem() const;
  private:
   friend class NativeFileSession;
+  void admit_writable_provider(const StoreByteIo&) const;
   static NativeVolumeHeadView open_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,
       const NativeVolumeImageResolver&,bool indexed_recovery,const detail::IndexedReopenAdmission& admission={});
   struct Impl;explicit NativeVolumeHeadView(std::unique_ptr<Impl>) noexcept;
@@ -57,7 +59,8 @@ class NativeVolumeHeadWriter final {
   // A per-instance head lease is NOT global volume/provider authentication.
   static NativeVolumeHeadWriter create(std::shared_ptr<StoreByteIo> empty_head,
       StoreIdentity volume_identity,const NativeFilesystemSnapshot& source,
-      NativeVolumePlacement placement=NativeVolumePlacement::external);
+      NativeVolumePlacement placement=NativeVolumePlacement::external,
+      NativeVolumeHeadLayout layout=NativeVolumeHeadLayout::legacy);
   // Exact epoch lease, actual old owner retirement and provider-wide exclusive
   // control required. Repair only this selected head, never an older image.
   static NativeVolumeHeadWriter resume(std::shared_ptr<StoreByteIo> head,
@@ -75,6 +78,7 @@ class NativeVolumeHeadWriter final {
   bool poisoned() const noexcept;
  private:
   friend class NativeFileSession;
+  std::uint64_t occupied_bytes() const noexcept;
   static NativeVolumeHeadWriter resume_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,
       std::uint64_t,const NativeFilesystemSnapshot&,bool closed_indexed);
   struct IndexedReopen;

@@ -176,7 +176,8 @@ class NativeFileSession final {
       NativeDispositionPolicy=NativeDispositionPolicy::aggregate,
       std::optional<NativeVolumeRootMetadata> root={},
       NativeVolumePlacement placement=NativeVolumePlacement::external,
-      NativeIndexedDataLayout=NativeIndexedDataLayout::extents);
+      NativeIndexedDataLayout=NativeIndexedDataLayout::extents,
+      NativeVolumeHeadLayout=NativeVolumeHeadLayout::legacy);
   // NEW explicitly bounded paged volume: mirrored payloads, indexed names and
   // shared-base capability. Legacy create_volume bytes/defaults are unchanged.
   static NativeFileSession create_paged_volume(std::shared_ptr<StoreByteIo> empty_head,
@@ -520,7 +521,8 @@ class NativeFileSession final {
   static NativeFileSession create_volume_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,
       std::shared_ptr<StoreByteIo>,StoreIdentity,NativeImageStorage,StoreCompressionOptions,
       StoreCheckpointOptions,NativeDispositionPolicy,std::optional<NativeVolumeRootMetadata>,
-      NativeVolumePlacement=NativeVolumePlacement::external,NativeIndexedDataLayout=NativeIndexedDataLayout::extents);
+      NativeVolumePlacement=NativeVolumePlacement::external,NativeIndexedDataLayout=NativeIndexedDataLayout::extents,
+      NativeVolumeHeadLayout=NativeVolumeHeadLayout::legacy);
   friend class NativeVolumeFile;
   friend class WinFspNativeWritable;
   // Cached identity and generation for work captured under the Windows owner.

@@ -54,7 +54,8 @@ struct Harness {
   Bytes security;Clock clock;
   explicit Harness(unsigned unit,const Bytes* previous=nullptr,const Bytes* old_head=nullptr,const Bytes* old_advice=nullptr,
       const NativeDeferredWriteOptions* deferred=nullptr,bool indexed=false,
-      StoreCompressionOptions compression={StoreCompressionMode::raw,1,false},bool read_ahead=false):
+      StoreCompressionOptions compression={StoreCompressionMode::raw,1,false},bool read_ahead=false,
+      NativeVolumeHeadLayout head_layout=NativeVolumeHeadLayout::legacy):
       head(ram(unit)),image(ram(unit)),advice(ram(unit)) {
     image_io=std::make_shared<BlockingIo>(image);
     if(previous) {
@@ -63,7 +64,7 @@ struct Harness {
           if(key!=id(1))throw std::runtime_error("fixture image identity");return image_io;},
           {StoreCompressionMode::raw,1,false},advice,1);
     } else if(indexed)adapter=WinFspNativeWritable::create_managed_indexed(head,id(90),image_io,id(1),
-        {kStoreMaxPhysicalBytes},compression,advice);
+        {kStoreMaxPhysicalBytes},compression,advice,{},NativeIndexedDataLayout::extents,head_layout);
     else adapter=WinFspNativeWritable::create_managed_paged(head,id(90),image_io,id(1),
         {kStoreMaxPhysicalBytes},{StoreCompressionMode::raw,1,false},advice);
     if(deferred)adapter->enable_deferred_writes_hosted(*deferred);
@@ -357,7 +358,8 @@ void group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={},Group
   }
   // Select the committed reference before reopening. Optimizer reference
   // choices are covered separately and do not determine this read fixture.
-  auto seed=std::make_unique<Harness>(4096,nullptr,nullptr,nullptr,nullptr,true,raw);
+  auto seed=std::make_unique<Harness>(4096,nullptr,nullptr,nullptr,nullptr,true,raw,false,NativeVolumeHeadLayout::compact);
+  require(seed->head->extent()==8192,"grouped read did not start on the compact selector");
   const auto initial=seed->create(47);
   seed->write(initial,file);
   seed->close(initial);
