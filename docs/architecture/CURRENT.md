@@ -418,7 +418,8 @@ flowchart TD
     Slot -->|Admitted| Native["Native maintenance evaluates repairs, groups and reclamation"]
     Native --> Phase{"What can safely advance?"}
     Phase -->|Logical reclaim| Advance["Stage, select, or retire a range"]
-    Phase -->|Eligible packed tail| Release["Relocate or shorten after settled ownership"]
+    Phase -->|Packed move or recovery| Move["Use fresh observation and verified allocation intent"]
+    Phase -->|Settled packed suffix| Tail["Recheck selectors and shorten a bounded suffix"]
     Phase -->|Cold work permitted| Screen["Screen and fund cold image work"]
     Phase -->|Deferred| Idle["Another eligible task or wait for evidence"]
     Advance --> Ownership["Recheck both durable selectors and reader pins"]
@@ -428,8 +429,11 @@ flowchart TD
     More -->|Wait or finished| Event
     Detach["Detached fixture with independent native writer"] --> Direct["Explicit native admission and step"]
     Direct --> Advance
-    Chunk --> Release
-    Release --> Verify["Independent CPU reopen and physical accounting"]
+    Move --> Event
+    Tail --> Follow{"Same idle window and more settled suffix?"}
+    Follow -->|Admitted| Tail
+    Follow -->|Foreground, deferral or finished| Event
+    Tail --> Verify["Independent CPU reopen and physical accounting"]
 ```
 
 The earlier mounted trace completed inactive-range retirement, then withheld
@@ -440,9 +444,15 @@ both version-2 anchors, the held reader, independent CPU reopen and a continued
 write. On the populated trace, the observer begins with a separately selected
 compact image. Sparse backing completed old-range retirement while attached.
 Packed backing progressed without reducing provider allocation in the
-observation. All four observations verified the selected image and retired the guest.
+observation. All four observations verified the selected image and retired the
+guest. The packed controller now has a separate continuation for confirmed
+EOF shortening. Every step revalidates both selectors and ownership. The same
+idle window can fund another shorten after the previous extent is checked.
+Foreground activity, expiry or any transition away from confirmed shortening
+ends that continuation. The observer counts its admitted steps separately.
 [Populated retirement](../evidence/windows-mounted-range-retirement-2026-11-24.json) ·
-[Next implementation slice](../RELEASE_EXECUTION_PLAN.md#next-integrated-qualification)
+[Packed continuation](../evidence/windows-packed-tail-continuation-2026-11-25.json) ·
+[Next implementation slice](../RELEASE_RECONCILIATION_2026-11-25.md#ordered-implementation-and-decision-points)
 
 ## 9. AMD work and immediate CPU continuity
 

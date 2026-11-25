@@ -4,9 +4,11 @@ The [current architecture](CURRENT.md) and [source review](REVIEW.md) describe
 the reviewed implementation. This document specifies the proposed boundaries for
 the Windows 11 x64 product. Each change has an implementation and acceptance
 sequence in the [development plan](../IMPLEMENTATION_PLAN.md#3-execution-order-and-dependencies).
-The [24 November reconciliation](../RELEASE_RECONCILIATION_2026-11-24.md)
-ties candidate selection and measured AMD demand to the same Windows operation
-witness and complete occupancy record.
+The current integration design ties durable publication, bounded AMD work,
+sparse advice and measured settlement to the same Windows operation witness
+and complete occupancy record.
+[Reconciled design](../RELEASE_RECONCILIATION_2026-11-25.md#target-control-and-storage-design) ·
+[Implementation order](../RELEASE_RECONCILIATION_2026-11-25.md#ordered-implementation-and-decision-points)
 
 ## 1. Separate volume ownership from presentation and acceleration
 

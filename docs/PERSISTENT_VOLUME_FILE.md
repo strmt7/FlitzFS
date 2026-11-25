@@ -174,6 +174,14 @@ contract.
 [Windows EOF operation](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fsa/5555bcb6-bc29-4f8a-900c-e469b792faab) ·
 [Windows allocation operation](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/0201c69b-50db-412d-bab3-dd97aeede13b)
 
+Following a confirmed truncation, the WinFsp controller can spend the remaining
+idle observation on another truncation. It checks the durable selection,
+settled allocation state, available memory, backing time and foreground
+demand before each step. Fresh observations fund relocation, move recovery
+and the first shorten. In the Windows callback model, four continued steps
+released 12,845,056 additional bytes, with exact independent CPU reopen.
+[Packed continuation evidence](evidence/windows-packed-tail-continuation-2026-11-25.json)
+
 The NTFS guest verified a reduction from 1,900,544 to 720,896 allocated
 bytes. The file retained its held snapshot and independently reopened
 with the CPU reader. The storage model exercised 27 interruptions across

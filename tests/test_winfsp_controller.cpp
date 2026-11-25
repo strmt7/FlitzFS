@@ -1201,21 +1201,23 @@ void volume_file_callbacks() {
 }
 void dense_file_retirement_with_due_scrub() {
   using Progress=NativeVolumeReclaimProgress;
-  constexpr PagedStoreLimits limits{8ULL*1024*1024};
+  using Continuation=WinFspMaintenanceContinuation;
+  using Deferral=NativeMaintenanceDeferral;
+  constexpr PagedStoreLimits limits{48ULL*1024*1024};
   constexpr auto physical_capacity=2*limits.maximum_physical_bytes+2*1024*1024;
   const StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
   const auto volume=id(90);
   auto backing=std::make_shared<DenseTailRam>();
   backing->bytes.failure_unit=4096;
   backing->bytes.capacity=physical_capacity;
-  auto expected=data(kNativeExtentBytes,920);
+  auto expected=data(12*kNativeExtentBytes,920);
   {
     Provider provider;Provider::active=&provider;
     WinFspNativeSession writer(WinFspNativeWritable::create_file_volume(
         backing,volume,id(1),limits,raw,physical_capacity),provider.api());
     require(writer.start(plan())==STATUS_SUCCESS,"dense retirement producer did not start");
     callback_file(provider,0,expected);
-    for(unsigned i=1;i<8;++i) {
+    for(unsigned i=1;i<16;++i) {
       wchar_t name[]=L"\\f0";
       constexpr auto open_file=FILE_NON_DIRECTORY_FILE|(1U<<24);
       PVOID context=nullptr;FSP_FSCTL_FILE_INFO info{};
@@ -1223,8 +1225,9 @@ void dense_file_retirement_with_due_scrub() {
           context,"dense retirement producer could not open its file");
       expected=data(expected.size(),920+i);
       ULONG count=0;
-      require(provider.fs.Interface->Write(&provider.fs,context,expected.data(),0,static_cast<ULONG>(expected.size()),
-          FALSE,FALSE,&count,&info)==STATUS_SUCCESS && count==expected.size(),"dense retirement producer could not write");
+      const auto status=provider.fs.Interface->Write(&provider.fs,context,expected.data(),0,
+          static_cast<ULONG>(expected.size()),FALSE,FALSE,&count,&info);
+      require(status==STATUS_SUCCESS && count==expected.size(),"dense retirement producer could not write");
       callback_cleanup_close(provider,context);
     }
     writer.stop();
@@ -1246,16 +1249,53 @@ void dense_file_retirement_with_due_scrub() {
   WinFspNativeSession session(WinFspNativeWritable::resume_file_volume(backing,volume,raw),provider.api());
   require(session.start(plan())==STATUS_SUCCESS,"dense retirement fixture did not start");
   NativeMaintenanceObservation observed{1,1000,16ULL<<30,12ULL<<30,32ULL<<30,24ULL<<30,1000,0,1000,true,true};
-  const auto advance=[&] {
-    ++observed.sequence;observed.captured_ms+=1000;
-    return session.advance_background_maintenance(observed,observed.captured_ms,{},WinFspMaintenanceContinuation::none,true);
+  const auto advance=[&](Continuation route=Continuation::none,std::uint64_t age=0) {
+    ++observed.sequence;
+    observed.continued=route!=Continuation::none;
+    if(!observed.continued)observed.captured_ms+=1000;
+    return session.advance_background_maintenance(observed,observed.captured_ms+age,{},route,true);
   };
-  const auto writes=backing->bytes.calls;
-  require(advance().progress.deferral==NativeMaintenanceDeferral::foreground && backing->bytes.calls==writes,
-      "dense retirement wrote under foreground demand");
+  const auto packed_tail=Continuation::packed_tail_retirement;
+  const auto refuse=[&](Deferral reason,Continuation route=Continuation::none,std::uint64_t age=0) {
+    const auto writes=backing->bytes.calls;
+    const auto reads=backing->bytes.read_calls;
+    require(advance(route,age).progress.deferral==reason && backing->bytes.calls==writes &&
+        backing->bytes.read_calls==reads,"a deferred packed tail step accessed the backing");
+  };
+  refuse(Deferral::foreground);
   observed.foreground_pending=false;
-  for(unsigned step=0;step<24 && backing->extent()>=before;++step)(void)advance();
-  require(backing->extent()<before,"a due scrub blocked release of retired dense backing");
+  refuse(Deferral::observation,packed_tail);
+  auto retirement=advance();
+  for(unsigned step=0;step<96 && retirement.continuation!=packed_tail;++step) {
+    require(!retirement.compaction_failed,"packed tail preparation failed");
+    retirement=advance();
+  }
+  require(retirement.continuation==packed_tail && backing->extent()<before,
+      "a due scrub blocked the first checked pack shortening");
+  refuse(Deferral::observation,packed_tail,NativeMaintenancePolicy{}.maximum_age_ms+1);
+  refuse(Deferral::observation,packed_tail);
+  retirement=advance();
+  require(retirement.continuation==packed_tail,"packed tail did not leave enough for a continued truncate");
+  observed.foreground_pending=true;
+  refuse(Deferral::foreground,packed_tail);
+  observed.foreground_pending=false;
+  refuse(Deferral::observation,packed_tail);
+  retirement=advance();
+  require(retirement.continuation==packed_tail,"a fresh capture did not restore bounded shortening");
+  const auto capture=observed.captured_ms;
+  const auto before_continuation=backing->extent();
+  unsigned continued=0;
+  while(retirement.continuation==packed_tail) {
+    require(continued++<8,"continued packed truncation did not settle");
+    const auto extent=backing->extent();
+    retirement=advance(packed_tail);
+    require(observed.captured_ms==capture && !retirement.compaction_failed &&
+        retirement.progress.deferral==Deferral::none && backing->extent()<extent &&
+        extent-backing->extent()<=kStoreMaxTransactionBytes,
+        "same-budget packed continuation did not shorten a bounded suffix");
+  }
+  require(continued && backing->extent()<before_continuation,"packed continuation released no additional bytes");
+  refuse(Deferral::observation,packed_tail);
   std::optional<PagedPayloadCheckpointObservation> verified;
   std::uint64_t checked_objects=0;
   for(unsigned step=0;step<32 && !verified;++step) {
@@ -1269,8 +1309,11 @@ void dense_file_retirement_with_due_scrub() {
   const auto reopened=NativeVolumeFile::inspect(DenseTailRam::replay(*backing),volume);
   require(reopened.info().selection.epoch==2 && verified->image==reopened.info().selection.image_identity &&
       verified->generation==reopened.filesystem().storage_info().generation &&
-      reopened.filesystem().read("f0",0,kNativeExtentBytes)==expected,"dense release changed selected bytes");
-  std::cout<<"dense_release_scrub observed_objects="<<checked_objects<<" exact_generation=1 independent_bytes=1\n";
+      reopened.filesystem().read("f0",0,static_cast<std::uint32_t>(expected.size()))==expected,
+      "dense release changed selected bytes");
+  std::cout<<"dense_release_scrub before="<<before<<" settled="<<backing->extent()
+      <<" continued="<<continued<<" continued_bytes="<<before_continuation-backing->extent()
+      <<" observed_objects="<<checked_objects<<" exact_generation=1 independent_bytes=1\n";
 }
 
 void volume_file_scrub_checkpoint() {

@@ -270,6 +270,7 @@ NativeVolumeFileReclaimer::NativeVolumeFileReclaimer(std::shared_ptr<StoreByteIo
     phase_(recover_spare?Phase::retiring:Phase::idle) {}
 
 bool NativeVolumeFileReclaimer::pending(const NativeFileSession& session,NativeVolumeReclaimMode mode) const {
+  if(mode==NativeVolumeReclaimMode::shorten_packed_tail)return dense_work_pending(session,mode);
   if(image_work_pending(session,mode==NativeVolumeReclaimMode::include_cold) || dense_work_pending(session,mode))return true;
   if(!catalog_)return false;
   std::optional<OptimizationCatalogSelection> selected;
@@ -282,8 +283,11 @@ std::optional<NativeDenseFileSpace> NativeVolumeFileReclaimer::dense_file_space(
 }
 bool NativeVolumeFileReclaimer::dense_work_pending(const NativeFileSession& session,NativeVolumeReclaimMode mode) const {
   const auto* dense=active_->owner->dense_file;
-  return (mode==NativeVolumeReclaimMode::release_backing || mode==NativeVolumeReclaimMode::include_cold) &&
-      dense && phase_==Phase::idle && session.idle_compaction_context_ready() && dense->tail_work_pending(retirement_quantum);
+  if(mode==NativeVolumeReclaimMode::logical_only || !dense || phase_!=Phase::idle ||
+      !session.idle_compaction_context_ready())return false;
+  if(mode==NativeVolumeReclaimMode::shorten_packed_tail)
+    return dense->tail_shorten_pending(retirement_quantum) && !image_work_pending(session,false);
+  return dense->tail_work_pending(retirement_quantum);
 }
 bool NativeVolumeFileReclaimer::image_work_pending(const NativeFileSession& session,bool allow_cold) const {
   if(phase_==Phase::retiring)
@@ -498,8 +502,17 @@ Progress NativeVolumeFileReclaimer::advance_seal(NativeFileSession& session) {
   return Progress::published;
 }
 
+Progress NativeVolumeFileReclaimer::advance_dense(const NativeVolumeHeadInfo& current) {
+  try {
+    check_inactive(current);
+    return active_->owner->dense_file->advance_tail(retirement_quantum)?Progress::retiring:Progress::idle;
+  }catch(const std::exception&){phase_=Phase::failed;return Progress::failed;}
+}
+
 Progress NativeVolumeFileReclaimer::advance(NativeFileSession& session,const std::function<StoreIdentity()>& identity,
     NativeVolumeReclaimMode mode,NativeSealScratchOffer scratch) {
+  if(mode==NativeVolumeReclaimMode::shorten_packed_tail)
+    return dense_work_pending(session,mode)?advance_dense(session.volume_info()):Progress::idle;
   const auto allow_cold=mode==NativeVolumeReclaimMode::include_cold;
   const bool image_pending=image_work_pending(session,allow_cold);
   if(catalog_ && (!image_pending || (phase_==Phase::idle && !identity) ||
@@ -518,12 +531,8 @@ Progress NativeVolumeFileReclaimer::advance(NativeFileSession& session,const std
     }
     catch(const std::exception&){phase_=Phase::failed;return Progress::failed;}
   }
-  if(dense_work_pending(session,mode) && !image_work_pending(session,false)) {
-    try {
-      check_inactive(session.volume_info());
-      return active_->owner->dense_file->advance_tail(retirement_quantum)?Progress::retiring:Progress::idle;
-    }catch(const std::exception&){phase_=Phase::failed;return Progress::failed;}
-  }
+  if(dense_work_pending(session,mode) && !image_work_pending(session,false))
+    return advance_dense(session.volume_info());
   if(phase_==Phase::idle && !identity)return Progress::idle;
   if(!image_pending)return Progress::idle;
   try {

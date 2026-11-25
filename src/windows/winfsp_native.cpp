@@ -310,7 +310,7 @@ struct WinFspNativeWritable::Impl {
   MemoryVolumeBacking* memory_backing=nullptr;
   std::optional<detail::VolumeFileProfile> file_profile;
   std::uint64_t last_indexed_observation=0,last_indexed_capture=0;
-  std::uint64_t range_retirement_capture=0;
+  std::uint64_t range_retirement_capture=0,packed_tail_retirement_capture=0;
   bool maintenance_cancelled=false,scrub_yield=false,directory_backfill_yield=false,paired_seal_memory=false;
   std::atomic<bool> callbacks_bound{false};
   StoreIdentity identity{};UINT64 created=0;UINT32 serial=0;
@@ -480,15 +480,29 @@ struct WinFspNativeWritable::Impl {
     const auto preparing=[&] {
       return memory_backing?memory_backing->compaction_preparation_pending(session):session.idle_compaction_preparation_pending();
     };
+    using Continuation=WinFspMaintenanceContinuation;
+    constexpr auto shorten=NativeVolumeReclaimMode::shorten_packed_tail;
     const bool retiring_range=session.inactive_image_retirement_ready();
     const auto retirement_capture=std::exchange(range_retirement_capture,0);
+    const auto tail_capture=std::exchange(packed_tail_retirement_capture,0);
+    const bool shortening=(!observed.continued || continuation==Continuation::packed_tail_retirement) &&
+        session.persistent_reclamation_pending(shorten);
     if(observed.continued) {
-      const bool same_work=continuation==WinFspMaintenanceContinuation::range_retirement?
-          retiring_range && retirement_capture && observed.captured_ms==retirement_capture:preparing();
+      bool same_work=false;
+      switch(continuation) {
+        case Continuation::range_retirement:
+          same_work=retiring_range && retirement_capture==observed.captured_ms && retirement_capture;
+          break;
+        case Continuation::packed_tail_retirement:
+          same_work=shortening && tail_capture==observed.captured_ms && tail_capture;
+          break;
+        case Continuation::compaction:same_work=preparing();break;
+        default:break;
+      }
       if(repair || repair_rotation || reap || discard_catalog || !same_work)return defer(Deferral::observation);
     }
-    const auto file_mode=file_reclaim_mode(allow_cold);
-    const bool persistent=session.persistent_reclamation_pending(file_mode);
+    const auto file_mode=shortening?shorten:file_reclaim_mode(allow_cold);
+    const bool persistent=shortening || session.persistent_reclamation_pending(file_mode);
     const bool memory=memory_backing && memory_backing->compaction_pending(session,allow_cold);
     if(!repair && !reap && !discard_catalog && !persistent && !memory)return {State::unchanged};
     const auto admission=admit_indexed_opportunity(observed,now);
@@ -545,7 +559,14 @@ struct WinFspNativeWritable::Impl {
         // abandoned candidate must wait for its first fresh observation.
         if(retiring_range && step==NativeVolumeReclaimProgress::retiring && session.inactive_image_retirement_ready()) {
           range_retirement_capture=observed.captured_ms;
-          result.continuation=WinFspMaintenanceContinuation::range_retirement;
+          result.continuation=Continuation::range_retirement;
+        }
+        // An EOF change can fund another confirmed truncate under the
+        // original budget. Relocation and recovery require a fresh sample.
+        if(shortening && step==NativeVolumeReclaimProgress::retiring &&
+            session.persistent_reclamation_pending(shorten)) {
+          packed_tail_retirement_capture=observed.captured_ms;
+          result.continuation=Continuation::packed_tail_retirement;
         }
         result.sealed_image=result.compacted && session.volume_info().selection.sealed_range.has_value();
         return result;
@@ -1490,7 +1511,8 @@ WinFspMaintenanceResult WinFspNativeWritable::advance_background_maintenance(
     if(continuation==WinFspMaintenanceContinuation::group && !repair && !impl_->session.retirement_pending())
       return impl_->advance_groups(observed,now,search);
     if(!indexed || (continuation!=WinFspMaintenanceContinuation::compaction &&
-        continuation!=WinFspMaintenanceContinuation::range_retirement))
+        continuation!=WinFspMaintenanceContinuation::range_retirement &&
+        continuation!=WinFspMaintenanceContinuation::packed_tail_retirement))
       return {WinFspMaintenanceState::busy};
   }
   if(indexed) {

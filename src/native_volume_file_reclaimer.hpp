@@ -57,6 +57,7 @@ class NativeVolumeFileReclaimer final {
   NativeVolumeReclaimProgress advance_seal(NativeFileSession&);
   void check_inactive(const NativeVolumeHeadInfo&) const;
   NativeVolumeReclaimProgress retire(const NativeVolumeHeadInfo&);
+  NativeVolumeReclaimProgress advance_dense(const NativeVolumeHeadInfo&);
   void adopt_selection() noexcept;
   void discard_seal() noexcept;
   void abandon(NativeFileSession&) noexcept;

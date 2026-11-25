@@ -1995,6 +1995,7 @@ void observe_mounted_reclamation(const MountedFileActivation& activation,StoreIo
       <<" allocated_after="<<after.allocated<<" quanta="<<view.maintenance_quanta
       <<" continued_compaction="<<view.continued_compaction_steps<<" publications="<<view.compactions
       <<" continued_range_retirement="<<view.continued_range_retirement_steps
+      <<" continued_packed_tail="<<view.continued_packed_tail_steps
       <<" compaction_failures="<<view.compaction_failures<<" disabled="<<view.maintenance_disabled
       <<" host_state="<<static_cast<unsigned>(view.host)<<" backing_limited="<<view.backing_limited_continuations
       <<" read_calls="<<reads.completed<<" read_bytes="<<reads.completed_bytes

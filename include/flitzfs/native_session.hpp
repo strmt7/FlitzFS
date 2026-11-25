@@ -135,7 +135,7 @@ struct NativeOptimizationBudgetPublication {
   NativeOptimizationInfo state;
 };
 enum class NativeVolumeReclaimProgress {idle,copying,ready,published,retiring,pinned,failed};
-enum class NativeVolumeReclaimMode {logical_only,release_backing,include_cold};
+enum class NativeVolumeReclaimMode {logical_only,release_backing,include_cold,shorten_packed_tail};
 struct NativeDenseFileSpace {
   std::uint64_t file_end=0,physical_limit=0,owned_payload_bytes=0,interior_reusable_bytes=0,retired_tail_bytes=0;
   // Live OS allocation of the ordinary file, when the provider verifies it.

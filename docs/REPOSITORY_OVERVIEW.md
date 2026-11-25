@@ -1,12 +1,15 @@
 # FlitzFS repository overview
 
-The [24 November reconciliation](RELEASE_RECONCILIATION_2026-11-24.md) reviews
-the **1,065-file** base at `c32348b7efe5aaa789965ee669189840f3f6f5b3`
-and the **1,070-path** retirement candidate. The ordinary Windows operation
-trace verifies 1,027 files across three helper lifecycles. The prepublished
-sparse image finished retirement while mounted. Packed physical settlement,
-full-cost AMD comparisons and held-out collective compression are the next
-implementation priorities. [Populated retirement receipt](evidence/windows-mounted-range-retirement-2026-11-24.json)
+The 25 November review reconciles the **1,081-path** parent `26edc62` and
+the packed-tail continuation candidate. The ordinary Windows trace verifies
+1,027 files across three helper lifecycles. The preselected sparse image
+finished retirement while mounted. The new packed callback model completed
+four further truncates on one idle observation and independently verified
+the selected bytes. Full mounted settlement, useful automatic AMD delivery
+and held-out complete-size compression are the next priorities.
+[Latest reconciliation](RELEASE_RECONCILIATION_2026-11-25.md) ·
+[Packed continuation evidence](evidence/windows-packed-tail-continuation-2026-11-25.json) ·
+[Mounted retirement](evidence/windows-mounted-range-retirement-2026-11-24.json)
 
 The Radeon returned verified packed and mixed group frames through the
 SDK callback's prepared decoder path, with independent CPU readback.

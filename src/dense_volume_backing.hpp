@@ -32,6 +32,7 @@ class DenseVolumeBacking final : public NativeVolumeRangeIo {
   void reclaim_range(std::uint64_t offset, std::uint64_t bytes) override;
   NativeDenseFileSpace file_space() const;
   bool tail_work_pending(std::uint64_t budget) const;
+  bool tail_shorten_pending(std::uint64_t budget) const;
   bool advance_tail(std::uint64_t budget);
 
  private:

@@ -1048,6 +1048,10 @@ bool DenseVolumeBacking::tail_work_pending(std::uint64_t budget) const {
       (state_->anchor.move || state_->shorten_to(budget).has_value() || state_->tail_move(budget).has_value());
 }
 
+bool DenseVolumeBacking::tail_shorten_pending(std::uint64_t budget) const {
+  return state_->tail_settled() && !state_->anchor.move && state_->shorten_to(budget).has_value();
+}
+
 bool DenseVolumeBacking::advance_tail(std::uint64_t budget) {
   if (!state_->tail_settled()) return false;
   const bool recovering = state_->anchor.move.has_value();

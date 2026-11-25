@@ -1,12 +1,14 @@
 # FlitzFS stable release execution plan
 
-Reviewed on 24 November 2026 against the 1,065 tracked files at
-`c32348b7efe5aaa789965ee669189840f3f6f5b3` and tree `2de01631e9021df3006b85f18d80710ed52ae473`.
-The [current reconciliation](RELEASE_RECONCILIATION_2026-11-24.md) records
-the evidence, design decisions and prioritized checkpoints. It includes a
-populated retirement follow-up over `7efa78e`.
-[Source and research receipt](evidence/release-reconciliation-2026-11-24.json) ·
-[Follow-up receipt](evidence/windows-mounted-range-retirement-2026-11-24.json)
+The 25 November review reconciles the 1,081-path parent
+`26edc62d347a27170f13a30fb48f8fe2d583dc7a` and the packed-tail continuation
+candidate. Execute the latest ordered milestones using the gate and package
+contracts in this plan. The previous populated retirement follow-up remains a
+control for mounted qualification.
+[Current reconciliation](RELEASE_RECONCILIATION_2026-11-25.md) ·
+[Ordered milestones](RELEASE_RECONCILIATION_2026-11-25.md#ordered-implementation-and-decision-points) ·
+[Scoped evidence](evidence/windows-packed-tail-continuation-2026-11-25.json) ·
+[Previous mounted receipt](evidence/windows-mounted-range-retirement-2026-11-24.json)
 Use the [repository overview](REPOSITORY_OVERVIEW.md) for the product snapshot,
 the [current architecture](architecture/CURRENT.md) and [target architecture](architecture/TARGET.md)
 for system flows, and the [detailed implementation plan](IMPLEMENTATION_PLAN.md)

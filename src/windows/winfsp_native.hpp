@@ -50,7 +50,7 @@ struct HostedIdleMaintenanceResult {
   NativeVolumeHeadInfo head{};
 };
 enum class WinFspMaintenanceState {busy,unavailable,unchanged,advanced};
-enum class WinFspMaintenanceContinuation {none,group,compaction,range_retirement,payload_scrub};
+enum class WinFspMaintenanceContinuation {none,group,compaction,range_retirement,packed_tail_retirement,payload_scrub};
 struct WinFspMaintenanceResult {
   WinFspMaintenanceState state=WinFspMaintenanceState::unavailable;
   NativeMaintenanceProgress progress;

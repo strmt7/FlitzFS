@@ -1,10 +1,12 @@
 # FlitzFS detailed implementation plan
 
-**Reconciled on 24 November 2026.** The
-[latest evidence and implementation sequence](RELEASE_RECONCILIATION_2026-11-24.md)
-prioritizes the shared Win32 trace, indexed attach differential, full-cost AMD
-comparisons and held-out settled compression. The package contracts below still
-define the release exits. [Source and review receipt](evidence/release-reconciliation-2026-11-24.json)
+**Reconciled on 25 November 2026.** The next integrated milestones are the
+shared Win32 settlement trace, automatic AMD service on identical client
+demand, the indexed attach differential and held-out settled compression.
+The E01–E13 acceptance and dependency contracts below define the release exits.
+[Current assessment](RELEASE_RECONCILIATION_2026-11-25.md) ·
+[Ordered implementation](RELEASE_RECONCILIATION_2026-11-25.md#ordered-implementation-and-decision-points) ·
+[Source and review evidence](evidence/windows-packed-tail-continuation-2026-11-25.json)
 
 The [current architecture](architecture/CURRENT.md) shows the implementation.
 The [source review](architecture/REVIEW.md) tests the assumptions and the
@@ -705,6 +707,13 @@ fault evidence. **Existing ledger:** S01. E02/E04/E06 require this storage model
 for production-scale completion, but their bounded design/experiments can start now.
 
 ## 5. E02 — Allocation, dependency ownership and automatic reclamation
+
+The Windows callback model now admits consecutive confirmed packed EOF
+truncations within the existing measured idle window. Each step checks the
+selector, settled allocator and provider contract. The next E02 exit is an
+ordinary mounted run with no preselection, including per-phase work and actual
+provider allocation. [Implementation sequence](RELEASE_RECONCILIATION_2026-11-25.md#1-close-ordinary-mounted-settlement--e02-e08-e11) ·
+[Packed continuation checks](evidence/windows-packed-tail-continuation-2026-11-25.json)
 
 **Reuse:** mirrored payloads, COW records, protected anchors, staged rebuild,
 context-preserving head handoff and source-preserving recovery.
