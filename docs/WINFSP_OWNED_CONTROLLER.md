@@ -47,6 +47,27 @@ observations remain distinct from foreground route offers.
 [Controller-owned paired trials](OWNED_DEFERRED_WRITES.md#controller-owned-paired-trials) ·
 [Measurement and replay contract](OWNED_DEFERRED_WRITES.md#cpu-service-cost-from-ordinary-writes)
 
+For the profile that can admit later writes, the owner first checks for
+distinct, recent, matching-size writes that are already committed. The
+complete worker grant and capture budget bound the batch. A stale revision
+or a different shape cannot supply a member of the initial group. Later
+admission runs only after those captured writes reach their own ready
+boundaries. This lets one setup serve a settled backlog and keeps live
+volume mutation on its normal CPU path.
+
+The live Radeon callback fixture supplied two committed 64 KiB writes
+through one prepared worker. Both private arms settled at 131,072 bytes,
+and the original files reopened byte for byte after shutdown. In a
+second attempt the engine policy declined before supplying a frame.
+The worker retired and both original writes still reopened correctly.
+Time to readiness in the successful trial was 2.302 s. The scoped device
+trial took 3.465 s, including the bounded wait for a later arrival.
+The private CPU replay took 0.981 ms. This fixture establishes useful
+worker reuse and verifies refusal. It leaves automatic foreground
+promotion and mounted throughput to their own gates.
+[Prepared burst ownership](WORKER_CHANNEL.md#finishing-a-prepared-burst) ·
+[Windows controller results](evidence/windows-amd-initial-write-group-2026-11-26.json)
+
 ## Content events and bounded work
 
 Before binding callbacks, the adapter duplicates a same-process event handle

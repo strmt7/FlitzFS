@@ -83,7 +83,7 @@ struct NativeAmdDeviceTrial {
   std::uint64_t verified_input_bytes=0;
   std::uint64_t preparation_ns=0,supervised_ns=0,verification_ns=0,replay_ns=0;
   WorkerExchangeCode exchange=WorkerExchangeCode::invalid_response;
-  std::uint32_t worker_exit=0,admitted_requests=0;
+  std::uint32_t worker_exit=0,admitted_requests=0,initial_requests=0;
   bool worker_retired=false;
 };
 // One detached device arm. Use an independently admitted finite grant. The
@@ -100,16 +100,17 @@ NativeAmdDeviceTrial record_native_amd_device_batch(const NativeManagedForegroun
     ProcessBudget,std::uint64_t memory_allowance,MemoryVolumeDomain*,NativeAmdTrialLaunch,
     std::stop_token,const std::function<bool()>& may_submit={}) noexcept;
 
-// The first capture is ready when the worker starts. At each later completed
-// boundary a bounded producer supplies a newly owned capture or finishes the
-// burst. Successful retirement and CPU readback apply to the supplied prefix.
+// Initial captures are already owned in write sequence order. Further ready
+// boundaries may take a new capture or finish the burst. All supplied frames
+// require successful retirement and independent CPU readback.
 struct NativeAmdWriteBoundary {
   std::uint32_t completed_requests=0;
   std::uint64_t first_ready_ns=0,elapsed_ns=0,previous_service_ns=0;
 };
 using NativeAmdWriteContinuation=std::function<PreparedRequestAction(const NativeAmdWriteBoundary&,
     detail::NativeCapturedWrite&)>;
-NativeAmdDeviceTrial record_native_amd_device_burst(const NativeManagedForeground&,UniformLz4BatchInput first,
+NativeAmdDeviceTrial record_native_amd_device_burst(const NativeManagedForeground&,
+    std::span<const UniformLz4BatchInput> initial,
     std::uint32_t maximum_requests,const HipDiscoveredRoute&,NativeUniformSweepGrant,
     ProcessBudget,std::uint64_t memory_allowance,MemoryVolumeDomain*,std::stop_token,
     const NativeAmdWriteContinuation&,const std::function<bool()>& may_submit={},

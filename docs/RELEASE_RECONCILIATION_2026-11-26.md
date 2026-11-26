@@ -590,7 +590,11 @@ offline CPU recovery with a minimal process environment.
    [NSDI 2026 delayed-cache-hit measurements](https://www.usenix.org/conference/nsdi26/presentation/keren)
 2. Prioritize grouped reads with predictable lead and large or recurring
    write cohorts. Feed only a bounded eligible range into the retained
-   worker. Time verified bytes consumed per funded exchange, including
+   worker. A compatible write trial can now feed already-committed
+   matching writes to the same worker before waiting for future
+   arrivals. Capture each group from one checked checkpoint, keep
+   ordinary CPU writes authoritative and compare the actual verified
+   member sequence. Time verified bytes consumed per funded exchange, including
    unused preparation, and report host submission, synchronization and
    copy costs separately. Use repeatable host timing for decisions and
    corroborate kernel attribution with a graphics queue trace. The
@@ -613,6 +617,7 @@ offline CPU recovery with a minimal process environment.
    evidence and confirmed retirement.
    [Funded burst and CPU verification](evidence/windows-adaptive-amd-write-bursts-2026-11-26.json)
    · [Grant growth and engine deferral](evidence/windows-amd-write-grant-growth-2026-11-26.json)
+   · [Already committed write groups](evidence/windows-amd-initial-write-group-2026-11-26.json)
    · [Radeon event timing evidence](https://github.com/ROCm/TheRock/issues/9383)
    · [Windows graphics queue traces](https://learn.microsoft.com/en-us/windows-hardware/drivers/display/using-gpuview)
 3. The foreground writer now binds the fresh completion observation to the

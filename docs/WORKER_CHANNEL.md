@@ -756,6 +756,18 @@ byte for byte on CPU. The version 5 cancellation control exposed no replies.
 The native replay can capture and supply another committed write at this
 boundary. [Arriving native write evidence](evidence/windows-native-arriving-write-burst-2026-11-24.json)
 
+The owner can also start with an admitted group of already committed
+matching-size writes. It captures distinct files against one pinned
+checkpoint and supplies the available members in write-sequence order.
+Each member still enters through its own ready boundary and budget check.
+Once the initial group is exhausted, the owner can admit a later capture
+or finish the burst. The same stream and slab can serve a group that has
+already arrived, even when there is no later write. The CPU control replays
+the actual supplied sequence, and the parent still requires complete
+retirement and independent readback of every reply.
+[AMD stream ordering](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_runtime_api/asynchronous.html) ·
+[Win32 event wait contract](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitformultipleobjects)
+
 The volume controller can now park an admitted version 6 worker at that
 boundary and hand it a later write. It derives the wait from observed
 arrival and setup costs, and checks fresh resource and foreground evidence

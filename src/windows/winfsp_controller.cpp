@@ -668,13 +668,18 @@ struct WinFspVolumeController::Impl {
       compare=burst.has_value() || !measured_write_requests[size];
     }
     if(arriving && measured_write_requests[size] && !compare)return {};
-    const bool capture_group=!(compare && arriving) && selected.grouped_candidate &&
-        (!recorded_group_sizes[size] || compare);
-    if(!compare && !capture_group && recorded_write_sizes[size])return {};
+    auto capture_selection=NativeWriteCaptureSelection::single;
+    if(selected.grouped_candidate) {
+      if(burst)capture_selection=NativeWriteCaptureSelection::matching_size;
+      else if(!(compare && arriving) && (!recorded_group_sizes[size] || compare))
+        capture_selection=NativeWriteCaptureSelection::recent;
+    }
+    if(!compare && capture_selection==NativeWriteCaptureSelection::single && recorded_write_sizes[size])return {};
     attempted=true;
-    const auto trial_bytes=compare?std::uint64_t(installed_write_trial->maximum_batch_chunks)*kNativeExtentBytes:UINT64_MAX;
+    auto trial_bytes=compare?std::uint64_t(installed_write_trial->maximum_batch_chunks)*kNativeExtentBytes:UINT64_MAX;
+    if(burst)trial_bytes=burst->group.input_bytes;
     auto capture=adapter->capture_amd_write_group(selected,observed,GetTickCount64(),epoch,stop_requested,
-        capture_group,trial_bytes);
+        capture_selection,trial_bytes);
     if(capture.empty() || (capture.size()==1 && recorded_write_sizes[size] && !(compare && arriving)) || interrupted() ||
         GetTickCount64()-observed.captured_ms>policy.maximum_age_ms)return {};
     std::vector<UniformLz4BatchInput> inputs;
@@ -769,7 +774,8 @@ struct WinFspVolumeController::Impl {
     MaintenanceThreadScope priority;
     if(!priority.active()) {acquisition_thread.request_stop();return;}
     const auto selected=*std::exchange(write_reference_demand,std::nullopt);
-    auto captured=adapter->capture_amd_write_group(selected,observation,now,epoch,stop_requested,false,
+    auto captured=adapter->capture_amd_write_group(selected,observation,now,epoch,stop_requested,
+        NativeWriteCaptureSelection::single,
         write_trial_shape.input_bytes,allow_smaller);
     if(!priority.finish()) {acquisition_thread.request_stop();return;}
     if(captured.size()!=1 || captured.front().sequence!=selected.source_sequence ||
@@ -878,7 +884,7 @@ struct WinFspVolumeController::Impl {
       const auto continuation=[&](const NativeAmdWriteBoundary& boundary,detail::NativeCapturedWrite& next) {
         return wait_for_arriving_write(boundary,next,profile,stop);
       };
-      write_trial.device=record_native_amd_device_burst(storage,inputs.front(),worker_plan.maximum_requests,*acquired.route,
+      write_trial.device=record_native_amd_device_burst(storage,inputs,worker_plan.maximum_requests,*acquired.route,
           grant,profile.worker,allowance,residency,stop,continuation,may_submit,profile.allow_smaller_writes);
     } else {
       write_trial.device=record_native_amd_device_batch(storage,inputs,*acquired.route,grant,profile.worker,
@@ -933,9 +939,12 @@ struct WinFspVolumeController::Impl {
       launch=NativeAmdTrialLaunch::prepared;
       worker_plan=plan_native_amd_write_worker(storage,inputs,launch,profile.worker,allowance);
     }
-    if(!worker_plan || worker_plan->group.chunks>profile.maximum_batch_chunks ||
-        (profile.await_later_writes?(capture.size()!=1 || worker_plan->work.input_bytes!=reference.input_bytes):
-            worker_plan->group.input_bytes!=reference.input_bytes))return;
+    if(!worker_plan || worker_plan->group.chunks>profile.maximum_batch_chunks)return;
+    const bool finishable=profile.await_later_writes && launch==NativeAmdTrialLaunch::prepared_requests;
+    if(finishable) {
+      if(capture.size()>worker_plan->maximum_requests || reference.input_bytes>worker_plan->group.input_bytes ||
+          worker_plan->work.input_bytes!=shape.input_bytes)return;
+    } else if(worker_plan->group.input_bytes!=reference.input_bytes)return;
     const auto chunks=(std::min)(worker_plan->work.chunks,profile.maximum_launch_chunks);
     uniform_lz4::Layout quantum{};
     if(!uniform_lz4::make_layout(std::uint64_t(chunks)*kNativeExtentBytes,kNativeExtentBytes,quantum))return;
@@ -952,7 +961,7 @@ struct WinFspVolumeController::Impl {
     write_trial.status=HipDiscoveryStatus::resource_deferred;
     write_trial_inputs.reset();
     write_trial_shape=shape;
-    last_captured_write=capture.front().sequence;
+    last_captured_write=capture.back().sequence;
     write_arrival_observation=observed;
     write_trial_epoch.store(epoch,std::memory_order_release);
     write_trial_idle_ms.store(observed.captured_ms,std::memory_order_release);

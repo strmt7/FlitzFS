@@ -1531,7 +1531,7 @@ std::optional<NativeAmdWriteDemand> WinFspNativeWritable::take_amd_write_demand(
 }
 std::vector<detail::NativeCapturedWrite> WinFspNativeWritable::capture_amd_write_group(
     const NativeAmdWriteDemand& observed,const NativeMaintenanceObservation& resources,
-    std::uint64_t now,std::uint64_t epoch,const std::atomic<bool>& stop,bool grouped,
+    std::uint64_t now,std::uint64_t epoch,const std::atomic<bool>& stop,NativeWriteCaptureSelection selection,
     std::uint64_t maximum_input_bytes,bool from_arrival) noexcept {
   try {
     const auto& policy=impl_->group_policy;
@@ -1567,12 +1567,15 @@ std::vector<detail::NativeCapturedWrite> WinFspNativeWritable::capture_amd_write
       if(first==demand.sources.end())return {};
       ranges[0]=first->range;
       service_times[count++]=first->timing.elapsed_ns;
-      if(grouped)for(std::size_t distance=1;distance<=demand.sources.size();++distance) {
+      const bool matching_size=selection==NativeWriteCaptureSelection::matching_size;
+      const auto maximum_count=selection==NativeWriteCaptureSelection::single?1:ranges.size();
+      for(std::size_t distance=1;distance<=demand.sources.size() && count<maximum_count;++distance) {
         if(interrupted())return {};
         const auto index=(demand.next_source+demand.sources.size()-distance)%demand.sources.size();
         const auto& candidate=demand.sources[index];
         const auto& range=candidate.range;
         if(!range.sequence || range.sequence>=observed.source_sequence || !fresh(candidate) ||
+            (matching_size && range.bytes!=observed.shape.input_bytes) ||
             std::ranges::any_of(std::span(ranges).first(count),[&](const auto& chosen) {
               return chosen.inode==range.inode;
             }))continue;
@@ -1610,7 +1613,7 @@ std::vector<detail::NativeCapturedWrite> WinFspNativeWritable::capture_amd_write
 std::vector<std::byte> WinFspNativeWritable::capture_amd_write_source(
     const NativeAmdWriteDemand& observed,const NativeMaintenanceObservation& resources,
     std::uint64_t now,std::uint64_t epoch,const std::atomic<bool>& stop) noexcept {
-  auto result=capture_amd_write_group(observed,resources,now,epoch,stop,false);
+  auto result=capture_amd_write_group(observed,resources,now,epoch,stop,NativeWriteCaptureSelection::single);
   if(result.size()==1)return std::move(result.front().bytes);
   return {};
 }

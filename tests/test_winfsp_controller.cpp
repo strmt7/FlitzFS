@@ -4684,11 +4684,12 @@ void amd_write_arrival_trial(std::string_view mode,const std::filesystem::path& 
   const bool geometry=mode=="geometry";
   const bool oversized=mode=="oversized";
   const bool allocated=mode=="allocated";
+  const bool initial_group=mode=="initial-group";
   const bool later=mode=="later" || mixed || oversized || allocated;
   const bool receive_later=later && !oversized;
   const bool stop_waiting=mode=="stop";
   const auto profile=installed_uniform_write_trial_profile();
-  require((later || stop_waiting || geometry || mode=="drain") && profile && profile->await_later_writes &&
+  require((later || stop_waiting || geometry || initial_group || mode=="drain") && profile && profile->await_later_writes &&
       (!(mixed || oversized) || profile->allow_smaller_writes) && (mixed || geometry || public_input.empty()) &&
       installed_uniform_write_files_present(),"Arriving write trial requires its staged version 6 profile");
   require(!geometry || (profile->maximum_batch_chunks>=4 && profile->maximum_batch_chunks<=
@@ -4745,7 +4746,8 @@ void amd_write_arrival_trial(std::string_view mode,const std::filesystem::path& 
     if(close)callback_cleanup_close(p,handle,true);
     return handle;
   };
-  commit(L"\\first",initial,kNativeAmdWriteMinimumPairs);
+  commit(L"\\first",initial,kNativeAmdWriteMinimumPairs-static_cast<std::size_t>(initial_group));
+  const auto ready_peer=initial_group?commit(L"\\ready-peer",following,1,false):nullptr;
   await([&]{const auto view=owner.view();return view.amd_write_waiting || view.amd_write_trial.has_value();},13000,
       "Owner did not reach its arriving write boundary");
   const auto parked=owner.view();
@@ -4756,7 +4758,9 @@ void amd_write_arrival_trial(std::string_view mode,const std::filesystem::path& 
     std::cerr<<"arriving_owner_status="<<static_cast<unsigned>(failed.status)
         <<" requests="<<failed.device.admitted_requests<<" ready_ns="<<failed.device.ready_ns<<'\n';
   }
-  require(parked.amd_write_waiting || deferred_before_arrival,"Owner did not park a completed request");
+  const bool group_complete=initial_group && parked.amd_write_trial &&
+      parked.amd_write_trial->status==HipDiscoveryStatus::ready;
+  require(parked.amd_write_waiting || deferred_before_arrival || group_complete,"Owner did not park or finish its requests");
   if(later)commit(L"\\later",following,1);
   if(stop_waiting)owner.stop_and_join();
   else await([&]{return owner.view().amd_write_trial.has_value();},9000,"Arriving trial did not settle");
@@ -4765,10 +4769,10 @@ void amd_write_arrival_trial(std::string_view mode,const std::filesystem::path& 
       !view.foreground_activation,"Arriving trial lost ownership or offered a foreground route");
   const auto& trial=*view.amd_write_trial;
   const auto& device=trial.device;
-  const std::size_t expected=receive_later?2:1;
-  const auto expected_bytes=initial.size()+(receive_later?following.size():0);
+  const std::size_t expected=initial_group || receive_later?2:1;
+  const auto expected_bytes=initial.size()+(initial_group || receive_later?following.size():0);
   std::cout<<"arriving_owner status="<<static_cast<unsigned>(trial.status)
-      <<" funded="<<trial.funded_requests<<" requests="<<device.admitted_requests
+      <<" funded="<<trial.funded_requests<<" requests="<<device.admitted_requests<<" initial="<<device.initial_requests
       <<" cpu_writes="<<trial.reference.sample.transactions
       <<" gpu_writes="<<(device.sample?device.sample->transactions:0)
       <<" stored="<<(device.sample?device.sample->stored_lz4_candidates:0)
@@ -4787,7 +4791,8 @@ void amd_write_arrival_trial(std::string_view mode,const std::filesystem::path& 
     require(trial.status==HipDiscoveryStatus::ready && trial.funded_requests>=2 &&
         trial.funded_requests<=profile->maximum_batch_chunks/(initial.size()/kNativeExtentBytes) &&
         trial.funded_requests>=device.admitted_requests && device.sample && device.matched_cpu && device.worker_retired &&
-        device.admitted_requests==expected && trial.reference.sample.transactions==expected &&
+        device.admitted_requests==expected && device.initial_requests==(initial_group?2U:1U) &&
+        trial.reference.sample.transactions==expected &&
         device.sample->cpu_readback_verified && device.sample->transactions==expected &&
         device.sample->input_digest==trial.reference.sample.input_digest &&
         device.sample->shape==NativeAmdWriteShape{static_cast<std::uint32_t>(expected_bytes),*storage} &&
@@ -4846,16 +4851,18 @@ void amd_write_arrival_trial(std::string_view mode,const std::filesystem::path& 
           result.sample->input_digest==large_trial.reference.sample.input_digest,
           "Larger write did not verify as a sealed comparison");
     }
+    if(ready_peer)callback_cleanup_close(p,ready_peer,true);
     owner.stop_and_join();
   }
   const auto snapshot=NativeFilesystemSnapshot::open_image(image,{NativeImageKind::indexed_paged,image_capacity});
   snapshot.verify_all();
   require(snapshot.read("first",0,initial.size())==initial &&
       (!later || snapshot.read("later",0,following.size())==following) &&
+      (!initial_group || snapshot.read("ready-peer",0,following.size())==following) &&
       (!geometry || (snapshot.read("before-due",0,following.size())==following &&
           snapshot.read("repeat-small",0,initial.size())==initial && snapshot.read("large",0,following.size())==following)) &&
       WorkerExchangeSession::available(),"Original acknowledged writes did not survive the arriving trial");
-  std::cout<<"arriving_originals verified=1 source_files="<<(geometry?4:later?2:1)<<" retained_after_stop=0\n";
+  std::cout<<"arriving_originals verified=1 source_files="<<(geometry?4:(later || initial_group?2:1))<<" retained_after_stop=0\n";
 }
 #endif
 
@@ -4933,6 +4940,12 @@ void amd_write_cpu_replay(bool controller_owned,bool grouped=false,AmdWriteRepla
     stale[0]^=std::byte{0xff};
     write_to(stale_handle,std::span(stale).first(1)); // Invalidate the eligible receipt of this inode only.
     callback_cleanup_close(p,stale_handle,true);
+    if(!controller_owned) {
+      wchar_t narrow_name[]=L"\\narrow";
+      const auto narrow_handle=create_peer(narrow_name);
+      write_to(narrow_handle,std::span(peer).first(kNativeExtentBytes));
+      callback_cleanup_close(p,narrow_handle,true);
+    }
   }
   for(std::size_t i=0;i<(grouped?1:kNativeAmdWriteMinimumPairs);++i)write(bytes);
   if(grouped) {
@@ -5011,9 +5024,9 @@ void amd_write_cpu_replay(bool controller_owned,bool grouped=false,AmdWriteRepla
         memory.commit_total,memory.commit_available,1000,0,1000,true,false};
     std::atomic<bool> stopped{false};
     require(adapter.capture_amd_write_group(*demand,observation,now,adapter.foreground_activity(),stopped,
-        true,bytes.size()-1).empty(),"A capture crossed its finite trial grant");
+        NativeWriteCaptureSelection::matching_size,bytes.size()-1).empty(),"A capture crossed its finite trial grant");
     const auto capture=adapter.capture_amd_write_group(*demand,observation,now,adapter.foreground_activity(),stopped,
-        true,2*bytes.size());
+        NativeWriteCaptureSelection::matching_size,2*bytes.size());
     require(capture.size()==2 && capture[0].sequence==1 && capture[0].bytes==peer &&
         capture[1].sequence==demand->source_sequence && capture[1].bytes==bytes,
         "Closed current ranges were lost or a superseded range was captured");
@@ -5088,7 +5101,11 @@ void amd_write_cpu_replay(bool controller_owned,bool grouped=false,AmdWriteRepla
     require(recovered.read("peer",0,static_cast<std::uint32_t>(peer.size()))==peer &&
         recovered.read("stale",0,static_cast<std::uint32_t>(stale.size()))==stale,
         "Private trial changed associated live storage");
-    const std::array expected{UniformLz4BatchInput{1,peer},UniformLz4BatchInput{3,bytes}};
+    const std::uint64_t replay_sequence=controller_owned?3:4;
+    if(!controller_owned)
+      require(std::ranges::equal(recovered.read("narrow",0,kNativeExtentBytes),std::span(peer).first(kNativeExtentBytes)),
+          "Matching-size capture changed the excluded write");
+    const std::array expected{UniformLz4BatchInput{1,peer},UniformLz4BatchInput{replay_sequence,bytes}};
     const auto replay=record_native_amd_cpu_batch(sample.shape.storage,expected,allowance,&domain,[]{return false;});
     require(replay && replay->input_digest==sample.input_digest,"Grouped CPU trial used different acknowledged bytes");
     std::cout<<"ordinary_amd_cpu_group controller="<<controller_owned<<" closed=2 stale_refused=1"
@@ -5525,7 +5542,7 @@ int main(int argc,char** argv){try {
     amd_write_arrival_trial(argv[2],input);
     before=handle_count();
     const std::string_view mode=argv[2];
-    if(mode!="geometry")amd_write_arrival_trial(mode,input,mode=="mixed");
+    if(mode!="geometry")amd_write_arrival_trial(mode,input,mode=="mixed" || mode=="initial-group");
 #else
     throw std::runtime_error("Arriving write trial package is unavailable");
 #endif
@@ -5618,6 +5635,6 @@ int main(int argc,char** argv){try {
   std::cout<<"controller_handles before="<<before<<" after="<<after<<'\n';
   require(before==after,"controller handle leak");
   std::cout<<"PASS: "<<checks<<" owned controller checks; real local telemetry and SDK callbacks; injected lifecycle; "
-      <<(amd_write_pair || amd_write_interrupt?"scoped Radeon trial mode":"CPU mode")<<'\n';
+      <<(amd_write_pair || amd_write_interrupt || amd_write_arrival?"scoped Radeon trial mode":"CPU mode")<<'\n';
   return 0;
 }catch(const std::exception& e){std::cerr<<"after "<<checks<<" checks: "<<e.what()<<'\n';return 1;}}

@@ -1,0 +1,328 @@
+{
+  "schema": 1,
+  "date_utc": "2026-11-26",
+  "scope": "Bounded Windows controller and callbacks with a private provider and memory backing. Existing AMD driver supplies the runtime.",
+  "source": {
+    "parent": "9c7deff643b47ee96cb70b700a41352f28a71d35",
+    "base_tree": "44d64eef52f1aaae86ea61e718d952d7f3eab893",
+    "tree": "06ee5daecc99043caaf764ef7f68b917c6384734",
+    "elements": [
+      {
+        "path": "src/windows/native_amd_write_policy.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "ecaedff69f341fb6b623b9581b448e07e7c7b0f2",
+        "bytes": 33087
+      },
+      {
+        "path": "src/windows/native_amd_write_policy.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "1870ae24d8b6f61b3a71db9cb50f693e954a436d",
+        "bytes": 6670
+      },
+      {
+        "path": "src/windows/winfsp_controller.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "244f5eb85b3d3058c092e7433510b37cb3b86115",
+        "bytes": 72427
+      },
+      {
+        "path": "src/windows/winfsp_native.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "327361cb6da147fdb658a2c1da8b428875d433b5",
+        "bytes": 119625
+      },
+      {
+        "path": "src/windows/winfsp_native.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "42fa43f34ce9b7d9d3fd61f0f160ab3f60b8c369",
+        "bytes": 16687
+      },
+      {
+        "path": "tests/test_native_deferred_write_sdk.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "4d4d3d48b753847982d8e74e6b145daba312f65d",
+        "bytes": 128600
+      },
+      {
+        "path": "tests/test_winfsp_controller.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "02ee5282cfe67d711475db56ba6d1f59b353708e",
+        "bytes": 344341
+      }
+    ]
+  },
+  "publication_source": {
+    "tree": "1163682917c715d7672b526222ce323f0134b86e",
+    "production_source_equal": true,
+    "changed_after_live_test": "Test output now identifies the arriving-write Radeon trial mode.",
+    "controller_test_blob": "7c014af0fcd0cb86ed8c691a675b4459393247e3"
+  },
+  "research": {
+    "routing_result_sha256": "3b0e348499346a2421563d28a5c4f817ce87d79459f4045d40a14a35bfc3391f",
+    "source_commit": "9c7deff643b47ee96cb70b700a41352f28a71d35",
+    "actual_searches": 1,
+    "provider": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "301a29a08ff0549392f09719422d4625fb268a5e3f1c15633a702deac40d40b3",
+    "robots": true,
+    "timeout_seconds_per_page": 45,
+    "external_llm": false,
+    "pages": [
+      {
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_runtime_api/asynchronous.html",
+        "success": true,
+        "http_status": 200,
+        "markdown_sha256": "4167596a0f6b6c0281ea842f4eac025a4e457fa0b5627cd88da14196e62a5fdc",
+        "capture_sha256": "26a8e1fbdee9900bdb6aaaa04bff9c3aa983db4119e95b55d4af59dfc5f48d71"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitformultipleobjects",
+        "success": true,
+        "http_status": 200,
+        "markdown_sha256": "bf1df963847b163ca82f18ebb0c80959ef6fe226a767d8dbfc3a69a504fbf025",
+        "capture_sha256": "1241994a1a904ff5872004a2a8b4e37b2c873647785f17f937ebf601e5b96fe7"
+      },
+      {
+        "url": "https://www.usenix.org/conference/nsdi26/presentation/keren",
+        "success": true,
+        "http_status": 200,
+        "markdown_sha256": "1c54bcafcfac2e90791f2d20adfec06c845947624c003c1036d83eaefd1e1497",
+        "capture_sha256": "6c78e4513ea1e8b7a9ec17fa5eeebb1cf93e41f2d85790741ade296414cc027c"
+      }
+    ]
+  },
+  "checks": {
+    "release": {
+      "groups_passed": 6,
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "elapsed_seconds": 14.391,
+      "peak_job_bytes": 62369792,
+      "log_sha256": "1675961b9f6680537204beec6ec6e6faa07ee7cb5cf5db4c240abe34badf159d"
+    },
+    "raw_only": {
+      "groups_passed": 4,
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "elapsed_seconds": 4.031,
+      "peak_job_bytes": 62263296,
+      "log_sha256": "32dca6f5fbb209fc8a863d3b5f14cfe460b3c4bf801502128157bb6cf02b50d1"
+    },
+    "address_sanitizer_no_amd_package": {
+      "groups_passed": 5,
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "elapsed_seconds": 9.656,
+      "peak_job_bytes": 746188800,
+      "log_sha256": "40db9f97fba75dbe4247cae9dc4fa259e6f82c14fe7916e6c8dee5e64cca79aa",
+      "app_local_runtime_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed",
+      "includes_loader_preflight": true
+    },
+    "final_banner_source_test": {
+      "groups_passed": 1,
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "elapsed_seconds": 3.531,
+      "peak_job_bytes": 62533632,
+      "log_sha256": "2b35a067074c8a151560ceaa3a163c7970487f637d4d96ff410c882cdcf776a9"
+    }
+  },
+  "corrections": [
+    {
+      "observation": "The mixed-width capture witness added one committed write and advanced the expected source sequence.",
+      "before_fix": {
+        "exit_code": 8,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "elapsed_seconds": 51.078,
+        "peak_job_bytes": 37650432,
+        "log_sha256": "eff6c22d3b84b620b1ea5fd8ad7a3c62ed9b3631ab30bf22dfbfb2637d12288c"
+      }
+    },
+    {
+      "observation": "A callback test referenced the shared foreground policy even when the AMD package was absent. Its declaration is now included independently of that package.",
+      "before_fix": {
+        "exit_code": 1,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "elapsed_seconds": 69.641,
+        "peak_job_bytes": 730238976,
+        "log_sha256": "fe29a624b8f23b0db2f0ab3841628a09ea7019b1f54a5c00579b118725da9d7c"
+      }
+    }
+  ],
+  "radeon": {
+    "adapter": "AMD Radeon RX 9070 XT",
+    "preflight_deferral": {
+      "run": {
+        "exit_code": 0,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "elapsed_seconds": 4.937,
+        "peak_job_bytes": 95031296,
+        "log_sha256": "6210724b5dfa4e3343ff8ea720a05ab5e0610d5fc75ae96bfa4a1f8e288d7461"
+      },
+      "preflight": {
+        "utc": "2026-11-26T10:12:42.7405248Z",
+        "admitted": false,
+        "reason": "Existing host load above the fixture envelope",
+        "windows_build": 26300,
+        "amd_driver": "32.0.32029.2010",
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "engine_peak_ppm": 656130,
+        "cpu_peak_ppm": 326295,
+        "physical_available_bytes": 18012086272
+      },
+      "worker_started": false
+    },
+    "first_admitted_attempt": {
+      "run": {
+        "exit_code": 1,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "elapsed_seconds": 13.969,
+        "peak_job_bytes": 187277312,
+        "log_sha256": "2a6e70ede0fc7b8d622cd79566a60294dee06434e74933843be5cfdcd5b9d024"
+      },
+      "headroom": {
+        "utc": "2026-11-26T10:16:14.5189911Z",
+        "admitted": true,
+        "reason": null,
+        "windows_build": 26300,
+        "amd_driver": "32.0.32029.2010",
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "engine_peak_ppm": 22717,
+        "cpu_peak_ppm": 212666,
+        "physical_available_bytes": 28798185472
+      },
+      "source_tree": "58b13a92174cd78506c1ab1e5d220f536427685d",
+      "trials": [
+        {
+          "status": 0,
+          "funded": 16,
+          "requests": 2,
+          "initial": 2,
+          "cpu_writes": 2,
+          "gpu_writes": 2,
+          "stored": 2,
+          "verified_input_bytes": 131072,
+          "exchange": 0,
+          "worker_exit": 0,
+          "parked": 1,
+          "ready_ns": 2442103700,
+          "device_wall_ns": 3622215400,
+          "cpu_wall_ns": 1153900,
+          "retired": 1
+        },
+        {
+          "arriving_owner_status": 17,
+          "requests": 0,
+          "ready_ns": 1287415300
+        }
+      ],
+      "second_observation": "Engine deferral occurred before input submission. The enclosing job fully retired."
+    },
+    "checked_run": {
+      "run": {
+        "exit_code": 0,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "elapsed_seconds": 14.516,
+        "peak_job_bytes": 184438784,
+        "log_sha256": "59232cebcadace7f0598a20c700cda4228c0725ede4b1d4395ba1b44ade5ad1d"
+      },
+      "headroom": {
+        "utc": "2026-11-26T10:19:08.5490436Z",
+        "admitted": true,
+        "reason": null,
+        "windows_build": 26300,
+        "amd_driver": "32.0.32029.2010",
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "engine_peak_ppm": 8651,
+        "cpu_peak_ppm": 113316,
+        "physical_available_bytes": 28784611328
+      },
+      "stage_sha256": "4db6817e19e4d6b36185dedecc170c377b640a2c03a8896663b1f9825ade6d12",
+      "controller_sha256": "5f20482244b4611be8ba698a19aa459231ffae12a25ba86b79ccea0fd8c357fe",
+      "worker_sha256": "5488521657d0be8e91ff497bda27e8ee0c35c1847ec2fd11c5f7def714d97544",
+      "lz4_module_sha256": "179797e791a8aac3e43c1277aca4a88edfe4650122af535d08c8b199d32b89c4",
+      "trials": [
+        {
+          "status": 0,
+          "funded": 16,
+          "requests": 2,
+          "initial": 2,
+          "cpu_writes": 2,
+          "gpu_writes": 2,
+          "stored": 2,
+          "verified_input_bytes": 131072,
+          "exchange": 0,
+          "worker_exit": 0,
+          "parked": 1,
+          "ready_ns": 2301920000,
+          "device_wall_ns": 3465279300,
+          "cpu_wall_ns": 981000,
+          "retired": 1
+        },
+        {
+          "status": 17,
+          "funded": 16,
+          "requests": 0,
+          "initial": 0,
+          "cpu_writes": 2,
+          "gpu_writes": 0,
+          "stored": 0,
+          "verified_input_bytes": 0,
+          "exchange": 3,
+          "worker_exit": 0,
+          "parked": 0,
+          "ready_ns": 1468742000,
+          "device_wall_ns": 1778309000,
+          "cpu_wall_ns": 1335700,
+          "retired": 1
+        }
+      ],
+      "originals_reopened": [
+        {
+          "verified": 1,
+          "source_files": 2,
+          "retained_after_stop": 0
+        },
+        {
+          "verified": 1,
+          "source_files": 2,
+          "retained_after_stop": 0
+        }
+      ],
+      "settled_allocation": {
+        "unit": 4096,
+        "compact_roots": 1,
+        "shared_banks": 0,
+        "inline_files": 1,
+        "cpu_occupied": 131072,
+        "amd_occupied": 131072
+      },
+      "process_handles": {
+        "before": 329,
+        "after": 329
+      },
+      "remaining_fixture_processes": 0
+    }
+  },
+  "release": {
+    "qualified": false,
+    "automatic_foreground_promotion": false,
+    "ordinary_mounted_comparison_executed": false,
+    "interpretation": "The same device setup served two writes captured before launch. The private CPU replay took less elapsed time and both private arms used the same allocation on this small fixture."
+  }
+}

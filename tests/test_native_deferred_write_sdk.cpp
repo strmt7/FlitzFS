@@ -1,6 +1,7 @@
 // User-mode callback qualification. The explicit AMD modes run separately from CTest.
 #include "winfsp_native.hpp"
 #include "winfsp_controller.hpp"
+#include "winfsp_volume_attachment.hpp"
 #include "locked_ram_fixture.hpp"
 #include "memory_volume.hpp"
 #include "native_lz4_fixture.hpp"
@@ -18,7 +19,6 @@
 #include "hip_worker_exit.hpp"
 #include "native_capture.hpp"
 #include "native_name_index.hpp"
-#include "winfsp_volume_attachment.hpp"
 #include "flitzfs/read_only_file.hpp"
 #include "flitzfs/uniform_lz4_batch.hpp"
 #include "uniform_lz4_sweep_profile.hpp"
@@ -1827,7 +1827,7 @@ int compare_installed_arriving_burst(std::wstring_view mode) {
           current.commit_total,current.commit_available,1000,0,1000,true,false};
       const std::atomic<bool> stopped{false};
       auto captured=source->capture_amd_write_group(*demand,observation,now,source->foreground_activity(),
-          stopped,false,kNativeExtentBytes);
+          stopped,NativeWriteCaptureSelection::single,kNativeExtentBytes);
       check(captured.size()==1 && captured[0].sequence==demand->source_sequence && captured[0].bytes==bytes,
           "The committed callback write did not capture");
       return std::move(captured.front());
@@ -1846,7 +1846,8 @@ int compare_installed_arriving_burst(std::wstring_view mode) {
       if(duplicate)out.sequence=first.sequence;
       return PreparedRequestAction::submit;
     };
-    const auto measured=record_native_amd_device_burst(storage,{first.sequence,first.bytes},maximum_requests,
+    const UniformLz4BatchInput initial{first.sequence,first.bytes};
+    const auto measured=record_native_amd_device_burst(storage,std::span{&initial,1},maximum_requests,
         route,grant,diagnostic_worker_budget,allowance,&domain,{},next);
     admitted=measured.admitted_requests;
     if(!measured.sample)

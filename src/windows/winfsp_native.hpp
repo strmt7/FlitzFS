@@ -46,6 +46,7 @@ void plan_group_read_window(WinFspReadAheadWork&,WinFspGroupReadWindow,
     std::uint64_t aligned_group_gap_ms,std::uint64_t now_ms) noexcept;
 }
 enum class WinFspReadAheadState {current,busy,superseded,demand_served};
+enum class NativeWriteCaptureSelection {single,recent,matching_size};
 struct MemoryVolumeBacking;
 // Experimental real writable adapter; qualify backing, runtime and containment.
 // Historical _hosted names remain for ABI/report compatibility, not location.
@@ -161,7 +162,8 @@ class WinFspNativeWritable final {
   // Reads run outside the callback mutex and yield at native extent boundaries.
   std::vector<detail::NativeCapturedWrite> capture_amd_write_group(const NativeAmdWriteDemand&,
       const NativeMaintenanceObservation&,std::uint64_t now,std::uint64_t epoch,
-      const std::atomic<bool>& stop,bool grouped=true,std::uint64_t maximum_input_bytes=UINT64_MAX,
+      const std::atomic<bool>& stop,NativeWriteCaptureSelection=NativeWriteCaptureSelection::recent,
+      std::uint64_t maximum_input_bytes=UINT64_MAX,
       bool from_arrival=false) noexcept;
   std::vector<std::byte> capture_amd_write_source(const NativeAmdWriteDemand&,
       const NativeMaintenanceObservation&,std::uint64_t now,std::uint64_t epoch,

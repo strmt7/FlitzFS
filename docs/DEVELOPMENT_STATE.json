@@ -8,6 +8,15 @@
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
   "current_release_review": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
   "source_and_portability_review": "docs/architecture/RELEASE_REVIEW_2026-11-26.md",
+  "amd_initial_write_group": {
+    "source_parent": "9c7deff643b47ee96cb70b700a41352f28a71d35",
+    "tested_source_tree": "06ee5daecc99043caaf764ef7f68b917c6384734",
+    "evidence": "docs/evidence/windows-amd-initial-write-group-2026-11-26.json",
+    "prepared_requests_from_initial_group": 2,
+    "cpu_recovered_original_bytes": 131072,
+    "later_engine_deferral_before_submission": true,
+    "release_qualified": false
+  },
   "amd_measured_launch_width": {
     "source_parent": "9d1c08d4c4a0b51ecef5040f3688878f6a54b193",
     "tested_source_tree": "5015613e5a854599c4e0f732f948e6a647a257e3",
