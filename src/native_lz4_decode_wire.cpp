@@ -69,6 +69,40 @@ void require_unique(std::span<const NativeLz4ReadKey> keys){
 }
 }
 
+NativeLz4DispatchPlan plan_native_lz4_dispatches(std::span<const NativeLz4CapturedFrame> captured,
+    NativeLz4DecodeGrant grant) noexcept {
+  const auto frames=static_cast<std::uint32_t>((std::min)(captured.size(),std::size_t{grant.maximum_frames}));
+  NativeLz4DispatchPlan best;
+  // The wire decoder uses a fixed frame count per dispatch. Prefer the widest
+  // such dispatch that admits the same prefix, since wider batches need fewer
+  // launches. Each batch has its own encoded and decoded slot widths.
+  for(auto width=frames;width;--width) {
+    NativeLz4DispatchPlan candidate{0,width};
+    std::uint64_t completed=0,slab=0;
+    std::uint32_t count=0,encoded=0,decoded=0;
+    for(const auto& frame:captured.first(frames)) {
+      if(count==width) {
+        completed+=slab;
+        count=encoded=decoded=0;
+      }
+      encoded=(std::max)(encoded,static_cast<std::uint32_t>(frame.encoded().size()));
+      decoded=(std::max)(decoded,frame.key().decoded_bytes);
+      const auto layout=native_lz4_layout(++count,encoded,decoded);
+      slab=native_lz4_decode::output_at(layout,layout.chunks);
+      if(slab>grant.maximum_slab_bytes-completed)break;
+      ++candidate.frames;
+      candidate.aggregate_slab_bytes=completed+slab;
+      candidate.peak_slab_bytes=(std::max)(candidate.peak_slab_bytes,slab);
+    }
+    if(candidate.frames>best.frames) {
+      candidate.frames_per_dispatch=(std::min)(candidate.frames,candidate.frames_per_dispatch);
+      best=candidate;
+      if(best.frames==frames)break;
+    }
+  }
+  return best;
+}
+
 NativeLz4ReadExchange NativeLz4ReadExchange::prepare(std::span<const NativeLz4DecodeSource> entries,
     std::uint64_t id,NativeLz4DecodeGrant grant){
   if(!store_lz4_available() || !id || entries.empty() || entries.size()>grant.maximum_frames)

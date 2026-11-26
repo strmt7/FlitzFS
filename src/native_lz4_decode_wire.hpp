@@ -13,6 +13,13 @@ struct NativeLz4WireRequest {
   std::vector<NativeLz4DecodeBatch> batches;
 };
 
+struct NativeLz4DispatchPlan {
+  std::uint32_t frames=0,frames_per_dispatch=0;
+  std::uint64_t aggregate_slab_bytes=0,peak_slab_bytes=0;
+};
+NativeLz4DispatchPlan plan_native_lz4_dispatches(std::span<const NativeLz4CapturedFrame>,
+    NativeLz4DecodeGrant) noexcept;
+
 class NativeLz4ReadyReads final:public NativeLz4ReadRoute {
  public:
   std::optional<std::vector<std::byte>> try_ready(const NativeLz4ReadKey&,

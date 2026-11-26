@@ -25,6 +25,7 @@ struct WinFspLz4ReadWindow {
   std::uint32_t minimum_frames=0;
   std::uint64_t required_lead_ms=0;
   bool allow_later_range=false;
+  std::uint32_t maximum_frames=0;
 };
 struct WinFspReadAheadWork {
   const WinFspNativeWritable* owner=nullptr;

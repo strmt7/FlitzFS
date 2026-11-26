@@ -277,10 +277,11 @@ void detail::plan_lz4_read_window(WinFspReadAheadWork& work,WinFspLz4ReadWindow 
   const auto history=(std::min)({observed_frames,addressable,std::uint64_t{kNativeMaxReadBytes}/kNativeExtentBytes});
   const auto minimum=window.minimum_frames;
   if(!minimum || !window.required_lead_ms || minimum>history || minimum>available_frames)return;
+  const auto maximum=(std::min)({std::uint64_t{(std::max)(minimum,window.maximum_frames)},history,available_frames});
   if(work.has_read_lead(window.required_lead_ms,now_ms)) {
-    if(work.bytes/kNativeExtentBytes<minimum) {
+    if(work.bytes/kNativeExtentBytes<maximum) {
       work.lz4_prefix.bytes=work.bytes;
-      work.bytes=minimum*kNativeExtentBytes;
+      work.bytes=static_cast<std::uint32_t>(maximum*kNativeExtentBytes);
     }
     return;
   }
@@ -288,7 +289,7 @@ void detail::plan_lz4_read_window(WinFspReadAheadWork& work,WinFspLz4ReadWindow 
   const auto later=later_read_window(work,history,minimum,aligned_gap_ms,window.required_lead_ms,now_ms);
   if(!later)return;
   work.offset+=later->skip_frames*kNativeExtentBytes;
-  work.bytes=minimum*kNativeExtentBytes;
+  work.bytes=static_cast<std::uint32_t>((std::min)(maximum,history-later->skip_frames)*kNativeExtentBytes);
   work.observed_lead_ms=later->lead_ms;
   work.later_lz4_range=true;
 }

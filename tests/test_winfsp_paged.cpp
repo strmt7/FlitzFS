@@ -975,6 +975,40 @@ void batched_read_ahead() {
       <<" total_prepared_bytes="<<shared+prepared<<'\n';
 }
 
+void mixed_lz4_dispatch_sizes() {
+  constexpr auto extent=kNativeExtentBytes;
+  constexpr StoreCompressionOptions fast{StoreCompressionMode::fast,1,false};
+  constexpr detail::NativeLz4DecodeGrant grant{4,360U*1024U};
+  Harness h(4096,nullptr,nullptr,nullptr,nullptr,true,fast,true);
+  const auto context=h.create(52);
+  std::array<detail::NativeLz4CapturedFrame,4> captured;
+  for(std::size_t i=0;i<captured.size();++i) {
+    auto source=native_lz4_fixture::source();
+    source.front()=static_cast<std::byte>(i);
+    if(i+1==captured.size())std::ranges::copy(data(3*extent/4,1503),source.begin());
+    h.write(context,source,i*extent);
+    require(h.adapter->capture_native_lz4_read(context,i*extent,extent,captured[i]),
+        "Mixed LZ4 slab fixture failed to capture a stored frame");
+  }
+  const auto padded=detail::native_lz4_layout(4,static_cast<std::uint32_t>(captured.back().encoded().size()),
+      captured.back().key().decoded_bytes);
+  require(native_lz4_decode::output_at(padded,4)>grant.maximum_slab_bytes,"Mixed fixture fits one padded dispatch");
+  const auto plan=detail::plan_native_lz4_dispatches(captured,grant);
+  require(plan.frames==4 && plan.frames_per_dispatch==3 && plan.peak_slab_bytes<plan.aggregate_slab_bytes &&
+      plan.aggregate_slab_bytes<=grant.maximum_slab_bytes,"Mixed LZ4 dispatch sizing did not fit its grant");
+  const auto exchange=detail::NativeLz4ReadExchange::prepare_captured(captured,97,
+      {plan.frames,plan.aggregate_slab_bytes});
+  const auto decoded=detail::decode_native_lz4_request(exchange.request()->bytes(),
+      {plan.frames,plan.aggregate_slab_bytes},plan.frames_per_dispatch);
+  require(decoded.batches.size()==2 && decoded.batches.front().slab_bytes()==plan.peak_slab_bytes &&
+      decoded.batches.front().slab_bytes()+decoded.batches.back().slab_bytes()==plan.aggregate_slab_bytes,
+      "Parent sizing disagreed with the exact worker geometry");
+  const auto partial=detail::plan_native_lz4_dispatches(captured,{4,plan.peak_slab_bytes});
+  require(partial.frames==3 && partial.frames_per_dispatch==3,
+      "Mixed LZ4 request exceeded a grant that only fits the prefix");
+  h.close(context);
+}
+
 void narrow_lz4_read_ahead() {
   constexpr auto extent=kNativeExtentBytes;
   constexpr StoreCompressionOptions fast{StoreCompressionMode::fast,1,false};
@@ -1093,6 +1127,7 @@ void ready_lz4_reads() {
     std::cout<<"winfsp_ready_lz4 cpu_decoder=0\n";
     return;
   }
+  mixed_lz4_dispatch_sizes();
   narrow_lz4_read_ahead();
   later_lz4_read_ahead();
   constexpr StoreCompressionOptions fast{StoreCompressionMode::fast,1,false};

@@ -99,7 +99,7 @@ struct NativeLz4ReadWorker::Impl {
   struct LaunchPlan {
     const wchar_t* command;
     WorkerChannelCapacity capacity;
-    std::uint64_t slab;
+    std::uint64_t aggregate_slab,peak_slab;
     std::uint32_t frames,argument;
     SharedWorkerRequest request;
   };
@@ -201,12 +201,12 @@ struct NativeLz4ReadWorker::Impl {
     const std::vector<std::wstring> args{plan.command,std::to_wstring(profile.ordinal),
       hex(profile.luid),std::to_wstring(profile.node_mask),wide(profile.runtime_sha256),wide(profile.module_sha256),
       profile.architecture,std::to_wstring(profile.wave_mask),std::to_wstring(plan.capacity.request_bytes),
-      std::to_wstring(plan.capacity.reply_bytes),std::to_wstring(plan.frames),std::to_wstring(plan.slab),
+      std::to_wstring(plan.capacity.reply_bytes),std::to_wstring(plan.frames),std::to_wstring(plan.aggregate_slab),
       std::to_wstring(plan.argument)};
     const auto now=GetTickCount64();
     if(!engine_available(now).value_or(false) || !has_lead(work,required_lead,now))return {};
     const auto decision=session.recovery.consider_native_lz4_read(true,
-        {configuration,++session.sequence,0,sample.status==WindowsGpuBudgetStatus::success,true,memory},plan.slab,now);
+        {configuration,++session.sequence,0,sample.status==WindowsGpuBudgetStatus::success,true,memory},plan.peak_slab,now);
     if(!decision.try_gpu()) {++status.declined;return {};}
     try {
       auto child=plan.request?WorkerExchangeSession::start_sized(profile.helper,args,plan.request,plan.capacity,budget->process,package):
@@ -261,7 +261,7 @@ WinFspLz4ReadWindow NativeLz4ReadWorker::lz4_read_window(std::uint64_t now) cons
   const auto& s=*impl_;
   if(s.flight || !s.status.retirement_confirmed || s.status.configuration_refused ||
       !s.engine_available(now).value_or(false) || !WorkerExchangeSession::available())return {};
-  return {s.profile.minimum_frames,s.lz4_lead(),s.status.last_turnaround_ms || s.unfinished_lz4_ms};
+  return {s.profile.minimum_frames,s.lz4_lead(),s.status.last_turnaround_ms || s.unfinished_lz4_ms,s.profile.maximum_frames};
 }
 
 WinFspGroupReadWindow NativeLz4ReadWorker::group_read_window() const noexcept {
@@ -297,7 +297,8 @@ bool NativeLz4ReadWorker::prepare_group(const WinFspReadAheadWork& work,const Na
   if(grant.maximum_members<profile.minimum_frames)return false;
   try {
     const Impl::LaunchPlan plan{L"--driver-native-group-prepared-read-adapter",{grant.request_bytes,grant.reply_bytes},
-        grant.device_bytes,grant.maximum_members,profile.mixed_groups?group_decode::mixed_version:group_decode::version,{}};
+        grant.device_bytes,grant.device_bytes,grant.maximum_members,
+        profile.mixed_groups?group_decode::mixed_version:group_decode::version,{}};
     auto worker=s.launch(work,observed,stopped,plan,need);
     if(!worker)return false;
     WinFspReadAheadWork target{work.owner,work.token,work.offset,work.foreground_epoch,work.bytes};
@@ -381,29 +382,20 @@ bool NativeLz4ReadWorker::start(WinFspReadAheadWork& work,const NativeMaintenanc
   const auto lead=grouped?s.group_timing.start_lead(profile.minimum_lead_ms):s.lz4_lead();
   if(!s.has_lead(work,lead,GetTickCount64()))return false;
   try {
-    std::uint32_t frames=0,encoded=0,decoded=0;
-    std::uint64_t slab=0;
+    detail::NativeLz4DispatchPlan dispatch;
     const auto prepare=[&]() -> std::optional<ReadExchange> {
       if(grouped) {
         if(available>profile.maximum_frames)return {};
         auto exchange=detail::NativeGroupReadExchange::prepare(*work.groups,detail::next_gpu_request_id(),
             profile.maximum_frames,profile.maximum_slab_bytes);
-        frames=static_cast<std::uint32_t>(available);
-        slab=exchange.device_bytes();
+        const auto frames=static_cast<std::uint32_t>(available);
+        dispatch={frames,frames,exchange.device_bytes(),exchange.device_bytes()};
         return std::move(exchange);
       }
-      for(const auto& frame:work.frames) {
-        if(frames==profile.maximum_frames)break;
-        const auto e=(std::max)(encoded,static_cast<std::uint32_t>(frame.encoded().size()));
-        const auto d=(std::max)(decoded,frame.key().decoded_bytes);
-        const auto layout=detail::native_lz4_layout(frames+1,e,d);
-        const auto next=native_lz4_decode::output_at(layout,layout.chunks);
-        if(next>profile.maximum_slab_bytes)break;
-        ++frames;encoded=e;decoded=d;slab=next;
-      }
-      if(frames<profile.minimum_frames)return {};
-      return detail::NativeLz4ReadExchange::prepare_captured(std::span(work.frames).first(frames),
-          detail::next_gpu_request_id(),{frames,slab});
+      dispatch=detail::plan_native_lz4_dispatches(work.frames,{profile.maximum_frames,profile.maximum_slab_bytes});
+      if(dispatch.frames<profile.minimum_frames)return {};
+      return detail::NativeLz4ReadExchange::prepare_captured(std::span(work.frames).first(dispatch.frames),
+          detail::next_gpu_request_id(),{dispatch.frames,dispatch.aggregate_slab_bytes});
     };
     auto exchange=prepare();
     if(!exchange) {++s.status.declined;return false;}
@@ -411,7 +403,8 @@ bool NativeLz4ReadWorker::start(WinFspReadAheadWork& work,const NativeMaintenanc
     const auto reply_bytes=std::visit([](const auto& prepared){return prepared.reply_capacity();},*exchange);
     const WorkerChannelCapacity capacity{request->bytes().size(),reply_bytes};
     const Impl::LaunchPlan plan{grouped?L"--driver-native-group-read-adapter":L"--driver-native-lz4-read-adapter",
-        capacity,slab,frames,frames,request};
+        capacity,dispatch.aggregate_slab_bytes,dispatch.peak_slab_bytes,
+        dispatch.frames,dispatch.frames_per_dispatch,request};
     auto worker=s.launch(work,observed,stop_requested,plan,lead);
     if(!worker)return false;
     const auto submitted_at=worker->started_at;
@@ -419,10 +412,15 @@ bool NativeLz4ReadWorker::start(WinFspReadAheadWork& work,const NativeMaintenanc
       ++s.status.later_lz4_submitted;
       s.status.last_later_lz4_offset=work.offset;
     }
+    if(!grouped) {
+      s.status.last_lz4_dispatches=1+(dispatch.frames-1)/dispatch.frames_per_dispatch;
+      s.status.last_lz4_peak_slab_bytes=dispatch.peak_slab_bytes;
+      s.status.last_lz4_aggregate_slab_bytes=dispatch.aggregate_slab_bytes;
+    }
     work.frames.clear();
-    s.flight.emplace(Impl::Flight{std::move(exchange),std::move(*worker),std::move(work),submitted_at,frames});
+    s.flight.emplace(Impl::Flight{std::move(exchange),std::move(*worker),std::move(work),submitted_at,dispatch.frames});
     ++s.status.submitted;
-    s.status.submitted_frames+=frames;
+    s.status.submitted_frames+=dispatch.frames;
     return true;
   }catch(...) {++s.status.declined;}
   return false;

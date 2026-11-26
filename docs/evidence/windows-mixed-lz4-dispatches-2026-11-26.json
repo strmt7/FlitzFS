@@ -1,0 +1,243 @@
+{
+  "schema": 1,
+  "date": "2026-11-26",
+  "scope": "Experimental Windows SDK callback and verified native LZ4 request layout",
+  "source": {
+    "parent": "ec5285bef4f5434270898f1735ef626db24139b0",
+    "tested_source_tree": "f9dfd8ab44b5176a54ad4b4a908295056193fe8f",
+    "source_blobs": {
+      "src/native_lz4_decode_wire.cpp": "eeea7e046cc3fe83a9e341f24059af03dc64d82b",
+      "src/native_lz4_decode_wire.hpp": "d8627ac92311d158b028800ecfa2054bb66db358",
+      "src/windows/native_lz4_read_worker.cpp": "f2a4d25808985c1581835fd93d98c65948bbe7f5",
+      "src/windows/native_lz4_read_worker.hpp": "2fada43e8aadda27fe10bc3951b6bac1720421df",
+      "src/windows/winfsp_native.cpp": "9c8709974baebed20f7773f09dfed278672438b4",
+      "src/windows/winfsp_native.hpp": "9f9a796c53be026f5efa3f1f17d86d47948da2d2",
+      "tests/test_winfsp_controller.cpp": "35a67895957fbea42f8a2ff230792b679cc6e89e",
+      "tests/test_winfsp_paged.cpp": "bdf8a0b5fa757c2fd5c81dc510a2634efebc154c"
+    }
+  },
+  "mixed_extent_regression": {
+    "actual_captured_frames": 4,
+    "aggregate_grant_bytes": 368640,
+    "padded_single_dispatch_exceeds_grant": true,
+    "admitted_dispatches": 2,
+    "frames_in_first_dispatch": 3,
+    "prefix_frames_under_tighter_grant": 3,
+    "parent_and_worker_geometry_agree": true
+  },
+  "windows_release_tests": {
+    "exit_code": 0,
+    "tree_retired": true,
+    "residual_children": 0,
+    "peak_job_bytes": 62926848,
+    "elapsed_seconds": 12.5,
+    "run": "local-run-1d9364011ff64157a993ecac940fd343",
+    "result_sha256": "84855047bf863afb5bcfb51b59fb6bb1fe6f138632482f0eb0b0fa8e0f65ba4c",
+    "output_sha256": "ad728f264925d500dd8258185e70f46cb25a9fc939707b88c9ffc1b940fbf9bd",
+    "passed": [
+      "bounded_winfsp_indexed_memory",
+      "bounded_winfsp_memory_remount",
+      "bounded_winfsp_paged_callbacks",
+      "bounded_winfsp_paged_ready-lz4-reads",
+      "bounded_winfsp_paged_ready-group-reads",
+      "bounded_winfsp_paged_ready-mixed-group-reads",
+      "bounded_winfsp_paged_ready-segmented-group-reads",
+      "bounded_winfsp_paged_ready-small-stream-group-reads"
+    ]
+  },
+  "windows_raw_tests": {
+    "exit_code": 0,
+    "tree_retired": true,
+    "residual_children": 0,
+    "peak_job_bytes": 62369792,
+    "elapsed_seconds": 12.04700000000048,
+    "run": "local-run-0b836e318a76404d8fb596115916691f",
+    "result_sha256": "3b4dc430123df90f477c1d5d0ef968564d33ac23b4b337ad7ce06997599c996f",
+    "output_sha256": "5268a5479a9e53f71184e7c090e63f849a715848e90c4de30c1ef3e63ea83150",
+    "passed": [
+      "bounded_winfsp_indexed_memory",
+      "bounded_winfsp_memory_remount",
+      "bounded_winfsp_paged_callbacks",
+      "bounded_winfsp_paged_ready-lz4-reads"
+    ]
+  },
+  "windows_asan_tests": {
+    "exit_code": 0,
+    "tree_retired": true,
+    "residual_children": 0,
+    "peak_job_bytes": 172412928,
+    "elapsed_seconds": 1.1090000000003783,
+    "run": "local-run-b6c6ebfa640246a9927f284dc1882b3d",
+    "result_sha256": "186d62ac0a7d4185bd7d3880be76a0f71e0a5bd2800eb2ec6a9e1412196cf0a1",
+    "output_sha256": "f65523aa44c08ea0b7581697de61c036b37b150c13512386b221efa44ad93395",
+    "passed": [
+      "windows_asan_runtime_preflight",
+      "bounded_winfsp_paged_ready-lz4-reads"
+    ]
+  },
+  "experimental_installation_fixture": {
+    "approved_base_package_sha256": "98718635bc098512535ac85c219bffc5d400af1135536324d39fb4cf64e99fba",
+    "four_frame_test_manifest_sha256": "195052492a7c220a7cf6fc8c327fa44c5cb3406c8b598d6c208c93639d48c892",
+    "fixture_artifacts": {
+      "amd/LICENSE": {
+        "bytes": 35184,
+        "sha256": "6f1e622c82a380075843bb084a7ec3b1f1d12a4a02526d75e78b0924a860aa75"
+      },
+      "amd/native-lz4-read-qualification.json": {
+        "bytes": 600,
+        "sha256": "120512d819901475f29e8dadd6d31c0a3604707dbcffb2298db0b7e9423725ef"
+      },
+      "amd/native-lz4-read/flitzfs_native_lz4_read_worker.exe": {
+        "bytes": 562688,
+        "sha256": "70ebb2605c68a6854dd7c9277813fd148563b8544ffd161e00327804f46f164b"
+      },
+      "amd/native-lz4-read/flitzfs_rocm_native_lz4_decode.dll": {
+        "bytes": 145920,
+        "sha256": "d5c46512c13866c134762a473edcf9360f93c28e8b7d7c703c7f9deeef3300f6"
+      },
+      "amd/qualification-manifest.json": {
+        "bytes": 1440,
+        "sha256": "195052492a7c220a7cf6fc8c327fa44c5cb3406c8b598d6c208c93639d48c892"
+      },
+      "flitzfs_winfsp_controller_tests.exe": {
+        "bytes": 3172864,
+        "sha256": "b33cd11f63edd2afe2c5c0ac06f18e69c8202075a5053f09b6626486bbdce6bf"
+      },
+      "winfsp-x64.dll": {
+        "bytes": 200816,
+        "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+      }
+    },
+    "live_attempts": [
+      {
+        "exit_code": 0,
+        "tree_retired": true,
+        "residual_children": 0,
+        "peak_job_bytes": 93085696,
+        "elapsed_seconds": 3.655999999999949,
+        "run": "local-run-007297e4f828434bad2ca1f9347ee02f",
+        "result_sha256": "06eff03a0e44363a3e5142b0dcfad9ed469e733726e0d27f08d09bc432d91021",
+        "output_sha256": "7fc9c4a6fc5b087dc8a833aeea76bbc6dc02ff0285c83472c0c9482fd4ae6a76",
+        "preflight": {
+          "admitted": false,
+          "reason": "Existing host load above the fixture envelope",
+          "utc": "2026-11-26T12:01:09.0477051Z",
+          "driver": "32.0.32029.2010",
+          "build": "26300",
+          "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+          "luid": "ca77010000000000",
+          "available_bytes": 28734828544,
+          "reserved_bytes": 4294967296,
+          "gpu_peak": 97.64682825397037,
+          "cpu_peak": 12.378409298286586,
+          "target_samples": 672
+        },
+        "stage_sha256": "89efa4d201a5dfac6b097262d870cbe27b3a16fe5d1fbfcef9d6647ab5f6cb2a",
+        "status": "deferred before worker launch"
+      },
+      {
+        "exit_code": 0,
+        "tree_retired": true,
+        "residual_children": 0,
+        "peak_job_bytes": 94109696,
+        "elapsed_seconds": 3.7030000000004293,
+        "run": "local-run-b3e2296f6b4b459cae1bde6390505718",
+        "result_sha256": "c2ad859fb889ed1645d9b3b06cfea8ab32b9ac821862b7bdf4e565d4d50cbd5f",
+        "output_sha256": "ade9463fd7e11ed38a20ab89d13ce25c0646f2d05d02f67539a85dae460e834e",
+        "preflight": {
+          "admitted": false,
+          "reason": "Existing host load above the fixture envelope",
+          "utc": "2026-11-26T12:03:45.2202521Z",
+          "driver": "32.0.32029.2010",
+          "build": "26300",
+          "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+          "luid": "ca77010000000000",
+          "available_bytes": 29291065344,
+          "reserved_bytes": 4294967296,
+          "gpu_peak": 97.1819077455883,
+          "cpu_peak": 16.82214191972721,
+          "target_samples": 672
+        },
+        "stage_sha256": "89efa4d201a5dfac6b097262d870cbe27b3a16fe5d1fbfcef9d6647ab5f6cb2a",
+        "status": "deferred before worker launch"
+      }
+    ]
+  },
+  "research": {
+    "receipt_sha256": "bcfef0ff0c185e5727db532ead674aa3b3c11c190f0c3f005c782cb92b27c353",
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "native_pages": [
+      {
+        "name": "hip-performance",
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/performance_guidelines.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 51332,
+        "markdown_sha256": "f5b26916040d693275684ca2fd5b19265fe6f96cd77bea62fef8bf9a02020387",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.743,
+        "capture": "hip-performance.native.json",
+        "capture_sha256": "e490a35b1abd89ae406182eead1813f97f6f728f251e646d968d2d4f763dbfb9"
+      },
+      {
+        "name": "hip-streams",
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_runtime_api/asynchronous.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 48777,
+        "markdown_sha256": "4167596a0f6b6c0281ea842f4eac025a4e457fa0b5627cd88da14196e62a5fdc",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.492,
+        "capture": "hip-streams.native.json",
+        "capture_sha256": "327133fbf5d4d01e8051773a52c647ed587da1a2c0235ebb77a7d42dde2321eb"
+      },
+      {
+        "name": "windows-job",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 30070,
+        "markdown_sha256": "62c6c1389ff2be0e71007f8f3abdca978dfefa31c39eb5c83052262aa53ed63e",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.923,
+        "capture": "windows-job.native.json",
+        "capture_sha256": "8705073d91ebc703c74a8e96835393789f7e075040e273f59f048cbd7dc4c808"
+      },
+      {
+        "name": "windows-video-budget",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/ns-dxgi1_4-dxgi_query_video_memory_info",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 20625,
+        "markdown_sha256": "8113f919b68c514b8914e83ed94797a5d54ff95b3fde0906c5be892252cd2a95",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.047,
+        "capture": "windows-video-budget.native.json",
+        "capture_sha256": "32bdb0dddece0b3ef2f6fae882fc1512493a607a5029c30962000685be0e2b1b"
+      }
+    ]
+  },
+  "source_navigation": {
+    "commit": "ec5285bef4f5434270898f1735ef626db24139b0",
+    "native_response_sha256": "ec5412d263db868f0eca419135b7360f87be511ec5d6393c0928cce6f4940f58",
+    "receipt_sha256": "bbb148676f149995fdad2f2a478a0f11dcdb8b86410490415db8c9329907a324"
+  },
+  "mounted_comparative_performance_qualified": false,
+  "release_qualified": false
+}

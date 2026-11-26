@@ -12,6 +12,14 @@ the gates.
 [Implementation packages](IMPLEMENTATION_PLAN.md#3-execution-order-and-dependencies) ·
 [Release gates](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
 
+The independent AMD read path now packs unequal frame sizes into
+several dispatches inside one worker exchange. It charges the
+aggregate layout to the host grant and the largest slab to device
+admission. Four stored frames fit in two dispatches under the
+360 KiB test grant. The Windows layout and fallback checks passed.
+Both attempts at the wider live Radeon fixture deferred under load.
+[Mixed-size dispatch evidence](evidence/windows-mixed-lz4-dispatches-2026-11-26.json)
+
 The independent LZ4 decoder now uses measured turnaround to select
 later ranges during a bounded sequential stream. In the installed
 Radeon callback fixture the 1,016 ms initial measurement informed a

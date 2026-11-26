@@ -808,6 +808,32 @@ and retirement costs remain part of the mounted throughput comparison.
 [AMD HIP performance guidance](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/performance_guidelines.html) ·
 [NSDI 2026 delayed-hit analysis](https://www.usenix.org/conference/nsdi26/presentation/keren)
 
+#### Reusing the device slab across differently sized frames
+
+The controller can capture more than the minimum independent frame
+count when the qualified profile, observed sequential span, demand
+lead and live memory budget support it. If AMD declines an expanded
+immediate capture, CPU read-ahead still covers the original request.
+
+Decoded and encoded slot widths are uniform within each dispatch.
+The controller chooses the largest admissible prefix, preferring the
+widest dispatch for that prefix. Each dispatch is sized from the frames
+it actually contains. The aggregate padded size stays within the
+configured grant, and live device admission charges the largest slab
+the worker will allocate. The worker decodes the request using a single
+stream and allocation. The controller publishes verified bytes only
+after the worker retires.
+
+The mixed-size Windows regression captures four actual LZ4 extents.
+A single padded layout exceeds the fixture's 360 KiB grant. Two
+dispatches fit and agree with the worker's independent layout parser.
+A smaller grant keeps only the admissible prefix.
+The separate four-frame Radeon callback fixture reached current
+resource admission and deferred twice under existing device load.
+Live device confirmation of this wider window remains open.
+[Mixed-size read evidence](evidence/windows-mixed-lz4-dispatches-2026-11-26.json) ·
+[AMD allocation reuse guidance](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/performance_guidelines.html)
+
 ### Host transfer and startup costs
 
 The worker uploads descriptors and encoded bytes. When the verified HIP

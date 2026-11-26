@@ -1173,10 +1173,13 @@ int live_amd_read_ahead(char** argv,bool refuse,AmdReadFixtureLayout layout=AmdR
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
 int live_installed_native_read(bool missing,bool narrow=false,bool later=false) {
   const auto qualified=installed_native_read_profile();
-  require(qualified && qualified->minimum_frames==2 && qualified->maximum_frames==2 && store_lz4_available(),
-      "The installed native-read fixture requires a two-frame AMD package");
+  require(qualified && qualified->minimum_frames==qualified->maximum_frames &&
+      (qualified->minimum_frames==2 || (!later && qualified->minimum_frames==4)) && store_lz4_available(),
+      "The installed native-read fixture requires its exact two- or four-frame AMD package");
   constexpr std::uint64_t extent=kNativeExtentBytes,capacity=8ULL*1024*1024;
-  const std::size_t window=narrow?extent:2*extent;
+  const auto frames=qualified->minimum_frames;
+  const std::size_t window=narrow?extent:frames*extent;
+  const auto cadence_requests=narrow?(std::max)(3U,frames):3U;
   auto domain=MemoryVolumeDomain::create(capacity+kVolumeHeadBytes);
   auto head=domain.create_store(kVolumeHeadBytes);
   auto image=domain.create_store(capacity);
@@ -1189,12 +1192,19 @@ int live_installed_native_read(bool missing,bool narrow=false,bool later=false) 
   Provider::active=&provider;
   WinFspVolumeController owner(std::move(source),provider.api(),plan(),domain);
   await([&]{return owner.view().state==SessionState::running;},5000,"Installed read controller startup");
-  // Keep the three cadence windows sparse while capturing two stored frames.
-  Bytes bytes(3*window+2*extent);
-  for(std::size_t i=0;i<2;++i) {
+  // Sparse cadence windows precede the exact LZ4 capture.
+  Bytes bytes(cadence_requests*window+frames*extent);
+  for(std::size_t i=0;i<frames;++i) {
     const auto motif=data(extent/8,917+static_cast<unsigned>(i));
+    const auto offset=cadence_requests*window+i*extent;
     for(std::size_t pos=0;pos<extent;pos+=motif.size())
-      std::ranges::copy(motif,bytes.begin()+static_cast<std::ptrdiff_t>(3*window+i*extent+pos));
+      std::ranges::copy(motif,bytes.begin()+static_cast<std::ptrdiff_t>(offset+pos));
+    if(frames==4 && i+1==frames) {
+      // This extent has a larger LZ4 payload. One padded slab exceeds the
+      // fixture grant, while two dispatches within that grant fit.
+      const auto prefix=data(3*extent/4,1503);
+      std::ranges::copy(prefix,bytes.begin()+static_cast<std::ptrdiff_t>(offset));
+    }
   }
   callback_file(provider,0,bytes,window);
   try {
@@ -1227,13 +1237,19 @@ int live_installed_native_read(bool missing,bool narrow=false,bool later=false) 
         "Installed read bytes differ");
   };
   const auto prepare=[&](DWORD gap) {
-    demand(0);
-    if(gap)Sleep(gap);
-    demand(1);
-    if(gap)Sleep(gap);
+    for(unsigned i=0;i+1<cadence_requests;++i) {
+      demand(i);
+      if(gap)Sleep(gap);
+    }
     const auto before=owner.view().read_ahead_prepared;
-    demand(2);
+    demand(cadence_requests-1);
     return before;
+  };
+  const auto consume_cpu=[&] {
+    const auto hits=adapter->native_lz4_read_ahead_hits();
+    demand(cadence_requests);
+    require(adapter->native_lz4_read_ahead_hits()==hits+window/extent,"CPU preparation missed immediate demand");
+    if(narrow)for(unsigned i=1;i<frames;++i)demand(cadence_requests+i);
   };
   const auto cpu_turn=[&](DWORD gap) {
     const auto prior=prepare(gap);
@@ -1247,10 +1263,7 @@ int live_installed_native_read(bool missing,bool narrow=false,bool later=false) 
           <<" quanta="<<state.maintenance_quanta<<" maximum_quantum_ns="<<state.maximum_quantum_ns<<'\n';
       throw;
     }
-    const auto hits=adapter->native_lz4_read_ahead_hits();
-    demand(3);
-    require(adapter->native_lz4_read_ahead_hits()==hits+window/extent,"CPU preparation missed immediate demand");
-    if(narrow)demand(4);
+    consume_cpu();
   };
   cpu_turn(0);
   const auto burst=owner.view();
@@ -1281,11 +1294,7 @@ int live_installed_native_read(bool missing,bool narrow=false,bool later=false) 
       "Incorrect installed identity query count");
   bool learned_cpu=false;
   await([&]{return owner.view().read_ahead_prepared>initial;},12000,"Acquisition did not preserve CPU read-ahead");
-  const auto cpu_hits=adapter->native_lz4_read_ahead_hits();
-  demand(3);
-  require(adapter->native_lz4_read_ahead_hits()==cpu_hits+window/extent,
-      "Installed-role acquisition displaced immediate CPU preparation");
-  if(narrow)demand(4);
+  consume_cpu();
   if(missing) {
     Sleep(qualified->worker.timeout_ms);
     cpu_turn(paced_gap);
@@ -1299,15 +1308,21 @@ int live_installed_native_read(bool missing,bool narrow=false,bool later=false) 
     prepare(paced_gap);
     await([&]{return owner.view().amd_read.published || owner.view().amd_read.failures;},narrow?paced_gap:18000,
         "Installed native decoder did not finish");
-    require(owner.view().amd_read.published==1 && owner.view().amd_read.verified_frames==2 &&
-        owner.view().amd_read.retirement_confirmed,"Installed route did not publish verified GPU frames");
-    demand(3);
-    if(narrow) {
-      require(adapter->native_lz4_read_ahead_hits()==hits+1,"First narrow demand missed the AMD frame");
-      demand(4);
-    }
-    require(adapter->native_lz4_read_ahead_hits()==hits+2,"Callbacks did not consume the installed AMD result");
     const auto completed=owner.view().amd_read;
+    require(completed.published==1 && completed.verified_frames==frames &&
+        completed.submitted==1 && completed.retirement_confirmed,"Installed route did not publish verified GPU frames");
+    require(frames!=4 || (completed.last_lz4_dispatches==2 &&
+        completed.last_lz4_peak_slab_bytes<completed.last_lz4_aggregate_slab_bytes &&
+        completed.last_lz4_aggregate_slab_bytes<=qualified->maximum_slab_bytes),
+        "Four-frame GPU read did not reuse its slab for the differently sized dispatches");
+    demand(cadence_requests);
+    if(narrow) {
+      for(unsigned i=1;i<frames;++i) {
+        require(adapter->native_lz4_read_ahead_hits()==hits+i,"Narrow demand missed the AMD frame");
+        demand(cadence_requests+i);
+      }
+    }
+    require(adapter->native_lz4_read_ahead_hits()==hits+frames,"Callbacks did not consume the installed AMD result");
     if(completed.last_turnaround_ms>2*std::uint64_t{paced_gap}) {
       cpu_turn(paced_gap);
       const auto observed=owner.view().amd_read;
@@ -1372,6 +1387,8 @@ int live_installed_native_read(bool missing,bool narrow=false,bool later=false) 
       <<" identity_queries="<<last.installed_read_queries<<" gpu_submitted="<<last.amd_read.submitted
       <<" gpu_verified="<<last.amd_read.verified_frames<<" lead_refusals="<<last.amd_read.lead_refusals
       <<" worker_ms="<<last.amd_read.last_worker_elapsed_ms<<" turnaround_ms="<<last.amd_read.last_turnaround_ms
+      <<" dispatches="<<last.amd_read.last_lz4_dispatches<<" peak_slab_bytes="<<last.amd_read.last_lz4_peak_slab_bytes
+      <<" aggregate_slab_bytes="<<last.amd_read.last_lz4_aggregate_slab_bytes
       <<" learned_cpu="<<learned_cpu<<" byte_exact=1 retired=1\n";
   return 0;
 }
