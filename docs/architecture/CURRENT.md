@@ -10,7 +10,7 @@ a different failure contract.
 The subsequent paired-volume planner gives a qualified private workspace
 its own memory allowance at a funded cold-seal opportunity. It retains
 the checked inactive range for the protected base and writable tail.
-[Cold-seal flow and current reconciliation](../RELEASE_RECONCILIATION_2026-11-26.md#what-the-latest-round-establishes) ·
+[Cold-seal flow and current reconciliation](../RELEASE_RECONCILIATION_2026-11-26.md#protected-placement-evidence) ·
 [Layout and verification evidence](../evidence/windows-owned-packed-reclaim-2026-11-25.json) ·
 [Revised architecture](TARGET.md)
 
@@ -965,3 +965,26 @@ reference, the selected assembled variant replaces that advice. The
 committed dependency is the assembled base bound to its checked generation.
 This uses the existing prefix and shared-base records.
 [Source and size evidence](../evidence/windows-assembled-prefix-2026-11-25.json)
+
+## 12. Experimental cold byte planes
+
+```mermaid
+flowchart TD
+    Source["Checked standalone native extent"] --> Ordinary["Try funded ordinary Zstandard presets"]
+    Source --> Opt{"Explicit byte-plane policy and eligible extent?"}
+    Opt -->|Yes| Planes["Transpose four byte lanes and try the same presets"]
+    Ordinary --> Pick["Choose the strict smaller private encoding"]
+    Planes --> Pick
+    Pick --> Verify["Independently decode and compare the original extent"]
+    Verify --> Copy["Build mirrored target and bind required codec in both roots"]
+    Copy --> Publish["Verify smaller image and publish selector"]
+    Publish --> Old["Hold old source for pinned readers and interrupted publication"]
+    Publish --> Read["CPU reads bounded frame, restores lanes and checks decoded digest"]
+    Read --> Export["Full CPU reencode can export the ordinary capability"]
+```
+
+The new codec is selected only by an explicit staged cold rewrite. Both
+roots bind decoder admission before a reference can traverse its frame.
+The same range reader handles ordinary and byte-plane extents.
+[Paged format](../PAGED_OBJECT_STORE.md#experimental-cold-byte-planes) ·
+[Checked readback and cut evidence](../evidence/windows-native-byte-plane-2026-11-26.json)

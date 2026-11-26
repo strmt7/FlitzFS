@@ -136,7 +136,8 @@ struct NativeFileSession::Impl {
     const auto selected=volume->head->info().selection;
     if(selected.storage.kind!=NativeImageKind::indexed_paged || saved.image!=selected.image_identity ||
         saved.selector_epoch!=selected.epoch || saved.minimum_checkpoint!=selected.minimum_checkpoint ||
-        saved.policy_revision!=detail::kIndexedColdEncodingRevision || saved.zstd_version!=store_zstd_version() ||
+        saved.policy_revision!=detail::indexed_cold_encoding_revision(volume->foreground) ||
+        saved.zstd_version!=store_zstd_version() ||
         saved.foreground_level!=static_cast<std::uint32_t>(volume->foreground.zstd_level))return {};
     return saved;
   }
@@ -1577,7 +1578,7 @@ std::optional<NativeVolumeHeadInfo> NativeFileSession::publish_staged_recompress
     if(cold_through) {
       const auto& selection=published.selection;
       self.cold_coverage=OptimizationColdCoverage{selection.image_identity,selection.epoch,
-          selection.minimum_checkpoint,cold_through,detail::kIndexedColdEncodingRevision,
+          selection.minimum_checkpoint,cold_through,detail::indexed_cold_encoding_revision(volume.foreground),
           store_zstd_version(),static_cast<std::uint32_t>(volume.foreground.zstd_level)};
     }
     self.evaluated_image=volume.active_id;

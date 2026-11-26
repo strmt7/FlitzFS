@@ -1,9 +1,11 @@
 #include "store_codec.hpp"
+#include "byte_planes.hpp"
 #include "zstd_frame.hpp"
 #include "repeat_bytes.hpp"
 #include <algorithm>
 #include <array>
 #include <cstdlib>
+#include <cstring>
 #include <limits>
 #include <new>
 #include <stdexcept>
@@ -38,6 +40,13 @@ bool store_zstd_available() noexcept {return store_zstd_version()>=10504;}
 namespace detail {
 namespace {
 using Bytes=std::vector<std::byte>;
+constexpr std::size_t plane_prefix_bytes=24,plane_width=4,plane_extent_bytes=64U*1024U;
+constexpr char plane_extent_magic[]="FLTXPE01";
+constexpr std::array plane_header{std::byte{1},std::byte{4},std::byte{24},std::byte{0}};
+bool plane_extent(std::span<const std::byte> input) noexcept {
+  return input.size()>=plane_prefix_bytes+plane_width && input.size()<=plane_prefix_bytes+plane_extent_bytes &&
+      std::memcmp(input.data(),plane_extent_magic,8)==0;
+}
 [[noreturn]] void fail(const char* message) {
   throw std::runtime_error(std::string("FlitzFS store codec: ")+message);
 }
@@ -95,7 +104,8 @@ bool store_match_sequences_available() noexcept {
 void validate_store_compression(StoreCompressionOptions options) {
   if((options.mode!=StoreCompressionMode::raw && options.mode!=StoreCompressionMode::automatic && options.mode!=StoreCompressionMode::fast) ||
       options.zstd_level<1 || options.zstd_level>9 ||
-      (options.require_zstd && (options.mode!=StoreCompressionMode::automatic || !store_zstd_available())))
+      (options.require_zstd && (options.mode!=StoreCompressionMode::automatic || !store_zstd_available())) ||
+      (options.experimental_cold_byte_planes && (options.mode==StoreCompressionMode::raw || !store_zstd_available())))
     fail("invalid policy or required bounded Zstandard unavailable");
 }
 bool store_prefix_frame(std::span<const std::byte> payload,std::size_t expected) noexcept {
@@ -161,7 +171,7 @@ std::vector<std::byte> decode_store_prefix(std::span<const std::byte> input,
   fail("prefixed Zstandard recovery unavailable");
 #endif
 }
-bool store_codec_framing(std::uint32_t codec,std::uint32_t logical,std::uint32_t stored) noexcept {
+bool store_codec_framing(std::uint32_t codec,std::uint32_t logical,std::uint32_t stored,bool byte_planes) noexcept {
   if(logical>kStoreMaxObjectBytes || stored>logical) return false;
   switch(codec) {
     case kStoreRaw:return stored==logical;
@@ -169,6 +179,8 @@ bool store_codec_framing(std::uint32_t codec,std::uint32_t logical,std::uint32_t
     case kStorePattern:return stored>0 && stored<=kStoreMaxPatternBytes && stored<logical;
     case kStoreLz4:return logical>0 && stored>0 && stored<logical;
     case kStoreZstd:return stored>0 && stored<logical;
+    case kStoreZstdBytePlanes:return byte_planes && logical>=plane_prefix_bytes+plane_width &&
+        logical<=plane_prefix_bytes+plane_extent_bytes && stored>plane_header.size() && stored<logical;
     default:return false;
   }
 }
@@ -247,12 +259,19 @@ std::size_t StoreCodecEncoder::peak_bytes() const noexcept {
 #endif
 }
 std::vector<std::byte> StoreCodecDecoder::decode(std::uint32_t codec,
-    std::span<const std::byte> payload,std::uint32_t logical) {
+    std::span<const std::byte> payload,std::uint32_t logical,bool byte_planes) {
   if(payload.size()>(std::numeric_limits<std::uint32_t>::max)() ||
-      !store_codec_framing(codec,logical,static_cast<std::uint32_t>(payload.size())))
+      !store_codec_framing(codec,logical,static_cast<std::uint32_t>(payload.size()),byte_planes))
     fail("unknown codec or invalid stored/logical extent");
-  if(codec==kStoreZstd && !native_zstd_frame(payload)) fail("noncanonical Zstandard magic");
-  if(codec==kStoreZstd && !store_zstd_available()) fail("Zstandard recovery unavailable");
+  const bool planar=codec==kStoreZstdBytePlanes;
+  if(planar) {
+    if(!std::ranges::equal(payload.first(plane_header.size()),plane_header))fail("unknown byte-plane envelope");
+    payload=payload.subspan(plane_header.size());
+  }
+  if(codec==kStoreZstd || planar) {
+    if(!native_zstd_frame(payload))fail("noncanonical Zstandard magic");
+    if(!store_zstd_available())fail("Zstandard recovery unavailable");
+  }
   if(codec==kStoreLz4 && !store_lz4_available()) fail("LZ4 recovery unavailable");
   Bytes output(logical);
   if(codec==kStoreRaw) std::copy(payload.begin(),payload.end(),output.begin());
@@ -286,7 +305,13 @@ std::vector<std::byte> StoreCodecDecoder::decode(std::uint32_t codec,
     fail("Zstandard recovery unavailable");
 #endif
   }
-  return output;
+  if(!planar)return output;
+  if(!plane_extent(output))fail("invalid native byte-plane extent");
+  Bytes restored(logical);
+  std::copy_n(output.begin(),plane_prefix_bytes,restored.begin());
+  restore_byte_planes(std::span(output).subspan(plane_prefix_bytes),
+      std::span(restored).subspan(plane_prefix_bytes),plane_width);
+  return restored;
 }
 EncodedStoreObject StoreCodecEncoder::encode(Bytes input) {
   auto result=encode_compressed(input,true);
@@ -356,7 +381,8 @@ EncodedStoreObject StoreCodecEncoder::verify_encoding(EncodedStoreObject result,
     return result;
   }
   // Compressed candidates remain private until independent CPU readback.
-  const auto decoded=impl_->verifier.decode(result.codec,result.payload,static_cast<std::uint32_t>(input.size()));
+  const auto decoded=impl_->verifier.decode(result.codec,result.payload,static_cast<std::uint32_t>(input.size()),
+      result.codec==kStoreZstdBytePlanes);
   if(!std::ranges::equal(decoded,input))fail("compression round-trip mismatch");
   result.decoded_digest=record_digest(input);
   return result;
@@ -381,7 +407,8 @@ ColdStoreEncoding StoreCodecEncoder::try_cold_encoding(
   if(ZSTD_isError(bytes))return {};
   auto* ctx=impl_->encoding_context();
   if(!ctx)return {};
-  const auto encode=[&](ZSTD_compressionParameters preset,std::size_t limit)->ColdStoreEncoding {
+  const auto encode=[&](std::span<const std::byte> source,ZSTD_compressionParameters preset,
+      std::size_t limit,bool planar)->ColdStoreEncoding {
     if(ZSTD_isError(ZSTD_CCtx_reset(ctx,ZSTD_reset_session_and_parameters)) ||
         ZSTD_isError(ZSTD_CCtx_setCParams(ctx,preset)) ||
         ZSTD_isError(ZSTD_CCtx_setParameter(ctx,ZSTD_c_nbWorkers,0)) ||
@@ -389,27 +416,47 @@ ColdStoreEncoding StoreCodecEncoder::try_cold_encoding(
         ZSTD_isError(ZSTD_CCtx_setParameter(ctx,ZSTD_c_checksumFlag,1)))return {};
     try {
       Bytes candidate(limit-1);
-      const auto size=ZSTD_compress2(ctx,candidate.data(),candidate.size(),input.data(),input.size());
+      const auto overhead=planar?plane_header.size():0;
+      const auto size=ZSTD_compress2(ctx,candidate.data()+overhead,candidate.size()-overhead,source.data(),source.size());
       if(ZSTD_isError(size))return {{},ZSTD_getErrorCode(size)==ZSTD_error_dstSize_tooSmall};
-      if(size>=limit)return {{},true};
-      candidate.resize(size);
-      return {EncodedStoreObject{kStoreZstd,std::move(candidate)},true};
+      if(planar)std::ranges::copy(plane_header,candidate.begin());
+      candidate.resize(overhead+size);
+      return {EncodedStoreObject{planar?kStoreZstdBytePlanes:kStoreZstd,std::move(candidate)},true};
     }catch(const std::bad_alloc&) {return {};}
   };
 
-  auto best=encode(params,old_size);
   // Size-dependent presets use different match parsers. Recorded cold
   // trials on public data found smaller frames at the middle preset.
   constexpr int alternate_level=13;
-  const auto exclusive_limit=best.smaller?best.smaller->payload.size():old_size;
-  if(best.evaluated && level>alternate_level && exclusive_limit>16) {
-    const auto alternate=ZSTD_getCParams(alternate_level,input.size(),0);
-    const auto scratch=ZSTD_estimateCCtxSize_usingCParams(alternate);
-    if(!ZSTD_isError(scratch) && scratch<=impl_->allocation_limit) {
-      auto trial=encode(alternate,exclusive_limit);
+  std::optional<ZSTD_compressionParameters> alternative;
+  if(level>alternate_level) {
+    const auto middle=ZSTD_getCParams(alternate_level,input.size(),0);
+    const auto scratch=ZSTD_estimateCCtxSize_usingCParams(middle);
+    if(!ZSTD_isError(scratch) && scratch<=impl_->allocation_limit)alternative=middle;
+  }
+  const auto trial_presets=[&](std::span<const std::byte> source,std::size_t upper,bool planar) {
+    auto selected=encode(source,params,upper,planar);
+    if(selected.smaller)upper=selected.smaller->payload.size();
+    if(selected.evaluated && alternative && upper>16) {
+      auto middle=encode(source,*alternative,upper,planar);
+      if(middle.smaller)selected.smaller=std::move(middle.smaller);
+      selected.evaluated=middle.evaluated;
+    }
+    return selected;
+  };
+
+  auto best=trial_presets(input,old_size,false);
+  const auto limit=best.smaller?best.smaller->payload.size():old_size;
+  if(impl_->options.experimental_cold_byte_planes && best.evaluated && limit>16 && plane_extent(input)) {
+    try {
+      Bytes transformed(input.size());
+      std::copy_n(input.begin(),plane_prefix_bytes,transformed.begin());
+      transpose_byte_planes(input.subspan(plane_prefix_bytes),
+          std::span(transformed).subspan(plane_prefix_bytes),plane_width);
+      auto trial=trial_presets(transformed,limit,true);
       if(trial.smaller)best.smaller=std::move(trial.smaller);
       best.evaluated=trial.evaluated;
-    }
+    }catch(const std::bad_alloc&) {best.evaluated=false;}
   }
 
   try {

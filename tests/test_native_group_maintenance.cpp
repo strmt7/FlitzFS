@@ -166,6 +166,111 @@ void indexed_cold_batch_copy() {
   std::cout<<'\n';
 }
 
+void indexed_byte_plane_recovery() {
+  if(!store_zstd_available())return;
+  constexpr StoreCompressionOptions plain{StoreCompressionMode::automatic,3,true};
+  constexpr StoreCompressionOptions planes{StoreCompressionMode::automatic,3,true,true};
+  constexpr NativeImageStorage storage{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes};
+  constexpr auto unit=4096U;
+  Fixture live(unit,0,true,planes,NativeIndexedDataLayout::extents,
+      NativeVolumeHeadLayout::compact,PagedStoreBankLayout::compact);
+  std::array<Bytes,4> files;
+  const auto name=[](std::size_t index){return "numeric-"+std::to_string(index);};
+  for(std::size_t file=0;file<files.size();++file) {
+    auto& bytes=files[file];
+    bytes=data(kNativeExtentBytes-1,52000+static_cast<unsigned>(file));
+    for(std::size_t at=0;at+3<bytes.size();at+=4) {
+      bytes[at+2]=std::byte{4};
+      bytes[at+3]=std::byte{7};
+    }
+    put(*live.session,name(file),bytes);
+  }
+  const auto verify=[&](const NativeFilesystemSnapshot& view) {
+    view.verify_all();
+    for(std::size_t file=0;file<files.size();++file) {
+      const auto& expected=files[file];
+      require(view.read(name(file),0,kNativeExtentBytes)==expected,"byte-plane recovery changed file bytes");
+      for(const auto at:{std::size_t{3},std::size_t{4093},expected.size()-21})
+        require(view.read(name(file),at,17)==Bytes(expected.begin()+at,expected.begin()+at+17),
+            "byte-plane recovery changed an unaligned range");
+    }
+  };
+  const auto stage=[&](Fixture& fixture) {
+    using Progress=NativeFileSession::RecompressionProgress;
+    auto target=ram(unit);
+    require(fixture.session->begin_idle_compaction(target,id(5),PagedRewriteMode::reconcile_foreground),
+        "byte-plane cold copy did not start");
+    auto progress=Progress::copying;
+    for(unsigned i=0;progress==Progress::copying && i<1000;++i)progress=fixture.session->advance_recompression();
+    require(progress==Progress::ready,"byte-plane cold copy did not reach verified publication");
+    return target;
+  };
+  const auto selector=live.head->stable,source=live.image->stable;
+  Fixture control(image(selector,unit),image(source,unit),plain);
+  const auto ordinary=stage(control);
+  require(control.session->publish_idle_recompression().has_value(),"ordinary comparison did not publish");
+  verify(control.session->snapshot());
+
+  const auto pinned=live.session->snapshot();
+  const auto target=stage(live);
+  constexpr std::size_t feature_at=176;
+  require(live.image->live[feature_at]==std::byte{0} && ordinary->live[feature_at]==std::byte{0} &&
+      target->live[feature_at]==std::byte{1} && target->live[unit+feature_at]==std::byte{1},
+      "byte-plane required feature did not match the encoded output");
+  require(target->extent()<ordinary->extent() && live.head->extent()==control.head->extent(),
+      "byte-plane copy did not reduce settled protected bytes");
+  const auto writes=live.head->calls;
+  require(live.session->publish_idle_recompression().has_value(),"verified byte-plane copy did not publish");
+  const auto cuts=live.head->calls-writes;
+  require(cuts && cuts<=8,"byte-plane selector publication changed its cut envelope");
+  verify(live.session->snapshot());
+  verify(pinned);
+  live.session.reset();
+
+  std::size_t old_selected=0,new_selected=0;
+  for(unsigned mode=0;mode<3;++mode)for(std::size_t cut=0;cut<cuts;++cut) {
+    Fixture attempt(image(selector,unit),image(source,unit),planes);
+    const auto next=stage(attempt);
+    attempt.head->failure=mode;
+    attempt.head->fail_at=attempt.head->calls+cut;
+    try{(void)attempt.session->publish_idle_recompression();}catch(const std::exception&){}
+    const auto recovered_old=image(attempt.image->stable,unit),recovered_next=image(next->stable,unit);
+    const auto recovered=NativeVolumeHeadView::open(image(attempt.head->stable,unit),id(90),
+        [&](const auto& key)->std::shared_ptr<StoreByteIo>{return key==id(1)?recovered_old:key==id(5)?recovered_next:nullptr;});
+    verify(recovered.filesystem());
+    if(recovered.info().selection.image_identity==id(5))++new_selected;
+    else {
+      require(recovered.info().selection.image_identity==id(1),"unknown image selected after a byte-plane cut");
+      ++old_selected;
+    }
+  }
+  require(old_selected && new_selected,"byte-plane cuts missed one verified checkpoint");
+  faults+=old_selected+new_selected;
+
+  const auto altered=[&](std::byte feature) {
+    auto changed=image(target->stable,unit);
+    for(const std::size_t slot:{0U,unit}) {
+      auto root=std::span(changed->live).subspan(slot,unit);
+      root[feature_at]=feature;
+      const auto hash=detail::record_digest(root.first(unit-32));
+      std::ranges::copy(hash,root.last(32).begin());
+    }
+    return changed;
+  };
+  rejects([&]{(void)NativeFilesystemSnapshot::open_image(altered(std::byte{3}),storage);},
+      "unknown required bit did not reject the image on open");
+  rejects([&]{NativeFilesystemSnapshot::open_image(altered(std::byte{0}),storage).verify_all();},
+      "a byte-plane frame decoded when the image had no required feature");
+  auto exported=ram(unit);
+  (void)NativeFilesystemWriter::recompress(NativeFilesystemSnapshot::open_image(target,storage),exported,id(6),plain);
+  require(exported->live[feature_at]==std::byte{0} && exported->live[unit+feature_at]==std::byte{0},
+      "full independent reencoding retained an obsolete required feature");
+  verify(NativeFilesystemSnapshot::open_image(exported,storage));
+  std::cout<<"indexed_byte_planes before="<<ordinary->extent()+control.head->extent()
+      <<" after="<<target->extent()+live.head->extent()<<" cuts_old="<<old_selected<<" cuts_new="<<new_selected
+      <<" exact_cpu=1 independent_reencode=1\n";
+}
+
 void indexed_candidate_yield_order() {
   if(!store_zstd_available())return;
   constexpr StoreCompressionOptions compression{StoreCompressionMode::automatic,3,true};
@@ -837,9 +942,9 @@ void profile_protected_layout(const std::shared_ptr<Ram>& backing,
 void profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expected_members=0,
     bool compare_reencoding=false,NativeIndexedDataLayout layout=NativeIndexedDataLayout::extents,
     NativeVolumeHeadLayout head_layout=NativeVolumeHeadLayout::legacy,
-    PagedStoreBankLayout image_layout=PagedStoreBankLayout::shared) {
+    PagedStoreBankLayout image_layout=PagedStoreBankLayout::shared,bool byte_planes=false) {
   if(!store_zstd_available())return;
-  constexpr StoreCompressionOptions policy{StoreCompressionMode::automatic,3,true};
+  const StoreCompressionOptions policy{StoreCompressionMode::automatic,3,true,byte_planes};
   constexpr NativeImageStorage storage{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes};
   const auto name=[](std::size_t i){return "pack-profile-"+std::to_string(i);};
   Fixture f(4096,0,true,policy,layout,head_layout,image_layout);
@@ -1027,13 +1132,13 @@ void profile_retained_short_peer() {
 void profile_public_packs(const std::filesystem::path& filename,bool complete_files,bool compare_reencoding=false,
     NativeIndexedDataLayout layout=NativeIndexedDataLayout::extents,
     NativeVolumeHeadLayout head_layout=NativeVolumeHeadLayout::legacy,
-    PagedStoreBankLayout image_layout=PagedStoreBankLayout::shared) {
+    PagedStoreBankLayout image_layout=PagedStoreBankLayout::shared,bool byte_planes=false) {
   if(!store_zstd_available()) {
     require(!complete_files,"complete-file packing profile requires Zstandard");
     return;
   }
   const auto inputs=read_packed_corpus(filename,complete_files);
-  profile_similarity_packing(inputs,0,compare_reencoding,layout,head_layout,image_layout);
+  profile_similarity_packing(inputs,0,compare_reencoding,layout,head_layout,image_layout,byte_planes);
 }
 
 void profile_indexed_pair_oracle(const std::filesystem::path& filename,bool tails=false) {
@@ -4198,6 +4303,7 @@ void indexed_scan_checkpoint_faults() {
 int main(int argc,char** argv){try{
   if(argc==2 && std::string_view(argv[1])=="--indexed-cold-copy") {
     indexed_cold_batch_copy();
+    indexed_byte_plane_recovery();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-resume") {
     persistent_indexed_scan();
     retain_distant_indexed_candidate();
@@ -4313,6 +4419,9 @@ int main(int argc,char** argv){try{
     profile_public_packs(argv[2],true);
   } else if(argc==3 && std::string_view(argv[1])=="--profile-public-reencode") {
     profile_public_packs(argv[2],true,true);
+  } else if(argc==3 && std::string_view(argv[1])=="--profile-public-byte-planes") {
+    profile_public_packs(argv[2],true,true,NativeIndexedDataLayout::extents,
+        NativeVolumeHeadLayout::legacy,PagedStoreBankLayout::shared,true);
   } else if(argc==3 && std::string_view(argv[1])=="--profile-indexed-tail-oracle") {
     profile_indexed_pair_oracle(argv[2],true);
   } else if(argc==3 && std::string_view(argv[1])=="--profile-indexed-pair-oracle") {

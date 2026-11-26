@@ -1,14 +1,15 @@
 # FlitzFS detailed implementation plan
 
-**Reconciled on 26 November 2026.** First use the populated Windows client
-trace to evaluate grouped AMD reads and collective search through the
-ordinary helper. Use the held-out occupied-size frontier to choose among
-better group nominations, representations and protected placement.
-Measure attach after churn to design and verify the incremental proof.
+**Reconciled on 26 November 2026.** Compare the measured byte-plane gain
+with existing sealed placement on the same protected snapshot. Use that
+frontier and a fresh named-family holdout to decide between admission,
+fragment discovery and allocation work. Connect the populated Windows
+client trace to useful grouped AMD reads and collective search. Measure
+attach after churn to design and verify the incremental proof.
 The E01–E13 contracts below define the individual release exits.
 [Current assessment](RELEASE_RECONCILIATION_2026-11-26.md) ·
-[Source, tests and research](evidence/windows-packed-shared-subsets-2026-11-26.json) ·
-[Ordered implementation steps](RELEASE_RECONCILIATION_2026-11-26.md#detailed-implementation-order)
+[Source, tests and research](evidence/windows-native-byte-plane-2026-11-26.json) ·
+[Ordered implementation steps](RELEASE_RECONCILIATION_2026-11-26.md#implement-the-next-three-integrated-results)
 
 The [current architecture](architecture/CURRENT.md) shows the implementation.
 The [source review](architecture/REVIEW.md) tests the assumptions and the

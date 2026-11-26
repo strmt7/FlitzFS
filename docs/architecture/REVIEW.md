@@ -63,6 +63,16 @@ evidence binds the narrower changes to their own source trees.
 
 ## Scope and evidence
 
+The 26 November checkpoint carries this full inventory forward and
+reviewed the changes through `034e694684a6fc639d2e597356020cc6514a772f`
+plus the frozen byte-plane source. The compatibility review follows
+decoder admission, both paged roots, a staged record, selector cuts and
+independent CPU export. The current integration review follows the
+WinFsp consumer, native inventory, compaction, backing and learning
+paths. Use the new measurements to rank the next experiments.
+[Current release reconciliation](../RELEASE_RECONCILIATION_2026-11-26.md) ·
+[Source and research receipt](../evidence/windows-native-byte-plane-2026-11-26.json)
+
 The broad review at [df5be9b5b9d0](https://github.com/strmt7/FlitzFS/commit/df5be9b5b9d0bc05ac565eb2da8454ac76bed3d2)
 read and hashed every tracked blob in that tree. It
 visited 102,268 first-party source, test, build and tooling lines across 414

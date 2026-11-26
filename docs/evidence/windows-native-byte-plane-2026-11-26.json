@@ -1,0 +1,558 @@
+{
+  "schema": 1,
+  "captured_utc": "2026-11-26",
+  "source": {
+    "parent": "034e694684a6fc639d2e597356020cc6514a772f",
+    "parent_tree": "71f4121b4b7bcc992b5dca5d33819c339ff93372",
+    "tested_tree": "efc3262d90784f626a69c14352a27ebb1c8d7a2a",
+    "files": [
+      {
+        "path": "include/flitzfs/object_store.hpp",
+        "blob": "8383507447e6dc6226b4b76763646109c7ea6f03"
+      },
+      {
+        "path": "src/byte_planes.hpp",
+        "blob": "a9715669dcbd4c5290ea2e820522f94087691f24"
+      },
+      {
+        "path": "src/extent_codec.cpp",
+        "blob": "1e35a07831ad08a5ec0e10de804b2805a439fb6c"
+      },
+      {
+        "path": "src/native_session.cpp",
+        "blob": "4ce6ce13671ca25592f1618d7926bee7121f82db"
+      },
+      {
+        "path": "src/paged_store.cpp",
+        "blob": "0686941f62349ebc7cda37419f63d6111525200a"
+      },
+      {
+        "path": "src/store_codec.cpp",
+        "blob": "d73fa4a85b99ee0c89b9ad51fcf19a6e8d7efb42"
+      },
+      {
+        "path": "src/store_codec.hpp",
+        "blob": "fd7bda574ae6480c8a896aa3e2f70d8560651aaf"
+      },
+      {
+        "path": "tests/test_native_group_maintenance.cpp",
+        "blob": "3b039c055bc55b32bf6fb18df38993ef3abe0736"
+      },
+      {
+        "path": "tests/test_store_codec.cpp",
+        "blob": "020e46b96165ae3394fdc3df50ce977aec80bc92"
+      }
+    ]
+  },
+  "experiment": {
+    "profile_arm": "group_then_cold",
+    "layout": "Mirrored paged native image and the same external selector in each arm",
+    "preset_comparison": "Same funded ordinary Zstandard presets in both arms",
+    "experimental_opt_in": true,
+    "paged_codec_id": 5,
+    "paged_root_required_feature_bit": 0,
+    "cold_policy_revision": 3,
+    "ordinary_write_policy_default": true,
+    "scope": "Complete occupied bytes on the existing Windows memory-backed fixture. Sizes include the selector and protection. The AITDCC splits had been seen during width selection."
+  },
+  "profiles": [
+    {
+      "id": "ait-i-p",
+      "fixture_sha256": "26204e32bf232e5a40d5cce9d4f63a87c25fcb19f6eceadbff7c76321468c159",
+      "fixture_bytes": 25153047,
+      "logical_bytes": 25153011,
+      "files": 8,
+      "ordinary": {
+        "command_mode": "--profile-public-reencode",
+        "image_bytes": 35012608,
+        "selector_bytes": 131072,
+        "total_occupied_bytes": 35143680,
+        "mirrored_data_object_bytes": 34694022,
+        "mirrored_metadata_object_bytes": 5576,
+        "record_index_and_padding_bytes": 313010,
+        "cold_source_read_bytes": 89207188,
+        "cold_target_write_bytes": 35020800,
+        "sampled_range_read_bytes": 661892,
+        "log_sha256": "00bc22f7e2d423393029acbd3a1317ccbf8f97f2e2d6bd59464b5aa8c2c5a47a",
+        "exact_cpu_readback": true
+      },
+      "byte_planes": {
+        "command_mode": "--profile-public-byte-planes",
+        "image_bytes": 33685504,
+        "selector_bytes": 131072,
+        "total_occupied_bytes": 33816576,
+        "mirrored_data_object_bytes": 33371534,
+        "mirrored_metadata_object_bytes": 5576,
+        "record_index_and_padding_bytes": 308394,
+        "cold_source_read_bytes": 89207188,
+        "cold_target_write_bytes": 33693696,
+        "sampled_range_read_bytes": 639431,
+        "log_sha256": "2bb58bafa32ba280b2cb0bb07886fa4655a8d8018d66c71c984a89ae06dc0502",
+        "exact_cpu_readback": true
+      },
+      "protected_bytes_saved": 1327104
+    },
+    {
+      "id": "ait-a-h",
+      "fixture_sha256": "bb25d5ebcdcdfe0daf4ebc0d78a452d9e8937808fbb2a481d33bafa5e15b1c42",
+      "fixture_bytes": 13136344,
+      "logical_bytes": 13136308,
+      "files": 8,
+      "ordinary": {
+        "command_mode": "--profile-public-reencode",
+        "image_bytes": 15441920,
+        "selector_bytes": 131072,
+        "total_occupied_bytes": 15572992,
+        "mirrored_data_object_bytes": 15206778,
+        "mirrored_metadata_object_bytes": 3608,
+        "record_index_and_padding_bytes": 231534,
+        "cold_source_read_bytes": 40002191,
+        "cold_target_write_bytes": 15450112,
+        "sampled_range_read_bytes": 562867,
+        "log_sha256": "434383dd68cb351abbefafad74df7984a24f3c509e3c370d13e355bd9cc5faa9",
+        "exact_cpu_readback": true
+      },
+      "byte_planes": {
+        "command_mode": "--profile-public-byte-planes",
+        "image_bytes": 14794752,
+        "selector_bytes": 131072,
+        "total_occupied_bytes": 14925824,
+        "mirrored_data_object_bytes": 14559984,
+        "mirrored_metadata_object_bytes": 3608,
+        "record_index_and_padding_bytes": 231160,
+        "cold_source_read_bytes": 40002191,
+        "cold_target_write_bytes": 14802944,
+        "sampled_range_read_bytes": 546416,
+        "log_sha256": "6a0be58fac036afde09a69ec3e32e1c13247d7a76e59d9339f9854baf0d91867",
+        "exact_cpu_readback": true
+      },
+      "protected_bytes_saved": 647168
+    },
+    {
+      "id": "cpython",
+      "fixture_sha256": "d053d6acd0551763909205a2ed670d6bf6bc3e61a13ef0cd13ca93e69c5489f9",
+      "fixture_bytes": 2510781,
+      "logical_bytes": 2510681,
+      "files": 24,
+      "ordinary": {
+        "command_mode": "--profile-public-reencode",
+        "image_bytes": 565248,
+        "selector_bytes": 131072,
+        "total_occupied_bytes": 696320,
+        "mirrored_data_object_bytes": 376970,
+        "mirrored_metadata_object_bytes": 5080,
+        "record_index_and_padding_bytes": 183198,
+        "cold_source_read_bytes": 1462014,
+        "cold_target_write_bytes": 573440,
+        "sampled_range_read_bytes": 1006352,
+        "log_sha256": "f0b0c1dc5d5a313779fc1439a5a0a3717713ddfe5a92b766d03769d7cda7500a",
+        "exact_cpu_readback": true
+      },
+      "byte_planes": {
+        "command_mode": "--profile-public-byte-planes",
+        "image_bytes": 565248,
+        "selector_bytes": 131072,
+        "total_occupied_bytes": 696320,
+        "mirrored_data_object_bytes": 376970,
+        "mirrored_metadata_object_bytes": 5080,
+        "record_index_and_padding_bytes": 183198,
+        "cold_source_read_bytes": 1462014,
+        "cold_target_write_bytes": 573440,
+        "sampled_range_read_bytes": 1006352,
+        "log_sha256": "d86d110a08f034a79d6891e1c4b8a8ba0626caefd9e65c504a499c4f331351ab",
+        "exact_cpu_readback": true
+      },
+      "protected_bytes_saved": 0
+    }
+  ],
+  "selector_failure_fixture": {
+    "selector_boundaries_per_mode": 4,
+    "simulated_modes": 3,
+    "total_cuts": 12,
+    "old_image_selected": 4,
+    "new_image_selected": 8,
+    "ordinary_total_bytes": 385024,
+    "byte_plane_total_bytes": 294912,
+    "exact_full_and_unaligned_cpu_reads": true,
+    "pinned_old_snapshot": true,
+    "verified_unsupported_and_missing_feature_refusal": true,
+    "independently_reencoded_plain_image": true
+  },
+  "validation": [
+    {
+      "lane": "Windows focused",
+      "tests_passed": 2,
+      "exit_code": 0,
+      "job_tree_retired": true,
+      "elapsed_seconds": 1.389999999984866,
+      "peak_job_bytes": 117968896,
+      "output_sha256": "6d1a2b4b886dd6ea5e7b0a5ed591156bf9622a555f77a03adf583f0a467a9977",
+      "supervisor_record_sha256": "b97fdc65b5b4291fe4c95fd7e451e6c6bb8d1a2a4bbdd78778bbfdae0b843212"
+    },
+    {
+      "lane": "Windows raw-only",
+      "tests_passed": 3,
+      "tests_skipped": 1,
+      "skip": "The cold-compression fixture requires Zstandard.",
+      "exit_code": 0,
+      "job_tree_retired": true,
+      "elapsed_seconds": 1.547000000020489,
+      "peak_job_bytes": 107556864,
+      "output_sha256": "46a23e60a638728cbf0cedb48d81a033af2db4b0e013b7b28c6f2c05284220e3",
+      "supervisor_record_sha256": "02bfa2c7628e1349716687decd5a60310087bf7daace626993871f5eb4628105"
+    },
+    {
+      "lane": "Windows ASan",
+      "tests_passed": 5,
+      "matching_runtime_preflight": true,
+      "exit_code": 0,
+      "job_tree_retired": true,
+      "elapsed_seconds": 6.264999999984866,
+      "peak_job_bytes": 552808448,
+      "output_sha256": "a0f9717b9be7cf5c73d03b723b4dfaca311b69c5cd48c24776ee3a0b8bd24a6c",
+      "supervisor_record_sha256": "0474f8b8ee0ebad9fd2d7f2c6000fc6f57fd15a3c4c3d9ef06b7e513739b4297"
+    },
+    {
+      "lane": "Windows Release and WinFsp SDK",
+      "tests_passed": 238,
+      "exit_code": 0,
+      "job_tree_retired": true,
+      "elapsed_seconds": 334.2190000000119,
+      "peak_job_bytes": 680366080,
+      "output_sha256": "1df0ae656b40b73d9e1b392e3fdef6d4a5be592f2a572ffd6f3cd6ce76fed8e6",
+      "supervisor_record_sha256": "c4e87ec914f9e7b6a748c8d80391655893b87fce21b0ffbd02fb7552b1dd07b1"
+    },
+    {
+      "lane": "Windows installed Radeon SDK callbacks",
+      "exit_code": 0,
+      "job_tree_retired": true,
+      "elapsed_seconds": 7.046999999991385,
+      "peak_job_bytes": 193576960,
+      "output_sha256": "7b85c692708ef6c80191c26b3ec6867b68a1fe1970f4126c858a966c6552d711",
+      "supervisor_record_sha256": "0bd9025a674d9631d5bf647d0a8f4363daba97638ecd2d4045be3ac8487b2270"
+    }
+  ],
+  "physical_amd_grouped_read": {
+    "adapter": "AMD Radeon RX 9070 XT",
+    "stage_sha256": "f1c303407c0ca430424410846d5b6a40e122c7773bca357c912f122df1779a05",
+    "staged_artifacts": {
+      "flitzfs_winfsp_paged_tests.exe": {
+        "bytes": 2362880,
+        "sha256": "4f258a0be493e623519d4fa7dfa30a07e9ddb2e7f732a6653ed20fcc20c56c62"
+      },
+      "winfsp-x64.dll": {
+        "bytes": 200816,
+        "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+      },
+      "flitzfs_native_lz4_read_worker.exe": {
+        "bytes": 582144,
+        "sha256": "9767b60477dff8f0a62bd04dff4fbe466e229065f58874b58a4f9f65d675ae9c"
+      },
+      "flitzfs_rocm_native_lz4_decode.dll": {
+        "bytes": 173568,
+        "sha256": "5bf82b27d04632f91dce4731b9764c280169d6c3027490bc1fe6a7d2ab3c6223"
+      }
+    },
+    "initial_admission": {
+      "admitted": false,
+      "reason": "Existing host load above the fixture envelope",
+      "utc": "2026-11-26T03:05:32.7216547Z",
+      "driver": "32.0.32029.2010",
+      "build": "26300",
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "luid": "9d75010000000000",
+      "available_bytes": 21537189888,
+      "reserved_bytes": 4294967296,
+      "gpu_peak": 98.99208506482498,
+      "cpu_peak": 14.434358761513478,
+      "target_samples": 816
+    },
+    "dispatch_admission": {
+      "admitted": true,
+      "reason": null,
+      "utc": "2026-11-26T03:26:40.4993666Z",
+      "driver": "32.0.32029.2010",
+      "build": "26300",
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "luid": "9d75010000000000",
+      "available_bytes": 29244641280,
+      "reserved_bytes": 4294967296,
+      "gpu_peak": 0,
+      "cpu_peak": 15.762539382883789,
+      "target_samples": 800
+    },
+    "exact_child_retired": true,
+    "callback_calls": 32,
+    "independently_verified_frames": 2,
+    "device_bytes_consumed": 131072,
+    "cpu_reference_backing_bytes": 54672,
+    "device_path_backing_bytes": 37216,
+    "peak_fixture_commit_bytes": 99454976,
+    "byte_planes_device_execution": false,
+    "mounted_throughput_measured": false
+  },
+  "release_scope": {
+    "physical_power_loss_qualification": false,
+    "mounted_comparison": false,
+    "stable_release_qualified": false,
+    "ntfs_benchmark_run": false
+  },
+  "online_research": {
+    "robots_checked": true,
+    "per_page_timeout_seconds": 45,
+    "external_llm": false,
+    "accepted_unique_pages": 11,
+    "content_check_failures_restored": 5,
+    "receipts": [
+      {
+        "purpose": "codec",
+        "provider_version": "0.9.5+flitzzip.portable2",
+        "lock_sha256": "01fbef3b628f772e4aba9724b6ced11c0f211d4d3bf51e38d1b9d0039eac997b",
+        "receipt_sha256": "2a084780461cb983f755b660d8559120e3ddec98bc9f0ceeb823566b0c0c10cf",
+        "pages": [
+          {
+            "name": "zstd-framing",
+            "url": "https://github.com/facebook/zstd/blob/dev/doc/zstd_compression_format.md",
+            "success": true,
+            "http_status": 301,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_bytes": 87985,
+            "markdown_sha256": "1edb1e95cac3b0585d77db1c5c48f2ba1959cbc4a5a104c50f1e05ea52928df0",
+            "capture_sha256": "4296440dbec1ad62a75c364b68544dec0635fab21b74efdcc74b7833d92f2091"
+          },
+          {
+            "name": "rocm-platform",
+            "url": "https://rocm.docs.amd.com/en/docs-10.2.0/about/release-notes.html",
+            "success": false,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": false,
+            "markdown_bytes": 308620,
+            "markdown_sha256": "75810446f9eabf269787e24a9c8690b6332972b2dadea19f191ee0bf1b703984",
+            "capture_sha256": "d3f0453d7f0749b22aa7d2aec746d83b4fa75aed678b9bfe634dc18f5b49bbdf",
+            "failure_category": "unexpected_content"
+          },
+          {
+            "name": "hip-async",
+            "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_runtime_api/asynchronous.html",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_bytes": 48777,
+            "markdown_sha256": "4167596a0f6b6c0281ea842f4eac025a4e457fa0b5627cd88da14196e62a5fdc",
+            "capture_sha256": "418a9dc3c8ba31ae2b3d129679a8b5a2cd32379313de39a910342deaefff9e46"
+          }
+        ]
+      },
+      {
+        "purpose": "rocm_repaired_capture",
+        "provider_version": "0.9.5+flitzzip.portable2",
+        "lock_sha256": "01fbef3b628f772e4aba9724b6ced11c0f211d4d3bf51e38d1b9d0039eac997b",
+        "receipt_sha256": "7d33271b2db0186fc600aa243f5e16c5967b31c9acde4759e5594bdcb170ed83",
+        "pages": [
+          {
+            "name": "rocm-platform",
+            "url": "https://rocm.docs.amd.com/en/docs-10.2.0/about/release-notes.html",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_bytes": 303361,
+            "markdown_sha256": "18caaf90d5ea55c1acb99c34abb277aa89c6eada8e5300b6ffdebe356e45a728",
+            "capture_sha256": "b6fd96bf22fda008ec207a2da88f9c0ed3e3ef7829ee4da594bcdbcb74563d63"
+          }
+        ]
+      },
+      {
+        "purpose": "release_design",
+        "provider_version": "0.9.5+flitzzip.portable2",
+        "lock_sha256": "01fbef3b628f772e4aba9724b6ced11c0f211d4d3bf51e38d1b9d0039eac997b",
+        "receipt_sha256": "45b3c3ffb7606464b292900181f46c1cf6229131a21208cac70a8c030661c62f",
+        "pages": [
+          {
+            "name": "directstorage-zstd",
+            "url": "https://devblogs.microsoft.com/directx/directstorage-1-4-release-adds-support-for-zstandard/",
+            "success": false,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": false,
+            "markdown_bytes": 29867,
+            "markdown_sha256": "40e2464434e8bc86f1159ad2334bf17d5ccc312bb4191e55c107efebe8fad5e2",
+            "capture_sha256": "7378a4eba3f4ed52e5c55534b038616e57e953a1907d6963372e5211c9a1c6ef",
+            "failure_category": "unexpected_content"
+          },
+          {
+            "name": "blosc2-filters",
+            "url": "https://blosc.org/python-blosc2/reference/autofiles/low_level/blosc2.Filter.html",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_bytes": 18648,
+            "markdown_sha256": "00585179d3d612a8e0812e8721b2631f9139f90b4a513b2b8dcb316f736ecb86",
+            "capture_sha256": "e220976bc416c45e05ccb7ebba5af679c1b7baa4828b37c33f60aed011d34ef2"
+          },
+          {
+            "name": "btrfs-tree-checker",
+            "url": "https://btrfs.readthedocs.io/en/latest/Tree-checker.html",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_bytes": 9963,
+            "markdown_sha256": "04cd613f422491f43810073e0b38283b6218f8e65df553166bf5ac1286515578",
+            "capture_sha256": "26fce3f34229c17bfb4eb9c4461d25c42f73642a70a098de49174157dda503c7"
+          },
+          {
+            "name": "windows-buffering",
+            "url": "https://learn.microsoft.com/en-us/windows/win32/fileio/file-buffering",
+            "success": false,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": false,
+            "markdown_bytes": 27122,
+            "markdown_sha256": "aeeaa82688f369106a2d85dd1532b0e976a315e4d68496428c40fdb4463351c5",
+            "capture_sha256": "bba572a8f347f8d82166ca691c3711e90d609df2ea1d6da73255c0382333ba7a",
+            "failure_category": "unexpected_content"
+          },
+          {
+            "name": "windows-compression-mode",
+            "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_compression",
+            "success": false,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": false,
+            "markdown_bytes": 63183,
+            "markdown_sha256": "48b0bd005d9276173ea26d9d5ddfd0f6019586ea3a1cd33cb8e74730a01f060a",
+            "capture_sha256": "15ff722fcfb22bcd7e93c7fb0824f10b91d627338280f90f922f52ce4f336417",
+            "failure_category": "unexpected_content"
+          },
+          {
+            "name": "diskspd",
+            "url": "https://github.com/microsoft/diskspd/releases/tag/v2.3",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_bytes": 10898,
+            "markdown_sha256": "0365773817f65cbec629c1f9fd781de5dbf2021326e806d424ff0a827f6d0720",
+            "capture_sha256": "9f44bf92db7ca51ccc38c9a151214b338fc5c5d05d9bb7d263efd52b0a69e4e9"
+          },
+          {
+            "name": "rubikfs",
+            "url": "https://www.usenix.org/conference/fast26/presentation/huang",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_bytes": 10416,
+            "markdown_sha256": "dbc538fff3a57a4c36ef94c8a47e1737270a83880e2fb6957160b9b46f285256",
+            "capture_sha256": "6d56e5ff71878b0bdc4c4138f30e63b7b4e7a9ced10df24113a812fd2aecef29"
+          }
+        ]
+      },
+      {
+        "purpose": "repaired_release_design",
+        "provider_version": "0.9.5+flitzzip.portable2",
+        "lock_sha256": "01fbef3b628f772e4aba9724b6ced11c0f211d4d3bf51e38d1b9d0039eac997b",
+        "receipt_sha256": "55575a5d5d0fbab37d9a736dcb80f1694f3f5795a83b4da1c0770d3d979ac7b3",
+        "pages": [
+          {
+            "name": "directstorage-zstd",
+            "url": "https://devblogs.microsoft.com/directx/directstorage-1-4-release-adds-support-for-zstandard/",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_bytes": 29867,
+            "markdown_sha256": "40e2464434e8bc86f1159ad2334bf17d5ccc312bb4191e55c107efebe8fad5e2",
+            "capture_sha256": "8e43c79a84038ab661cbb8625d3ffa5df6fa521ef2e1329f8365e22ff53ab484"
+          },
+          {
+            "name": "windows-buffering",
+            "url": "https://learn.microsoft.com/en-us/windows/win32/fileio/file-buffering",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_bytes": 27122,
+            "markdown_sha256": "aeeaa82688f369106a2d85dd1532b0e976a315e4d68496428c40fdb4463351c5",
+            "capture_sha256": "e07487d5ced8691230ec1f3a8d4ca6fc67d0e8ee610b5a22808bada65099758c"
+          },
+          {
+            "name": "windows-compression-mode",
+            "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_compression",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_bytes": 63183,
+            "markdown_sha256": "48b0bd005d9276173ea26d9d5ddfd0f6019586ea3a1cd33cb8e74730a01f060a",
+            "capture_sha256": "90a948e098cee21ce1716ece69cfee51d6db5e2c6ffffcdf13e276862cd1c8f5"
+          },
+          {
+            "name": "windows-flush",
+            "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers",
+            "success": false,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": false,
+            "markdown_bytes": 36207,
+            "markdown_sha256": "116ffcd5a6feba3539c3f668a2c969aa2e38b8f3663a704a7654e7b2a7954e4c",
+            "capture_sha256": "2b75e14f3ba17e1e815fd21048a0200e8b210573230889fc1087d77fc149ea63",
+            "failure_category": "unexpected_content"
+          }
+        ]
+      },
+      {
+        "purpose": "repaired_flush_reference",
+        "provider_version": "0.9.5+flitzzip.portable2",
+        "lock_sha256": "01fbef3b628f772e4aba9724b6ced11c0f211d4d3bf51e38d1b9d0039eac997b",
+        "receipt_sha256": "ee38965f4b0f46e8ccf533a96580342c99c6755834db47c644cc5698c88a2bab",
+        "pages": [
+          {
+            "name": "windows-flush",
+            "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_bytes": 36207,
+            "markdown_sha256": "116ffcd5a6feba3539c3f668a2c969aa2e38b8f3663a704a7654e7b2a7954e4c",
+            "capture_sha256": "d3799e9783d046affdaf78718e4e7963d6f773b04613936094a164fb80a51009"
+          }
+        ]
+      }
+    ]
+  },
+  "source_navigation": [
+    {
+      "commit": "034e694684a6fc639d2e597356020cc6514a772f",
+      "provider": "0.2.43",
+      "source_files": 2,
+      "dirty_patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "inventory_sha256": "48c7ac88e9ad7afeb202efa5065b4445d268f676d75313536d0e1fb03f18680a",
+      "native_response_sha256": "d9c65efd2847e165758641a4a12fff4349270a5c42206be48dacf988f5da057f",
+      "actual_searches": 1,
+      "receipt_sha256": "b0b10698d3f4bfb8604477811515953b6b6b8eadc3f849b90164e75858607c61"
+    },
+    {
+      "commit": "034e694684a6fc639d2e597356020cc6514a772f",
+      "provider": "0.2.43",
+      "source_files": 11,
+      "dirty_patch_sha256": "b2855b32da3cc1ebf6d96f5d1c76b95a6a7743a2806746f86a2687bcf48a1226",
+      "inventory_sha256": "3ce6c277a07db9c98605c6c0db0fac8459ae68aa0c517072d49822a13c994d2b",
+      "native_response_sha256": "6715c95814c0089ea284f0e114223479fdf02d0eccd718b84fcd296a5dc56b7b",
+      "actual_searches": 1,
+      "receipt_sha256": "22d841914e751e3952893ebb3ee79e0e9f3c352c9bbf0540d1508d80fefad257"
+    }
+  ],
+  "reuse_reference": {
+    "repository": "strmt7/FlitzZip",
+    "observed_local_commit": "11396b5123505a4a1959173e1db2d0858c10dd6d",
+    "reference": "src/gpu/hip_device.cpp:373",
+    "scope": "Existing pinned-host-buffer mechanism for future measured staging comparisons."
+  }
+}

@@ -1,4 +1,5 @@
 #include "extent_codec.hpp"
+#include "byte_planes.hpp"
 #include "repeat_bytes.hpp"
 #include <algorithm>
 #include <array>
@@ -158,13 +159,6 @@ void plain(unsigned kind,unsigned fill,Input input,Output output) {
     default: invalid("unknown native codec");
   }
 }
-void inverse_planes(Input transformed,Output output,unsigned width) {
-  const auto rows=output.size()/width;
-  for (std::size_t row=0;row<rows;++row)
-    for (unsigned p=0;p<width;++p) output[row*width+p]=transformed[p*rows+row];
-  std::copy(transformed.begin()+static_cast<std::ptrdiff_t>(rows*width),transformed.end(),
-      output.begin()+static_cast<std::ptrdiff_t>(rows*width));
-}
 } // namespace
 
 bool extent_codec_available(std::uint8_t kind) noexcept {
@@ -205,7 +199,7 @@ void decode_extent(std::uint8_t kind,std::uint8_t fill,Input input,Output output
         (inner==1 && input.size()!=4)) invalid("byte-plane inner stage is invalid");
     std::vector<std::byte> temporary(output.size());
     plain(inner,inner_fill,input.subspan(4),temporary);
-    inverse_planes(temporary,output,width);return;
+    restore_byte_planes(temporary,output,width);return;
   }
   const std::size_t header=4+width*6;
   if (byte(input,1) || byte(input,2) || input.size()<header) invalid("byte-plane context table is invalid");
@@ -231,6 +225,6 @@ void decode_extent(std::uint8_t kind,std::uint8_t fill,Input input,Output output
     else plain(s.kind,s.fill,source,out);
     cursor+=s.decoded;
   }
-  inverse_planes(temporary,output,width);
+  restore_byte_planes(temporary,output,width);
 }
 } // namespace flitzfs::detail

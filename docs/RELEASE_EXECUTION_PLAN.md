@@ -1,12 +1,12 @@
 # FlitzFS stable release execution plan
 
-Start with the populated Windows trace for grouped reads and collective
-analysis. Compare installed AMD service with CPU, then use the held-out
-complete-size comparison and fragment oracle to prioritize compression
-work. Measure writable attach on the same named workload. Persistent-media
-recovery retains its own acknowledgement and interruption evidence.
-[Reconciled evidence](evidence/windows-packed-shared-subsets-2026-11-26.json) ·
-[Implementation sequence](RELEASE_RECONCILIATION_2026-11-26.md#detailed-implementation-order)
+Compare complete protected size across ordinary and byte-plane cold
+encoding in mirrored and sealed placement. Use the populated Windows
+trace to prove useful automatic AMD grouped reads and collective analysis.
+Measure writable attach on the same named workload. Qualify the
+acknowledgement and interruption contract for each persistent provider.
+[Reconciled evidence](evidence/windows-native-byte-plane-2026-11-26.json) ·
+[Implementation sequence](RELEASE_RECONCILIATION_2026-11-26.md#implement-the-next-three-integrated-results)
 
 Use the [repository overview](REPOSITORY_OVERVIEW.md) for the product snapshot,
 the [current architecture](architecture/CURRENT.md) and [target architecture](architecture/TARGET.md)
@@ -18,8 +18,8 @@ preserves the earlier order and assessment.
 
 **Development qualification.** The code provides a writable WinFsp filesystem
 with a native indexed store, independent CPU recovery and protected compression
-dependencies. Current tests confirm a smaller assembled-prefix image on a
-controlled structured revision cohort and unchanged size on CPython. The next release risks
+dependencies. Current tests confirm a smaller protected byte-plane image
+on both AITDCC splits and equal occupied bytes on CPython. The next release risks
 are useful automatic AMD delivery, the amount of work startup does at scale,
 the value of stronger collective compression, and recovery on persistent media.
 Installed discovery and subsequent staging or submissions now consume current

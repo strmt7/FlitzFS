@@ -2,6 +2,7 @@
 #include "repeat_bytes.hpp"
 #include <algorithm>
 #include <array>
+#include <cstring>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -136,6 +137,47 @@ void cold_trial_outcomes() {
       decoder.decode(smaller.smaller->codec,smaller.smaller->payload,65536)==repeated_source,
       "successful cold trial did not complete with exact bytes");
 }
+void cold_byte_planes() {
+  constexpr StoreCompressionOptions planes{StoreCompressionMode::automatic,3,false,true};
+  if(!store_zstd_available()) {
+    rejects([&]{StoreCodecEncoder encoder(planes);},"byte planes admitted without their CPU decoder");
+    return;
+  }
+  constexpr std::size_t prefix=24,body=65535;
+  auto plain=noise(prefix+body);
+  std::memcpy(plain.data(),"FLTXPE01",8);
+  for(auto at=prefix;at+3<plain.size();at+=4) {
+    plain[at+2]=std::byte{4};
+    plain[at+3]=std::byte{7};
+  }
+  StoreCodecEncoder normal({StoreCompressionMode::automatic,3,true}),encoder(planes);
+  const auto control=normal.try_cold_encoding(plain,plain.size());
+  const auto result=encoder.try_cold_encoding(plain,plain.size());
+  require(control.smaller && result.evaluated && result.smaller &&
+      result.smaller->codec==kStoreZstdBytePlanes &&
+      result.smaller->payload.size()<control.smaller->payload.size(),"cold byte planes did not beat the ordinary trial");
+  StoreCodecDecoder decoder;
+  const auto logical=static_cast<std::uint32_t>(plain.size());
+  const auto& payload=result.smaller->payload;
+  require(decoder.decode(kStoreZstdBytePlanes,payload,logical,true)==plain,
+      "byte-plane decoding changed the prefix or incomplete final word");
+  rejects([&]{(void)decoder.decode(kStoreZstdBytePlanes,payload,logical);},
+      "byte planes decoded without required-feature admission");
+  for(std::size_t field=0;field<4;++field) {
+    auto changed=payload;
+    changed[field]^=std::byte{1};
+    rejects([&]{(void)decoder.decode(kStoreZstdBytePlanes,changed,logical,true);},
+        "byte planes accepted an unrecognized envelope");
+  }
+  auto trailing=payload;
+  trailing.push_back(std::byte{0});
+  rejects([&]{(void)decoder.decode(kStoreZstdBytePlanes,trailing,logical,true);},
+      "byte planes accepted trailing frame data");
+  plain.front()=std::byte{0};
+  const auto opaque=encoder.try_cold_encoding(plain,plain.size());
+  require(!opaque.smaller || opaque.smaller->codec!=kStoreZstdBytePlanes,
+      "byte planes transformed a non-extent record");
+}
 void malformed_and_budget() {
   StoreCodecDecoder decoder;
   for(auto codec:{4U,99U,255U})rejects([&]{(void)decoder.decode(codec,{},32);},"unknown codec admitted");
@@ -190,7 +232,7 @@ void malformed_and_budget() {
 }
 }
 int main(){
-  try{independent_lz4_record_oracle();repeated_copy_guards();policies_and_patterns();malformed_and_budget();cold_trial_outcomes();
+  try{independent_lz4_record_oracle();repeated_copy_guards();policies_and_patterns();malformed_and_budget();cold_trial_outcomes();cold_byte_planes();
     std::cout<<"PASS: "<<checks<<" native store compression checks; exact patterns, raw fallback, CPU frames and allocator caps.\n";return 0;
   }catch(const std::exception& e){std::cerr<<"store codec failure after "<<checks<<": "<<e.what()<<'\n';return 1;}
 }

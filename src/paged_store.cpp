@@ -26,6 +26,8 @@ constexpr std::uint64_t legacy_data_start=2*kStoreCommitUnit;
 constexpr std::size_t page_bytes=detail::kPagedStoreCheckpointWriteBytes/2,
     header_bytes=64,ref_bytes=112,record_header_bytes=128;
 constexpr std::uint32_t compact_metadata_bytes=1024;
+constexpr std::uint32_t zstd_byte_plane_feature=1U;
+constexpr std::size_t required_features_at=176;
 constexpr std::size_t inline_record_read_bytes=1024;
 constexpr std::size_t compact_ref_bytes=88;
 static_assert(kPagedScrubRecordWorkBytes==2ULL*(record_header_bytes+2ULL*kStoreMaxObjectBytes));
@@ -182,7 +184,7 @@ struct State {
   StoreIdentity id{};
   std::uint64_t generation=0,checkpoint=0,end=0;
   // Payload and metadata copies live in disjoint isolation units.
-  std::uint32_t unit=0,metadata_bytes=page_bytes;
+  std::uint32_t unit=0,metadata_bytes=page_bytes,required_features=0;
   Ref root;
   bool degraded_roots=false;
   mutable bool degraded_metadata=false;
@@ -203,17 +205,19 @@ struct CheckpointKey {
   StoreIdentity identity;
   Ref root;
   std::uint64_t generation,checkpoint,end;
-  std::uint32_t unit,metadata_bytes;
+  std::uint32_t unit,metadata_bytes,required_features;
   bool mirrored,shared_banks,compact_roots;
 
   explicit CheckpointKey(const State& s) noexcept:
       identity(s.id),root(s.root),generation(s.generation),checkpoint(s.checkpoint),end(s.end),
-      unit(s.unit),metadata_bytes(s.metadata_bytes),mirrored(s.mirrored),shared_banks(s.shared_banks),
+      unit(s.unit),metadata_bytes(s.metadata_bytes),required_features(s.required_features),
+      mirrored(s.mirrored),shared_banks(s.shared_banks),
       compact_roots(s.compact_roots) {}
   bool matches(const State& s) const noexcept {
     return identity==s.id && mirrored==s.mirrored && shared_banks==s.shared_banks &&
         compact_roots==s.compact_roots && generation==s.generation && checkpoint==s.checkpoint &&
-        end==s.end && unit==s.unit && metadata_bytes==s.metadata_bytes && root==s.root;
+        end==s.end && unit==s.unit && metadata_bytes==s.metadata_bytes &&
+        required_features==s.required_features && root==s.root;
   }
 };
 bool can_reuse_query(const State& s) noexcept {
@@ -428,7 +432,7 @@ void verify_record_header(const State& s,const Entry& e,std::span<const std::byt
   const auto codec=get32(h,12);
   if(!magic(h,data_magic) || get32(h,8)!=1 || get64(h,16)!=e.id || get64(h,24)!=e.generation ||
       get32(h,32)!=e.logical || get32(h,36)!=e.stored || field<16>(h,40)!=s.id ||
-      !detail::store_codec_framing(codec,e.logical,e.stored) ||
+      !detail::store_codec_framing(codec,e.logical,e.stored,(s.required_features&zstd_byte_plane_feature)!=0) ||
       !zero(std::span<const std::byte>(h).subspan(codec==detail::kStoreRaw?56:88,codec==detail::kStoreRaw?40:8)) ||
       field<32>(h,96)!=e.digest)fail("object identity/codec/framing");
 }
@@ -488,7 +492,7 @@ Bytes decode_record(const State& s,std::uint32_t logical,std::span<const std::by
     std::span<const std::byte> payload) {
   const auto codec=get32(h,12);
   if(codec==detail::kStoreRaw)return Bytes(payload.begin(),payload.end());
-  auto decoded=s.decoder->decode(codec,payload,logical);
+  auto decoded=s.decoder->decode(codec,payload,logical,(s.required_features&zstd_byte_plane_feature)!=0);
   if(detail::record_digest(decoded)!=field<32>(h,56))fail("object decoded digest");
   return decoded;
 }
@@ -700,6 +704,7 @@ std::array<std::byte,page_bytes> root_bytes(const State& s,std::uint64_t generat
   put32(b,12,static_cast<std::uint32_t>(generation%2));put64(b,16,generation);
   put64(b,24,s.checkpoint);put64(b,32,s.end);copy(b,40,s.id);put32(b,56,s.unit);
   put32(b,60,s.metadata_bytes);encode_ref(b,64,s.root);
+  put32(b,required_features_at,s.required_features);
   copy(b,digest_at,detail::record_digest(std::span<const std::byte>(b).first(digest_at)));return b;
 }
 detail::FoldedCheckpoint folded_checkpoint(const State& state) {
@@ -729,6 +734,7 @@ State load(std::shared_ptr<StoreByteIo> image,PagedStoreLimits limits,LookupPage
     s.shared_banks=capability==3;
     s.checkpoint=get64(b,24);s.end=get64(b,32);s.unit=get32(b,56);
     s.metadata_bytes=get32(b,60);s.root=decode_ref(b,64);
+    s.required_features=get32(b,required_features_at);
     const bool legacy=magic(b,root_magic);
     if(probing && (legacy || s.compact_roots) && s.root_slot_bytes()!=offset)return {};
     if((!legacy && !s.compact_roots) || (capability!=1 && !s.mirrored) || get32(b,12)!=slot ||
@@ -740,7 +746,9 @@ State load(std::shared_ptr<StoreByteIo> image,PagedStoreLimits limits,LookupPage
         (s.metadata_bytes!=page_bytes && (s.mirrored || s.metadata_bytes!=compact_metadata_bytes)) ||
         s.end>extent || s.end>limits.maximum_physical_bytes ||
         s.end<s.data_start()+2*s.unit || s.end%(s.shared_banks?2ULL*s.unit:s.unit) ||
-        !zero(std::span<const std::byte>(b).subspan(176,digest_at-176)))
+        (s.required_features&~zstd_byte_plane_feature) ||
+        (s.required_features && (!s.mirrored || !store_zstd_available())) ||
+        !zero(std::span<const std::byte>(b).subspan(required_features_at+4,digest_at-required_features_at-4)))
       fail("unsupported/intact root semantics");
     admit_ref(s,s.root,true);return s;
   };
@@ -762,7 +770,8 @@ State load(std::shared_ptr<StoreByteIo> image,PagedStoreLimits limits,LookupPage
   if(other) {
     if(other->id!=s.id || other->unit!=s.unit || other->metadata_bytes!=s.metadata_bytes ||
         other->mirrored!=s.mirrored || other->shared_banks!=s.shared_banks ||
-        other->compact_roots!=s.compact_roots || s.generation<=other->generation ||
+        other->compact_roots!=s.compact_roots || other->required_features!=s.required_features ||
+        s.generation<=other->generation ||
         s.generation-other->generation!=1)fail("conflicting root identities/generations");
     paired=other->checkpoint==s.checkpoint && other->root==s.root && other->end==s.end;
     if(s.generation!=s.checkpoint && !paired)fail("conflicting intact root pair");
@@ -1430,7 +1439,7 @@ struct Rebuild {
     pad_index(next,multiply(pages,next.metadata_bytes),folded);
   }
 };
-PreparedObject prepare_rebuilt_object(const State& target,const Entry& source_entry,ObjectRecord source_record,
+PreparedObject prepare_rebuilt_object(State& target,const Entry& source_entry,ObjectRecord source_record,
     const Bytes& decoded,detail::StoreCodecEncoder& encoder,bool reencode,bool* cold_evaluated=nullptr) {
   auto encoded=[&] {
     if(reencode)return encoder.encode(decoded);
@@ -1442,6 +1451,10 @@ PreparedObject prepare_rebuilt_object(const State& target,const Entry& source_en
     return detail::EncodedStoreObject{get32(source_record.header,12),std::move(source_record.payload),
         field<32>(source_record.header,56)};
   }();
+  if(encoded.codec==detail::kStoreZstdBytePlanes) {
+    if(!target.mirrored)fail("byte-plane records need mirrored storage");
+    target.required_features|=zstd_byte_plane_feature;
+  }
   PreparedObject record;
   auto& entry=record.entry;
   entry={source_entry.id,source_entry.generation,0,static_cast<std::uint32_t>(decoded.size()),
@@ -1643,7 +1656,8 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
     return mode==PagedRewriteMode::reconcile_foreground && original.image==current.image &&
         current.id==original.id && current.unit==original.unit && current.metadata_bytes==original.metadata_bytes &&
         current.mirrored==original.mirrored && current.shared_banks==original.shared_banks &&
-        current.compact_roots==original.compact_roots && current.end>=original.end &&
+        current.compact_roots==original.compact_roots &&
+        current.required_features==original.required_features && current.end>=original.end &&
         current.generation>original.generation;
   }
   void reset(PagedRewritePhase next) noexcept {

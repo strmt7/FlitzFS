@@ -7,6 +7,18 @@
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
   "current_release_review": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
+  "native_cold_byte_planes": {
+    "source_parent": "034e694684a6fc639d2e597356020cc6514a772f",
+    "tested_source_tree": "efc3262d90784f626a69c14352a27ebb1c8d7a2a",
+    "evidence": "docs/evidence/windows-native-byte-plane-2026-11-26.json",
+    "explicit_opt_in": true,
+    "required_paged_feature_bit": 0,
+    "aitdcc_i_p_protected_bytes_saved": 1327104,
+    "aitdcc_a_h_protected_bytes_saved": 647168,
+    "cpython_protected_bytes_saved": 0,
+    "independent_cpu_readback": true,
+    "release_qualified": false
+  },
   "cold_parser_selection": {
     "source_parent": "74ffc0807b95d21a9d835c8e81baf8514413b8a2",
     "tested_source_tree": "3f7860f1c44f47719b0f6ccb7736a9d4ffd6988b",

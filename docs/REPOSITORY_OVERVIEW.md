@@ -1,15 +1,14 @@
 # FlitzFS repository overview
 
-The 26 November review follows the writable Windows path from callbacks to
-CPU recovery and ranks the next work by measured impact. The latest
-mixed-group change packed 24 retained short files while preserving the
-unrelated extent. It saved 8 KiB in the matched compacted images. A public
-CPython control tied across the two binaries. The latest bounded Radeon
-write fixture stored independently verified bytes, with CPU taking over
-under engine pressure. Comparative mounted AMD service, writable attach
-at scale and supported-media recovery remain open.
+The 26 November review follows the writable Windows path from callbacks
+to CPU recovery. Experimental cold byte planes saved 1,327,104 protected
+bytes on AITDCC I–P and 647,168 on A–H. CPython tied at the same geometry.
+The latest bounded Radeon write fixture stored independently verified
+bytes, with CPU taking over under engine pressure. Comparative mounted
+AMD service, writable attach at scale and supported-media recovery
+remain open.
 [Current review and implementation order](RELEASE_RECONCILIATION_2026-11-26.md) ·
-[Subset packing](evidence/windows-packed-shared-subsets-2026-11-26.json) ·
+[Native byte planes](evidence/windows-native-byte-plane-2026-11-26.json) ·
 [Live Radeon write](evidence/windows-amd-write-grant-growth-2026-11-26.json)
 
 FlitzFS is in development qualification. The writable Windows helper uses

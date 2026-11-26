@@ -249,20 +249,22 @@ before enabling default format activation.
 ## 4. Optimize complete size with bounded random access
 
 Use the protected byte cost to choose the representation for each restart
-extent. The implemented assembled-prefix comparison is a candidate in
-this process. Keep the focus on reproducible savings beyond a single
-synthetic family. Charge its extra CPU work before expanding the shortlist.
+extent. Assembled prefixes and experimental byte planes supply separate
+candidates. Compare ordinary and transformed encodings at the same
+mirrored and sealed geometries before expanding the shortlist. The
+selection needs independent CPU restart reads and net settled savings
+after required dependencies, selectors, retirement and parity.
 [Current candidate flow](CURRENT.md#11-compression-over-an-assembled-base)
 
 ```mermaid
 flowchart LR
     Scan["Versioned extent samples"] --> Rank["Sparse nominations and local yield model"]
     Rank --> Budget["Fund one finite work grant"]
-    Budget --> CP["Independent encoding, existing and assembled bases"]
+    Budget --> CP["Independent ordinary or transformed encoding and verified shared bases"]
     Budget --> GPU["Qualified AMD match or transform advice"]
     CP --> Verify["Check exact CPU reconstruction and binding"]
     GPU --> Verify
-    Verify --> Price["Compare protected bytes, cold ranges and required rewrites"]
+    Verify --> Price["Compare mirrored and sealed bytes, cold ranges and required rewrites"]
     Price -->|Eligible gain| Commit["Publish independent restart frames and immutable dependencies"]
     Price -->|No gain or stale| Keep["Keep selected image"]
     Commit --> Learn["Record observed savings and interference"]
