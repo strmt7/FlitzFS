@@ -726,6 +726,34 @@ flowchart TD
 [Implementation](../../src/windows/native_amd_write_policy.cpp) ·
 [Current evidence](../evidence/windows-foreground-write-layout-2026-11-25.json)
 
+### Foreground completion and retirement
+
+The deferred writer owns an unnamed event and the admitted source.
+It waits on that event, the exact child supervisor or the paid deadline.
+A parked preparation can retire on supervisor exit even without a new
+write. Callbacks that require ordered CPU progress signal the writer
+and wait for publication. The response and worker retirement have
+distinct lifetimes.
+
+```mermaid
+flowchart TD
+    Work["Write, control activity or deadline"] --> Wake["Owned writer wakes"]
+    Exit["Exact supervisor exits"] --> Wake
+    Wake --> Active{"Request still admitted?"}
+    Active -->|GPU reply| Check["Independently verify returned bytes"]
+    Check --> Fresh["Request fresh budget after validation"]
+    Fresh -->|Admitted| Write["Commit one checked representation"]
+    Active -->|CPU demand or expiry| CPU["Commit from the original CPU source"]
+    Fresh -->|Refused| CPU
+    CPU --> Reply["Publish outcome and send one response"]
+    Write --> Reply
+    Reply --> Retire["Reap exact owned transport within its allowance"]
+    Wake -->|Unused preparation ended| Retire
+```
+
+[Owned writer](../../src/windows/native_deferred_write.cpp) ·
+[Event-driven write evidence](../evidence/windows-deferred-write-events-2026-11-26.json)
+
 ### Prepared grouped read-ahead
 
 The controller can prepare a demanded read when pending group work has

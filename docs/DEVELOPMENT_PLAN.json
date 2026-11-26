@@ -4,21 +4,22 @@
   "forward_work_rule": "Use current_release_sequence for integration order, and execution_programme and the implementation plan for package dependencies and exits. Historical checkpoints describe completed or partial evidence.",
   "current_release_sequence": {
     "current_reconciliation": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
+    "latest_deferred_write_events": "docs/evidence/windows-deferred-write-events-2026-11-26.json",
     "latest_optional_hip_stream_priority": "docs/evidence/windows-hip-optional-streams-2026-11-26.json",
     "latest_private_seal_credit": "docs/evidence/windows-private-seal-credit-2026-11-26.json",
     "ordered_implementation": "docs/RELEASE_RECONCILIATION_2026-11-26.md#detailed-implementation-order",
     "latest_independent_seal_workspace": "docs/evidence/windows-independent-seal-workspace-2026-11-26.json",
     "tested_independent_seal_workspace_tree": "790912f42c849b0a84a62e2c610c97d2a5206b4f",
     "immediate_work": [
-      "Measure ordinary Windows AMD reads and writes with the populated client witness, including retained startup cost and CPU continuity",
-      "Measure parity publication phases and decide where direct sealing can remove workspace I/O",
-      "Preserve writable admission invariants while bounding normal attach work",
-      "Compare the held-out complete protected size and the real Windows access envelope"
+      "Measure useful ordinary Windows AMD roles with the populated client witness, including readiness, consumed results, verification, fresh telemetry, retirement and CPU continuity",
+      "Measure protected bytes and write cost across both priced seal placements and held-out named trees before changing staging or codecs",
+      "Measure writable attach after named-tree churn and validate an incremental admission proof against the full audit",
+      "Use the three integrated results to select the next package changes, then extend the supported provider, failure and comparison matrix"
     ],
     "latest_subset_reference_refinement": "docs/evidence/windows-subset-reference-refinement-2026-11-26.json",
     "latest_foreground_query_reuse": "docs/evidence/windows-foreground-query-reuse-2026-11-25.json",
     "latest_owned_range_packing": "docs/evidence/windows-owned-packed-reclaim-2026-11-25.json",
-    "latest_reviewed_parent": "d9b20094a3ecaeaf351f0794e201160ad8b7e9c1",
+    "latest_reviewed_parent": "51458d20b4bdcea117cd15dcf58ab29bdc41c586",
     "tested_owned_range_packing_tree": "7c64361419c436a15baf98592133d63beb8b1527",
     "remaining_engineering_person_weeks": [59, 127],
     "effort_confidence": "low",
@@ -28,8 +29,8 @@
       {"id": "C", "work": "Checked attach, scale and settled allocation", "exit_requires": ["A"], "person_weeks": [9, 20]},
       {"id": "D", "work": "Held-out complete protected size and CPU range access", "exit_requires": ["A"], "person_weeks": [12, 25]},
       {"id": "E", "work": "Adaptive, bounded, persistent advice and maintenance", "exit_requires": ["C", "D"], "person_weeks": [5, 11]},
-      {"id": "F", "work": "Windows lifecycle, dependency setup and compatible upgrade", "exit_requires": ["A", "C", "G"], "person_weeks": [8, 17]},
       {"id": "G", "work": "Provider durability and independent repair", "exit_requires": ["A", "C"], "person_weeks": [8, 17]},
+      {"id": "F", "work": "Windows lifecycle, dependency setup and compatible upgrade", "exit_requires": ["A", "C", "G"], "person_weeks": [8, 17]},
       {"id": "H", "work": "Comparative Windows evidence and exact-candidate soak", "exit_requires": ["B", "C", "D", "E", "F", "G"], "person_weeks": [4, 9]}
     ],
     "latest_packed_reclaim": "docs/evidence/windows-packed-reclaim-2026-11-25.json",

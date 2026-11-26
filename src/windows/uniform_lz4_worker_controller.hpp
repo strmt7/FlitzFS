@@ -56,6 +56,9 @@ class UniformLz4WorkerController final {
   unsigned consecutive_failures() const noexcept{return policy_.consecutive_failures();}
  private:
   friend class ControlledNativeUniformWrite;
+  void* supervisor_wait_handle() const noexcept {
+    return session_?session_->supervisor_wait_handle():nullptr;
+  }
   UniformLz4WorkerStart begin_owned(PreparedUniformLz4&&,const std::filesystem::path&,
       const std::vector<std::wstring>&,bool consent,bool worthwhile,
       const GpuHealthEvidence&,std::uint64_t now_ms,const GpuLz4ResidentCost&,

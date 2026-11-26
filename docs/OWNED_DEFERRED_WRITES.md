@@ -540,6 +540,27 @@ their own admission modes. Default installed activation still requires a
 matched client comparison establishing benefit.
 [Prepared write evidence](evidence/windows-prepared-foreground-write-2026-11-25.json)
 
+### Event-driven write service
+
+The owned write thread waits for its private activity event, the exact
+exchange supervisor, or the remaining service deadline. Direct CPU
+completion, new budget evidence and shutdown wake the activity event.
+The owner removes the signalled supervisor from the wait after validating
+the reply. Publication still needs an observation taken after CPU
+validation. A callback waiting for forced CPU completion waits only for
+the native publication state. GPU retirement follows that result.
+An OS wait failure disables the optional service and completes its
+still-owned request from the original CPU source.
+
+An unused preparation also watches its own supervisor. A worker that
+fails before readiness releases its slot when retirement is confirmed.
+The fixture uses a 12-second job with a child that rejects preparation.
+It verifies early retirement, CPU reads of both writes and no new GPU
+budget request. The prepared acceptance, pressure refusal and shutdown
+cases remain covered by the same SDK harness.
+[Windows result and source evidence](evidence/windows-deferred-write-events-2026-11-26.json) ·
+[Windows event and thread waits](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitformultipleobjects)
+
 ## Driver-independent control target
 
 The owned service now builds as flitzfs_native_write_control. It consumes the

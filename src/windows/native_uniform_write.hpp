@@ -94,6 +94,7 @@ class ControlledNativeUniformWrite final {
   std::uint32_t process_id() const noexcept{return controller_.process_id();}
  private:
   friend class NativeDeferredWriteService;
+  void* supervisor_wait_handle() const noexcept{return controller_.supervisor_wait_handle();}
   struct SourceGeometry {std::uint64_t position=0,accepted=0;};
   NativeWindowsIoOutcome bind_source(const NativeFileHandle&,std::span<const std::byte>,UINT64,
       bool append,bool constrained,const NativeAutomaticMetadata&,NativeFileInfoAllocation,

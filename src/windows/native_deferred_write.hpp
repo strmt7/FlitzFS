@@ -55,7 +55,7 @@ struct NativeDeferredWriteStats {
   std::uint64_t queued=0,completed=0,cpu_forced=0,worker_submitted=0,advised=0,response_attempts=0;
   bool native_pending=false,worker_busy=false,stopping=false,thread_exited=false;
   bool retirement_confirmed=true,disabled=false;
-  std::uint64_t preparations_started=0,prepared_writes_submitted=0;
+  std::uint64_t preparations_started=0,prepared_writes_submitted=0,unused_preparations_retired=0;
   bool preparation_ready=false;
 };
 struct NativeGpuBudgetTask {
@@ -100,6 +100,8 @@ class NativeDeferredWriteService final {
   void request_budget_locked(std::uint64_t after_ms,bool completion) noexcept;
   void disable_gpu_budget_locked() noexcept;
   void signal_activity_locked() noexcept;
+  void notify_worker_locked() noexcept;
+  void wait_for_work_locked(std::unique_lock<std::mutex>&,HANDLE supervisor,DWORD timeout);
   struct Request {
     FSP_FILE_SYSTEM* filesystem=nullptr;UINT64 hint=0;
     NativeFileHandle handle;std::vector<std::byte> bytes;
@@ -121,7 +123,8 @@ class NativeDeferredWriteService final {
   std::atomic<bool> budget_work_{false};
   std::uint64_t budget_sequence_=0,last_budget_probe_=0;
   bool budget_for_completion_=false,budget_disabled_=false;
-  std::condition_variable changed_;
+  const std::unique_ptr<void,decltype(&CloseHandle)> work_event_;
+  std::condition_variable published_;
   std::unique_ptr<Request> request_;
   std::optional<NativeUniformWritePreparation> preparation_;
   bool prepare_requested_=false,preparation_starting_=false;

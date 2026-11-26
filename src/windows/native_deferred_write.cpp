@@ -2,7 +2,6 @@
 #include "hip_route_binding.hpp"
 #include "flitzfs/gpu_lz4_verify.hpp"
 #include <algorithm>
-#include <chrono>
 #include <cstring>
 #include <limits>
 #include <stdexcept>
@@ -24,7 +23,9 @@ bool NativeDeferredWriteOptions::matches_controller_route() const noexcept {
 }
 NativeDeferredWriteService::NativeDeferredWriteService(NativeFileSession& session,std::mutex& control,
     std::atomic<bool>& offline,NativeDeferredWriteOptions options,NativeFileInfoAllocation info_policy)
-    :session_(session),control_(control),offline_(offline),options_(std::move(options)),info_policy_(info_policy){
+    :session_(session),control_(control),offline_(offline),options_(std::move(options)),info_policy_(info_policy),
+     work_event_(CreateEventW(nullptr,FALSE,FALSE,nullptr),CloseHandle){
+  if(!work_event_)throw std::runtime_error("deferred write work event unavailable");
   if(!native_windows_write_limit(info_policy_))
     throw std::invalid_argument("deferred write allocation policy is unavailable");
   if(options_.expected!=WorkerExecution::hip && options_.expected!=WorkerExecution::cpu_semantics)
@@ -41,7 +42,7 @@ NativeDeferredWriteService::NativeDeferredWriteService(NativeFileSession& sessio
   thread_=std::thread([this]{run();});
 }
 NativeDeferredWriteService::~NativeDeferredWriteService(){
-  {std::lock_guard guard(control_);stats_.stopping=true;force_cpu_=true;changed_.notify_all();}
+  {std::lock_guard guard(control_);stats_.stopping=true;force_cpu_=true;notify_worker_locked();}
   if(thread_.joinable())thread_.join();
 }
 GpuLz4ResidentCost NativeDeferredWriteService::charge_request(GpuLz4ResidentCost cost) noexcept {
@@ -125,7 +126,7 @@ bool NativeDeferredWriteService::enqueue_locked(FSP_FILE_SYSTEM* fs,const Native
   request->offset=offset;request->append=append;request->constrained=constrained;
   request_=std::move(request);completion_.reset();force_cpu_=false;
   stats_.native_pending=true;stats_.worker_busy=true;increment(stats_.queued);
-  changed_.notify_all();return true;
+  notify_worker_locked();return true;
 }
 bool NativeDeferredWriteService::preparation_ready_locked(std::uint64_t now) const noexcept {
   return preparation_ && now<preparation_->expires_ms &&
@@ -149,16 +150,16 @@ void NativeDeferredWriteService::note_cpu_write_locked(std::size_t bytes,UINT64 
   const auto now=GetTickCount64();
   if(check_gpu_memory_budget(health_.memory,health_.memory.luid,health_.memory.node_mask,now,0)==GpuGateCode::stale_budget)
     request_budget_locked(health_.memory.captured_ms,false);
-  changed_.notify_all();
+  notify_worker_locked();
 }
 void NativeDeferredWriteService::drain_locked(std::unique_lock<std::mutex>& lock){
   if(!stats_.native_pending)return;
-  force_cpu_=true;changed_.notify_all();
-  changed_.wait(lock,[this]{return !stats_.native_pending;});
+  force_cpu_=true;notify_worker_locked();
+  published_.wait(lock,[this]{return !stats_.native_pending;});
 }
 void NativeDeferredWriteService::publish_locked(const GpuHealthEvidence& health){
   if(controller_collects_budget())return; // One authority for a configured controller.
-  health_=health;changed_.notify_all();
+  health_=health;notify_worker_locked();
 }
 void NativeDeferredWriteService::disable_gpu_budget_locked() noexcept {
   budget_task_.reset();
@@ -166,10 +167,29 @@ void NativeDeferredWriteService::disable_gpu_budget_locked() noexcept {
   budget_disabled_=true;
   prepare_requested_=false;
   if(stats_.native_pending)force_cpu_=true;
-  changed_.notify_all();
+  notify_worker_locked();
 }
 void NativeDeferredWriteService::signal_activity_locked() noexcept {
   if(activity_event_ && !SetEvent(activity_event_))disable_gpu_budget_locked();
+}
+void NativeDeferredWriteService::notify_worker_locked() noexcept {
+  // The single consumer checks the guarded state again upon waking. An
+  // auto-reset event preserves a notification sent just before the wait.
+  (void)SetEvent(work_event_.get());
+}
+void NativeDeferredWriteService::wait_for_work_locked(std::unique_lock<std::mutex>& guard,
+    HANDLE supervisor,DWORD timeout) {
+  const HANDLE events[]={work_event_.get(),supervisor};
+  const DWORD count=supervisor?2:1;
+  guard.unlock();
+  const auto waited=WaitForMultipleObjects(count,events,FALSE,timeout);
+  guard.lock();
+  if(waited==WAIT_TIMEOUT || waited<WAIT_OBJECT_0+count)return;
+  // The wait failed before native publication. Drain the owned source on
+  // CPU and stop this optional service without fencing the volume.
+  stats_.disabled=true;
+  stats_.stopping=true;
+  disable_gpu_budget_locked();
 }
 void NativeDeferredWriteService::request_budget_locked(std::uint64_t after_ms,bool completion) noexcept {
   if(!controller_collects_budget() || !activity_event_ || budget_disabled_ || stats_.stopping ||
@@ -204,15 +224,15 @@ bool NativeDeferredWriteService::accept_budget_locked(const NativeGpuBudgetTask&
   if(gate!=GpuGateCode::stale_budget && observed.captured_ms>pending.after_ms) {
     ++health_.sequence;
     health_.memory=observed;
-    changed_.notify_all();
+    notify_worker_locked();
     return true; // A valid pressure observation can still select CPU.
   }
   if(budget_for_completion_)force_cpu_=true;
-  changed_.notify_all();
+  notify_worker_locked();
   return false;
 }
 NativeDeferredStop NativeDeferredWriteService::stop(){
-  std::unique_lock guard(control_);stats_.stopping=true;force_cpu_=true;changed_.notify_all();
+  std::unique_lock guard(control_);stats_.stopping=true;force_cpu_=true;notify_worker_locked();
   if(!thread_.joinable())return stats_.retirement_confirmed?NativeDeferredStop::quiescent:
       NativeDeferredStop::retirement_unconfirmed;
   if(WaitForSingleObject(thread_.native_handle(),0)!=WAIT_OBJECT_0)return NativeDeferredStop::running;
@@ -233,7 +253,8 @@ bool NativeDeferredWriteService::retire_unused_preparation_locked(std::unique_lo
   }
   const auto retired=child.retirement_confirmed();
   guard.lock();
-  if(!retired) {
+  if(retired)increment(stats_.unused_preparations_retired);
+  else {
     stats_.retirement_confirmed=false;
     stats_.disabled=true;
     stats_.stopping=true;
@@ -294,8 +315,10 @@ void NativeDeferredWriteService::wait_for_write_locked(std::unique_lock<std::mut
       }
       continue;
     }
-    if(preparation_)changed_.wait_for(guard,std::chrono::milliseconds(preparation_->expires_ms-now));
-    else changed_.wait(guard);
+    if(preparation_)
+      wait_for_work_locked(guard,preparation_->child.supervisor_wait_handle(),
+          static_cast<DWORD>(preparation_->expires_ms-now));
+    else wait_for_work_locked(guard,nullptr,INFINITE);
   }
 }
 void NativeDeferredWriteService::run() noexcept{
@@ -372,7 +395,12 @@ void NativeDeferredWriteService::run() noexcept{
         }
         if(force){increment(stats_.cpu_forced);}
         if(auto finished=operation.finish()){result=*finished;completed=true;}
-        else changed_.wait_for(guard,std::chrono::milliseconds(5));
+        else if(const auto elapsed=GetTickCount64()-started;elapsed<options_.deadline_ms) {
+          // A completed supervisor remains signalled. After validation, only
+          // a change in CPU demand or a new budget can advance publication.
+          const auto supervisor=operation.awaiting_fresh_observation()?nullptr:operation.supervisor_wait_handle();
+          wait_for_work_locked(guard,supervisor,static_cast<DWORD>(options_.deadline_ms-elapsed));
+        }
       }
       if(budget_for_completion_) {
         budget_task_.reset();
@@ -390,7 +418,7 @@ void NativeDeferredWriteService::run() noexcept{
       response.Hint=request_->hint;response.IoStatus.Status=static_cast<UINT32>(result.outcome.status);
       response.IoStatus.Information=result.transferred;response.Rsp.Write.FileInfo=result.info;
       auto* filesystem=request_->filesystem;
-      stats_.native_pending=false;increment(stats_.completed);changed_.notify_all();
+      stats_.native_pending=false;increment(stats_.completed);published_.notify_all();
       guard.unlock();
       options_.response_sink(filesystem,response);
       guard.lock();increment(stats_.response_attempts);
@@ -400,14 +428,17 @@ void NativeDeferredWriteService::run() noexcept{
       guard.unlock();
       bool retired=unused_retired && operation.try_retire();
       const auto allowance=valid_process_budget(options_.budget)?std::uint64_t(options_.budget.timeout_ms)+4000:4000;
-      while(unused_retired && !retired && GetTickCount64()-started<allowance){
-        (void)operation.request_cancel();
-        std::unique_lock wait(control_);
-        changed_.wait_for(wait,std::chrono::milliseconds(5));wait.unlock();
-        retired=operation.try_retire();
+      if(unused_retired && !retired) {
+        const auto supervisor=operation.supervisor_wait_handle();
+        const auto elapsed=GetTickCount64()-started;
+        if(supervisor && elapsed<allowance) {
+          (void)operation.request_cancel();
+          (void)WaitForSingleObject(supervisor,static_cast<DWORD>(allowance-elapsed));
+          retired=operation.try_retire();
+        }
       }
       guard.lock();stats_.retirement_confirmed=retired;stats_.worker_busy=false;
-      request_.reset();changed_.notify_all();
+      request_.reset();
       signal_activity_locked();
       if(!retired){stats_.disabled=true;break;} // no retry, restart or discovery
       if(stats_.stopping)break;
@@ -423,7 +454,7 @@ void NativeDeferredWriteService::run() noexcept{
         filesystem=request_->filesystem;increment(stats_.completed);
       }
       offline_.store(true,std::memory_order_release);stats_.disabled=true;
-      stats_.native_pending=false;stats_.retirement_confirmed=false;changed_.notify_all();
+      stats_.native_pending=false;stats_.retirement_confirmed=false;published_.notify_all();
       signal_activity_locked();
     }
     if(filesystem){
@@ -431,6 +462,6 @@ void NativeDeferredWriteService::run() noexcept{
       std::lock_guard guard(control_);increment(stats_.response_attempts);
     }
   }
-  std::lock_guard guard(control_);stats_.thread_exited=true;changed_.notify_all();
+  std::lock_guard guard(control_);stats_.thread_exited=true;
 }
 }

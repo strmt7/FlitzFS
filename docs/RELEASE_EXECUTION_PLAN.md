@@ -1,11 +1,10 @@
 # FlitzFS stable release execution plan
 
-Begin with AMD stream capability negotiation and the populated Windows
-trace. Separate phase costs for settled parity placement, then bound
-writable attach and measure complete protected size across held-out
-workloads. Persistent-media recovery retains its own acknowledgement
-and interruption evidence.
-[Reconciled evidence](evidence/windows-independent-seal-workspace-2026-11-26.json) ·
+Use the populated Windows trace to compare installed AMD service with
+CPU. Attribute settled placement costs and measure writable attach and
+complete protected size across held-out workloads. Persistent-media
+recovery retains its own acknowledgement and interruption evidence.
+[Reconciled evidence](evidence/windows-deferred-write-events-2026-11-26.json) ·
 [Implementation sequence](RELEASE_RECONCILIATION_2026-11-26.md#detailed-implementation-order)
 
 Use the [repository overview](REPOSITORY_OVERVIEW.md) for the product snapshot,
@@ -26,7 +25,7 @@ Installed discovery and subsequent staging or submissions now consume current
 engine capacity for the exact adapter. Advance that path through the ordinary
 Windows operation witness before extending more codec or worker variants.
 [Retained AMD evidence](evidence/windows-retained-amd-admission-2026-11-25.json) ·
-[Latest implementation order](RELEASE_RECONCILIATION_2026-11-25.md#ordered-implementation-and-exits)
+[Latest implementation order](RELEASE_RECONCILIATION_2026-11-26.md#detailed-implementation-order)
 
 | Subsystem | Demonstrated | Work that still determines release |
 | --- | --- | --- |

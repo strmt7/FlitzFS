@@ -501,7 +501,11 @@ representative input shape, workload, device memory and recovery generation.
 Keep a ready worker inside the owning mount while measured demand and
 live headroom justify its retained buffers. The controller decides
 readiness from request cadence, queued work, service cost and observed
-pressure. It expires the lease when those conditions change. AMD's
+pressure. It expires the lease when those conditions change. Keep waits
+event-driven and measure worker readiness, expiry, idle residency, useful
+requests and budget-refresh cost as separate stages. A new completion
+observation must follow CPU validation, including when both fall within a
+single coarse clock tick. AMD's
 current HIP documentation describes stream priorities as disabled.
 Enforce background limits through bounded submissions, cooperative
 yielding and cancellation of pending work. Measure prepared streams before

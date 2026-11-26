@@ -6,10 +6,12 @@ ordinary AMD compatibility, settled allocation, writable attach and
 collective compression. In a matched near-full fixture, separate private
 scratch let the image settle at 4.25 MiB from 6 MiB with exact CPU
 readback. The same slot size passed the locked-workspace SDK callback
-test. AMD priority negotiation, comparative mounted service and
-supported-media recovery remain open.
+test. The HIP worker now negotiates optional priority separately, and
+the foreground owner wakes when its worker exits. Comparative mounted
+AMD service, writable attach at scale and supported-media recovery
+remain open.
 [Current review and implementation order](RELEASE_RECONCILIATION_2026-11-26.md) ·
-[Latest source and test evidence](evidence/windows-independent-seal-workspace-2026-11-26.json)
+[Latest source and test evidence](evidence/windows-deferred-write-events-2026-11-26.json)
 
 FlitzFS is in development qualification. The writable Windows helper uses
 WinFsp, a protected indexed store and an independent CPU reader. Signed

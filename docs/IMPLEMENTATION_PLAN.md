@@ -1,11 +1,12 @@
 # FlitzFS detailed implementation plan
 
-**Reconciled on 26 November 2026.** Enable ordinary AMD operation across
-qualified runtime capabilities, then evaluate settled parity placement
-and bounded writable attach with the populated Windows client trace.
+**Reconciled on 26 November 2026.** Use the populated Windows client trace
+to evaluate useful installed AMD service, settled parity placement and
+bounded writable attach. Optional HIP priority, independent memory
+sealing credit and event-driven write waits now have scoped evidence.
 The E01–E13 contracts below define the individual release exits.
 [Current assessment](RELEASE_RECONCILIATION_2026-11-26.md) ·
-[Source, tests and research](evidence/windows-independent-seal-workspace-2026-11-26.json) ·
+[Source, tests and research](evidence/windows-deferred-write-events-2026-11-26.json) ·
 [Ordered implementation steps](RELEASE_RECONCILIATION_2026-11-26.md#detailed-implementation-order)
 
 The [current architecture](architecture/CURRENT.md) shows the implementation.

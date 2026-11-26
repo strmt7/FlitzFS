@@ -676,16 +676,18 @@ void completion_budget_refusal(const std::filesystem::path& worker) {
       !h.adapter->gpu_budget_task() && !h.adapter->requires_offline(),
       "unavailable completion budget retained ownership");
 }
-enum class PreparedWriteCase {stop,submit,pressure};
+enum class PreparedWriteCase {stop,submit,pressure,refused};
 void prepared_only_write(const std::filesystem::path& worker,PreparedWriteCase action) {
   const bool submit=action==PreparedWriteCase::submit;
+  const bool refused=action==PreparedWriteCase::refused;
   if(!gpu_lz4_cpu_verification_available())return;
   auto settings=options(worker,1);
   auto bytes=native_lz4_fixture::source();
   const auto extent=bytes;
   bytes.insert(bytes.end(),extent.begin(),extent.end());
   const auto length=static_cast<ULONG>(bytes.size());
-  settings.binding.cpu_fixture_arguments={L"uniform-native2"};
+  settings.binding.cpu_fixture_arguments={refused?L"uniform-refuse-preparation":L"uniform-native2"};
+  if(refused)settings.budget.timeout_ms=12000;
   settings.cost.sweep_timing=GpuLz4SweepTiming{10'000'000,5'000'000};
   settings.deadline_ms=1200;
   settings.prepared_only=true;
@@ -716,10 +718,19 @@ void prepared_only_write(const std::filesystem::path& worker,PreparedWriteCase a
   const auto demand=h.adapter->gpu_budget_task();
   check(demand && !h.adapter->deferred_write_stats().queued,"First CPU write did not fund preparation");
   const auto prepared_at=refresh(*demand);
-  eventually([&]{return h.adapter->deferred_write_stats().preparation_ready;},
-      "Matching completed CPU write did not prepare a worker");
-  check(h.adapter->deferred_write_stats().preparations_started==1 && !WorkerExchangeSession::available(),
-      "Prepared transport did not keep one exact owned worker");
+  if(refused) {
+    eventually([&]{return h.adapter->deferred_write_stats().unused_preparations_retired==1;},
+        "Failed preparation occupied its slot until the job deadline");
+    check(WorkerExchangeSession::available() && !h.adapter->deferred_write_stats().preparation_ready,
+        "Failed preparation did not retire");
+    check(write(length,length)==STATUS_SUCCESS && !h.adapter->deferred_write_stats().queued &&
+        !h.adapter->gpu_budget_task(),"Preparation failure delayed CPU or restarted discovery");
+  }else{
+    eventually([&]{return h.adapter->deferred_write_stats().preparation_ready;},
+        "Matching completed CPU write did not prepare a worker");
+    check(h.adapter->deferred_write_stats().preparations_started==1 && !WorkerExchangeSession::available(),
+        "Prepared transport did not keep one exact owned worker");
+  }
   if(submit) {
     // Keep the worker ready while obtaining an independent, current budget.
     eventually([&]{return GetTickCount64()-prepared_at>kGpuMaxBudgetAgeMs;},
@@ -761,9 +772,10 @@ void prepared_only_write(const std::filesystem::path& worker,PreparedWriteCase a
   const auto snapshot=h.adapter->snapshot();
   snapshot.verify_all();
   check(snapshot.read("target",0,length)==bytes &&
-      (!submit || snapshot.read("target",length,length)==bytes),"CPU data changed in the prepared write fixture");
+      (!(submit || refused) || snapshot.read("target",length,length)==bytes),
+      "CPU data changed in the prepared write fixture");
   std::cout<<"deferred_prepared_write prepared=1 submitted="<<submit
-      <<" pressure="<<(action==PreparedWriteCase::pressure)<<" verified=1 retired=1\n";
+      <<" pressure="<<(action==PreparedWriteCase::pressure)<<" refused="<<refused<<" verified=1 retired=1\n";
 }
 void run(const std::filesystem::path& worker,unsigned kind,bool indexed){
   Harness h(options(worker,kind),indexed);const auto target=h.create(L"\\target");
@@ -1947,7 +1959,8 @@ int wmain(int argc,wchar_t** argv){try{
   refused_foreground_offer();
   budget_demand(worker);
   partial_measured_window_uses_cpu(worker);
-  for(const auto action:{PreparedWriteCase::stop,PreparedWriteCase::submit,PreparedWriteCase::pressure})
+  for(const auto action:{PreparedWriteCase::stop,PreparedWriteCase::submit,PreparedWriteCase::pressure,
+      PreparedWriteCase::refused})
     prepared_only_write(worker,action);
   mismatched_measured_layout_uses_cpu(worker);
   completion_budget_refusal(worker);

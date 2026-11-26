@@ -250,6 +250,10 @@ int repeated_child(std::wstring_view mode,std::wstring_view token,std::uint32_t 
   return mode==L"requests-fail-after"?17:0;
 }
 int child(std::wstring_view mode,std::wstring_view token,std::uint32_t prepared_timeout=0) {
+  if(mode==L"uniform-refuse-preparation" && prepared_timeout) {
+    check_job();
+    return 17;
+  }
   if(mode.starts_with(L"uniform-")){
     check_job();auto limits=uniform_fixture_limits();
     if(mode.starts_with(L"uniform-native")){

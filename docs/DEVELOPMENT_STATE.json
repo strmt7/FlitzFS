@@ -7,6 +7,17 @@
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
   "current_release_review": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
+  "deferred_write_events": {
+    "source_parent": "51458d20b4bdcea117cd15dcf58ab29bdc41c586",
+    "tested_source_tree": "52ed7824bad94c425f33846dd250c304a35ddb93",
+    "evidence": "docs/evidence/windows-deferred-write-events-2026-11-26.json",
+    "windows_tests": 238,
+    "asan_focused_tests_including_preflight": 4,
+    "setup_refusal_retired_before_deadline": true,
+    "independently_verified_cpu_continuity": true,
+    "ordinary_mounted_speed_qualified": false,
+    "release_qualified": false
+  },
   "private_seal_credit": {
     "source_parent": "e9c7be98aec5f40ce986eb1db74421784a4eda57",
     "tested_source_tree": "2d945c08aa94f2ea45b825b799a9007913d80f7f",
