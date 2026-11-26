@@ -8,6 +8,7 @@
 #include "store_read_scope.hpp"
 #include <algorithm>
 #include <bit>
+#include <cstring>
 #include <functional>
 #include <limits>
 #include <stdexcept>
@@ -643,7 +644,7 @@ void verify_decoded_run(const State& s,std::span<Record> records,std::span<const
     const VerifiedObjectVisitor* consume,EntryOf entry_of={}) {
   for(const auto& record:records) {
     const auto& entry=std::invoke(entry_of,record);
-    const auto frame=frames.first(record_header_bytes+entry.stored);
+    const std::span<const std::byte> frame=frames.first(record_header_bytes+entry.stored);
     const auto header=frame.first<record_header_bytes>();
     Bytes decoded;
     if(consume || get32(header,12)!=detail::kStoreRaw) {

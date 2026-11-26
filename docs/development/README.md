@@ -6,6 +6,7 @@ affected component. [End-user documentation](../README.md) is separate.
 | Work | Canonical guide |
 | --- | --- |
 | Set up and build | [Building and testing](building.md), [host independence](../HOST_INDEPENDENCE.md) |
+| Continue in the cloud | [Cloud handoff and portable checks](cloud.md) |
 | Choose checks and interpret results | [Validation](../validation/README.md), [validation details](../VALIDATION.md) |
 | Understand architecture | [Current diagrams](../architecture/CURRENT.md), [source review](../architecture/REVIEW.md), [revised architecture](../architecture/TARGET.md) |
 | Plan implementation | [Current repository overview](../REPOSITORY_OVERVIEW.md), [detailed implementation plan](../IMPLEMENTATION_PLAN.md), [execution ledger](../DEVELOPMENT_PLAN.json), [current state](../DEVELOPMENT_STATE.json) |

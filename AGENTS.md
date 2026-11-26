@@ -9,6 +9,11 @@ disposable environment for destructive fault injection and unqualified driver
 provisioning. Historical test locations and fixture names do not control
 where new work can run.
 
+When the owner chooses cloud development, use the selected environment's
+checkout and the [cloud handoff](docs/development/cloud.md). Bind evidence
+to the actual environment and use the corresponding Windows or hardware
+lane for platform qualification.
+
 Use disposable Windows guests for driver, mount and recovery correctness
 checks. Run performance and compression benchmarks on the real Windows host.
 
@@ -109,7 +114,8 @@ docs/DEVELOPMENT_PLAN.json indexes the numbered steps and their completion depen
 read the relevant step/component, not every historical checkpoint on every turn.
 Do not mistake a completed foundation/fixture for a closed product requirement.
 Prioritize complete native Windows paths, scalable native metadata, automatic
-reclamation and useful ordinary GPU/collective operation. Keep the full goal active.
+reclamation and useful ordinary GPU/collective operation. Honor the
+owner's pause and resume decisions.
 
 1. Inspect Git history/status and preserve existing changes before editing.
    Prefer an appropriate existing checkout; use a separate local checkout if

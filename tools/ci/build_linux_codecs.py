@@ -14,24 +14,34 @@ PINS={"zstd":"916e8e70b33317d469a41ee837e47317807815c8",
 def run(args,seconds=60):
     return subprocess.run(args,check=True,timeout=seconds,capture_output=False)
 
-def source_clean(source,pin):
-    head=subprocess.run(["git","-C",str(source),"rev-parse","HEAD"],check=True,
+def revision(source):
+    return subprocess.run(["git","-C",str(source),"rev-parse","HEAD"],check=True,
         capture_output=True,text=True,timeout=5).stdout.strip()
+
+def source_clean(source,pin):
+    head=revision(source)
     if head!=pin:
         raise RuntimeError("native codec source identity differs")
     subprocess.run(["git","-C",str(source),"diff","--exit-code","HEAD","--"],
         check=True,timeout=5,capture_output=True)
     return head
 
+def cap_resource(kind,budget):
+    for limit in resource.getrlimit(kind):
+        if limit!=resource.RLIM_INFINITY:
+            budget=min(budget,limit)
+    resource.setrlimit(kind,(budget,budget))
+
 def main():
     if sys.platform!="linux":
         raise RuntimeError("native source codec build uses Linux-specific tooling")
-    resource.setrlimit(resource.RLIMIT_AS,(4*1024**3,4*1024**3))
-    resource.setrlimit(resource.RLIMIT_CPU,(300,300))
-    resource.setrlimit(resource.RLIMIT_CORE,(0,0))
-    resource.setrlimit(resource.RLIMIT_FSIZE,(512*1024**2,512*1024**2))
+    cap_resource(resource.RLIMIT_AS,4*1024**3)
+    cap_resource(resource.RLIMIT_CPU,300)
+    cap_resource(resource.RLIMIT_CORE,0)
+    cap_resource(resource.RLIMIT_FSIZE,512*1024**2)
     parser=argparse.ArgumentParser();parser.add_argument("--sanitize",action="store_true");args=parser.parse_args()
     root=Path(__file__).resolve().parents[2];output=root/".ci-deps/linux-codecs"
+    commit=revision(root)
     if shutil.disk_usage(root).free<3*1024**3:
         raise RuntimeError("native codec build requires 3 GiB free headroom")
     output.mkdir(exist_ok=False)
@@ -67,9 +77,10 @@ def main():
                 if "]==]" in path or "\n" in path:
                     raise RuntimeError("invalid cache path")
                 file.write("set(FLITZFS_"+variable+"_"+suffix+" [==["+path+"]==] CACHE "+typ+" \"\" FORCE)\n")
-    with Path(os.environ["GITHUB_ENV"]).open("a",encoding="utf-8") as file:
-        file.write("FLITZFS_CODEC_CACHE="+str(cache)+"\n")
-    report=dict(experimental=True,commit=os.environ["GITHUB_SHA"],source_commits=PINS,
+    if github_env:=os.environ.get("GITHUB_ENV"):
+        with Path(github_env).open("a",encoding="utf-8") as file:
+            file.write("FLITZFS_CODEC_CACHE="+str(cache)+"\n")
+    report=dict(experimental=True,commit=commit,source_commits=PINS,
         libraries=libraries,sanitized=args.sanitize,cache=str(cache),parallel_workers=2)
     with (output/"build-receipt.json").open("x",encoding="utf-8") as file:
         json.dump(report,file,indent=2);file.write("\n")
