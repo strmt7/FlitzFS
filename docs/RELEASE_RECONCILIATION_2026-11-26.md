@@ -10,7 +10,17 @@ E01–E13 plan retains the package contracts and the release plan retains
 the gates.
 [Source review and implementation order](architecture/RELEASE_REVIEW_2026-11-26.md) ·
 [Implementation packages](IMPLEMENTATION_PLAN.md#3-execution-order-and-dependencies) ·
-[Release gates](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
+[Release gates](RELEASE_EXECUTION_PLAN.md#current-gate-ledger) ·
+[Release blocker research](research/release-blockers-2026-11-26.md)
+
+The maintenance pass can now price a wider short-file pack when the
+members fit the funded block and share corroborating fingerprints.
+After normal compaction, the six-file fixture occupied 344,064 bytes
+including the selector, down from 360,448. Its sampled range reads
+increased from 138,680 to 152,719 backing bytes. The named Khronos
+and two CPython controls matched their previous settled size, trial
+counts and maintenance I/O. Every file read back exactly on CPU.
+[Proof and control results](evidence/windows-short-family-packing-2026-11-26.json)
 
 Writable reopen now retains a bounded set of packed inode pages for
 the name walk. The held-out 16,384-file fixture with permuted names

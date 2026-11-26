@@ -1,0 +1,1164 @@
+{
+  "schema": 1,
+  "date_utc": "2026-11-26",
+  "source": {
+    "parent": "30be66335ad34667eb81d3b695806037f53c88da",
+    "base_tree": "0551cdb61781dace5f1d753f383cbbc9f8f3e163",
+    "tree": "688f4d132fabb1fe83e6a4d3d377964b38f7cc34",
+    "elements": [
+      {
+        "path": "src/native_maintenance.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "908c4d85310e745e815271b267d61dc2e0cc26b4",
+        "bytes": 86839
+      },
+      {
+        "path": "tests/test_native_group_maintenance.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "869d5796dcadad799863abb66638c0b2a51cdb40",
+        "bytes": 275547
+      }
+    ]
+  },
+  "measurement_scope": "Matched landings of the Windows native maintenance tests in owned memory volumes with 4 KiB failure units. Tests measure allocation and backing work, with independent CPU readback. No application latency or physical power-cut result is inferred.",
+  "binaries": {
+    "baseline_parent_with_same_profile_harness_sha256": "a51fffa453efb38722f6846d78b6a04b9647b82f0c8de3e9968797a493a40f57",
+    "candidate_release_profile_executable_sha256": "dbee8414f5b28bfbf9e703a3bf93d109114b6c797494c7e8e3b39f40d31cf4e6"
+  },
+  "mechanism": "Price families with common offset-independent sketches inside the current byte and member grants. Pay for an expanded trial only if the additional stored payload reaches one paged-store page. Keep the pair fallback and ordinary packing pass. The existing transaction compares protected compacted size and checks all member versions.",
+  "measurements": {
+    "shifted_short_family": {
+      "mode": "--profile-short-pack-family",
+      "before": {
+        "log_sha256": "36cac489590a052992b2a5a818696196f6ba682a1910079a2a3e20acb9e4d4f1",
+        "supervisor_receipt_sha256": "d16c305c3010f8e28a347eeab109b4196341ca783b2e0a3214682f26f0079b82",
+        "process_tree_retired": true,
+        "peak_job_bytes": 8630272,
+        "grouping": {
+          "files": 6,
+          "before_compacted": 262144,
+          "after_compacted": 229376,
+          "input_bytes": 56991,
+          "selector_bytes": 131072,
+          "ingested_image_bytes": 450560,
+          "maintained_image_bytes": 540672,
+          "before_range_read_bytes": 110890,
+          "after_range_read_bytes": 138745,
+          "maintenance_read_bytes": 386995,
+          "maintenance_read_calls": 193,
+          "sampled_extents": 8,
+          "reused_features": 0,
+          "maintenance_write_bytes": 106496,
+          "packed_groups": 2,
+          "attempts": 2,
+          "yield_observations": 1,
+          "fragment_nominations": 0,
+          "members": 5,
+          "cpu_exact": 1,
+          "retained_snapshot_exact": 1,
+          "idle_io": 0
+        },
+        "after_normal_reconciliation": {
+          "settled": 229376,
+          "selector": 131072,
+          "source_read_bytes": 383553,
+          "target_write_bytes": 237568,
+          "range_read_bytes": 138680,
+          "selected": 1,
+          "cpu_exact": 1
+        },
+        "final_protected_layout": {
+          "mirror_bytes": 360448,
+          "settled_bytes": 360448,
+          "members": 5,
+          "bases": 2,
+          "selected": 0,
+          "declined_before_staging": 1,
+          "cpu_exact": 1
+        }
+      },
+      "after": {
+        "log_sha256": "2848b932923c281a8c86a86eb2770157fafe1578ef3eb01dc4c3a13742a94e6a",
+        "supervisor_receipt_sha256": "9bd24c8b903e7d75b4e639fb11eb85c1be7a4be01a1ccfd1f457fa189dbe90b1",
+        "process_tree_retired": true,
+        "peak_job_bytes": 8400896,
+        "grouping": {
+          "files": 6,
+          "before_compacted": 262144,
+          "after_compacted": 212992,
+          "input_bytes": 56991,
+          "selector_bytes": 131072,
+          "ingested_image_bytes": 450560,
+          "maintained_image_bytes": 548864,
+          "before_range_read_bytes": 110890,
+          "after_range_read_bytes": 152794,
+          "maintenance_read_bytes": 408798,
+          "maintenance_read_calls": 204,
+          "sampled_extents": 8,
+          "reused_features": 0,
+          "maintenance_write_bytes": 114688,
+          "packed_groups": 2,
+          "attempts": 2,
+          "yield_observations": 1,
+          "fragment_nominations": 0,
+          "members": 6,
+          "cpu_exact": 1,
+          "retained_snapshot_exact": 1,
+          "idle_io": 0
+        },
+        "after_normal_reconciliation": {
+          "settled": 212992,
+          "selector": 131072,
+          "source_read_bytes": 353178,
+          "target_write_bytes": 221184,
+          "range_read_bytes": 152719,
+          "selected": 1,
+          "cpu_exact": 1
+        },
+        "final_protected_layout": {
+          "mirror_bytes": 344064,
+          "settled_bytes": 344064,
+          "members": 6,
+          "bases": 2,
+          "selected": 0,
+          "declined_before_staging": 1,
+          "cpu_exact": 1
+        }
+      }
+    },
+    "cpython_named_tree": {
+      "mode": "--profile-named-packed-seal",
+      "fixture": {
+        "name": "cpython-inline-named-holdout.flitz-fixture",
+        "bytes": 594540,
+        "sha256": "4660e8c0a9487722e0660f82f10dafd3ecbce03a602b84516750cba51f5e2694"
+      },
+      "before": {
+        "log_sha256": "5e7f7c6f5b521d0b1182b1ba4bec349e15fcace315d8f184fc6e8bbbad2c35d4",
+        "supervisor_receipt_sha256": "7f69c2e11672595c8e5814130a584469d34fa23e928a69dbce3c72f16ab5da0c",
+        "process_tree_retired": true,
+        "peak_job_bytes": 217518080,
+        "grouping": {
+          "files": 374,
+          "before_compacted": 909312,
+          "after_compacted": 909312,
+          "input_bytes": 574237,
+          "selector_bytes": 131072,
+          "ingested_image_bytes": 43089920,
+          "maintained_image_bytes": 43089920,
+          "before_range_read_bytes": 19225581,
+          "after_range_read_bytes": 19225581,
+          "maintenance_read_bytes": 59981417,
+          "maintenance_read_calls": 24023,
+          "sampled_extents": 379,
+          "reused_features": 0,
+          "maintenance_write_bytes": 0,
+          "packed_groups": 0,
+          "attempts": 187,
+          "yield_observations": 67,
+          "fragment_nominations": 3,
+          "members": 0,
+          "cpu_exact": 1,
+          "retained_snapshot_exact": 1,
+          "idle_io": 0
+        },
+        "after_normal_reconciliation": {
+          "settled": 876544,
+          "selector": 131072,
+          "source_read_bytes": 2838354,
+          "target_write_bytes": 884736,
+          "range_read_bytes": 19214286,
+          "selected": 1,
+          "cpu_exact": 1
+        },
+        "final_protected_layout": {
+          "mirror_bytes": 1007616,
+          "settled_bytes": 733184,
+          "base_bytes": 585728,
+          "tail_bytes": 16384,
+          "selector_bytes": 131072,
+          "workspace_write_bytes": 512000,
+          "backing_write_bytes": 733696,
+          "sampled_range_read_bytes": 22220000,
+          "members": 0,
+          "bases": 0,
+          "selected": 1,
+          "cpu_exact": 1
+        }
+      },
+      "after": {
+        "log_sha256": "4a44346db336e5b51297c12d2258955457326fae99d87675740598cb3ab31a7f",
+        "supervisor_receipt_sha256": "b18caccdfbbaed267e5367592b9ef289b45c110e55485fd1a216d615a56e04f3",
+        "process_tree_retired": true,
+        "peak_job_bytes": 217554944,
+        "grouping": {
+          "files": 374,
+          "before_compacted": 909312,
+          "after_compacted": 909312,
+          "input_bytes": 574237,
+          "selector_bytes": 131072,
+          "ingested_image_bytes": 43089920,
+          "maintained_image_bytes": 43089920,
+          "before_range_read_bytes": 19225581,
+          "after_range_read_bytes": 19225581,
+          "maintenance_read_bytes": 59981417,
+          "maintenance_read_calls": 24023,
+          "sampled_extents": 379,
+          "reused_features": 0,
+          "maintenance_write_bytes": 0,
+          "packed_groups": 0,
+          "attempts": 187,
+          "yield_observations": 67,
+          "fragment_nominations": 3,
+          "members": 0,
+          "cpu_exact": 1,
+          "retained_snapshot_exact": 1,
+          "idle_io": 0
+        },
+        "after_normal_reconciliation": {
+          "settled": 876544,
+          "selector": 131072,
+          "source_read_bytes": 2838354,
+          "target_write_bytes": 884736,
+          "range_read_bytes": 19214286,
+          "selected": 1,
+          "cpu_exact": 1
+        },
+        "final_protected_layout": {
+          "mirror_bytes": 1007616,
+          "settled_bytes": 733184,
+          "base_bytes": 585728,
+          "tail_bytes": 16384,
+          "selector_bytes": 131072,
+          "workspace_write_bytes": 512000,
+          "backing_write_bytes": 733696,
+          "sampled_range_read_bytes": 22220000,
+          "members": 0,
+          "bases": 0,
+          "selected": 1,
+          "cpu_exact": 1
+        }
+      }
+    },
+    "khronos_held_out_assets": {
+      "mode": "--profile-named-packed-seal",
+      "fixture": {
+        "name": "holdout.flstree",
+        "bytes": 1858799,
+        "sha256": "ccc693c69e142cbd28c98575cb1c1c61d1bcd52a450fe1e681cfa5b196f98f10"
+      },
+      "before": {
+        "log_sha256": "9396173e5ae6e793520c57dd17447950f6d057c94b27d2fe5f7741da58cfb789",
+        "supervisor_receipt_sha256": "1c0ea713d8965ddd8ba1a2cc8eaf28026e655116dbc8d4e4f90026e2ab26cb9a",
+        "process_tree_retired": true,
+        "peak_job_bytes": 24985600,
+        "grouping": {
+          "files": 15,
+          "before_compacted": 2138112,
+          "after_compacted": 1163264,
+          "input_bytes": 1857848,
+          "selector_bytes": 131072,
+          "ingested_image_bytes": 2834432,
+          "maintained_image_bytes": 4268032,
+          "before_range_read_bytes": 699364,
+          "after_range_read_bytes": 782211,
+          "maintenance_read_bytes": 6951775,
+          "maintenance_read_calls": 2402,
+          "sampled_extents": 52,
+          "reused_features": 0,
+          "maintenance_write_bytes": 1556480,
+          "packed_groups": 1,
+          "attempts": 16,
+          "yield_observations": 14,
+          "fragment_nominations": 102,
+          "members": 33,
+          "cpu_exact": 1,
+          "retained_snapshot_exact": 1,
+          "idle_io": 0
+        },
+        "after_normal_reconciliation": {
+          "settled": 991232,
+          "selector": 131072,
+          "source_read_bytes": 2806296,
+          "target_write_bytes": 999424,
+          "range_read_bytes": 728665,
+          "selected": 1,
+          "cpu_exact": 1
+        },
+        "final_protected_layout": {
+          "mirror_bytes": 1122304,
+          "settled_bytes": 798720,
+          "base_bytes": 651264,
+          "tail_bytes": 16384,
+          "selector_bytes": 131072,
+          "workspace_write_bytes": 569344,
+          "backing_write_bytes": 799232,
+          "sampled_range_read_bytes": 739424,
+          "members": 33,
+          "bases": 13,
+          "selected": 1,
+          "cpu_exact": 1
+        }
+      },
+      "after": {
+        "log_sha256": "1a54be95ad7e7d53a8f1c51b0957c11f6827b11070546dc515516d526242606d",
+        "supervisor_receipt_sha256": "df484e64811bc3a3a7d5820824ea8a372b1b27a02e66a42917d68a288528b9c2",
+        "process_tree_retired": true,
+        "peak_job_bytes": 24973312,
+        "grouping": {
+          "files": 15,
+          "before_compacted": 2138112,
+          "after_compacted": 1163264,
+          "input_bytes": 1857848,
+          "selector_bytes": 131072,
+          "ingested_image_bytes": 2834432,
+          "maintained_image_bytes": 4268032,
+          "before_range_read_bytes": 699364,
+          "after_range_read_bytes": 782211,
+          "maintenance_read_bytes": 6951775,
+          "maintenance_read_calls": 2402,
+          "sampled_extents": 52,
+          "reused_features": 0,
+          "maintenance_write_bytes": 1556480,
+          "packed_groups": 1,
+          "attempts": 16,
+          "yield_observations": 14,
+          "fragment_nominations": 102,
+          "members": 33,
+          "cpu_exact": 1,
+          "retained_snapshot_exact": 1,
+          "idle_io": 0
+        },
+        "after_normal_reconciliation": {
+          "settled": 991232,
+          "selector": 131072,
+          "source_read_bytes": 2806296,
+          "target_write_bytes": 999424,
+          "range_read_bytes": 728665,
+          "selected": 1,
+          "cpu_exact": 1
+        },
+        "final_protected_layout": {
+          "mirror_bytes": 1122304,
+          "settled_bytes": 798720,
+          "base_bytes": 651264,
+          "tail_bytes": 16384,
+          "selector_bytes": 131072,
+          "workspace_write_bytes": 569344,
+          "backing_write_bytes": 799232,
+          "sampled_range_read_bytes": 739424,
+          "members": 33,
+          "bases": 13,
+          "selected": 1,
+          "cpu_exact": 1
+        }
+      }
+    },
+    "cpython_version_families": {
+      "mode": "--profile-named-packed-seal",
+      "fixture": {
+        "name": "cpython-named-packing-control-9342.flstree",
+        "bytes": 2511545,
+        "sha256": "8053fa5990a11060eb3e9cec6d80cd6432bd132ac99df9f0c3689e3c2bc89c39"
+      },
+      "before": {
+        "log_sha256": "3b76d83cda3a1782e2e37e52b282d75ff1a5944bfd8e5206e6eb66c4f493996d",
+        "supervisor_receipt_sha256": "7fad371c965ca43b9bec335a434ee6f5d333e2443a1d3a7fcb221d50d38a9ef9",
+        "process_tree_retired": true,
+        "peak_job_bytes": 25251840,
+        "grouping": {
+          "files": 24,
+          "before_compacted": 1540096,
+          "after_compacted": 622592,
+          "input_bytes": 2510681,
+          "selector_bytes": 131072,
+          "ingested_image_bytes": 2932736,
+          "maintained_image_bytes": 3768320,
+          "before_range_read_bytes": 1049584,
+          "after_range_read_bytes": 1078044,
+          "maintenance_read_bytes": 5770158,
+          "maintenance_read_calls": 2295,
+          "sampled_extents": 63,
+          "reused_features": 0,
+          "maintenance_write_bytes": 942080,
+          "packed_groups": 1,
+          "attempts": 15,
+          "yield_observations": 14,
+          "fragment_nominations": 35,
+          "members": 48,
+          "cpu_exact": 1,
+          "retained_snapshot_exact": 1,
+          "idle_io": 0
+        },
+        "after_normal_reconciliation": {
+          "settled": 573440,
+          "selector": 131072,
+          "source_read_bytes": 1476428,
+          "target_write_bytes": 581632,
+          "range_read_bytes": 1018344,
+          "selected": 1,
+          "cpu_exact": 1
+        },
+        "final_protected_layout": {
+          "mirror_bytes": 704512,
+          "settled_bytes": 557056,
+          "base_bytes": 409600,
+          "tail_bytes": 16384,
+          "selector_bytes": 131072,
+          "workspace_write_bytes": 360448,
+          "backing_write_bytes": 557568,
+          "sampled_range_read_bytes": 1116704,
+          "members": 48,
+          "bases": 13,
+          "selected": 1,
+          "cpu_exact": 1
+        }
+      },
+      "after": {
+        "log_sha256": "de409a4cd024a33eeb37078808e7e79dd5952c66e0ba47c87e21f869b91679e0",
+        "supervisor_receipt_sha256": "d6944fba532564dc346ac7203fb0239fc0c6390f9d271c52796ab1cc9239ab80",
+        "process_tree_retired": true,
+        "peak_job_bytes": 25161728,
+        "grouping": {
+          "files": 24,
+          "before_compacted": 1540096,
+          "after_compacted": 622592,
+          "input_bytes": 2510681,
+          "selector_bytes": 131072,
+          "ingested_image_bytes": 2932736,
+          "maintained_image_bytes": 3768320,
+          "before_range_read_bytes": 1049584,
+          "after_range_read_bytes": 1078044,
+          "maintenance_read_bytes": 5770158,
+          "maintenance_read_calls": 2295,
+          "sampled_extents": 63,
+          "reused_features": 0,
+          "maintenance_write_bytes": 942080,
+          "packed_groups": 1,
+          "attempts": 15,
+          "yield_observations": 14,
+          "fragment_nominations": 35,
+          "members": 48,
+          "cpu_exact": 1,
+          "retained_snapshot_exact": 1,
+          "idle_io": 0
+        },
+        "after_normal_reconciliation": {
+          "settled": 573440,
+          "selector": 131072,
+          "source_read_bytes": 1476428,
+          "target_write_bytes": 581632,
+          "range_read_bytes": 1018344,
+          "selected": 1,
+          "cpu_exact": 1
+        },
+        "final_protected_layout": {
+          "mirror_bytes": 704512,
+          "settled_bytes": 557056,
+          "base_bytes": 409600,
+          "tail_bytes": 16384,
+          "selector_bytes": 131072,
+          "workspace_write_bytes": 360448,
+          "backing_write_bytes": 557568,
+          "sampled_range_read_bytes": 1116704,
+          "members": 48,
+          "bases": 13,
+          "selected": 1,
+          "cpu_exact": 1
+        }
+      }
+    }
+  },
+  "rejected_exploratory_candidate": {
+    "log_sha256": "c985f76534c47515e7b55d2cb3fafbb266932fb380d5aeb3ab49e1197f2125f9",
+    "supervisor_receipt_sha256": "a22bda853a2ef8909ed48e79390b3301208f02c881be38c78348b6b7e36e759f",
+    "process_tree_retired": true,
+    "peak_job_bytes": 217563136,
+    "named_cpython_trials": 240,
+    "named_cpython_maintenance_read_bytes": 69840297,
+    "named_cpython_after_compacted_bytes": 909312,
+    "reason": "The added trials increased background I/O without a size benefit on the named control."
+  },
+  "baseline_regression": {
+    "expected_exit": 1,
+    "message": "short family packing missed the fitting member",
+    "log_sha256": "2b5174d13102285b1b9a45d775e56ff215b268940bfc6d8f06c788009cf0c6e6",
+    "supervisor_receipt_sha256": "152fdef4fa252670473568bd0538b11838e0319778d31e7b1aaefda8c3cd891f"
+  },
+  "tests": {
+    "release": {
+      "log_sha256": "4042bf807568e929e91475697de99505a97f36e053524f4885b8599a1c9171cd",
+      "supervisor_receipt_sha256": "f693271b5bea4f8077fbd4300032f69351c4912f206d7d3dcb55fd7ba68aa502",
+      "process_tree_retired": true,
+      "peak_job_bytes": 279220224,
+      "passed": 28
+    },
+    "raw": {
+      "log_sha256": "a09188aae07d1e6651b0fbf41c93bf714afef9e1059dbe446d2290099abf2b3d",
+      "supervisor_receipt_sha256": "9c1acc2a6113f4991a618d32fdbdc2456f3e42b3f200b9ad9c17789ab16b5dc0",
+      "process_tree_retired": true,
+      "peak_job_bytes": 279826432,
+      "passed": 27
+    },
+    "asan": {
+      "log_sha256": "1619cff447e360c899c54a7ff47bb7328a334c1d3a5d54b6b500a4e6cac2ba9f",
+      "supervisor_receipt_sha256": "1322ef87c47d302f3574e47843cbf26edac4f8e64f93cee6b6c9c0dbba7d1112",
+      "process_tree_retired": true,
+      "peak_job_bytes": 898289664,
+      "passed": 29,
+      "matching_runtime_preflight_passed": true
+    }
+  },
+  "navigation": {
+    "source": "30be66335ad34667eb81d3b695806037f53c88da",
+    "provider_version": "0.2.43",
+    "actual_searches": 1,
+    "response_sha256": "9f490465f013657c6ad4c10baf1cde0c7669e9f9b70b4104153985bd541d79ae",
+    "receipt_sha256": "5a0b2245854ca8eb3d4862e4097b1819eeb2cf9a58584e375e2dcf3b066a590d"
+  },
+  "research": {
+    "robots_checked": true,
+    "external_llm": false,
+    "sources": [
+      {
+        "receipt_sha256": "ccdad96b02abf2ed0908300c524b11e244bb1788481dd434d53df739e219224e",
+        "provider_version": "0.9.5+flitzzip.portable2",
+        "pages": [
+          {
+            "name": "bounded-layout-search",
+            "url": "https://arxiv.org/abs/2611.22847",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "6b3dcaa92b38f6b1ed2544bedb81ab695a43567bb10eb88edcec791bd7d1eac2",
+            "capture_sha256": "ec64c0d26d2f591e1841200d85cc12d84b2de4b62b827a325e6010463c0c1d24",
+            "failure_category": "",
+            "error": ""
+          },
+          {
+            "name": "group-locality",
+            "url": "https://www.usenix.org/conference/fast26/presentation/huang",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "dbc538fff3a57a4c36ef94c8a47e1737270a83880e2fb6957160b9b46f285256",
+            "capture_sha256": "04fa828102edfb08a151f938a20769e919bb0b6d86fb41abc7f0ade224f19662",
+            "failure_category": "",
+            "error": ""
+          },
+          {
+            "name": "zstd-framing",
+            "url": "https://github.com/meta/zstd/blob/dev/doc/zstd_compression_format.md",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "fe7ac1efcf3d35db70f0f4d5a875a4c926e64d3233267d37daa27aa4976f6df2",
+            "capture_sha256": "ccb375484be1e86c6bb99b51a81de16b86f1f3b92610939b196ad0837c8b7b04",
+            "failure_category": "",
+            "error": ""
+          }
+        ]
+      },
+      {
+        "receipt_sha256": "46836b739d430381ce86025ced217876d842c235bc14785e3def78875f6e28d7",
+        "provider_version": "0.9.5+flitzzip.portable2",
+        "pages": [
+          {
+            "name": "rocm-release",
+            "url": "https://rocm.docs.amd.com/en/latest/about/transition-guide-TheRock.html",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "e5eb16cd3f9989003184c6dd95bc5fe841c4ce8743ccf9303df21d229e9d1e08",
+            "capture_sha256": "d58c96cd5403bac0215af78febce281827cbcf06f83fc57b0a25c994f9e1e203",
+            "failure_category": "",
+            "error": ""
+          },
+          {
+            "name": "rocm-windows",
+            "url": "https://rocm.docs.amd.com/en/latest/install/rocm.html?fam=radeon&gfx=gfx1201&gpu=amd-radeon-ai-pro-r9700&i=pip&os=windows&w=compute&windows-ver=11",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "ba629c801ae7b106f96dbf5478f99c41d6bd273d2c94be3c2adf94fde3a2fd31",
+            "capture_sha256": "e6713d9368024406d62f38f931e890574bb2b6c7c7ef61d61ebf57475480924d",
+            "failure_category": "",
+            "error": ""
+          },
+          {
+            "name": "hip-version",
+            "url": "https://rocm.docs.amd.com/en/latest/release/changelog.html",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "36769551399cf8873ee8763be605f402aca8a671b17108495975d520fef5fccf",
+            "capture_sha256": "084edc209da87f51b6466b2afe1f267efe2b791b9ae2b44710a56b01d93ee84b",
+            "failure_category": "",
+            "error": ""
+          },
+          {
+            "name": "radeon-driver-report",
+            "url": "https://github.com/ROCm/rocm-systems/issues/12535",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "4760d06c04d9db5982d453335c850bbb13920f3e6ae8b02549548c669f1956c0",
+            "capture_sha256": "b2c6a60b3c238d4e63d81d1316e270b595a80f14a388efe38d44c81ed00bd238",
+            "failure_category": "",
+            "error": ""
+          },
+          {
+            "name": "winfsp-cached-write-fix",
+            "url": "https://github.com/winfsp/winfsp/pull/677",
+            "success": false,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": false,
+            "markdown_sha256": "89848dd800d33887970fdd5017a5de2ee2daf722d5e7cceaf42ca9df7fde417c",
+            "capture_sha256": "d336b1207ddad8346fef7f41f35d4f48ff8ecf04aee1effe432630d41913abf8",
+            "failure_category": "unexpected_content",
+            "error": ""
+          },
+          {
+            "name": "winfsp-teardown-report",
+            "url": "https://github.com/winfsp/winfsp/issues/682",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "683e4526b2a6db08492088e4e01c5afa0b95e0dd4f8a162fe15b7261f3aee631",
+            "capture_sha256": "70593842c89a90e93def63c3b33999bdd1f3f9db1a80d2435f1666c0ff9a12be",
+            "failure_category": "",
+            "error": ""
+          },
+          {
+            "name": "diskspd",
+            "url": "https://github.com/microsoft/diskspd",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "aaa1b964abb95e364bb9769aef20b32c2d1d5fad0acc42c9acdaacd3eec337a3",
+            "capture_sha256": "513fd1a90584c44b9951f119e84ff547e5eefaa6aac3798755b5ca52dd275be4",
+            "failure_category": "",
+            "error": ""
+          },
+          {
+            "name": "ntfs-native",
+            "url": "https://learn.microsoft.com/en-us/windows/win32/fileio/compression-attribute",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "788037debdb4bdd5282962f46bdc0b3047b425a5b242d673464b133bfa5ed620",
+            "capture_sha256": "cee718b5c1387cb86748783a0f6d6e086b9816d628fdeb5a1a62d376377ec40a",
+            "failure_category": "",
+            "error": ""
+          },
+          {
+            "name": "winfsync",
+            "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "116ffcd5a6feba3539c3f668a2c969aa2e38b8f3663a704a7654e7b2a7954e4c",
+            "capture_sha256": "89ce58598b86764be8f0b0f3ef46acb80d9da7a5c4e3c9e88c54431e394f4a61",
+            "failure_category": "",
+            "error": ""
+          },
+          {
+            "name": "wddm-recovery",
+            "url": "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/timeout-detection-and-recovery",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "e14e08e3ff79cd105e92d306076d2106c1f245b81b5dcc305ca6bde41f59434f",
+            "capture_sha256": "011c0c119df8d03544c3ededbacd868cef6f0695324cc674cb752e40bbcf4995",
+            "failure_category": "",
+            "error": ""
+          }
+        ]
+      },
+      {
+        "receipt_sha256": "42daca17d4729070a7e18a8e2f7e905bec7175e8d529e4a1fecef62f5019e16e",
+        "provider_version": "0.9.5+flitzzip.portable2",
+        "pages": [
+          {
+            "name": "rocm-10-2",
+            "url": "https://rocm.docs.amd.com/en/docs-10.2.0/about/release-notes.html",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "65dc225b07c55d48d922e0ed3c5a7f692b8de4bc523b4b33a2733cf2c2ff34ea",
+            "capture_sha256": "e97062ecbc5a52668a8925fa0effec0739eaa6920c543a5d46e8de182be8f301",
+            "failure_category": "",
+            "error": ""
+          },
+          {
+            "name": "rocm-private-distribution",
+            "url": "https://rocm.docs.amd.com/en/docs-10.2.0/install/rocm.html",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "59f751df1840f5db1853aebb5e22593e505fd379bc6d0008b81ff45c77ac4133",
+            "capture_sha256": "b2d74e267f32971798dcdf1ae7d83ec0ab379f65fbd433ab1f604ea328086985",
+            "failure_category": "",
+            "error": ""
+          },
+          {
+            "name": "rocm-forum",
+            "url": "https://devcommunity.amd.com/t/rocm-10-2-0-advancing-performance-stability-and-developer-experience/1497",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "969ce7e39d8c0845b5e1271d658980bb9c3607ad5625393e7206e663b90f0477",
+            "capture_sha256": "983eec9c5adffd45a855c9521a080dbec7cfdfd7f62c90059310e741fc60d608",
+            "failure_category": "",
+            "error": ""
+          },
+          {
+            "name": "rocm-signed-archives",
+            "url": "https://github.com/ROCm/TheRock/issues/8538",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "11eeba80cac54cbf30e7146d4e57bc842243531aa17eef84efeb01ddac83988f",
+            "capture_sha256": "ae3a93ecc8ba47a4271ed251f0ca06a7d2153044615b5c834a4dbf11dcdaba2f",
+            "failure_category": "",
+            "error": ""
+          },
+          {
+            "name": "winfsp-2026",
+            "url": "https://github.com/winfsp/winfsp/releases/tag/v2.2B5",
+            "success": false,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": false,
+            "markdown_sha256": "bc6f27714e1896d4fa98cc3ef7dc622019fcc336b73d60ce8f4042f0cd0f2bb6",
+            "capture_sha256": "6ff9d1ebddb03fee26a7af9cf0ffa85ab235181e5c04a7033121ddbadaac1046",
+            "failure_category": "unexpected_content",
+            "error": ""
+          },
+          {
+            "name": "protection-information",
+            "url": "https://www.usenix.org/conference/fast26/presentation/gupta",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "e552afe00eba9b35491780a661aa5d5395ceae186d269e37c8f456320bb03883",
+            "capture_sha256": "90b25bfad920cd2f7d3fd56bce7e85d41a0b78bb8c1823dfb3e3f826294b1667",
+            "failure_category": "",
+            "error": ""
+          },
+          {
+            "name": "epoch-journaling",
+            "url": "https://www.usenix.org/conference/osdi25/presentation/cui",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "b6a101b0d9a226c97f22bb3f46c2ec7f72c9082720ca4c900d122597651800f3",
+            "capture_sha256": "c2db5ec2661f4565f742e94b289151a993deeac9b89d58059c4c57a01ef0a3d9",
+            "failure_category": "",
+            "error": ""
+          },
+          {
+            "name": "structured-binary-versions",
+            "url": "https://www.usenix.org/conference/nsdi26/presentation/wang-zirui",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "7d8b26ef26e93b17030ef2cd86d039b36d0df9223a031cacb654b610c72fbd3e",
+            "capture_sha256": "a78727040bbbdd3003dacc713dba2b85af1f1b4ce5e40b19e058d6bfbeed10c6",
+            "failure_category": "",
+            "error": ""
+          },
+          {
+            "name": "neural-decoder-cost",
+            "url": "https://arxiv.org/abs/2611.05871",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "41a638d88449dadecf1a93db5a47c96c1f018bb5c5f4d92fe00f0b87c1bac2c4",
+            "capture_sha256": "6bfcf14d9552e9c6f6ea5ce1f5bfa4d4c61e00d030bbcb3c7778a5c13cf4539f",
+            "failure_category": "",
+            "error": ""
+          },
+          {
+            "name": "neural-local-backend",
+            "url": "https://arxiv.org/abs/2602.19626",
+            "success": false,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": false,
+            "markdown_sha256": "913004a9b8e9ef9bab71f2d403184eb88b94d957d89e3723a7b26668d06c2c1a",
+            "capture_sha256": "323532bf855f4bdf4190b7cc0735735d35578fcd5f3fccc4e758194fb6ad8d84",
+            "failure_category": "unexpected_content",
+            "error": ""
+          },
+          {
+            "name": "gpu-storage-comparison",
+            "url": "https://www.usenix.org/conference/fast25/presentation/qiu",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "72cf21eeb119c2feb44137764880a8e510c11364ca5285a487394213135fc8ee",
+            "capture_sha256": "8cba520c5ca15745061a2cdce5f901b40810b3ec0bde10ca8a86232a227dbcf5",
+            "failure_category": "",
+            "error": ""
+          },
+          {
+            "name": "holdout-benchmark-dataset",
+            "url": "https://aitdcc.github.io/dataset.html",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "766801630c0c3f7c80304f41397c0ae265fd0cb79387c2837c920c08b8987676",
+            "capture_sha256": "d6dc8b3c01c139296d599654aa9a87beef337f2e195617c292ab9b0c423dbbc5",
+            "failure_category": "",
+            "error": ""
+          }
+        ]
+      },
+      {
+        "receipt_sha256": "9c89072d7e8533d6a34ec9269e6c4f8483d7ac30102d47ef767b42e8a4ba6827",
+        "provider_version": "0.9.5+flitzzip.portable2",
+        "pages": [
+          {
+            "name": "cached-write-root-cause",
+            "url": "https://github.com/winfsp/winfsp/pull/677",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "89848dd800d33887970fdd5017a5de2ee2daf722d5e7cceaf42ca9df7fde417c",
+            "capture_sha256": "a9c49cb4d5a4eae64957c03e3ec92bd86301a96bd8863e8bf3e21a08a409f2a4",
+            "failure_category": "",
+            "error": ""
+          },
+          {
+            "name": "winfsp-current-release",
+            "url": "https://github.com/winfsp/winfsp/releases/tag/v2.2B5",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "bc6f27714e1896d4fa98cc3ef7dc622019fcc336b73d60ce8f4042f0cd0f2bb6",
+            "capture_sha256": "a564d97c8dcf51822860c04d0345e529bae78d09253133b650563b541af64297",
+            "failure_category": "",
+            "error": ""
+          },
+          {
+            "name": "nacrith",
+            "url": "https://arxiv.org/abs/2602.19626",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "913004a9b8e9ef9bab71f2d403184eb88b94d957d89e3723a7b26668d06c2c1a",
+            "capture_sha256": "818e7bad651b7cb1ec81ecbd3e381ec24d68a21b567f7985fc8a8ccc6b234533",
+            "failure_category": "",
+            "error": ""
+          },
+          {
+            "name": "amd-runtime-check",
+            "url": "https://rocm.docs.amd.com/en/docs-10.2.0/compatibility/compatibility-matrix.html",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "5c89064a942807b67a5ef994b10d7cfb72067be0e5ec32128532b7fa911bac52",
+            "capture_sha256": "3553f2518643d7f5620112cc2d64e59f7260d58034bcfc7f08fd7b771c17e56c",
+            "failure_category": "",
+            "error": ""
+          },
+          {
+            "name": "deferring-late-jobs",
+            "url": "https://www.usenix.org/conference/nsdi26/presentation/keren",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "1c54bcafcfac2e90791f2d20adfec06c845947624c003c1036d83eaefd1e1497",
+            "capture_sha256": "f7416690054a07eb884fc056ce6c26dcfd8c2a0e915b4b338157647b14c48aea",
+            "failure_category": "",
+            "error": ""
+          },
+          {
+            "name": "rocm-production-version",
+            "url": "https://rocmdocs.amd.com/en/develop/release/versions.html",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "3b67d6a2db1f9ec602c8879651838cfcdf7018d8fdc8219923469d34d3bfad63",
+            "capture_sha256": "f7b93cc9a11e562f82f4f9b950c94b51e45c3cf05d42c2ea3afbb33ccf4745d3",
+            "failure_category": "",
+            "error": ""
+          }
+        ]
+      },
+      {
+        "receipt_sha256": "49e062aa70c7a459bd59854d1494f98000f37ba9848e0572ae2569da516885e4",
+        "provider_version": "0.9.5+flitzzip.portable2",
+        "pages": [
+          {
+            "name": "winfsp-open-read-report",
+            "url": "https://github.com/winfsp/winfsp/issues/676",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "dcbd45ce8ca3c16925fa40dbc00161b1c6cca371b506641205b7eb224be742da",
+            "capture_sha256": "164210d27fab2d5bd3f5b991cccad30d0c682993a7f8e371c96fda3962d20438",
+            "failure_category": "",
+            "error": ""
+          },
+          {
+            "name": "winfsp-recovery-proposal",
+            "url": "https://github.com/winfsp/winfsp/issues/694",
+            "success": false,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": false,
+            "markdown_sha256": "2a84f9fc9b0260b0a40e20c450adff90f7038a0e236406a8356b93c38f1362dc",
+            "capture_sha256": "62db59e7eb6fb213bdc7654c28306afa8f50054e306f6fe0f6eb75bd0038cc17",
+            "failure_category": "unexpected_content",
+            "error": ""
+          },
+          {
+            "name": "winfsp-perf",
+            "url": "https://github.com/winfsp/winfsp/blob/v2.2B5/doc/WinFsp-Performance-Testing.asciidoc",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "e1df5c96fcc9827eab0ab6571276308405e4656004f0f052ea09fe1fbfd27289",
+            "capture_sha256": "1380f4d86709737bbf11173df808bf96108b68175e30ed0454c970dbd856634d",
+            "failure_category": "",
+            "error": ""
+          },
+          {
+            "name": "toolset-asan",
+            "url": "https://learn.microsoft.com/en-us/cpp/sanitizers/asan-building?view=msvc-170",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "f84ddbf24fa701821ea9f492018cd46587f2f9b8aa7fadef8b71624ab943943a",
+            "capture_sha256": "62bc4336ec0adf3eb37a58eb19b9479bde88100bbe4db8004438fd78e67d8049",
+            "failure_category": "",
+            "error": ""
+          },
+          {
+            "name": "windows-storage-coordinates",
+            "url": "https://learn.microsoft.com/en-us/troubleshoot/sql/database-engine/database-file-operations/troubleshoot-os-4kb-disk-sector-size",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "52c0e5b527c143df6877cf8c9eb68e398bfde0147314f8a1c8af8e65edd92abe",
+            "capture_sha256": "ed5b13f18426b3a023bf2c2b12f80c4261cc8154fff30a1b47fd3aa14e99be19",
+            "failure_category": "",
+            "error": ""
+          },
+          {
+            "name": "atomic-flush-device",
+            "url": "https://www.usenix.org/conference/fast25/presentation/jeon",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "b6853509117aa132230bc6cc0ab9698bbaf3ba4cab553ce581366bab5cfcec09",
+            "capture_sha256": "2d9ff8db12ac6883f08aadefff9d5b1d50484353c8421f5fb8d8b576e104ae07",
+            "failure_category": "",
+            "error": ""
+          },
+          {
+            "name": "localized-write-cost",
+            "url": "https://www.usenix.org/conference/fast26/presentation/song",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "146438c403fd9c03a2e072dd58bdc7d1c1633e7690a200010b81771fc0f7fb90",
+            "capture_sha256": "fc6d28085895cc028a39312c1afad81740aabc4ca1310810542e40f0c4a63890",
+            "failure_category": "",
+            "error": ""
+          },
+          {
+            "name": "exact-savings-oracle",
+            "url": "https://www.usenix.org/conference/fast26/presentation/kim-jeeyun",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "51313944c7b386467749b19b70908603754ace4b2638ef1a69931c0a50f3bfa6",
+            "capture_sha256": "2c13fee50054011d1ec3b15f02588f75333fb6ca4bbf4f044ab3cfaf48331506",
+            "failure_category": "",
+            "error": ""
+          }
+        ]
+      },
+      {
+        "receipt_sha256": "f782fb407383a05faa8028606ae5bfd0ea72ba42d4c28e4f749ab03fef822f8d",
+        "provider_version": "0.9.5+flitzzip.portable2",
+        "pages": [
+          {
+            "name": "winfsp-2026-stable",
+            "url": "https://github.com/winfsp/winfsp/releases/tag/v2.2",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "24a8ed110dee692f234c2848fca785bb17eb368fc810af14d63328dcc89730f6",
+            "capture_sha256": "09fb6e68cba4504cf5d4b48b8be0cd5653554dabccfe3f51f33499c6b090c69a",
+            "failure_category": "",
+            "error": ""
+          },
+          {
+            "name": "native-ntfs-baseline",
+            "url": "https://learn.microsoft.com/en-us/windows/iot/iot-enterprise/optimize/compactos",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "f519fd22ff323f7f5d7108e12b6976d0ed2a4f725f2727b12179df628cca45c2",
+            "capture_sha256": "8a66142204c646e6c01616536a95849eb541c97627f9c8455d891c0a32642ec0",
+            "failure_category": "",
+            "error": ""
+          },
+          {
+            "name": "diskspd-profiles",
+            "url": "https://github.com/microsoft/diskspd/wiki/XML-profiles",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "9f09b7a2ce48eb60804dd0266c7d02bafaae390a5f9053c2f2da2acd26d29887",
+            "capture_sha256": "9fce3d6ea836037e3ee273e957fa635a5b2a1e370516f82775027528fa92173c",
+            "failure_category": "",
+            "error": ""
+          },
+          {
+            "name": "amd-native-sdk-distribution",
+            "url": "https://github.com/ROCm/TheRock/blob/main/docs/development/windows_support.md",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "e1c96da42d88861ca19762c6de39f02114bdf9e0465a1f02c4805bf819d5f012",
+            "capture_sha256": "8be409a6f43a8aab76edf98a9c1e8a90cfb3cd1f41f11f30d11e894a660795a1",
+            "failure_category": "",
+            "error": ""
+          }
+        ]
+      },
+      {
+        "receipt_sha256": "ed06e652c3a42df8c4808220c63bc283e018c96255a876346bec064d975fdf37",
+        "provider_version": "0.9.5+flitzzip.portable2",
+        "pages": [
+          {
+            "name": "ms-zstd",
+            "url": "https://devblogs.microsoft.com/directx/directstorage-1-4-release-adds-support-for-zstandard/",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "40e2464434e8bc86f1159ad2334bf17d5ccc312bb4191e55c107efebe8fad5e2",
+            "capture_sha256": "9eb47ebf0d188e8d2a95bacad2fa9fa372d4bac18f2d95d507ade13e5e1d6e92",
+            "failure_category": "",
+            "error": ""
+          },
+          {
+            "name": "amd-zstd",
+            "url": "https://gpuopen.com/learn/amd-microsoft-gdc-2026/",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "27a95870072d42607f5b775408bb599c0ed663f20e39f89bf875162d283aa533",
+            "capture_sha256": "19b485ba45d0014915fb289107923433ea57768d38bb2fe1fe66438132743cbd",
+            "failure_category": "",
+            "error": ""
+          },
+          {
+            "name": "streaming-readback-report",
+            "url": "https://github.com/microsoft/DirectStorage/issues/175",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "8072e0b1e7ebcc446c261e7c087db8f5dcde5a7a3285a274cdec9392a0c71956",
+            "capture_sha256": "045de457aafc905486f3c86e7ef2a82f92e10775cc77672fc149bdc743b04e5c",
+            "failure_category": "",
+            "error": ""
+          }
+        ]
+      },
+      {
+        "receipt_sha256": "22b6ae1124dda6cff0de3ae5feed3e92d18f012a74444e1b9037a58067c451f5",
+        "provider_version": "0.9.5+flitzzip.portable2",
+        "pages": [
+          {
+            "name": "rate-counter-window",
+            "url": "https://learn.microsoft.com/en-us/windows/win32/perfctrs/collecting-performance-data",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "bf8c2db68908765dfc36dc8da3d22a246bb285f11fce17756682917b1e4498a1",
+            "capture_sha256": "710b77383132a886e2df07b10c900423483101739861c9e8c1c99f73d0fcb679",
+            "failure_category": "",
+            "error": ""
+          },
+          {
+            "name": "counter-validity",
+            "url": "https://learn.microsoft.com/en-us/windows/win32/perfctrs/checking-pdh-interface-return-values",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "c3d80117ecc46479017d25ffc395a0aa9926281485ea5c452899c6eec464165c",
+            "capture_sha256": "76707fed1a266f8b7babe164c70c2fa192f4d30c5d0f92bd8878d44339220196",
+            "failure_category": "",
+            "error": ""
+          },
+          {
+            "name": "array-window",
+            "url": "https://learn.microsoft.com/en-us/windows/win32/api/pdh/nf-pdh-pdhgetformattedcounterarrayw",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_sha256": "4163a3006bdbf31137b5a280ae9ea00647b3c92d2e2c432f8fd45817f10ce420",
+            "capture_sha256": "85b9d1275277794d6da0adb2c3124e2a45269b70749e1dd7b4f38cfd841923ed",
+            "failure_category": "",
+            "error": ""
+          }
+        ]
+      }
+    ]
+  },
+  "release_qualified": false
+}

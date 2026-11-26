@@ -69,6 +69,10 @@ supplies a durability or namespace assertion.
 
 ## Implementation order
 
+The [release blocker research](../research/release-blockers-2026-11-26.md)
+adds exact WinFsp concurrency scenarios and separates runtime setup,
+provider failure geometry, settled compression and benchmarking.
+
 ### 1. Establish the ordinary client and portable installation contract
 
 - Use the existing populated Win32 client as the cross-package witness.

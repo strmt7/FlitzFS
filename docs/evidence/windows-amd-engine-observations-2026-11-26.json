@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "date_utc": "2026-11-26",
+  "published_fixture_source": "c7c583beba54f4ef7591ccbbda9d9d3ee3ffec77",
+  "engine_source_search_sha256": "4672de958e38f84d9c7832a6086c3b9744e965596477f93eaa011446e6cb8213",
+  "scope": "Readiness and exact four-frame Windows SDK callback admission on the owner's installed AMD adapter. No mount or driver change.",
+  "attempts": [
+    {
+      "observed_utc": "2026-11-26T12:47:51.8161683Z",
+      "stage_manifest_sha256": "89efa4d201a5dfac6b097262d870cbe27b3a16fe5d1fbfcef9d6647ab5f6cb2a",
+      "stage": "published four-frame source",
+      "preflight_admitted": true,
+      "preflight_gpu_peak_percent": 0.0,
+      "preflight_cpu_peak_percent": 14.064804142123677,
+      "outcome": "engine_deferred",
+      "identity_queries": 0,
+      "verified_gpu_frames": 0,
+      "fixture_exit": 1,
+      "process_tree_retired": true,
+      "log_sha256": "ce23768ce7e82aae42a73a043f0edc6e7115da6121d8e6b39136b53b909fc731",
+      "supervisor_receipt_sha256": "bd172bb9bc9ee3f80c6683b3ec7299e455ab5fac09e9465433b6b1d91a1a266a"
+    },
+    {
+      "observed_utc": "2026-11-26T12:53:40.4334741Z",
+      "stage_manifest_sha256": "fcddc62bcf4136cbadd196b22478bf816da703ba5561ba1b5864eb19925be9ae",
+      "stage": "temporary admission trace only",
+      "preflight_admitted": false,
+      "preflight_gpu_peak_percent": 97.85044825991321,
+      "preflight_cpu_peak_percent": 16.449111354210157,
+      "outcome": "Existing host load above the fixture envelope",
+      "identity_queries": 0,
+      "verified_gpu_frames": 0,
+      "fixture_exit": 0,
+      "process_tree_retired": true,
+      "log_sha256": "d9fb15abeb6005278f792e2aa5ad89777321e3aa226f6f3078c97b52bd519399",
+      "supervisor_receipt_sha256": "88cef4378d08265a7157f4fc053e86bb8d458e5a588d5c0c2c7f44f0be5a0453"
+    },
+    {
+      "observed_utc": "2026-11-26T12:54:42.7150954Z",
+      "stage_manifest_sha256": "fcddc62bcf4136cbadd196b22478bf816da703ba5561ba1b5864eb19925be9ae",
+      "stage": "temporary admission trace only",
+      "preflight_admitted": false,
+      "preflight_gpu_peak_percent": 97.6999967070698,
+      "preflight_cpu_peak_percent": 13.485873094319945,
+      "outcome": "Existing host load above the fixture envelope",
+      "identity_queries": 0,
+      "verified_gpu_frames": 0,
+      "fixture_exit": 0,
+      "process_tree_retired": true,
+      "log_sha256": "afbc6ca49e784eecbdc5af288c65fd891e07ca7c603abe31bd1e043fc3a702b6",
+      "supervisor_receipt_sha256": "25db842781c8b30bd85d013cb59e9df62b1ae0e6e73c113d4e6296bea0558657"
+    }
+  ],
+  "interpretation": "The application declined engine admission before a HIP identity query. Later existing load blocked the diagnostic fixture at preflight, so the original application's subcheck remains unclassified. These trials add no new hardware execution or performance evidence.",
+  "release_qualified": false
+}

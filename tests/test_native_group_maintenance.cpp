@@ -1019,13 +1019,13 @@ void profile_group_seal(Fixture& f,NativeHybridControls controls,std::string_vie
   }
 }
 
-void profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expected_members=0,
+std::uint64_t profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expected_members=0,
     bool compare_reencoding=false,NativeIndexedDataLayout layout=NativeIndexedDataLayout::extents,
     NativeVolumeHeadLayout head_layout=NativeVolumeHeadLayout::legacy,
     PagedStoreBankLayout image_layout=PagedStoreBankLayout::shared,bool byte_planes=false,
     std::optional<NativeHybridControls> seal_controls={},bool fragment_nominations=false,
     const native_fixture::NamedCorpusFixture* named=nullptr) {
-  if(!store_zstd_available())return;
+  if(!store_zstd_available())return 0;
   const StoreCompressionOptions policy{StoreCompressionMode::automatic,3,true,byte_planes};
   NativeMaintenancePolicy maintenance;
   maintenance.fragment_nominations=fragment_nominations;
@@ -1173,6 +1173,23 @@ void profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expect
         outcome.packing_postings_examined<=2*std::tuple_size_v<detail::NativePackingSketch>,
         "singleton ranking did more than its sparse retained-family lookups");
   }
+  return members;
+}
+
+void profile_short_pack_family(bool regression=false) {
+  if(!store_zstd_available())return;
+  constexpr std::size_t members=6;
+  const auto common=data(6144,28923);
+  std::array<Bytes,members> inputs;
+  for(std::size_t i=0;i<members;++i) {
+    auto& bytes=inputs[i];
+    bytes=data(9*1024+113*i,46273+307*i);
+    std::copy(common.begin(),common.end(),bytes.begin()+223+149*i);
+    bytes.back()=std::byte{0x82};
+  }
+  const auto packed=profile_similarity_packing(inputs,0,true,NativeIndexedDataLayout::extents,
+      NativeVolumeHeadLayout::legacy,PagedStoreBankLayout::shared,false,NativeHybridControls::packed_descriptors);
+  if(regression)require(packed==inputs.size(),"short family packing missed the fitting member");
 }
 
 void profile_shuffled_short_packs() {
@@ -4623,6 +4640,9 @@ int main(int argc,char** argv){try{
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-packed-short-extents") {
     indexed_packed_short_extents();
     indexed_packed_subset();
+    profile_short_pack_family(true);
+  } else if(argc==2 && std::string_view(argv[1])=="--profile-short-pack-family") {
+    profile_short_pack_family();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-pack-distinct-short-extents") {
     indexed_pack_distinct_short_extents();
     indexed_uneven_short_packs(true);

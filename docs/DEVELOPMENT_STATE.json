@@ -8,6 +8,16 @@
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
   "current_release_review": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
   "source_and_portability_review": "docs/architecture/RELEASE_REVIEW_2026-11-26.md",
+  "release_blocker_research": "docs/research/release-blockers-2026-11-26.md",
+  "short_family_packing": {
+    "source_parent": "30be66335ad34667eb81d3b695806037f53c88da",
+    "tested_source_tree": "688f4d132fabb1fe83e6a4d3d377964b38f7cc34",
+    "evidence": "docs/evidence/windows-short-family-packing-2026-11-26.json",
+    "retained_mirror_bytes_with_selector_before": 360448,
+    "retained_mirror_bytes_with_selector_after": 344064,
+    "named_public_controls_tied": 3,
+    "release_qualified": false
+  },
   "packed_inode_audit_locality": {
     "source_parent": "c7c583beba54f4ef7591ccbbda9d9d3ee3ffec77",
     "tested_source_tree": "7316d0d77effd135cb425814b0785ad194158067",

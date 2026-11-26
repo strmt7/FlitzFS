@@ -15,6 +15,7 @@ populated Windows client. Set release scope from those measurements,
 provider recovery and the signed Windows compatibility matrix.
 The E01–E13 contracts below define the individual release exits.
 [Current source review and priority order](architecture/RELEASE_REVIEW_2026-11-26.md#implementation-order) ·
+[Research on the release blockers](research/release-blockers-2026-11-26.md) ·
 [Current assessment](RELEASE_RECONCILIATION_2026-11-26.md) ·
 [Packed seal, group-merge comparison and research](evidence/windows-packed-stripe-descriptors-2026-11-26.json) ·
 [Writable reopen evidence](evidence/windows-fenced-indexed-reopen-audit-2026-11-26.json) ·

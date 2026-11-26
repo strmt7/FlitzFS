@@ -1046,37 +1046,72 @@ struct NativeGroupMaintenance::Impl {
     phase=Phase::preparing;
     return true;
   }
-  bool propose_affinity_pack(NativeFilesystemWriter& writer) {
-    // Compare only the funded current transaction window. A declined trial
-    // leaves both extents eligible for the regular packing pass.
+  bool propose_affinity_pack(NativeFilesystemWriter& writer,std::size_t maximum_members) {
+    static_assert(fragment_lanes<=std::numeric_limits<std::uint32_t>::digits);
+    struct Peer {
+      const NativeContentToken* token;
+      std::uint32_t lanes;
+    };
+    std::vector<Peer> peers;
+    // Keep a related family in one independently decoded block when the
+    // current byte and member grants can accommodate it.
     for(auto seed=features.upper_bound(affinity_pack_after);seed!=features.end();++seed) {
+      const auto previous=affinity_pack_after;
       affinity_pack_after=seed->first;
       const auto& left=seed->second;
       if(!packing_candidate(left) || deferred_batch_objects.contains(seed->first))continue;
       const auto capacity=kNativeExtentBytes-left.token.standalone_bytes;
-      const Feature* best=nullptr;
-      unsigned best_matches=1;
+      peers.clear();
       for(auto next=std::next(seed);next!=features.end();++next) {
         const auto& right=next->second;
         if(!packing_candidate(right) || right.token.standalone_bytes>capacity ||
             deferred_batch_objects.contains(next->first))continue;
-        unsigned matches=0;
+        std::uint32_t lanes=0;
         for(std::size_t lane=0;lane<left.packing.size();++lane)
-          matches+=left.packing[lane] && left.packing[lane]==right.packing[lane];
-        if(matches>best_matches || (best && matches==best_matches &&
-            right.token.stored_payload_bytes>best->token.stored_payload_bytes)) {
-          best=&right;
-          best_matches=matches;
+          if(left.packing[lane] && left.packing[lane]==right.packing[lane])lanes|=std::uint32_t{1}<<lane;
+        if(std::popcount(lanes)>=2)peers.push_back({&right.token,lanes});
+      }
+      if(peers.empty())continue;
+      std::ranges::sort(peers,[](const Peer& a,const Peer& b) {
+        const auto left_matches=std::popcount(a.lanes),right_matches=std::popcount(b.lanes);
+        if(left_matches!=right_matches)return left_matches>right_matches;
+        if(a.token->stored_payload_bytes!=b.token->stored_payload_bytes)
+          return a.token->stored_payload_bytes>b.token->stored_payload_bytes;
+        return a.token->object<b.token->object;
+      });
+      const std::array pair{left.token,*peers.front().token};
+      if(maximum_members>2 && peers.size()>1) {
+        std::vector<NativeContentToken> family(pair.begin(),pair.end());
+        auto remaining=capacity-pair.back().standalone_bytes;
+        auto common_lanes=peers.front().lanes;
+        std::uint64_t additional_payload=0;
+        for(const auto& peer:std::span(peers).subspan(1)) {
+          if(!remaining || family.size()==maximum_members)break;
+          const auto shared=common_lanes&peer.lanes;
+          if(peer.token->standalone_bytes>remaining || std::popcount(shared)<2)continue;
+          family.push_back(*peer.token);
+          common_lanes=shared;
+          remaining-=peer.token->standalone_bytes;
+          additional_payload+=peer.token->stored_payload_bytes;
+        }
+        // Spend another transaction trial when the additional stored payload
+        // is at least one paged-store page. Smaller candidates retain the
+        // pair and regular packing passes.
+        if(additional_payload>=detail::kPagedStoreCheckpointWriteBytes/2) {
+          std::ranges::sort(family,{},&NativeContentToken::object);
+          if(begin_packed_group(writer,family)) {
+            // Revisit the pair if the full family fails its size comparison.
+            affinity_pack_after=previous;
+            return true;
+          }
         }
       }
-      if(!best)continue;
-      const std::array expected{left.token,best->token};
-      if(begin_packed_group(writer,expected))return true;
+      if(begin_packed_group(writer,pair))return true;
     }
     return false;
   }
   bool propose_packed_group(NativeFilesystemWriter& writer,std::size_t maximum_members) {
-    if(propose_affinity_pack(writer))return true;
+    if(propose_affinity_pack(writer,maximum_members))return true;
     auto seed=features.upper_bound(packing_after);
     while(seed!=features.end() && !packing_candidate(seed->second))++seed;
     if(seed==features.end())return false;
