@@ -1,0 +1,839 @@
+{
+  "schema": 1,
+  "date_utc": "2026-11-26",
+  "source": {
+    "parent": "31474b79b77dfd415634689b26fecd6cc79dce16",
+    "parent_tree": "f84ea7630da9a7faea9c263489c49f93666fddcc",
+    "tested_tree": "b23965211dcab367717fc05fd3b93c10922fe809",
+    "blobs": [
+      {
+        "path": "CMakeLists.txt",
+        "blob": "cdd157ad8056dd4fa5c6be65bb0df68bf7ee0ca0"
+      },
+      {
+        "path": "include/flitzfs/native_maintenance.hpp",
+        "blob": "c5f7ecb7a8550b9a6c401f86bb81296d316a3649"
+      },
+      {
+        "path": "src/native_maintenance.cpp",
+        "blob": "5b6dd69336ffbe65319f5116ad92a82377180c3b"
+      },
+      {
+        "path": "tests/test_native_group_maintenance.cpp",
+        "blob": "e51a843e8cde152180116bc5ed2ee372c32b51dc"
+      }
+    ],
+    "test_executable_sha256": "0fb1d83bc307ae2cdfd8925d2e4d28b278b9777047a15e23e444c5003a0ad761"
+  },
+  "workload": {
+    "comparison": "Matched NativeFileSession maintenance and compact sealing, including the selector and shared dependencies. The measured quantities are byte and work counts.",
+    "fixture_failure_unit_bytes": 4096,
+    "named_fixture_magic": "FLSTREE1",
+    "khronos": {
+      "origin": "KhronosGroup/glTF-Sample-Assets",
+      "commit": "e124e8d8d7330a5372bc2b4d00d39a4a9d7997ea",
+      "commit_date": "2026-11-20T19:53:27Z",
+      "tree": "a80e4725fc5aa286af465fb14b05f727f2ebecc3",
+      "commit_sha256": "a0ca7ad7f11512bde97e38a4b973716f33e633f2f1ef4d467d8bd4263086db5e",
+      "tree_sha256": "e86c0ad291c6ef23352c31b41d2071e5d7c8ceee6d9e7db115e00a17eeb05c6b",
+      "ordering": "FlitzFS November 2026 Khronos family split 1",
+      "maximum_file_bytes": 1048576,
+      "maximum_family_bytes": 2097152,
+      "results": {
+        "commit": "e124e8d8d7330a5372bc2b4d00d39a4a9d7997ea",
+        "tree": "a80e4725fc5aa286af465fb14b05f727f2ebecc3",
+        "calibration": [
+          "CesiumMan",
+          "DirectionalLight",
+          "MorphStressTest"
+        ],
+        "holdout": [
+          "CompareVolume",
+          "CompareClearcoat",
+          "MetalRoughSpheresNoTextures"
+        ],
+        "calibration.flitz-fixture": "3ea31f23a123897239d2ade88160b26bf76680758c6f6ac775ca901b1671c104",
+        "calibration.flstree": "717b4c73e12e7ef76154855b5db96f43b1b6f65bd7da5ec0a56a4391c8f1ccb5",
+        "holdout.flitz-fixture": "4fd8ca308d9478138fe67021d81cbcf59cd2b39c09dde904e357826bb259cfaa",
+        "holdout.flstree": "ccc693c69e142cbd28c98575cb1c1c61d1bcd52a450fe1e681cfa5b196f98f10"
+      },
+      "calibration": [
+        {
+          "name": "CesiumMan",
+          "files": [
+            {
+              "path": "Models/CesiumMan/glTF-Binary/CesiumMan.glb",
+              "size": 438044,
+              "sha": "8586c4e6a59bf8ef585c2a685c50a80d28503216",
+              "sha256": "b7001eaeea8254bd44773bcd247e78696d94169388fbb2a1800fc69434e777d9"
+            },
+            {
+              "path": "Models/CesiumMan/glTF/CesiumMan.gltf",
+              "size": 51950,
+              "sha": "f474e54a73329809726566a139861ac65884b830",
+              "sha256": "bbb66a129c906e015620197b683edbc6e7a27510169ffa5adec2114046f14919"
+            },
+            {
+              "path": "Models/CesiumMan/glTF/CesiumMan_data.bin",
+              "size": 252664,
+              "sha": "d78b75cfb0d9a1204316c4301aae66ca1c0839b6",
+              "sha256": "2115d3c8df0519cea62f7def76d66d2346c5ac2216319859d3c79e3784dafd3f"
+            },
+            {
+              "path": "Models/CesiumMan/glTF/CesiumMan_img0.jpg",
+              "size": 157013,
+              "sha": "58ec3b23c4efed342ab204064cb75f95f9e191c1",
+              "sha256": "35d278c7b7b0b9e22881b2c435e41ce8659f230c776ef8780b4a5087abbefaa1"
+            }
+          ],
+          "license": {
+            "path": "Models/CesiumMan/README.md",
+            "size": 1146,
+            "sha": "49cd989bb91fcc4aa77577c968f0b964010eb309",
+            "sha256": "1bf7fa794013d2e0de8c244518936b04d95cba780f4510c8cceee4c23dbc04a8"
+          }
+        },
+        {
+          "name": "DirectionalLight",
+          "files": [
+            {
+              "path": "Models/DirectionalLight/glTF-Binary/DirectionalLight.glb",
+              "size": 453520,
+              "sha": "8a6ba0380a3b33472906b6f75b2a9b509229d9fb",
+              "sha256": "82e50feb151203f431a3b43985e9f4b2a54131b61a7a8677954922630d90f3de"
+            },
+            {
+              "path": "Models/DirectionalLight/glTF/DirectionalLight.bin",
+              "size": 450528,
+              "sha": "acd0ec70f307b23aded69a2dc7b2bcb9d1e8491b",
+              "sha256": "43aea71c4cbe518a9aa34e04ea2acd0b779c189213aee70cec3d80d1a8e72741"
+            },
+            {
+              "path": "Models/DirectionalLight/glTF/DirectionalLight.gltf",
+              "size": 5565,
+              "sha": "485e08f9edbe2e162b05853e2f1e31b909b2260b",
+              "sha256": "71fbfe89e98201b70f5de027604d3745be41e900b8cb03ccfd446c3896c6b559"
+            }
+          ],
+          "license": {
+            "path": "Models/DirectionalLight/README.md",
+            "size": 3506,
+            "sha": "7be7ffb066a447b8369107ba8bb2e8b9479e92b3",
+            "sha256": "949a755070eab6bee63d0b2ffa5095cdb4e154184b6e0f854ec7af7b21410d2f"
+          }
+        },
+        {
+          "name": "MorphStressTest",
+          "files": [
+            {
+              "path": "Models/MorphStressTest/glTF-Binary/MorphStressTest.glb",
+              "size": 575900,
+              "sha": "bb892cc648e3e8b28c5009a3553c3534211e360b",
+              "sha256": "005f1d9dd938c553a506d6bf3d21830fc3f2ec3a199d9332e9a625baf7342bef"
+            },
+            {
+              "path": "Models/MorphStressTest/glTF/Base_AO.png",
+              "size": 178434,
+              "sha": "567255a7f5085fb35e6904bf8077c716bb087225",
+              "sha256": "e64d4f4b3d7b4f1a0fa3e37006a8fbab76b8980d72fd740060631c30d8d77681"
+            },
+            {
+              "path": "Models/MorphStressTest/glTF/ColorSwatches.png",
+              "size": 208,
+              "sha": "72da1c22cdb0627acde2062bb0fee967d31962b2",
+              "sha256": "80ac40f4caa24872aef11a2990afcaaec7fe9e3113db148ecf63f0016639e9fb"
+            },
+            {
+              "path": "Models/MorphStressTest/glTF/MorphStressTest.bin",
+              "size": 388084,
+              "sha": "53ebd67241d1b379763630e6e77c2af3f3fcdc07",
+              "sha256": "684397e52a7f3941f369a88373633050462b6c27c1f1aff05f5bb32cf09cabe6"
+            },
+            {
+              "path": "Models/MorphStressTest/glTF/MorphStressTest.gltf",
+              "size": 23726,
+              "sha": "560cb2b1d7feb345e9884f2cd28d2b4ba77cbf59",
+              "sha256": "e9ffb5c8d4d6b8b83bf0bbee26146addcd474a44294bcbaae8019e63767272cd"
+            },
+            {
+              "path": "Models/MorphStressTest/glTF/TinyGrid.png",
+              "size": 186,
+              "sha": "81d040a687d0efaf904bba8d33f461430eb001ba",
+              "sha256": "16af23fd3e1bc37c8989293a09ee456c4f19825db69a9266c267e8035937c834"
+            }
+          ],
+          "license": {
+            "path": "Models/MorphStressTest/README.md",
+            "size": 3572,
+            "sha": "ff29998a9e599c61319e5ff62f29ac8283564c26",
+            "sha256": "38b9ad04afa6004b252a0166a2593a7aa49718eb4496312a872991bee63bc69e"
+          }
+        }
+      ],
+      "holdout": [
+        {
+          "name": "CompareVolume",
+          "files": [
+            {
+              "path": "Models/CompareVolume/glTF-Binary/CompareVolume.glb",
+              "size": 399760,
+              "sha": "1dce1aa63284c954777941fb4dc8ea7d89265e46",
+              "sha256": "cb88f5dd70c1c2700e2a28caa5b612f4b6e8c34183d6261c681727d8bafdf7d2"
+            },
+            {
+              "path": "Models/CompareVolume/glTF/CompareVolume.bin",
+              "size": 270668,
+              "sha": "5250aa468ff3a0c0dd86145f3aecef9389097737",
+              "sha256": "0ce1b9109d3a5942e882a14e3771698a49559a55ad32ddf226727e0870a06509"
+            },
+            {
+              "path": "Models/CompareVolume/glTF/CompareVolume.gltf",
+              "size": 12493,
+              "sha": "7268015c465f94499af2362e2dbd2cf2832888a8",
+              "sha256": "cbb84ddb6d02d03f1d7e524f05558b62d42cac325b7e7686a59ddcca0a5c4b1f"
+            },
+            {
+              "path": "Models/CompareVolume/glTF/Compare_Volume_img0.jpg",
+              "size": 32773,
+              "sha": "46843464b7b20ea570f217b95eb73281174cf41a",
+              "sha256": "bc4d4f87566ad11b6fcc9630d6ff7fb7a22c2178e33f129bbf040def0f736993"
+            },
+            {
+              "path": "Models/CompareVolume/glTF/Compare_Volume_img1.jpg",
+              "size": 73315,
+              "sha": "9357045f2506566eb5058740c4c80692712d3199",
+              "sha256": "3667f240edb2e8c65eb48a4bfcd4f28b7f5a83cb516cd1214fffddc6a7d27700"
+            },
+            {
+              "path": "Models/CompareVolume/glTF/Compare_Volume_img2.png",
+              "size": 97,
+              "sha": "abbb8d019d2c24010f012a5a8abe8b0a05cc7228",
+              "sha256": "ea58fe2331675ece5e2597ae332921996e05531b9b2439e0dca0203c8be97b70"
+            },
+            {
+              "path": "Models/CompareVolume/glTF/Compare_Volume_img3.jpg",
+              "size": 15884,
+              "sha": "7f3be5f3987b27f9a28475f1feed69d13c73f634",
+              "sha256": "116e33c6bfc2d560d15cb2d2470ddc2d37ffca6bcdd384021e0c1283fa4f8fd0"
+            }
+          ],
+          "license": {
+            "path": "Models/CompareVolume/README.md",
+            "size": 1463,
+            "sha": "cabb887d0411078b1a28f41ed1974612e0eca3b6",
+            "sha256": "f3b7dfe06b56d2e12dacb4ee001fc2ae2c3b9c0b657fd233d5ca318e3eb23d8b"
+          }
+        },
+        {
+          "name": "CompareClearcoat",
+          "files": [
+            {
+              "path": "Models/CompareClearcoat/glTF-Binary/CompareClearcoat.glb",
+              "size": 193920,
+              "sha": "17147d4848034cecf926b32fa7182b9049bb6eb9",
+              "sha256": "9dc6879f797c7dd9dd1322dc6a392ff66952855f329ac5239b9c58a68f804a88"
+            },
+            {
+              "path": "Models/CompareClearcoat/glTF/CompareClearcoat.bin",
+              "size": 87648,
+              "sha": "37acf3e554c4d607bdce51590f8f5f694e365ab7",
+              "sha256": "15247fce2bedbd0568d4878409369ce9e67b51040b9a1efd80c2f3798fbe113c"
+            },
+            {
+              "path": "Models/CompareClearcoat/glTF/CompareClearcoat.gltf",
+              "size": 7498,
+              "sha": "afa8a047ce4845ad46fb8774de25a9772a33d3fa",
+              "sha256": "c3cdefdd2b5306d8cfb2d7672fedab87f97c3caabf897fcf5ed74fe57a6810e0"
+            },
+            {
+              "path": "Models/CompareClearcoat/glTF/Compare_Clearcoat_img0.jpg",
+              "size": 48897,
+              "sha": "a1eaf6522afb7c515c31e1f79063cd3421a9657a",
+              "sha256": "19acf68cf99dde06af2e4da00b14b8fb81f21e1a154ece528861aa66efab2c9f"
+            },
+            {
+              "path": "Models/CompareClearcoat/glTF/Compare_Clearcoat_img1.jpg",
+              "size": 53105,
+              "sha": "f85cd2d8eb2f390a0cc5b6660ef429d0dcea9aa0",
+              "sha256": "ba910a1057a04a3b228ca11adee2d5f700d4cfce5ad4cc38404c822eb6538f95"
+            }
+          ],
+          "license": {
+            "path": "Models/CompareClearcoat/README.md",
+            "size": 1578,
+            "sha": "a9525d638ecf54a9531668ec1400d77298aecc99",
+            "sha256": "b1003018e3a8be5b0c8eb4e55a6336fabc639e4740a2c625968905a4e27bf0c8"
+          }
+        },
+        {
+          "name": "MetalRoughSpheresNoTextures",
+          "files": [
+            {
+              "path": "Models/MetalRoughSpheresNoTextures/glTF-Binary/MetalRoughSpheresNoTextures.glb",
+              "size": 291316,
+              "sha": "278b83ac0ffa12aeb025f7bd963b1a993b91a8d7",
+              "sha256": "5e677f260ec0f366967a6e9545de2f3dab2a160e307b9bcb9d050cd2028f63f8"
+            },
+            {
+              "path": "Models/MetalRoughSpheresNoTextures/glTF/MetalRoughSpheresNoTextures.bin",
+              "size": 241588,
+              "sha": "00b1d262df9ec69c2693d5a4a7be4d5785590c92",
+              "sha256": "1ce2d45aa5e99ec1a9d0018aa6cbd9cb3156f4fa9452c668525ddc63e9b31a66"
+            },
+            {
+              "path": "Models/MetalRoughSpheresNoTextures/glTF/MetalRoughSpheresNoTextures.gltf",
+              "size": 128886,
+              "sha": "835baaabc4f8cc4ea66d5e20df9e3a428443d57e",
+              "sha256": "fc5d59f4dcd674ef3de98bbe8d3f8cad569394aa07481c803c4449f8834bcada"
+            }
+          ],
+          "license": {
+            "path": "Models/MetalRoughSpheresNoTextures/README.md",
+            "size": 1218,
+            "sha": "a5f6b034b7210031aa8554bf1678783781df32ab",
+            "sha256": "098845806e1c120cbbdb7c05c0cf4d78d577a1eb62c8eb375cd1218d211bee79"
+          }
+        }
+      ],
+      "pre_download_manifest_sha256": "bc6b8fb7a9934f68828594c2e47dd9886c661e6768b5530bc55196a9a7b70b1e",
+      "download_receipt_sha256": "ae2b9a58ec67103950e37cb28895cedaa18b216938d405bb385f469efaec4b62",
+      "family_split_before_testing": true,
+      "named_modes": [
+        "--profile-named-seal-existing-bands",
+        "--profile-named-seal"
+      ]
+    },
+    "other_corpora": {
+      "baseline_manifest": "docs/evidence/windows-compact-sealed-controls-2026-11-26.json",
+      "aitdcc_dataset": "AIT Data Compression Challenge 2026 (AITDCC 2026)",
+      "website": "https://aitdcc.github.io/",
+      "related_paper": "The 2026 Algorithmic Information Theory Data Compression Challenge",
+      "independent_evaluation": true
+    },
+    "profiles": {
+      "calibration": {
+        "original_paths_in_native_volume": true,
+        "control": {
+          "run_id": "local-run-09944e6903754fb38de4fb63f3da6cd3",
+          "log_sha256": "9700efd3972bcf1576380960e7a1c220a9a9e756c83bc14ab8315e8eabb24547",
+          "result_sha256": "2179371e5441b0410ad552af5641914a6099fb88ebd3d146ab6aba12fc43151f",
+          "exit_code": 0,
+          "elapsed_seconds": 2.062000000005355,
+          "tree_retired": true,
+          "memory_limit_bytes": 2711617536,
+          "peak_job_bytes": 35278848,
+          "logical_input_bytes": 2975822,
+          "files": 13,
+          "fragment_nomination_visits": 0,
+          "group_trials": 23,
+          "grouping_read_bytes": 9570632,
+          "grouping_write_bytes": 1802240,
+          "grouping_read_calls": 3238,
+          "sampled_extents": 64,
+          "seal": {
+            "mirror_bytes": 1892352,
+            "settled_bytes": 1339392,
+            "base_bytes": 1191936,
+            "tail_bytes": 16384,
+            "selector_bytes": 131072,
+            "workspace_write_bytes": 954368,
+            "backing_write_bytes": 1339904,
+            "sampled_range_read_bytes": 651264,
+            "members": 34,
+            "bases": 13,
+            "selected": 1,
+            "cpu_exact": 1
+          }
+        },
+        "fragment": {
+          "run_id": "local-run-8dfa54e71c904173aed49a6bbc7cc56e",
+          "log_sha256": "aab4f4c964fe0ecc492d91e1b8abbe2ff45f4e0e5c1edc06f50a4f8255290441",
+          "result_sha256": "22da6560a70052814e3f2ee682704ddd78f0ddec13cce8d27b5059763b7467bb",
+          "exit_code": 0,
+          "elapsed_seconds": 2.0940000000118744,
+          "tree_retired": true,
+          "memory_limit_bytes": 2247098368,
+          "peak_job_bytes": 35246080,
+          "logical_input_bytes": 2975822,
+          "files": 13,
+          "fragment_nomination_visits": 151,
+          "group_trials": 29,
+          "grouping_read_bytes": 11118758,
+          "grouping_write_bytes": 2162688,
+          "grouping_read_calls": 3755,
+          "sampled_extents": 66,
+          "seal": {
+            "mirror_bytes": 1761280,
+            "settled_bytes": 1257472,
+            "base_bytes": 1110016,
+            "tail_bytes": 16384,
+            "selector_bytes": 131072,
+            "workspace_write_bytes": 888832,
+            "backing_write_bytes": 1257984,
+            "sampled_range_read_bytes": 688128,
+            "members": 38,
+            "bases": 15,
+            "selected": 1,
+            "cpu_exact": 1
+          }
+        },
+        "bytes_saved": 81920
+      },
+      "holdout": {
+        "original_paths_in_native_volume": true,
+        "control": {
+          "run_id": "local-run-410abdc9430f410e89a7796108b8da15",
+          "log_sha256": "f2409915a975012582a0b23cb1ef9a189090ebf7106eeb88be47a7b43bd072a7",
+          "result_sha256": "6920bffd3cc165dceec9477d38af77aee9907f49a9c7b592bcb6e9bd6ef59ea7",
+          "exit_code": 0,
+          "elapsed_seconds": 1.9679999999934807,
+          "tree_retired": true,
+          "memory_limit_bytes": 2209349632,
+          "peak_job_bytes": 25141248,
+          "logical_input_bytes": 1857848,
+          "files": 15,
+          "fragment_nomination_visits": 0,
+          "group_trials": 10,
+          "grouping_read_bytes": 5200267,
+          "grouping_write_bytes": 1064960,
+          "grouping_read_calls": 1812,
+          "sampled_extents": 46,
+          "seal": {
+            "mirror_bytes": 1228800,
+            "settled_bytes": 925696,
+            "base_bytes": 778240,
+            "tail_bytes": 16384,
+            "selector_bytes": 131072,
+            "workspace_write_bytes": 622592,
+            "backing_write_bytes": 926208,
+            "sampled_range_read_bytes": 839680,
+            "members": 23,
+            "bases": 9,
+            "selected": 1,
+            "cpu_exact": 1
+          }
+        },
+        "fragment": {
+          "run_id": "local-run-47c584d502514ff0be7281f90b0e2306",
+          "log_sha256": "565b25abe61ac7965a11ea4630f27762f13bd0e2da6c132e96e116559fa3ef82",
+          "result_sha256": "297cfc126d0a2fa09a2298e697bbf1ff7b366179b468267da74797963e91db4a",
+          "exit_code": 0,
+          "elapsed_seconds": 1.827999999979511,
+          "tree_retired": true,
+          "memory_limit_bytes": 2205155328,
+          "peak_job_bytes": 25436160,
+          "logical_input_bytes": 1857848,
+          "files": 15,
+          "fragment_nomination_visits": 102,
+          "group_trials": 15,
+          "grouping_read_bytes": 6792949,
+          "grouping_write_bytes": 1507328,
+          "grouping_read_calls": 2337,
+          "sampled_extents": 51,
+          "seal": {
+            "mirror_bytes": 1122304,
+            "settled_bytes": 864256,
+            "base_bytes": 716800,
+            "tail_bytes": 16384,
+            "selector_bytes": 131072,
+            "workspace_write_bytes": 569344,
+            "backing_write_bytes": 864768,
+            "sampled_range_read_bytes": 905216,
+            "members": 31,
+            "bases": 12,
+            "selected": 1,
+            "cpu_exact": 1
+          }
+        },
+        "bytes_saved": 61440
+      },
+      "ait-i-p": {
+        "original_paths_in_native_volume": false,
+        "control": {
+          "run_id": "local-run-3b87c32b1913400096d0d548e538cc81",
+          "log_sha256": "73bc92ad56f3c0da85020f320c61d4ecd817e3874ccc152ed9dc10dd0262b8ef",
+          "result_sha256": "0fd288d7fb9826f35a151f677b94d2535ff8a50bcf3f3adade72b816450bd17c",
+          "exit_code": 0,
+          "elapsed_seconds": 16.53100000001723,
+          "tree_retired": true,
+          "memory_limit_bytes": 2204106752,
+          "peak_job_bytes": 316203008,
+          "logical_input_bytes": 25153011,
+          "files": 8,
+          "fragment_nomination_visits": 0,
+          "group_trials": 1,
+          "grouping_read_bytes": 30874653,
+          "grouping_write_bytes": 0,
+          "grouping_read_calls": 10492,
+          "sampled_extents": 386,
+          "seal": {
+            "mirror_bytes": 33816576,
+            "settled_bytes": 21291008,
+            "base_bytes": 21143552,
+            "tail_bytes": 16384,
+            "selector_bytes": 131072,
+            "workspace_write_bytes": 16916480,
+            "backing_write_bytes": 21291520,
+            "sampled_range_read_bytes": 724992,
+            "members": 0,
+            "bases": 0,
+            "selected": 1,
+            "cpu_exact": 1
+          }
+        },
+        "fragment": {
+          "run_id": "local-run-43cb822b6095407e92067c7b248fa478",
+          "log_sha256": "174b962b77529958f2149acb8aea42e40c313800ea7811af4b2b1be189caa73c",
+          "result_sha256": "1d134ff5d581fe06dee53cdd48a92d5c285b79aa849c3c655390b50eb4c62fd1",
+          "exit_code": 0,
+          "elapsed_seconds": 17.35899999999674,
+          "tree_retired": true,
+          "memory_limit_bytes": 2184183808,
+          "peak_job_bytes": 317104128,
+          "logical_input_bytes": 25153011,
+          "files": 8,
+          "fragment_nomination_visits": 20,
+          "group_trials": 10,
+          "grouping_read_bytes": 32568286,
+          "grouping_write_bytes": 196608,
+          "grouping_read_calls": 11155,
+          "sampled_extents": 388,
+          "seal": {
+            "mirror_bytes": 33808384,
+            "settled_bytes": 21286912,
+            "base_bytes": 21139456,
+            "tail_bytes": 16384,
+            "selector_bytes": 131072,
+            "workspace_write_bytes": 16912384,
+            "backing_write_bytes": 21287424,
+            "sampled_range_read_bytes": 733184,
+            "members": 3,
+            "bases": 1,
+            "selected": 1,
+            "cpu_exact": 1
+          }
+        },
+        "bytes_saved": 4096
+      },
+      "ait-a-h": {
+        "original_paths_in_native_volume": false,
+        "control": {
+          "run_id": "local-run-db2de739f99644279e634e3feedfc990",
+          "log_sha256": "cb90bdb77a6694873ec469483f3eff412f7c8393f4b8ef9cc33082995086bd2b",
+          "result_sha256": "cad4fcc63f28845288f5329b1eb6162ae6af040bcdb12f0c9516f3f44c15026c",
+          "exit_code": 0,
+          "elapsed_seconds": 12.297000000020489,
+          "tree_retired": true,
+          "memory_limit_bytes": 2153775104,
+          "peak_job_bytes": 148643840,
+          "logical_input_bytes": 13136308,
+          "files": 8,
+          "fragment_nomination_visits": 0,
+          "group_trials": 4,
+          "grouping_read_bytes": 15234006,
+          "grouping_write_bytes": 0,
+          "grouping_read_calls": 5492,
+          "sampled_extents": 203,
+          "seal": {
+            "mirror_bytes": 14925824,
+            "settled_bytes": 9486336,
+            "base_bytes": 9338880,
+            "tail_bytes": 16384,
+            "selector_bytes": 131072,
+            "workspace_write_bytes": 7471104,
+            "backing_write_bytes": 9486848,
+            "sampled_range_read_bytes": 626688,
+            "members": 0,
+            "bases": 0,
+            "selected": 1,
+            "cpu_exact": 1
+          }
+        },
+        "fragment": {
+          "run_id": "local-run-6bf5ab805f1e45bbbfdec31b85c32d7d",
+          "log_sha256": "2f6ced144109e5d4bd9df95fbc1a60a8775a320556b4efe70466ea522e79cfe4",
+          "result_sha256": "1b3f327ddbd2e514fd9cc8d810ed28f1b870467d57d377b6939e2dcc3423acfe",
+          "exit_code": 0,
+          "elapsed_seconds": 11.89000000001397,
+          "tree_retired": true,
+          "memory_limit_bytes": 2736783360,
+          "peak_job_bytes": 149807104,
+          "logical_input_bytes": 13136308,
+          "files": 8,
+          "fragment_nomination_visits": 11,
+          "group_trials": 15,
+          "grouping_read_bytes": 16821677,
+          "grouping_write_bytes": 0,
+          "grouping_read_calls": 6122,
+          "sampled_extents": 203,
+          "seal": {
+            "mirror_bytes": 14925824,
+            "settled_bytes": 9486336,
+            "base_bytes": 9338880,
+            "tail_bytes": 16384,
+            "selector_bytes": 131072,
+            "workspace_write_bytes": 7471104,
+            "backing_write_bytes": 9486848,
+            "sampled_range_read_bytes": 626688,
+            "members": 0,
+            "bases": 0,
+            "selected": 1,
+            "cpu_exact": 1
+          }
+        },
+        "bytes_saved": 0
+      },
+      "cpython": {
+        "original_paths_in_native_volume": false,
+        "control": {
+          "run_id": "local-run-f32ec93c178c491dbc52bac5895bfab6",
+          "log_sha256": "be9f5d65190665458bb8a95d9e3716b6b3644652773dc6505039939f6bb11dc0",
+          "result_sha256": "018863f45fc5c9229d816a9507329c8493d20b794fe448d0e2f91ae999ca6f02",
+          "exit_code": 0,
+          "elapsed_seconds": 2.5,
+          "tree_retired": true,
+          "memory_limit_bytes": 2743074816,
+          "peak_job_bytes": 24203264,
+          "logical_input_bytes": 2510681,
+          "files": 24,
+          "fragment_nomination_visits": 0,
+          "group_trials": 15,
+          "grouping_read_bytes": 5730795,
+          "grouping_write_bytes": 1007616,
+          "grouping_read_calls": 2286,
+          "sampled_extents": 63,
+          "seal": {
+            "mirror_bytes": 696320,
+            "settled_bytes": 593920,
+            "base_bytes": 446464,
+            "tail_bytes": 16384,
+            "selector_bytes": 131072,
+            "workspace_write_bytes": 356352,
+            "backing_write_bytes": 594432,
+            "sampled_range_read_bytes": 1110016,
+            "members": 48,
+            "bases": 13,
+            "selected": 1,
+            "cpu_exact": 1
+          }
+        },
+        "fragment": {
+          "run_id": "local-run-b2430c463f724f94bb0ede8dddc1b8fc",
+          "log_sha256": "29aa946b8bf40d5dca1e5f42022645ccd6c248cee56b78244d524b73da4119c9",
+          "result_sha256": "05e009e7a8567d8be2f8511d76be8c8f31cee08b3f729a1d8af13d4cf824bbdb",
+          "exit_code": 0,
+          "elapsed_seconds": 2.4679999999934807,
+          "tree_retired": true,
+          "memory_limit_bytes": 2735734784,
+          "peak_job_bytes": 24174592,
+          "logical_input_bytes": 2510681,
+          "files": 24,
+          "fragment_nomination_visits": 35,
+          "group_trials": 15,
+          "grouping_read_bytes": 5730795,
+          "grouping_write_bytes": 1007616,
+          "grouping_read_calls": 2286,
+          "sampled_extents": 63,
+          "seal": {
+            "mirror_bytes": 696320,
+            "settled_bytes": 593920,
+            "base_bytes": 446464,
+            "tail_bytes": 16384,
+            "selector_bytes": 131072,
+            "workspace_write_bytes": 356352,
+            "backing_write_bytes": 594432,
+            "sampled_range_read_bytes": 1110016,
+            "members": 48,
+            "bases": 13,
+            "selected": 1,
+            "cpu_exact": 1
+          }
+        },
+        "bytes_saved": 0
+      }
+    }
+  },
+  "behavior": {
+    "indexed_only": true,
+    "default_with_headroom": true,
+    "alternate_scratch_in_live_grant": true,
+    "fine_minima": 16,
+    "minimum_distinct_keys": 2,
+    "broad_postings_filtered": true,
+    "maximum_postings_per_key": 16,
+    "single_peer_per_seed": true,
+    "retains_dedicated_short_packing_path": true,
+    "fine_keys_resident": true,
+    "new_on_media_capability": false,
+    "independent_cpu_recovery": true
+  },
+  "validation": {
+    "windows_release": {
+      "passed": 240,
+      "configuration": "Release",
+      "build": {
+        "id": "local-run-7b7997d61cb5415ba8b974428ee5e4a3",
+        "elapsed_seconds": 121.59400000001187,
+        "peak_job_bytes": 552554496,
+        "tree_retired": true,
+        "log_sha256": "65b317d14952965144ff88a84d5c7884144d996fa736d16e1d13680b92f1d349"
+      },
+      "suite": {
+        "id": "local-run-f6152edb24be407fa5802b37e91c43ae",
+        "elapsed_seconds": 301.01600000000326,
+        "peak_job_bytes": 686706688,
+        "tree_retired": true,
+        "log_sha256": "2596bf84d04e3457c6f5bd7a0fb8b3f3dfcb2ed5eaee08aa4aab891c88e546d4",
+        "result_sha256": "b1b2efb99982a017cf2a7ebf3046084b5c1e15ede3de3bc3de0244b1b0272a5e",
+        "ctest_log_sha256": "4fdcad83ac387e72ed3fa131bc130c901958a302dbc6f419f9d039b3309be749"
+      }
+    },
+    "raw_only": {
+      "run_id": "local-run-fd5ada6dcfaf4220861129260e06cdc9",
+      "log_sha256": "cbb71286a22e8ab70174f982e5d0c326488b10d3114e56e613d59227a57d10a6",
+      "result_sha256": "8e408b72405f51a3b5c79d3cb0105229568eb58dfcb31d866e1899ef6f72fa5c",
+      "exit_code": 0,
+      "elapsed_seconds": 6.905999999988126,
+      "tree_retired": true,
+      "memory_limit_bytes": 2480930816,
+      "peak_job_bytes": 107302912,
+      "passed": 7,
+      "ctest_detailed_log_sha256": "cb6f953ebf0198036a7379543a5f4b0a289a17e9d1ee2d8d808a0a3f9b55a0a6"
+    },
+    "address_sanitizer": {
+      "run_id": "local-run-fa11cc3d7d8049edaa4df645a5105d46",
+      "log_sha256": "238f5e0bca3725f2eba40bc4b08c59a8c939acc466d7725d4d2c05a0df6ae167",
+      "result_sha256": "8583b1c7f184af8c418f841526e3d30acb7574622099d7896af0b8216f302c32",
+      "exit_code": 0,
+      "elapsed_seconds": 35.46899999998277,
+      "tree_retired": true,
+      "memory_limit_bytes": 2502950912,
+      "peak_job_bytes": 593149952,
+      "passed": 9,
+      "configuration": "RelWithDebInfo",
+      "runtime_preflight": "passed",
+      "staged_runtime_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed",
+      "ctest_detailed_log_sha256": "200c77024378e2aa22db63f00da9a5380b6e9916a44416f53fd6c80845a7b525"
+    },
+    "focused_release": {
+      "run_id": "local-run-06ee35b6783c43179a80945a96b649c2",
+      "log_sha256": "15561945a72d556105b97b41bb6be7f31d3cb977d3b8085ebb5d6fa839bc8ccf",
+      "result_sha256": "e8925bfcb8233ed5d75bfff9de59b0f7a3a5f37f325e967b09617acb31398ddd",
+      "exit_code": 0,
+      "elapsed_seconds": 2.5939999999827705,
+      "tree_retired": true,
+      "memory_limit_bytes": 1924136960,
+      "peak_job_bytes": 70778880,
+      "passed": 3
+    },
+    "deterministic_shifted_pair": {
+      "shared_bytes": 32768,
+      "fine_minima_matches": 6,
+      "combined_shift_band_match": false,
+      "settled_protected_bytes_existing_and_fragment": [
+        409600,
+        344064
+      ],
+      "independent_cpu_exact": true
+    },
+    "earlier_cross_window_pair": {
+      "run_id": "local-run-d72557bbacfc4a999ee958b16d540d5d",
+      "log_sha256": "c94f07e24d284af0d340504cb8c3d7ae5328c950ca65010d0321af8caa8a4352",
+      "result_sha256": "4fbf4bfbefed0e3f8ce1909a3baf78f4cc75a0e99c0be78630b4e57fe2f18ec9",
+      "exit_code": 8,
+      "elapsed_seconds": 21.312999999994645,
+      "tree_retired": true,
+      "memory_limit_bytes": 3041918976,
+      "peak_job_bytes": 107139072,
+      "unfiltered_fragment_first_bytes": 8437760,
+      "dedicated_pack_bytes": 8454144,
+      "additional_savings_in_earlier_approach": 16384,
+      "follow_up": "Compare both representations for the same verified pair before committing."
+    }
+  },
+  "live_amd": {
+    "physical_adapter": "AMD Radeon RX 9070 XT",
+    "two_observed_engine_peaks_percent": [
+      97.94379794551298,
+      98.98235665330472
+    ],
+    "samples_per_observation": 816,
+    "dispatch": false,
+    "status": "deferred by existing load"
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "lock": "01fbef3b628f772e4aba9724b6ced11c0f211d4d3bf51e38d1b9d0039eac997b",
+    "robots": true,
+    "external_llm": false,
+    "pages": [
+      {
+        "name": "rubikfs",
+        "url": "https://www.usenix.org/conference/fast26/presentation/huang",
+        "success": true,
+        "http_status": 200,
+        "markdown_bytes": 10416,
+        "markdown_sha256": "dbc538fff3a57a4c36ef94c8a47e1737270a83880e2fb6957160b9b46f285256",
+        "capture_sha256": "9f203371e5b3410cd1ade9ebf085c68f58e004d4ad0e444dc069c503c95980ff"
+      },
+      {
+        "name": "zipllm",
+        "url": "https://www.usenix.org/conference/nsdi26/presentation/wang-zirui",
+        "success": true,
+        "http_status": 200,
+        "markdown_bytes": 9825,
+        "markdown_sha256": "7d8b26ef26e93b17030ef2cd86d039b36d0df9223a031cacb654b610c72fbd3e",
+        "capture_sha256": "deaa78ca73557be94033fd5c44a0b3809dcdd4bc5762d0b0aed6c529942d7a1f"
+      },
+      {
+        "name": "loopdelta",
+        "url": "https://mingzhe-zhang.github.io/publications/tos2025",
+        "success": true,
+        "http_status": 200,
+        "markdown_bytes": 4130,
+        "markdown_sha256": "bd7765b4c76396e9d6a36f282ef9e1216721b18c58e819b637c4616166ccca9e",
+        "capture_sha256": "8b2d52a9da96f1c1b6a315ab05faf1537607d13a4ff0190d14fa8612985f587d"
+      },
+      {
+        "name": "khronos-assets",
+        "url": "https://github.com/KhronosGroup/glTF-Sample-Assets/blob/main/README.md",
+        "success": true,
+        "http_status": 200,
+        "markdown_bytes": 16012,
+        "markdown_sha256": "7d5c93943fab77a09b7f55dde04916b25178d6961424a0aedb82dd35612c5504",
+        "capture_sha256": "a7c36652e296a7eb8e8ae2dd6605a343265acd9f21beb4a177dede6a535388ef"
+      }
+    ],
+    "citation_receipt_sha256": "989932c9b592de221ef2761567d7c0877d3a9c33229c818a5bb1c04b98a43721",
+    "semantic_index": {
+      "version": "0.2.43",
+      "exact_parent": "31474b79b77dfd415634689b26fecd6cc79dce16",
+      "native_result_sha256": "2cc3e8d1ce730a1a750843ff64c45bfeb55ed3bb1bd7bac2d06c4a820b1bce05",
+      "receipt_sha256": "c1c6ab07bb549444e1f41b858314da8738b404e8057885748d9edc2f14553ce7",
+      "files": 2,
+      "actual_searches": 1,
+      "first_attempt_error": "Connection to daemon lost during indexing",
+      "first_attempt": {
+        "run_id": "local-run-bb75645eacbe4ccca72bf5a35a76aad9",
+        "log_sha256": "3d18217e0452c293cd319d868595ba7f0d9588d556276b1d56b6e6cf01772389",
+        "result_sha256": "0b9446fddee190b0ca5cfe323c70c0c0a62e2eac65da92e6f09d16edf47591f6",
+        "exit_code": 1,
+        "elapsed_seconds": 38.546000000002095,
+        "tree_retired": true,
+        "memory_limit_bytes": 1074790400,
+        "peak_job_bytes": 1108295680
+      },
+      "recovered_attempt": {
+        "run_id": "local-run-8b524230300e4650a8609d917e7e7b99",
+        "log_sha256": "f492101b82d8cf1c97af64a5f6049f7613c3ac4b4132bcba66fc2a9357d91c62",
+        "result_sha256": "c0438b019bf5bb64d410a3d464b64907e0283bc3b81704591de0ef19458352c3",
+        "exit_code": 0,
+        "elapsed_seconds": 20.84399999998277,
+        "tree_retired": true,
+        "memory_limit_bytes": 1854930944,
+        "peak_job_bytes": 1079115776
+      }
+    }
+  },
+  "release_qualified": false
+}

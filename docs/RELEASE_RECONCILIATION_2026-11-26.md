@@ -10,14 +10,22 @@ detailed package contracts and the release execution plan retains the gates.
 [Implementation packages](IMPLEMENTATION_PLAN.md#3-execution-order-and-dependencies) ·
 [Release gates](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
 
-This checkpoint builds on `5dacbcae6e0215c7ec4b7b9773dc8715d7b81883`.
+The current checkpoint builds on `31474b79b77dfd415634689b26fecd6cc79dce16`.
+Source tree `b23965211dcab367717fc05fd3b93c10922fe809` adds funded discovery of
+shifted fragments in the native maintenance controller. The independently
+reopened Khronos holdout occupies 864,256 bytes, down from 925,696
+bytes with the existing bands. The test retained the source paths and
+compared complete protected placements under the same geometry.
+[Shifted-fragment evidence](evidence/windows-shifted-fragment-discovery-2026-11-26.json)
+
+The preceding compact-control checkpoint builds on `5dacbcae6e0215c7ec4b7b9773dc8715d7b81883`.
 The tested source tree `dfc42cb6d683316a366e4a44b25f61342a2067f0`
 sizes sealed control records to the covered failure unit. The paired
 owner uses the smaller layout automatically when the backing can isolate
 the records. The grouped CPython fixture now fits a sealed base and tail
 in 593,920 bytes including its selector. An independent CPU reader
 verified every file and all 48 shared references.
-[Current evidence](evidence/windows-compact-sealed-controls-2026-11-26.json) ·
+[Compact-control evidence](evidence/windows-compact-sealed-controls-2026-11-26.json) ·
 [Source review](architecture/REVIEW.md)
 
 The follow-up AMD checkpoint made priority optional in the Windows workers.
@@ -574,6 +582,43 @@ generations. Record temporary peak space and extra writes separately.
 A representation enters production only with exact independent CPU
 readback at normal and partial read boundaries.
 
+The shifted-fragment path makes an additional bounded nomination from
+the same rolling scan. Two distinct rare keys can link
+extents whose existing combined bands differ. The current owner orders
+these trials by observed protected savings, charges their working set
+and applies the existing byte and allocation checks.
+
+| Named Khronos input | Existing bands | Added fragment nominations | Saved |
+| --- | ---: | ---: | ---: |
+| Calibration, 13 files | 1,339,392 B | 1,257,472 B | 81,920 B (6.1%) |
+| Held-out families, 15 files | 925,696 B | 864,256 B | 61,440 B (6.6%) |
+
+The held-out run grew from 23 to 31 references. It read 1,592,682
+additional bytes during maintenance, wrote 442,368 additional bytes
+during grouping and read 65,536 more backing bytes for the fixed
+range sample. The sealed copy itself was smaller. All files and the
+retained source snapshot matched independently. This single paired
+fixture establishes size and work counts. Application latency and
+long-run write cost require a separate comparison.
+[Source assets and fixity](https://github.com/KhronosGroup/glTF-Sample-Assets/tree/e124e8d8d7330a5372bc2b4d00d39a4a9d7997ea/Models) ·
+[Complete placement and read evidence](evidence/windows-shifted-fragment-discovery-2026-11-26.json)
+
+The wider fragment-first experiment also discovered an overlapping
+short pair that settled 16,384 bytes smaller than the dedicated packing
+arm on that control. The current shortlist reserves fits for the packing
+pass. The next comparison should evaluate both representations against
+the same checked objects before committing a result. Retain the stale
+partner control while changing that decision.
+[Cross-window comparison](evidence/windows-shifted-fragment-discovery-2026-11-26.json)
+
+FAST 2026 RubikFS provides a recent comparison of content grouping and
+access locality on immutable images. LoopDelta shows why low-cost
+locality signals and read penalties matter to reference selection.
+Use the measured saved allocation and restart work to decide which of
+the new fine keys belongs in FlitzFS's persistent advisory index.
+[RubikFS](https://www.usenix.org/conference/fast26/presentation/huang) ·
+[LoopDelta](https://mingzhe-zhang.github.io/publications/tos2025)
+
 The current pair control found no improving pair or merge in the 24
 CPython samples. In the eight AITDCC first extents, four directed pairs
 saved space, with no shared nonconstant 16-byte fragment between files.
@@ -755,7 +800,7 @@ be matched on all arms.
 
 | Priority and decision | Next deliverable | Acceptance and follow-through |
 | --- | --- | --- |
-| 1. Minimize complete protected size | Use the compact seal as the baseline and run a sparse fragment shortlist against an exact saved-allocation oracle on a fresh named holdout. | Prove the selected group and placement on exact names and bytes. Charge dependency, access, repair and retirement work. Keep the strongest arm for each measured cohort, including small files. |
+| 1. Minimize complete protected size | Measure which profitable pairs the new fragment path misses. Compare packed, direct and assembled alternatives on the same candidates before adding fine keys to persistent advice. | Prove the selected group and placement on exact names and bytes. Charge dependency, access, repair and retirement work. Keep the strongest arm for each measured cohort, including small files. |
 | 2. Consume automatic AMD work through Windows | Join actual client demand, worker readiness, verified results and consumption in the populated Win32 witness. Start with grouped sequential reads and collective candidate search. Use short writes as the matched CPU reference and add larger recurring cohorts. | Alternate matched lanes. Report verified and consumed bytes, CPU continuity, occupied size, p99, idle residency and retirement on the observed installation. A device result earns a policy only when the useful path gains after all overhead. |
 | 3. Bound writable attach and recovery | Build a source-bound checked-attach comparison against the existing CPU inventory. Add named churn at geometric tiers, including one reserved larger tier. | Show identical admission and reference ownership on healthy, stale and interrupted images. Record lookup I/O, memory, touched and live pages, fallback and repair debt. Qualify each promised provider boundary before changing writable attach. |
 
@@ -773,10 +818,10 @@ be matched on all arms.
    fixed across new encoder arms. Compare exact footprint, restart and
    repair work after retirement. Retain a mirror where the verified seal
    loses on space or exceeds the cohort's read or rewrite budget.
-3. Freeze a new named revision-family tree before training. Khronos glTF
-   Sample Assets includes related JSON, binary geometry and image resources
-   and alternate containers. Pin model families and revisions. Preserve
-   the paths and license records. Add a separately pinned document tree,
+3. Keep the fixed Khronos families as a reproducibility control. Their
+   JSON, binary geometry, image resources and alternate containers
+   exercise shifted content in separate files. Preserve their paths
+   and license records. Add a separately pinned document tree,
    source tree and incompressible negative controls. Put all related
    variants of each family in one split. Freeze the manifest, maximum
    size, split and selection seed before encoding. Preserve AITDCC and

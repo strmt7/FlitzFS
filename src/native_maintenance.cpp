@@ -20,13 +20,14 @@ using Digest=detail::Digest;using Phase=NativeMaintenancePhase;using Defer=Nativ
 using ContentLookup=detail::IndexedContentLookup;
 constexpr std::uint64_t million=1000000,fixed_scratch=16ULL*kNativeExtentBytes,member_scratch=8ULL*kNativeExtentBytes;
 constexpr unsigned positional_bands=8;
+constexpr unsigned fragment_band=kCoherenceBandCount;
 constexpr std::uint64_t yield_scale=1024;
 
 std::size_t discovery_family(unsigned band) noexcept {
   if(band<positional_bands)return 0;
   if(band<kCoherenceMaskedBand)return 1;
   if(band<kCoherenceModularBand)return 2;
-  return 3;
+  return band==fragment_band?4:3;
 }
 constexpr std::size_t xor_reference_tiles=8,xor_planes=8;
 using XorReferencePlane=std::array<std::uint64_t,anchor_match::xor_plane_bytes/sizeof(std::uint64_t)>;
@@ -38,6 +39,13 @@ static_assert(std::tuple_size_v<detail::NativeGroupDeltaSignatures> == kCoherenc
 // overlapping controller, publisher and verifier copies of checkpoint rows.
 constexpr auto packing_index_scratch=sizeof(detail::NativePackingSketch)+128+
     std::tuple_size_v<detail::NativePackingSketch>*sizeof(std::pair<std::pair<unsigned,std::uint64_t>,std::uint64_t>);
+constexpr auto fragment_lanes=std::tuple_size_v<detail::NativePackingSketch>;
+// Sorted postings cover one current window and its funded representatives.
+// The rare-key filter bounds the per-seed counters and each seed can add
+// one pair to the existing candidate order.
+constexpr std::uint64_t fragment_nomination_scratch=
+    (kOptimizationGroupRepresentatives+kNativeMaxDirtyExtents)*packing_index_scratch+
+    fragment_lanes*fragment_lanes*96+kNativeMaxDirtyExtents*192;
 constexpr auto representative_scratch=8*(sizeof(OptimizationGroupFeature)+sizeof(OptimizationGroupProjection)+
     sizeof(detail::CoherenceScanKeys)+sizeof(std::optional<XorReferenceSample>))+packing_index_scratch;
 static_assert(kOptimizationGroupRepresentatives>kNativeMaxDirtyExtents);
@@ -215,10 +223,10 @@ struct NativeGroupMaintenance::Impl {
   std::shared_ptr<const void> reservation;
   NativeMaintenancePolicy policy;NativeMaintenanceProgress state;
   const bool automatic_compression;
-  // Per attachment, four discovery families share the same neutral prior.
+  // Each discovery family starts with the same neutral prior.
   // Update only from settled indexed trials under the existing work grant.
-  std::array<std::uint64_t,4> yield_by_family{
-      yield_scale/2,yield_scale/2,yield_scale/2,yield_scale/2};
+  std::array<std::uint64_t,5> yield_by_family{
+      yield_scale/2,yield_scale/2,yield_scale/2,yield_scale/2,yield_scale/2};
   GroupTrial group_trial;
   Phase phase=Phase::idle;StoreIdentity image{};NativeExtentSelection cursor{};
   bool first=true,stopped=false;unsigned pending_history=0;
@@ -259,6 +267,7 @@ struct NativeGroupMaintenance::Impl {
   std::size_t staged_extents=0,staged_search_members=0;
   std::size_t staged_scan_extents=0;
   bool work_batched=false,batch_draining=false;
+  bool fragments_admitted=false;
   bool work_sampled_retry=false;
   std::optional<Digest> work_sampled_key;
   Digest work_key{};std::size_t work_members=0;
@@ -481,7 +490,8 @@ struct NativeGroupMaintenance::Impl {
     if(indexed) {
       const auto short_payload=feature.token.standalone_bytes &&
           feature.token.standalone_bytes<kNativeExtentBytes && store_zstd_available();
-      const auto shifted=detail::native_group_shift_features(bytes,short_payload?&feature.packing:nullptr);
+      const auto shifted=detail::native_group_shift_features(bytes,
+          short_payload || fragments_admitted?&feature.packing:nullptr);
       std::copy(shifted.begin(),shifted.end(),feature.bands.begin()+positional_bands);
       feature.projections=sample_xor_signatures(bytes);
       feature.deltas=detail::native_group_delta_signatures(bytes);
@@ -490,6 +500,78 @@ struct NativeGroupMaintenance::Impl {
         feature.reference_sample=sample_xor_reference(bytes);
     }
     return feature;
+  }
+  void nominate_fragments() {
+    using Posting=std::pair<Band,std::uint64_t>;
+    if(features.size()+representatives.size()<2)return;
+    std::vector<Posting> postings;
+    postings.reserve((features.size()+representatives.size())*fragment_lanes);
+    const auto add=[&](const auto& entries,bool retained) {
+      for(const auto& [id,value]:entries) {
+        if((retained && features.contains(id)) ||
+            (!indexed_member_candidate(value.token) && !value.token.exact_base))continue;
+        for(unsigned lane=0;lane<fragment_lanes;++lane) {
+          if(value.packing[lane])postings.emplace_back(Band{lane,value.packing[lane]},id);
+        }
+      }
+    };
+    add(features,false);
+    add(representatives,true);
+    std::ranges::sort(postings);
+    const auto share_key=[](const auto& left,const auto& right) {
+      for(std::size_t i=0;i<left.size();++i)if(left[i] && left[i]==right[i])return true;
+      return false;
+    };
+    const auto share_band=[](const Feature& left,const Feature& right) {
+      for(unsigned band=0;band<left.bands.size();++band)
+        if(left.bands[band] && left.bands[band]==right.bands[band] && usable_indexed_band(band,left.bands[band]))
+          return true;
+      return false;
+    };
+    std::set<std::pair<std::uint64_t,std::uint64_t>> nominated;
+    const bool can_pack=store_zstd_available();
+    for(const auto& [id,seed]:features) {
+      if(!indexed_member_candidate(seed.token))continue;
+      struct Score {unsigned matches=0,weight=0;};
+      std::map<std::uint64_t,Score> peers;
+      for(unsigned lane=0;lane<fragment_lanes;++lane) {
+        if(!seed.packing[lane])continue;
+        const auto matches=std::ranges::equal_range(postings,Band{lane,seed.packing[lane]},
+            std::ranges::less{},&Posting::first);
+        const auto count=static_cast<std::size_t>(std::ranges::distance(matches));
+        // Common minima provide weak evidence and can have long postings.
+        if(count<2 || count>fragment_lanes)continue;
+        for(const auto& [key,peer]:matches) {
+          (void)key;
+          if(peer==id)continue;
+          auto& score=peers[peer];
+          ++score.matches;
+          score.weight+=static_cast<unsigned>(fragment_lanes/count);
+        }
+      }
+      std::uint64_t preferred=0;
+      unsigned best=0;
+      for(const auto& [peer,score]:peers) {
+        if(score.matches<2 || score.weight<=best)continue;
+        const auto& match=indexed_feature(peer);
+        const auto seed_bytes=seed.token.standalone_bytes,peer_bytes=match.token.standalone_bytes;
+        if(can_pack && seed_bytes && peer_bytes && std::uint64_t{seed_bytes}+peer_bytes<=kNativeExtentBytes)
+          continue; // The packing pass can combine both complete payloads.
+        if(share_band(seed,match) || share_key(seed.projections,match.projections) ||
+            share_key(seed.deltas,match.deltas))continue;
+        preferred=peer;
+        best=score.weight;
+      }
+      if(!preferred || !nominated.emplace((std::min)(id,preferred),(std::max)(id,preferred)).second)
+        continue;
+      auto& bucket=buckets[{fragment_band,id}];
+      bucket.ids={id,preferred};
+      const auto& match=indexed_feature(preferred);
+      bucket.incumbent_bytes=seed.token.stored_payload_bytes;
+      if(features.contains(preferred) && indexed_member_candidate(match.token))
+        bucket.incumbent_bytes+=match.token.stored_payload_bytes;
+      ++state.fragment_nominations;
+    }
   }
   void rank_buckets(bool indexed) {
     buckets.clear();
@@ -526,6 +608,7 @@ struct NativeGroupMaintenance::Impl {
     if(indexed)for(const auto& [id,feature]:representatives) {
       if(!features.contains(id))add_bands(id,feature,true);
     }
+    if(indexed && fragments_admitted)nominate_fragments();
     candidate_order.clear();
     for(const auto& [band,bucket]:buckets) {
       if(bucket.ids.size()<2)continue;
@@ -744,6 +827,7 @@ struct NativeGroupMaintenance::Impl {
   void propose_indexed_group(NativeFilesystemWriter& writer,std::size_t maximum_members,
       std::size_t remaining_extents,bool collect_batch) {
     const auto band=candidate_order[candidate_index++].band;
+    if(band.first==fragment_band && !fragments_admitted)return;
     const auto& ids=buckets.at(band).ids;
     const auto reusable=std::ranges::find_if(ids,[&](auto id){return indexed_feature(id).token.exact_base;});
     const auto prior=std::ranges::find_if(ids,[&](auto id){return !features.contains(id);});
@@ -1347,7 +1431,7 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
   }
   if(!observed.sequence || observed.sequence<=p.last_observation)return p.defer(Defer::observation);
   p.last_observation=observed.sequence;
-  const auto resources=detail::maintenance_resources(observed,now_ms,p.policy);
+  auto resources=detail::maintenance_resources(observed,now_ms,p.policy);
   if(!resources || observed.captured_ms<p.last_capture)return p.defer(Defer::observation,true);
   if(observed.continued && observed.captured_ms!=p.last_capture)return p.defer(Defer::observation);
   const auto elapsed=p.last_capture?(std::min)(observed.captured_ms-p.last_capture,observed.cpu_window_ms):0;
@@ -1363,6 +1447,18 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
     if(retained_sections || (variant.members>=3 && p.group_members()<=variant.members)) {
       budget=variant;
       sections=true;
+    }
+  }
+  p.fragments_admitted=false;
+  if(indexed && p.policy.fragment_nominations && resources->memory_allowance>fragment_nomination_scratch) {
+    auto available=*resources;
+    available.memory_allowance-=fragment_nomination_scratch;
+    const auto fragment_budget=group_memory_budget(available,true,sections);
+    if(fragment_budget.members>=(std::max)(std::size_t{2},p.group_members()) &&
+        fragment_budget.representatives>=p.representative_count()) {
+      *resources=available;
+      budget=fragment_budget;
+      p.fragments_admitted=true;
     }
   }
   const auto [maximum_members,maximum_representatives]=budget;

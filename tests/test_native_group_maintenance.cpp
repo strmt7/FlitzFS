@@ -945,12 +945,18 @@ void profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expect
     bool compare_reencoding=false,NativeIndexedDataLayout layout=NativeIndexedDataLayout::extents,
     NativeVolumeHeadLayout head_layout=NativeVolumeHeadLayout::legacy,
     PagedStoreBankLayout image_layout=PagedStoreBankLayout::shared,bool byte_planes=false,
-    std::optional<NativeHybridControls> seal_controls={}) {
+    std::optional<NativeHybridControls> seal_controls={},bool fragment_nominations=false,
+    const native_fixture::NamedCorpusFixture* named=nullptr) {
   if(!store_zstd_available())return;
   const StoreCompressionOptions policy{StoreCompressionMode::automatic,3,true,byte_planes};
+  NativeMaintenancePolicy maintenance;
+  maintenance.fragment_nominations=fragment_nominations;
   constexpr NativeImageStorage storage{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes};
-  const auto name=[](std::size_t i){return "pack-profile-"+std::to_string(i);};
+  const auto name=[named](std::size_t i){return named?named->files()[i].path:"pack-profile-"+std::to_string(i);};
   Fixture f(4096,0,true,policy,layout,head_layout,image_layout);
+  if(named) {
+    for(const auto& directory:named->directories())f.session->create_entry(directory,true);
+  }
   std::uint64_t input_bytes=0;
   constexpr std::size_t write_bytes=1024*1024;
   for(std::size_t i=0;i<inputs.size();++i) {
@@ -1034,7 +1040,7 @@ void profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expect
     const auto read_start=cold_first.image->read_bytes,write_start=cold_first.image->write_bytes;
     NativeMaintenanceProgress progress;
     {
-      NativeGroupMaintenance groups(*cold_first.session);
+      NativeGroupMaintenance groups(*cold_first.session,maintenance);
       progress=cold_first.finish(groups);
     }
     const auto read_bytes=cold_first.image->read_bytes-read_start,write_bytes=cold_first.image->write_bytes-write_start;
@@ -1051,7 +1057,7 @@ void profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expect
   const auto before_reads=f.image->read_bytes,before_writes=f.image->write_bytes;
   const auto before_read_calls=f.image->read_calls;
   {
-    NativeGroupMaintenance groups(*f.session);
+    NativeGroupMaintenance groups(*f.session,maintenance);
     outcome=f.finish(groups);
     const auto reads=f.image->read_calls,writes=f.image->writes;
     require(f.step(groups).phase==Phase::idle && f.image->read_calls==reads && f.image->writes==writes,
@@ -1074,6 +1080,7 @@ void profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expect
       <<" maintenance_write_bytes="<<maintenance_writes<<" work_ns="<<outcome.elapsed_work_ns
       <<" packed_groups="<<outcome.packed_reference_groups<<" attempts="<<outcome.attempted_groups
       <<" yield_observations="<<outcome.candidate_yield_observations
+      <<" fragment_nominations="<<outcome.fragment_nominations
       <<" members="<<members<<" cpu_exact=1 retained_snapshot_exact=1 idle_io=0\n";
   if(compare_reencoding) {
     f.session.emplace(NativeFileSession::resume_closed_indexed_volume(f.head,id(90),1,resolve,policy));
@@ -1192,7 +1199,7 @@ void profile_public_packs(const std::filesystem::path& filename,bool complete_fi
     NativeVolumeHeadLayout head_layout=NativeVolumeHeadLayout::legacy,
     PagedStoreBankLayout image_layout=PagedStoreBankLayout::shared,bool byte_planes=false,
     std::optional<NativeHybridControls> seal_controls={},
-    const std::filesystem::path& second_corpus={}) {
+    const std::filesystem::path& second_corpus={},bool fragment_nominations=false) {
   if(!store_zstd_available()) {
     require(!complete_files,"complete-file packing profile requires Zstandard");
     return;
@@ -1202,7 +1209,63 @@ void profile_public_packs(const std::filesystem::path& filename,bool complete_fi
     auto extra=read_packed_corpus(second_corpus,complete_files);
     inputs.insert(inputs.end(),std::make_move_iterator(extra.begin()),std::make_move_iterator(extra.end()));
   }
-  profile_similarity_packing(inputs,0,compare_reencoding,layout,head_layout,image_layout,byte_planes,seal_controls);
+  profile_similarity_packing(inputs,0,compare_reencoding,layout,head_layout,image_layout,byte_planes,seal_controls,
+      fragment_nominations);
+}
+
+void profile_named_seal(const std::filesystem::path& filename,bool fragments) {
+  require(store_zstd_available(),"named seal profile requires Zstandard");
+  const native_fixture::NamedCorpusFixture corpus(filename);
+  std::vector<Bytes> inputs;
+  inputs.reserve(corpus.files().size());
+  for(const auto& file:corpus.files())inputs.push_back(corpus.read(file));
+  profile_similarity_packing(inputs,0,true,NativeIndexedDataLayout::extents,NativeVolumeHeadLayout::legacy,
+      PagedStoreBankLayout::shared,true,NativeHybridControls::compact,fragments,&corpus);
+}
+
+void shifted_fragment_discovery() {
+  const auto left=data(kNativeExtentBytes,39410);
+  auto right=data(kNativeExtentBytes,841);
+  std::copy_n(left.begin()+4195,32768,right.begin()+17357);
+  detail::NativePackingSketch left_sketch,right_sketch;
+  const auto left_bands=detail::native_group_shift_features(left,&left_sketch);
+  const auto right_bands=detail::native_group_shift_features(right,&right_sketch);
+  std::size_t matches=0;
+  for(std::size_t lane=0;lane<left_sketch.size();++lane)
+    matches+=left_sketch[lane] && left_sketch[lane]==right_sketch[lane];
+  bool shared_band=false;
+  for(std::size_t band=0;band<left_bands.size();++band)
+    shared_band|=left_bands[band] && left_bands[band]==right_bands[band];
+  require(matches>=2 && !shared_band,"shifted fragment fixture lost its discovery distinction");
+  constexpr NativeImageStorage storage{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes};
+  constexpr StoreCompressionOptions policy{StoreCompressionMode::raw,1,false};
+  const auto settled=[&](bool fragments) {
+    Fixture f(4096,0,true,policy);
+    put(*f.session,"left",left);
+    put(*f.session,"right",right);
+    NativeMaintenancePolicy settings;
+    settings.fragment_nominations=fragments;
+    NativeMaintenanceProgress result;
+    {
+      NativeGroupMaintenance maintenance(*f.session,settings);
+      result=f.finish(maintenance);
+    }
+    require(fragments?(result.fragment_nominations && result.published_groups==1):
+        (!result.fragment_nominations && !result.published_groups),"shifted fragment discovery selected wrong arm");
+    f.session.reset();
+    const auto current=NativeFilesystemSnapshot::open_image(f.image,storage);
+    auto backing=ram(4096);
+    (void)NativeFilesystemWriter::compact(current,backing,id(2),policy);
+    const auto reader=NativeFilesystemSnapshot::open_image(backing,storage);
+    reader.verify_all();
+    require(reader.read("left",0,left.size())==left && reader.read("right",0,right.size())==right,
+        "shifted fragment changed CPU recovery bytes");
+    return backing->extent();
+  };
+  const auto ordinary=settled(false),fragments=settled(true);
+  require(fragments<ordinary,"shifted fragment failed to reduce settled protected size");
+  std::cout<<"shifted_fragment_control ordinary_bytes="<<ordinary<<" fragment_bytes="<<fragments
+      <<" fine_minima_matches="<<matches<<" cpu_exact=1\n";
 }
 
 void profile_indexed_pair_oracle(const std::filesystem::path& filename,bool tails=false) {
@@ -4444,6 +4507,8 @@ int main(int argc,char** argv){try{
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-advice") {
     advised_indexed_maintenance();
     collective_dense_advice();
+  } else if(argc==2 && std::string_view(argv[1])=="--indexed-shifted-fragment") {
+    shifted_fragment_discovery();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-yield-order") {
     indexed_candidate_yield_order();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-section-reuse") {
@@ -4487,12 +4552,17 @@ int main(int argc,char** argv){try{
     profile_public_packs(argv[2],true,true,NativeIndexedDataLayout::extents,
         NativeVolumeHeadLayout::legacy,PagedStoreBankLayout::shared,true);
   } else if((argc==3 || argc==4) && (std::string_view(argv[1])=="--profile-public-grouped-seal" ||
-      std::string_view(argv[1])=="--profile-public-compact-seal")) {
-    const auto controls=std::string_view(argv[1])=="--profile-public-compact-seal"?
-        NativeHybridControls::compact:NativeHybridControls::legacy;
+      std::string_view(argv[1])=="--profile-public-compact-seal" ||
+      std::string_view(argv[1])=="--profile-public-fragment-seal")) {
+    const auto mode=std::string_view(argv[1]);
+    const auto controls=mode=="--profile-public-grouped-seal"?
+        NativeHybridControls::legacy:NativeHybridControls::compact;
     profile_public_packs(argv[2],true,true,NativeIndexedDataLayout::extents,
         NativeVolumeHeadLayout::legacy,PagedStoreBankLayout::shared,true,controls,
-        argc==4?std::filesystem::path(argv[3]):std::filesystem::path{});
+        argc==4?std::filesystem::path(argv[3]):std::filesystem::path{},mode=="--profile-public-fragment-seal");
+  } else if(argc==3 && (std::string_view(argv[1])=="--profile-named-seal" ||
+      std::string_view(argv[1])=="--profile-named-seal-existing-bands")) {
+    profile_named_seal(argv[2],std::string_view(argv[1])=="--profile-named-seal");
   } else if(argc==3 && std::string_view(argv[1])=="--profile-indexed-tail-oracle") {
     profile_indexed_pair_oracle(argv[2],true);
   } else if(argc==3 && std::string_view(argv[1])=="--profile-indexed-pair-oracle") {

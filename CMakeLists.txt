@@ -505,6 +505,8 @@ if(FLITZFS_BUILD_TESTS)
   set_tests_properties(bounded_native_indexed_cold_copy PROPERTIES TIMEOUT 30
     SKIP_REGULAR_EXPRESSION "indexed_cold_copy skipped=zstd_unavailable")
   add_test(NAME bounded_native_indexed_group_yield COMMAND flitzfs_native_group_maintenance_tests --indexed-yield-order)
+  add_test(NAME bounded_native_indexed_shifted_fragment COMMAND flitzfs_native_group_maintenance_tests --indexed-shifted-fragment)
+  set_tests_properties(bounded_native_indexed_shifted_fragment PROPERTIES TIMEOUT 20)
   add_test(NAME bounded_native_indexed_group_xor COMMAND flitzfs_native_group_maintenance_tests --indexed-xor)
   add_test(NAME bounded_native_indexed_group_modular_delta COMMAND flitzfs_native_group_maintenance_tests --indexed-modular-delta)
   set_tests_properties(bounded_native_indexed_group_xor bounded_native_indexed_group_modular_delta PROPERTIES TIMEOUT 30)

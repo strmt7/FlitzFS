@@ -530,6 +530,17 @@ catalog snapshot. The existing live extent, exact-byte and complete-size
 checks govern candidate publication.
 [Secondary rolling lookup](../evidence/release-reconciliation-rolling-lookups-2026-11-25.json)
 
+When fresh headroom funds the working index, the same scan also keeps
+sixteen rolling minima per measured extent. A sorted posting list covers
+the current window and its resident representatives. Two different
+rare keys are required to nominate a peer. The controller retains the
+best eligible peer per current extent and reserves pairs that fit a
+complete packed base for the existing packing pass. Exact revision
+checks, independent reconstruction and compacted-size admission govern
+the resulting shared-base trial. Declining this scratch grant leaves the
+normal discovery path available. The fine keys are resident advisory data.
+[Shifted-fragment evidence](../evidence/windows-shifted-fragment-discovery-2026-11-26.json)
+
 ### Prefix encoding in a staged group
 
 ```mermaid

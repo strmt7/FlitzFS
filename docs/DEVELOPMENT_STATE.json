@@ -7,6 +7,16 @@
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
   "current_release_review": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
+  "shifted_fragment_discovery": {
+    "source_parent": "31474b79b77dfd415634689b26fecd6cc79dce16",
+    "tested_source_tree": "b23965211dcab367717fc05fd3b93c10922fe809",
+    "evidence": "docs/evidence/windows-shifted-fragment-discovery-2026-11-26.json",
+    "heldout_existing_and_candidate_bytes": [925696, 864256],
+    "heldout_retained_shared_members": [23, 31],
+    "default_with_fresh_headroom": true,
+    "new_required_image_capability": false,
+    "release_qualified": false
+  },
   "compact_sealed_controls": {
     "source_parent": "5dacbcae6e0215c7ec4b7b9773dc8715d7b81883",
     "tested_source_tree": "dfc42cb6d683316a366e4a44b25f61342a2067f0",

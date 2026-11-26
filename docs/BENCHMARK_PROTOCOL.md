@@ -249,6 +249,17 @@ filesystem protection and container overhead in their own measurements.
 
 ### Revision and wider workload coverage
 
+The 26 November named fragment comparison pins the Khronos sample
+asset tree at `e124e8d8d7330a5372bc2b4d00d39a4a9d7997ea`. Each
+complete asset family goes into one partition. The manifest freezes
+the split, eligible sizes, original paths, attribution and hashes before
+comparison. Run `--profile-named-seal-existing-bands` and
+`--profile-named-seal` on the same named fixture. Record both settled
+sizes, retained dependencies, sampled reads, total maintenance writes,
+and exact independent CPU reconstruction.
+[Khronos pinned sample tree](https://github.com/KhronosGroup/glTF-Sample-Assets/tree/e124e8d8d7330a5372bc2b4d00d39a4a9d7997ea/Models) ·
+[Measured cohorts and manifest](evidence/windows-shifted-fragment-discovery-2026-11-26.json)
+
 - Keep paired **CPython 3.15.0 and 3.15.2** files intact to test regrouping
   across versions, and use the larger single-release tree for namespace scale
   and build workflows. The receipt pins the two releases, deterministic

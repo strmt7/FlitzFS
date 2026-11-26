@@ -4,6 +4,8 @@
   "forward_work_rule": "Use current_release_sequence for integration order, and execution_programme and the implementation plan for package dependencies and exits. Historical checkpoints describe completed or partial evidence.",
   "current_release_sequence": {
     "current_reconciliation": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
+    "latest_shifted_fragment_discovery": "docs/evidence/windows-shifted-fragment-discovery-2026-11-26.json",
+    "tested_shifted_fragment_discovery_tree": "b23965211dcab367717fc05fd3b93c10922fe809",
     "latest_compact_sealed_controls": "docs/evidence/windows-compact-sealed-controls-2026-11-26.json",
     "tested_compact_sealed_controls_tree": "dfc42cb6d683316a366e4a44b25f61342a2067f0",
     "latest_retained_group_placement": "docs/evidence/windows-retained-group-placement-2026-11-26.json",
@@ -26,7 +28,7 @@
     "latest_independent_seal_workspace": "docs/evidence/windows-independent-seal-workspace-2026-11-26.json",
     "tested_independent_seal_workspace_tree": "790912f42c849b0a84a62e2c610c97d2a5206b4f",
     "immediate_work": [
-      "Freeze a new named-family holdout and compare a sparse fragment shortlist to an exact saved-allocation oracle. Keep compact controls, protection coverage and range measurement fixed across the encoder arms.",
+      "Compare attainable protected savings against the shifted-fragment shortlist on the fixed Khronos splits and a new disjoint workload. Measure the trade-off between reference and packed placement for the same pair, cost fine persistent keys, and retain the compact-layout controls.",
       "Join ordinary Windows demand to admitted, completed and consumed AMD work. Begin with grouped reads and collective search. Retain small writes as the CPU control and measure cold setup, demand lead, verified bytes, occupied size and retirement.",
       "Measure writable attach after named-tree churn. Compare a generation-bound proof to the full CPU audit before giving it writable authority. Fit and validate a held-out scale tier, then qualify flush and repair for each promised provider.",
       "Qualify the signed Windows lifecycle and compatibility range, then run plain and native-compressed NTFS controls and soak on the frozen candidate."
@@ -34,7 +36,7 @@
     "latest_subset_reference_refinement": "docs/evidence/windows-subset-reference-refinement-2026-11-26.json",
     "latest_foreground_query_reuse": "docs/evidence/windows-foreground-query-reuse-2026-11-25.json",
     "latest_owned_range_packing": "docs/evidence/windows-owned-packed-reclaim-2026-11-25.json",
-    "latest_reviewed_parent": "5dacbcae6e0215c7ec4b7b9773dc8715d7b81883",
+    "latest_reviewed_parent": "31474b79b77dfd415634689b26fecd6cc79dce16",
     "tested_owned_range_packing_tree": "7c64361419c436a15baf98592133d63beb8b1527",
     "remaining_engineering_person_weeks": [59, 127],
     "effort_confidence": "low",
