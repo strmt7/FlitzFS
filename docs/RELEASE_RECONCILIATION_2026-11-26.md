@@ -428,6 +428,36 @@ generations. Record temporary peak space and extra writes separately.
 A representation enters production only with exact independent CPU
 readback at normal and partial read boundaries.
 
+The current pair control found no improving pair or merge in the 24
+CPython samples. In the eight AITDCC first extents, four directed pairs
+saved space, with no shared nonconstant 16-byte fragment between files.
+The independent Zstandard trial improved whole-image results. Comparing
+the highest funded preset with level 13 released two more protected
+allocation pairs across the complete I–P split, reducing the settled image by
+16 KiB with equal selector overhead. Use an independent cold control
+before attributing savings on a mixed corpus to better match discovery.
+[Protected occupancy and research](evidence/windows-cold-parser-selection-2026-11-26.json)
+
+The byte-plane probe identifies a larger next opportunity. It rearranged
+the payload in widths of two, four and eight bytes before Zstandard, with
+exact CPU inverse verification and a four-byte experimental envelope
+charged to every accepted frame. Best-per-frame selection saved 696,082
+encoded bytes on I–P and 341,635 on A–H against untransformed levels 3, 13
+and 22. On CPython it selected ordinary encoding throughout. The probe
+counts encoded bytes before protected allocator and lifecycle costs.
+[Byte-plane control and source evidence](evidence/windows-cold-parser-selection-2026-11-26.json)
+
+Price a native byte-plane variant on the same protected fixtures before
+selecting a format. Start with the four-byte width as a single measured
+control. Reuse the checked inverse geometry and the existing forward and
+inverse HIP permutation approach. Compare the full CPU and AMD batch cost
+with untransformed Zstandard and track range amplification, allocated bytes,
+temporary buffering and recovery. Keep trial outputs private until a CPU
+decoder and explicit format admission are qualified. Enable additional
+widths only where measured improvement justifies their work.
+[Native composition contract](NATIVE_CODEC_PLAN.md) ·
+[NSDI 2026 workload-specific lossless compression](https://www.usenix.org/conference/nsdi26/presentation/wang-zirui)
+
 Minimize settled protected bytes across the declared workload. Reserve
 separate envelopes for admissible range-read latency, peak temporary
 space, foreground interference and backing wear. Estimate each cohort's

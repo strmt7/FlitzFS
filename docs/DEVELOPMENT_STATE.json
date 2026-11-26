@@ -7,6 +7,16 @@
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
   "current_release_review": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
+  "cold_parser_selection": {
+    "source_parent": "74ffc0807b95d21a9d835c8e81baf8514413b8a2",
+    "tested_source_tree": "3f7860f1c44f47719b0f6ccb7736a9d4ffd6988b",
+    "evidence": "docs/evidence/windows-cold-parser-selection-2026-11-26.json",
+    "advisory_policy_revision": 2,
+    "aitdcc_i_p_settled_baseline_bytes": 35160064,
+    "aitdcc_i_p_settled_candidate_bytes": 35143680,
+    "independent_cpu_readback": true,
+    "new_decoder_capability": false
+  },
   "interleaved_read_forecast": {
     "source_parent": "5b514451b3d9a2b3b9677999cfcc25c0ab355f18",
     "tested_source_tree": "35b2d768d521d5aab94b9b15a27eda589720c47c",

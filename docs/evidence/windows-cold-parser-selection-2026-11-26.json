@@ -1,0 +1,382 @@
+{
+  "schema": 1,
+  "date": "2026-11-26",
+  "source_parent": "74ffc0807b95d21a9d835c8e81baf8514413b8a2",
+  "base_tree": "12882b1094790a327b89aaa2d99873472ba57f25",
+  "tested_source_tree": "3f7860f1c44f47719b0f6ccb7736a9d4ffd6988b",
+  "tested_source_blobs": [
+    {
+      "path": "src/store_codec.cpp",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5d6137ad9aa6c0a77b906a4ab2e6e453b67e772b",
+      "bytes": 25136
+    },
+    {
+      "path": "src/store_codec.hpp",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "298eb0399aa4e8168e77d47b3dc591045685f443",
+      "bytes": 4069
+    }
+  ],
+  "scope": "Physical Windows CPU qualification with owned memory-backed indexed volumes. Byte-plane estimates use reversible CPU frame probes. AMD preflight measured the installed adapter without a dispatch.",
+  "pinned_zstandard": {
+    "version": 10600,
+    "static_library_sha256": "c4a36ed90e57fff44084ea0af5936f0e7c312ef918c6287a3710cfab5b5c8a77"
+  },
+  "cold_policy": {
+    "revision": 2,
+    "alternate_level": 13,
+    "independent_cpu_verification": true,
+    "changed_reader_capability": false
+  },
+  "pair_oracles": {
+    "cpython": {
+      "first_extents": 24,
+      "automatic_groups": 6,
+      "improving_merges_out_of_30": 0,
+      "automatic_occupied_bytes": 565248
+    },
+    "aitdcc_i_p": {
+      "first_extents": 8,
+      "ordered_pairs": 56,
+      "improving_pairs": 4,
+      "automatic_occupied_bytes": 966656,
+      "best_occupied_bytes": 958464,
+      "nonconstant_16_byte_windows_shared_between_files": 0
+    }
+  },
+  "preset_exploration": {
+    "probe": "Untransformed native-style extent frames with Zstandard checksums and checked CPU decode, bounded to the current allocator limit.",
+    "levels": [
+      3,
+      9,
+      13,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22
+    ],
+    "aitdcc_i_p": {
+      "extents": 386,
+      "level_13_wins": 55,
+      "encoded_bytes_saved_by_13": 8079,
+      "all_presets_encoded_bytes_saved": 8416
+    },
+    "cpython": {
+      "extents": 50,
+      "level_13_wins": 0,
+      "all_presets_encoded_bytes_saved": 13
+    }
+  },
+  "complete_native_comparisons": {
+    "protection_unit_bytes": 4096,
+    "mirrored_images": true,
+    "occupied_bytes_include_selector": true,
+    "aitdcc_i_p": {
+      "files": 8,
+      "fixture_sha256": "26204e32bf232e5a40d5cce9d4f63a87c25fcb19f6eceadbff7c76321468c159",
+      "selector_bytes_each": 131072,
+      "occupied_before": 35160064,
+      "occupied_after": 35143680,
+      "protected_bytes_saved": 16384,
+      "group_then_cold_source_read_bytes_each": 89207188,
+      "group_then_cold_target_writes_before": 35037184,
+      "group_then_cold_target_writes_after": 35020800,
+      "independent_cpu_and_range_readback": true
+    },
+    "aitdcc_a_h": {
+      "files": 8,
+      "fixture_sha256": "bb25d5ebcdcdfe0daf4ebc0d78a452d9e8937808fbb2a481d33bafa5e15b1c42",
+      "selector_bytes_each": 8192,
+      "best_occupied_bytes_each": 15327232,
+      "independent_cpu_and_range_readback": true
+    },
+    "cpython": {
+      "files": 24,
+      "fixture_sha256": "d053d6acd0551763909205a2ed670d6bf6bc3e61a13ef0cd13ca93e69c5489f9",
+      "selector_bytes_each": 8192,
+      "best_occupied_bytes_each": 450560,
+      "independent_cpu_and_range_readback": true
+    }
+  },
+  "byte_plane_exploration": {
+    "widths": [
+      2,
+      4,
+      8
+    ],
+    "plain_levels": [
+      3,
+      13,
+      22
+    ],
+    "transformed_levels": [
+      13,
+      22
+    ],
+    "framing_charge_bytes_per_trial": 4,
+    "plane_geometry": "Transpose complete words by byte lane. Preserve trailing bytes and the indexed extent header.",
+    "independent_cpu_inverse_verified": true,
+    "measured_quantity": "Encoded frame bytes only",
+    "aitdcc_i_p": {
+      "best_encoded_bytes_saved": 696082,
+      "encoded_bytes_saved_by_width": [
+        551386,
+        661265,
+        575235
+      ],
+      "winning_frames_by_width": [
+        155,
+        155,
+        154
+      ]
+    },
+    "aitdcc_a_h": {
+      "best_encoded_bytes_saved": 341635,
+      "encoded_bytes_saved_by_width": [
+        292729,
+        323396,
+        271917
+      ],
+      "winning_frames_by_width": [
+        88,
+        87,
+        88
+      ]
+    },
+    "cpython": {
+      "best_encoded_bytes_saved": 0,
+      "encoded_bytes_saved_by_width": [
+        0,
+        0,
+        0
+      ],
+      "winning_frames_by_width": [
+        0,
+        0,
+        0
+      ]
+    },
+    "probe_source_sha256": "edbad817560ae3dbb16c5f2d18a8acd598c4795a0333e8531050a16c6ca5f122",
+    "probe_binary_sha256": "5ded3d3ec416a5546741559cee16b66caf32cb3eb89aaad5f915799c4d529fb9",
+    "checked_inverse_path": "src/extent_codec.cpp",
+    "related_hip_mechanism": {
+      "commit": "11396b5123505a4a1959173e1db2d0858c10dd6d",
+      "kernel_sha256": "1a137ffa3d45c3427242153bf5392baa078f2b3a8a256b97bada40075146369e",
+      "transform_sha256": "92d28d2faf2cf5ad1805f2090b99dea2e14da30172cc731066e00a0e3dd006ca"
+    },
+    "native_storage_qualification": false
+  },
+  "checks": {
+    "windows": {
+      "exit": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 679026688,
+      "memory_bytes": 2217738240,
+      "result_sha256": "3cc5882a6bc6972847215606c9b534e594c51ce9876d8552af5c8e1694d894b8",
+      "log_sha256": "ed8344911beb8bd290cdbcc4d15fd45a634d1af76175c6317d108f8f3c0f81c8",
+      "tests": 238,
+      "skipped": 0
+    },
+    "asan": {
+      "exit": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 540553216,
+      "memory_bytes": 1960837120,
+      "result_sha256": "ff40d5f5e84ae6de0d3011107888eba09050866efd96b87f9340f646b47c28d2",
+      "log_sha256": "b50f4a0c95c2e6ed594945c4bb30ee60c2b9f230ad50fab7701be2b518c974bc",
+      "tests": 4,
+      "skipped": 0
+    },
+    "raw": {
+      "exit": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 107802624,
+      "memory_bytes": 1947205632,
+      "result_sha256": "fa847dd879b55212b4919bf87ad8640aae3916f8b5d95d4c2d3127d9c0e87962",
+      "log_sha256": "93fec7e8d606c1f871f2739cafac84fd2643d085526d8bf30885becb2d9ab615",
+      "tests": 3,
+      "skipped": 1
+    },
+    "cpython_oracle": {
+      "exit": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 18198528,
+      "memory_bytes": 684720128,
+      "result_sha256": "0174a28f5a523f795a872387c2aa6c3ec74d8b245537e26b611feb24b402941e",
+      "log_sha256": "12e1ed3b9bfaf51f8ffc95ee27d2a34c9b0d7f676f5d95dd72091b9855f154d5"
+    },
+    "ait_oracle": {
+      "exit": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 39059456,
+      "memory_bytes": 1728053248,
+      "result_sha256": "4f4b9c711e380ae61fde6f1f820560d0b8f50936101ea5a1433ed3645e3e3b5b",
+      "log_sha256": "c6f3eb33c32d5ec5b01e1ab22d644d7f8d9bab69be07d956b764aeee1eccc14f"
+    },
+    "ait_affinity": {
+      "exit": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 264478720,
+      "memory_bytes": 1393557504,
+      "result_sha256": "5ca4fb0eab88294862964ede3af5411f40cabdd10d1a6b2145d066dd99131a45",
+      "log_sha256": "bc411e5160627aa1b7bd11b731cc98e099a4821bd19bf70b2e77e91caba777cb"
+    },
+    "ait_before": {
+      "exit": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 267501568,
+      "memory_bytes": 2397044736,
+      "result_sha256": "703d225dac5cce93a7f77627da92d0569eac966e3339bf8db8753e9a4909be5d",
+      "log_sha256": "99dfac7a70c5382e28aac6e360c6f336808296ebf8cbe9cc0bf3e5d2253d244b"
+    },
+    "ait_after": {
+      "exit": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 267264000,
+      "memory_bytes": 1551892480,
+      "result_sha256": "6f2cbcd9a696763266a7cebb57e6a04f5e153b407b88eae1b000efa081f44012",
+      "log_sha256": "4d21aefc6325c012b5696f953630aa3ea8055863e98bb659318ea2119189907e"
+    },
+    "training_before": {
+      "exit": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 126824448,
+      "memory_bytes": 1606418432,
+      "result_sha256": "356ba6d1c213b22b0b0a98dad95090917834ebf2d33512040d06d50181583892",
+      "log_sha256": "13c08b561593c969278bdc518345f0218acb0a4c2102701efaa8500e16b30d7c"
+    },
+    "training_after": {
+      "exit": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 127254528,
+      "memory_bytes": 1629487104,
+      "result_sha256": "8ba54de68695a7b837c66067036aa9832fd1d8958a26a000ec5df070f6188b8c",
+      "log_sha256": "36f267159e52af87c7c52ef7f19d95116b7c5229a09deda31ee085a7b81ef1c2"
+    },
+    "cpython_before": {
+      "exit": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 21954560,
+      "memory_bytes": 1697644544,
+      "result_sha256": "d7e698cc733143c589d0a27f7adb3f60505ae23a1f59fe7980f1204270b9ab26",
+      "log_sha256": "3baa77d5c88f06f0ea1b82e69c9a6d02478124d273e04dcf1033c60a8ab37808"
+    },
+    "cpython_after": {
+      "exit": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 22528000,
+      "memory_bytes": 1617952768,
+      "result_sha256": "371f97bba354305e8dfe9c07f2f0879eb8f8737a61202ad8a63df8d69ad75967",
+      "log_sha256": "caaacf04196ff293e81ff3b41870ec09db62b115f310226d5d49cc1a1a39cbab"
+    },
+    "ait_preset_probe": {
+      "exit": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 6668288,
+      "memory_bytes": 1539309568,
+      "result_sha256": "03f0d2c5b47b53082afc90a147ac77458ebe8b266d8ac7f1f6bccb3f65726f9a",
+      "log_sha256": "e22e4cb8b2fff2a6e433c62c5ea65508830a30fd7e06958a203e287e81311339"
+    },
+    "cpython_preset_probe": {
+      "exit": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 6680576,
+      "memory_bytes": 1517289472,
+      "result_sha256": "91f6d4771b0ea2d6e2e4d7c7963ffa7aec6cdef5e9ea4787ef614e670de837ec",
+      "log_sha256": "c0bccbbdd16fffd9483cb0e24ecf3f25c9d70fca232f1598e4752528f422bc54"
+    },
+    "ait_plane_probe": {
+      "exit": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 6742016,
+      "memory_bytes": 1114636288,
+      "result_sha256": "ab0b22c290cd101d0f8a226b92f2957f90369d5efca57685af78d3d31c438449",
+      "log_sha256": "268b5c1b7afad1600bf166b877881e58b4e3a351308f8f6023580b8aaa18aebe"
+    },
+    "training_plane_probe": {
+      "exit": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 6713344,
+      "memory_bytes": 1114636288,
+      "result_sha256": "206dde6eb6211edf3f24d9a834fb5a25d183432a20aca021a7ef6d808e42251d",
+      "log_sha256": "fde8e6198127e5b26d40a929c7946385e40a1ef5db500acc5deb5942a0d0c603"
+    },
+    "cpython_plane_probe": {
+      "exit": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 6742016,
+      "memory_bytes": 1082130432,
+      "result_sha256": "ed681003e7eaee78ea850ada046982d06af2952d60a1aaaa3a1634ed2c59d2e4",
+      "log_sha256": "8dfb338582b6deef24d5283ec32e5e5377af7c95e71a2df50d060dccab8eaca6"
+    },
+    "amd_admission": {
+      "exit": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 99225600,
+      "memory_bytes": 745537536,
+      "result_sha256": "0acc172c4c5a9a12160881206afeff873d4f3d7428f5f9e71256d2360ec71499",
+      "log_sha256": "a940659df91da7077e750a7add2d004f539eaabb84f87da744d91a83d4bbeacd"
+    }
+  },
+  "executable_hashes": {
+    "before": "65b5643f1fbf30c9df3ea871b76d3e194e7cd3b1c1d84a4f0d1cb31fd1ca733f",
+    "after": "ac9b367e5bef373ce1c377f1a821a6e8ad961d47a3fab1cc3340f9f86b3e8689"
+  },
+  "asan_runtime_preflight_passed": true,
+  "amd_read_fixture": {
+    "scope": "Admission for the previous source-bound grouped-read witness",
+    "stage_manifest_sha256": "b770893b9caa95e98d8b673605c1ec4462d5ceb6cd888f8227b8ce25d3d9f595",
+    "adapter": "AMD Radeon RX 9070 XT",
+    "host_build": "26300",
+    "driver_version": "32.0.32029.2010",
+    "existing_engine_peak_percent": 99.05033877481002,
+    "result": "Existing host load above the fixture envelope",
+    "admitted": false,
+    "device_dispatch": false
+  },
+  "navigation": {
+    "provider_version": "0.2.43",
+    "receipt_sha256": "7e91ce2ee000a1f7eda6df1e7c9305c0bcae60bf5f1d7c89f1240f8cc03f8f69",
+    "native_response_sha256": "9018516c086ac2cc2fc83e5df700efa2ca4c392713b36df16578a9256a696d21"
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "24b5aa939174908f6aec56ee7d76a4a98ebd76f8607fda2d95fc5769d5137935",
+    "pages": [
+      {
+        "url": "https://www.usenix.org/conference/fast26/presentation/huang",
+        "success": true,
+        "http_status": 200,
+        "markdown_bytes": 10416,
+        "markdown_sha256": "dbc538fff3a57a4c36ef94c8a47e1737270a83880e2fb6957160b9b46f285256",
+        "capture_sha256": "21aea8c21bfc64394c0d5c449969f156fcb02ecb8627e8cc3789ae4d5e8ae18a"
+      },
+      {
+        "url": "https://www.usenix.org/conference/fast25/presentation/wu",
+        "success": true,
+        "http_status": 200,
+        "markdown_bytes": 11110,
+        "markdown_sha256": "ba2279fd15878a4380b12189cfdc0a93222d51e55f87cfeaed84722e2c6a7c5a",
+        "capture_sha256": "c2ca6b29a3a96b52561489937543a2dac3acb003e37304ba3232da9e0d658d25"
+      },
+      {
+        "url": "https://www.usenix.org/conference/nsdi26/presentation/wang-zirui",
+        "success": true,
+        "http_status": 200,
+        "markdown_bytes": 9825,
+        "markdown_sha256": "7d8b26ef26e93b17030ef2cd86d039b36d0df9223a031cacb654b610c72fbd3e",
+        "capture_sha256": "e625913c72e57868c80f64c8f5160eee764b1d5f6e6775a8d1f51815c4d74c81"
+      }
+    ]
+  },
+  "cleanup": {
+    "active_owned_native_processes": 0
+  },
+  "release_qualified": false
+}

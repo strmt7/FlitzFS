@@ -132,6 +132,17 @@ slot writes. The selector handoff and ordinary file operations add no
 advice writes. A cold coverage change alone cannot advance the advice
 sequence.
 
+Cold encoding policy revision 2 compares the highest funded Zstandard
+preset with level 13 when both fit the allocation and the primary preset
+is above level 13. Both use the same bounded codec context. The second
+trial must beat the smaller of the
+stored payload and the first result. The encoder independently decodes
+the selected result before it enters the protected copy. An incomplete
+trial leaves its source generation eligible for a future funded pass.
+Revision 1 coverage can therefore be refreshed using the existing advice
+and copy budget. The selected records use the existing Zstandard framing.
+[Cold-preset comparison](evidence/windows-cold-parser-selection-2026-11-26.json)
+
 After reopening, a matching indexed selector and encoder policy let the
 session skip repeated compression trials for covered records. Compaction
 still verifies the bytes. An obsolete, damaged or unrecognized checkpoint

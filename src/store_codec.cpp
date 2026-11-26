@@ -370,28 +370,51 @@ ColdStoreEncoding StoreCodecEncoder::try_cold_encoding(
   if(impl_->options.mode==StoreCompressionMode::raw || !store_zstd_available() ||
       input.empty() || input.size()>block_bytes || old_size>input.size())return {};
   if(old_size<=16)return {{},true};
-  const auto maximum=ZSTD_maxCLevel();
-  auto params=ZSTD_getCParams(maximum,input.size(),0);
+  auto level=ZSTD_maxCLevel();
+  auto params=ZSTD_getCParams(level,input.size(),0);
   auto bytes=ZSTD_estimateCCtxSize_usingCParams(params);
-  for(auto level=maximum;!ZSTD_isError(bytes) && bytes>impl_->allocation_limit;) {
+  while(!ZSTD_isError(bytes) && bytes>impl_->allocation_limit) {
     if(--level<=impl_->options.zstd_level)return {{},true};
     params=ZSTD_getCParams(level,input.size(),0);
     bytes=ZSTD_estimateCCtxSize_usingCParams(params);
   }
   if(ZSTD_isError(bytes))return {};
   auto* ctx=impl_->encoding_context();
-  if(!ctx || ZSTD_isError(ZSTD_CCtx_reset(ctx,ZSTD_reset_session_and_parameters)) ||
-      ZSTD_isError(ZSTD_CCtx_setCParams(ctx,params)) ||
-      ZSTD_isError(ZSTD_CCtx_setParameter(ctx,ZSTD_c_nbWorkers,0)) ||
-      ZSTD_isError(ZSTD_CCtx_setParameter(ctx,ZSTD_c_contentSizeFlag,1)) ||
-      ZSTD_isError(ZSTD_CCtx_setParameter(ctx,ZSTD_c_checksumFlag,1)))return {};
+  if(!ctx)return {};
+  const auto encode=[&](ZSTD_compressionParameters preset,std::size_t limit)->ColdStoreEncoding {
+    if(ZSTD_isError(ZSTD_CCtx_reset(ctx,ZSTD_reset_session_and_parameters)) ||
+        ZSTD_isError(ZSTD_CCtx_setCParams(ctx,preset)) ||
+        ZSTD_isError(ZSTD_CCtx_setParameter(ctx,ZSTD_c_nbWorkers,0)) ||
+        ZSTD_isError(ZSTD_CCtx_setParameter(ctx,ZSTD_c_contentSizeFlag,1)) ||
+        ZSTD_isError(ZSTD_CCtx_setParameter(ctx,ZSTD_c_checksumFlag,1)))return {};
+    try {
+      Bytes candidate(limit-1);
+      const auto size=ZSTD_compress2(ctx,candidate.data(),candidate.size(),input.data(),input.size());
+      if(ZSTD_isError(size))return {{},ZSTD_getErrorCode(size)==ZSTD_error_dstSize_tooSmall};
+      if(size>=limit)return {{},true};
+      candidate.resize(size);
+      return {EncodedStoreObject{kStoreZstd,std::move(candidate)},true};
+    }catch(const std::bad_alloc&) {return {};}
+  };
+
+  auto best=encode(params,old_size);
+  // Size-dependent presets use different match parsers. Recorded cold
+  // trials on public data found smaller frames at the middle preset.
+  constexpr int alternate_level=13;
+  const auto exclusive_limit=best.smaller?best.smaller->payload.size():old_size;
+  if(best.evaluated && level>alternate_level && exclusive_limit>16) {
+    const auto alternate=ZSTD_getCParams(alternate_level,input.size(),0);
+    const auto scratch=ZSTD_estimateCCtxSize_usingCParams(alternate);
+    if(!ZSTD_isError(scratch) && scratch<=impl_->allocation_limit) {
+      auto trial=encode(alternate,exclusive_limit);
+      if(trial.smaller)best.smaller=std::move(trial.smaller);
+      best.evaluated=trial.evaluated;
+    }
+  }
+
   try {
-    Bytes candidate(old_size-1);
-    const auto size=ZSTD_compress2(ctx,candidate.data(),candidate.size(),input.data(),input.size());
-    if(ZSTD_isError(size))return {{},ZSTD_getErrorCode(size)==ZSTD_error_dstSize_tooSmall};
-    if(size>=old_size)return {{},true};
-    candidate.resize(size);
-    return {verify_encoding({kStoreZstd,std::move(candidate)},input),true};
+    if(best.smaller)best.smaller=verify_encoding(std::move(*best.smaller),input);
+    return best;
   }catch(const std::bad_alloc&) {return {};}
 #else
   (void)input;(void)old_size;

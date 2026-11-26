@@ -15,7 +15,7 @@ inline constexpr std::size_t kStoreEncoderMemoryCap=16U*1024U*1024U;
 inline constexpr std::size_t kStoreDecoderMemoryCap=2U*1024U*1024U;
 inline constexpr std::size_t kStorePrefixEncoderMemoryCap=2U*1024U*1024U;
 // Advance when indexed cold eligibility, trials or their resource envelope change.
-inline constexpr std::uint32_t kIndexedColdEncodingRevision=1;
+inline constexpr std::uint32_t kIndexedColdEncodingRevision=2;
 bool store_prefix_frame(std::span<const std::byte>,std::size_t expected) noexcept;
 std::optional<std::vector<std::byte>> encode_store_prefix(std::span<const std::byte> input,
     std::span<const std::byte> prefix,std::size_t exclusive_limit);
@@ -37,7 +37,7 @@ struct EncodedStoreObject {
 };
 struct ColdStoreEncoding {
   std::optional<EncodedStoreObject> smaller;
-  bool evaluated=false; // A resource or codec failure has no usable result.
+  bool evaluated=false; // An incomplete trial leaves its generation eligible.
 };
 class StoreCodecDecoder final {
  public:
