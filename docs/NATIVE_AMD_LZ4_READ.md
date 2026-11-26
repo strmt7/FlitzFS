@@ -311,6 +311,16 @@ same sequential run. It checks the open handle, selected checkpoint,
 sequential history and predicted demand. A seek, changed image, missing
 continuation, or expired demand forecast ends the preparation.
 
+An interleaved read on another handle can propose a new window before it
+has measured a request gap. The adapter keeps its existing grouped
+forecast if that stream has read a full grouped extent and its measured
+lead is still available. A later measured forecast can replace it. This
+keeps the existing one-window budget and gives the grouped read a chance
+to reach the controller without delaying reads on the other handle.
+[Interleaved forecast evidence](evidence/windows-interleaved-read-forecast-2026-11-26.json) ·
+[WinFsp open contexts](https://winfsp.dev/doc/WinFsp-API-winfsp.h/) ·
+[Windows elapsed clock](https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-gettickcount64)
+
 The new capture fits the original process, frame and device allocation
 grants. The controller observes current host and DXGI memory before
 submitting it and preserves the original worker deadline. The eventual

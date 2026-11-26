@@ -337,14 +337,16 @@ void group_read_window() {
 struct GroupReadFixtureOptions {
   bool mixed=false,expanded=false,variable_widths=false,cpu_prefix=false,learned_lead=false,segmented=false;
   bool small_requests=false,retarget_preparation=false;
+  bool interleaved_forecasts=false;
 };
 
 void group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={},GroupReadFixtureOptions options={}) {
-  const auto [mixed,expanded,variable_widths,cpu_prefix,learned_lead,segmented,small_requests,retarget]=options;
+  const auto [mixed,expanded,variable_widths,cpu_prefix,learned_lead,segmented,small_requests,retarget,interleaved]=options;
   constexpr auto extent=kNativeExtentBytes;
   constexpr PagedStoreLimits limits{kStoreMaxPhysicalBytes};
   constexpr StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
-  std::vector<Bytes> blocks(learned_lead?28U:retarget?16U:expanded?14U+static_cast<unsigned>(variable_widths):10U);
+  std::vector<Bytes> blocks(learned_lead?28U:retarget?16U:
+      (expanded || interleaved)?14U+static_cast<unsigned>(variable_widths):10U);
   Bytes file;
   const auto base=family(0);
   for(std::size_t i=0;i<blocks.size();++i) {
@@ -368,7 +370,7 @@ void group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={},Group
   const auto initial=seed->create(47);
   seed->write(initial,file);
   seed->close(initial);
-  const auto unrelated=data(91,237);
+  const auto unrelated=data(interleaved?3U*extent:91U,237);
   const auto sibling=seed->create(46);
   seed->write(sibling,unrelated);
   seed->close(sibling);
@@ -439,21 +441,28 @@ void group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={},Group
     Sleep(pause);
     read(first_group+2*width);
   }else {
-    const auto pace=retarget?1300U:750U;
+    const auto paced=warm || retarget || interleaved;
+    const auto pace=retarget?1300U:interleaved && !profile?250U:750U;
     read(first_group);
-    if(warm || retarget)Sleep(pace);
+    if(paced)Sleep(pace);
     read(first_group+width);
-    if(warm || retarget) {
+    if(paced) {
       Sleep(pace);
       read(first_group+2*width);
     }
   }
-  auto predicted=small_requests?5U:first_group+(warm || variable_widths || retarget?3U:2U)*width;
+  auto predicted=small_requests?5U:first_group+(warm || variable_widths || retarget || interleaved?3U:2U)*width;
   const auto members=expanded?2U*width:width;
+  if(interleaved) {
+    // Two ordinary reads create a competing forecast before a request gap
+    // has been observed on that handle.
+    h.read(other_context,Bytes(unrelated.begin(),unrelated.begin()+extent));
+    h.read(other_context,Bytes(unrelated.begin()+extent,unrelated.begin()+2*extent),extent);
+  }
   require(h.adapter->native_lz4_read_ahead_pending(),"Grouped demand did not forecast its next extent");
   const std::atomic<bool> stop{false};
   auto admitted=h.clock.next();
-  if(variable_widths || small_requests)admitted.captured_ms=h.clock.now=GetTickCount64();
+  if(variable_widths || small_requests || interleaved)admitted.captured_ms=h.clock.now=GetTickCount64();
   if(expanded && !profile && !variable_widths) {
     auto unfunded=h.adapter->capture_native_lz4_read_ahead(admitted,h.clock.now,h.adapter->foreground_activity(),
         stop,{},WinFspGroupReadWindow{members,(std::numeric_limits<std::uint64_t>::max)()});
@@ -665,6 +674,14 @@ void group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={},Group
     ++callbacks;
     require(h.adapter->native_lz4_read_ahead_hits()==first-first_ready && h.image->write_bytes==writes,
         "Grouped callback failed to hit or issued a write");
+  }
+  if(interleaved) {
+    const auto usage=h.adapter->group_read_delivery();
+    require(usage && (worker?usage->amd:usage->cpu).delivered_bytes==ready_members*extent,
+        "Competing reads changed grouped delivery accounting");
+    std::cout<<"interleaved_group_reads grouped_frames="<<ready_members
+        <<" grouped_bytes="<<ready_members*extent<<" competing_bytes="<<2U*extent
+        <<" device="<<bool(worker)<<" backing_writes=0\n";
   }
 
   auto end=after;
@@ -1615,10 +1632,12 @@ int wmain(int argc,wchar_t** argv){try {
   const bool small_requests=mode==L"--hip-small-stream-group-reads";
   const bool learned_lead=mode==L"--hip-prepared-learned-group-reads";
   const bool retarget=mode==L"--hip-retargeted-group-reads";
+  const bool interleaved=mode==L"--hip-interleaved-group-reads";
   const bool cpu_prefix=learned_lead || mode==L"--hip-prepared-partial-mixed-group-reads";
   const bool variable_widths=cpu_prefix || mode==L"--hip-prepared-variable-mixed-group-reads";
   const bool expanded=variable_widths || mode==L"--hip-prepared-expanded-mixed-group-reads";
-  const bool warm=expanded || retarget || mode==L"--hip-prepared-group-reads" || mode==L"--hip-prepared-mixed-group-reads";
+  const bool warm=expanded || retarget || interleaved || mode==L"--hip-prepared-group-reads" ||
+      mode==L"--hip-prepared-mixed-group-reads";
   const bool device=warm || segmented || small_requests || mode==L"--hip-group-reads" || mode==L"--hip-mixed-group-reads";
   const bool timing=device && argc==13 && std::wstring_view(argv[12])==L"--timed-exchange";
   app_fixture::Budget budget(true,timing);
@@ -1635,7 +1654,7 @@ int wmain(int argc,wchar_t** argv){try {
   }
   if(device && (argc==12 || timing)) {
     auto profile=group_gpu_profile(argv);
-    const bool mixed=expanded || mode==L"--hip-mixed-group-reads" || mode==L"--hip-prepared-mixed-group-reads";
+    const bool mixed=expanded || interleaved || mode==L"--hip-mixed-group-reads" || mode==L"--hip-prepared-mixed-group-reads";
     profile.mixed_groups=mixed;
     if(expanded) {
       profile.maximum_frames=4;
@@ -1645,7 +1664,8 @@ int wmain(int argc,wchar_t** argv){try {
     if(warm) {
       profile.prepared_group_submit_lead_ms=20;
     }
-    group_read_ahead(std::move(profile),{mixed,expanded,variable_widths,cpu_prefix,learned_lead,segmented,small_requests,retarget});
+    group_read_ahead(std::move(profile),{mixed,expanded,variable_widths,cpu_prefix,learned_lead,segmented,
+        small_requests,retarget,interleaved});
     return 0;
   }
   if(argc!=2)throw std::runtime_error("Explicit callback/fault mode required");
@@ -1662,7 +1682,7 @@ int wmain(int argc,wchar_t** argv){try {
     indexed_callbacks(65536,NativeIndexedDataLayout::packed_small_file_inodes);
   }
   else if(mode==L"--ready-lz4-reads")ready_lz4_reads();
-  else if(mode==L"--ready-group-reads")group_read_ahead();
+  else if(mode==L"--ready-group-reads")group_read_ahead({},{.interleaved_forecasts=true});
   else if(mode==L"--ready-segmented-group-reads")group_read_ahead({},{.segmented=true});
   else if(mode==L"--ready-small-stream-group-reads")group_read_ahead({},{.small_requests=true});
   else if(mode==L"--ready-mixed-group-reads"){

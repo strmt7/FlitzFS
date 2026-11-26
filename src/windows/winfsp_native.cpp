@@ -871,7 +871,11 @@ struct WinFspNativeWritable::Impl {
       const auto group_lead=(std::min)(group_idle,previous.group_idle_before_ms);
       const auto lead=(std::max)(width_lead,group_lead);
       const auto aligned_group_gap=!gap && length%kNativeExtentBytes==0?(std::min)(width_lead,group_lead):partial_group_gap;
-      if(window<=maximum-end-gap)read_ahead=ReadAhead{slot.token,end+gap,window,completed_ms,
+      // A new stream's first forecast has no measured gap. Keep an observed
+      // grouped opportunity while its preceding request cadence still applies.
+      const bool retain_group=read_ahead && read_ahead->tiled && read_ahead->consecutive_group_bytes>=kNativeExtentBytes &&
+          completed_ms>=read_ahead->created_ms && completed_ms-read_ahead->created_ms<read_ahead->observed_lead_ms;
+      if(window<=maximum-end-gap && (lead || !retain_group))read_ahead=ReadAhead{slot.token,end+gap,window,completed_ms,
           lead,demand_cost,group_bytes!=0,group_bytes,aligned_group_gap};
     }
     return bytes;

@@ -1,0 +1,176 @@
+{
+  "schema": 1,
+  "date": "2026-11-26",
+  "source_parent": "5b514451b3d9a2b3b9677999cfcc25c0ab355f18",
+  "base_tree": "f40a747b5e467d68a07653159aa23a31589d6e38",
+  "tested_source_tree": "35b2d768d521d5aab94b9b15a27eda589720c47c",
+  "tested_source_blobs": [
+    {
+      "path": "src/windows/winfsp_native.cpp",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "84abcbb1c45855da5006b4135bf4dd0c7cd3db1d",
+      "bytes": 118865
+    },
+    {
+      "path": "tests/test_winfsp_paged.cpp",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b0e7b3ea937d3eb2604976679be1ee2ef02f0270",
+      "bytes": 101072
+    }
+  ],
+  "scope": "Windows SDK callbacks on the physical host using owned memory-backed images and exact CPU readback. Device admission sampled actual Radeon and host load.",
+  "matched_interleaved_callbacks": {
+    "baseline_production_source": "5b514451b3d9a2b3b9677999cfcc25c0ab355f18",
+    "same_interleaved_fixture_blob": "b0e7b3ea937d3eb2604976679be1ee2ef02f0270",
+    "baseline_capture": "The next captured window was not the protected grouped forecast.",
+    "candidate_grouped_frames_delivered": 2,
+    "candidate_grouped_logical_bytes_delivered": 131072,
+    "ordinary_competing_read_bytes": 131072,
+    "independent_cpu_readback": true,
+    "group_delivery_issued_backing_writes": false,
+    "late_ready_refused": true
+  },
+  "checks": {
+    "baseline_scheduler": {
+      "exit_code": 1,
+      "tree_retired": true,
+      "peak_job_bytes": 19165184,
+      "memory_limit_bytes": 461373440,
+      "receipt_sha256": "3d9f0613f3fed90a006a5dcc02010cf311e3dbbf0c150ed010883ff29fd99f78",
+      "log_sha256": "25ebe4a0adf43c1a2ea28ab76fae272b55e404ef63227217bb9957cb54707c3e"
+    },
+    "winfsp_sdk": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 40345600,
+      "memory_limit_bytes": 779091968,
+      "receipt_sha256": "a6cadb9eec7722bdfb822a1f91c2398d120e003250ef989cb79da4fc9bc2dec4",
+      "log_sha256": "efcc7191edc63a11c1eaaa070f9fa63444ec9fe97b4cfe0731d18dacf934af37",
+      "tested": 6
+    },
+    "asan": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 489406464,
+      "memory_limit_bytes": 784334848,
+      "receipt_sha256": "157159778a244f166aba9d09ecf77dcbf0090b3dd0f1633ceb12e03e8aa8fe22",
+      "log_sha256": "7c11325695eee996a6876956cc97dd29c37342430071350cf2b5799416478eb9",
+      "tested": 4
+    },
+    "raw": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 40185856,
+      "memory_limit_bytes": 684720128,
+      "receipt_sha256": "34e1ccf6fe836ee3a03e8730f814569f93e9b651ee17bdc3bfc90dc714129436",
+      "log_sha256": "d4c2a30a1630afe80b2686fe6d2e38ac387a2d0d2e834c58f6e85a9218186086",
+      "tested": 4
+    },
+    "device_admission": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 107659264,
+      "memory_limit_bytes": 420478976,
+      "receipt_sha256": "a73c844e884fc1fef4417851026224310f9d07632891dadf218c62c22021972e",
+      "log_sha256": "06860d07847dc8cb60a6b3c7169df53ec39efdc584cded051a19617c43f5f292"
+    },
+    "prior_search_timeout": {
+      "exit_code": 1460,
+      "tree_retired": true,
+      "peak_job_bytes": 976179200,
+      "memory_limit_bytes": 942669824,
+      "receipt_sha256": "e7b932df79e632441eed994da2ac0f1089f03e6baaeef7c455254f04a5afa9e6",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "prior_search_memory_refusal": {
+      "exit_code": 1,
+      "tree_retired": true,
+      "peak_job_bytes": 930156544,
+      "memory_limit_bytes": 916455424,
+      "receipt_sha256": "e00a26736739f0aa6008fb6cc6341d0649be2daef7b5786725daf7a386a97275",
+      "log_sha256": "7e027233db1affdf7f2c899db5724aef8c7d4a6182a4d9defb5a3629d5b59d92"
+    },
+    "source_search": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 1067499520,
+      "memory_limit_bytes": 1472200704,
+      "receipt_sha256": "404dbe72946fbaf935bf49d7b65abed56f240d346a7550da8d292732ae28bde9",
+      "log_sha256": "303380cb29bd3c92c4ddebae08c4507ae501b2e21c26affc94018a86211bf9cc"
+    }
+  },
+  "asan_runtime_preflight_passed": true,
+  "amd": {
+    "adapter": "AMD Radeon RX 9070 XT",
+    "host_build": "26300",
+    "driver_version": "32.0.32029.2010",
+    "pinned_runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+    "stage_manifest_sha256": "b770893b9caa95e98d8b673605c1ec4462d5ceb6cd888f8227b8ce25d3d9f595",
+    "artifacts": {
+      "flitzfs_winfsp_paged_tests.exe": {
+        "bytes": 2360832,
+        "sha256": "a4171925322bec7a227f2012885046b9a27ca3bb60ec700e31cc5ad4c887ef29"
+      },
+      "winfsp-x64.dll": {
+        "bytes": 200816,
+        "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+      },
+      "flitzfs_native_lz4_read_worker.exe": {
+        "bytes": 582144,
+        "sha256": "9767b60477dff8f0a62bd04dff4fbe466e229065f58874b58a4f9f65d675ae9c"
+      },
+      "flitzfs_rocm_native_lz4_decode.dll": {
+        "bytes": 173568,
+        "sha256": "5bf82b27d04632f91dce4731b9764c280169d6c3027490bc1fe6a7d2ab3c6223"
+      }
+    },
+    "existing_engine_peak_percent": 99.8252463664156,
+    "existing_cpu_peak_percent": 5.3090761742188075,
+    "native_counter_samples": 816,
+    "admitted": false,
+    "admission_reason": "Existing host load above the fixture envelope",
+    "physical_dispatch": false,
+    "ordinary_mounted_speed_qualified": false
+  },
+  "navigation": {
+    "exact_parent": "5b514451b3d9a2b3b9677999cfcc25c0ab355f18",
+    "provider_version": "0.2.43",
+    "receipt_sha256": "a77a28fe80a6ddd9222b16d493c8b8e90bc076e270f65d5d9a31ed76975c56f7",
+    "native_response_sha256": "28b20cde61d39cd4784a72dcb6711c3fb7e94bd1653f81c1032f5d4afae723cc",
+    "earlier_results": [
+      "The wider bounded index timed out.",
+      "The focused index lacked sufficient process-tree allocation for a model operation."
+    ],
+    "recovery": "The focused index completed with current host headroom covering the observed worker allocation."
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "2dea6501df4417bf92cd2d3cde8e70713db9944e4636b2fe9a77c336c4a18125",
+    "robots": true,
+    "external_LLM": false,
+    "pages": [
+      {
+        "url": "https://winfsp.dev/doc/WinFsp-API-winfsp.h/",
+        "success": true,
+        "http_status": 200,
+        "markdown_bytes": 73095,
+        "markdown_sha256": "23f2e7b26b2297a12d6e98acb7b612010c44361803cc72c3563f82571cce5837",
+        "capture_sha256": "acf3a41c2f463e07e74a0718f0efeb1116d95490117443519a8fd6f5988ab59d"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-gettickcount64",
+        "success": true,
+        "http_status": 200,
+        "markdown_bytes": 18791,
+        "markdown_sha256": "d13a9d7a1f42015013777c428d01cbd906670f012e28d2b0f83693359d029dd4",
+        "capture_sha256": "f5822f43f5bfeb2a01848df98bd6b71c06c90b64d64eecb98b8347767975da19"
+      }
+    ]
+  },
+  "cleanup": {
+    "active_owned_native_processes": 0
+  },
+  "release_qualified": false
+}

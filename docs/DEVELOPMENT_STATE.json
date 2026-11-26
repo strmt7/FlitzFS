@@ -7,6 +7,16 @@
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
   "current_release_review": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
+  "interleaved_read_forecast": {
+    "source_parent": "5b514451b3d9a2b3b9677999cfcc25c0ab355f18",
+    "tested_source_tree": "35b2d768d521d5aab94b9b15a27eda589720c47c",
+    "evidence": "docs/evidence/windows-interleaved-read-forecast-2026-11-26.json",
+    "competing_cpu_read_bytes": 131072,
+    "grouped_ready_cpu_delivery_bytes": 131072,
+    "independent_cpu_readback": true,
+    "physical_amd_dispatch_deferred": true,
+    "mounted_amd_speed_qualified": false
+  },
   "packed_shared_subsets": {
     "source_parent": "7cd54c3a21136fff956950fa098dcc260f3430b3",
     "tested_source_tree": "baa05298743776f3e110acece5c97b1605dcb3fb",
