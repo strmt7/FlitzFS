@@ -1,0 +1,292 @@
+{
+  "schema": 1,
+  "date": "2026-11-26",
+  "scope": "Experimental Windows SDK callbacks with owned memory-backed indexed volumes and an independently verified installed Radeon route",
+  "source": {
+    "parent": "a39868c429a8d073b3f0fe40261662524e690bb8",
+    "tree": "223ba683bd1a0365b55b15c47137e61c9d91c281",
+    "source_blobs": {
+      "src/windows/native_lz4_read_worker.cpp": "4cf2c9f6b86f38f4671289dfef0081b331761e67",
+      "src/windows/native_lz4_read_worker.hpp": "383e568e405df7b912cabec1b42823b4904ec241",
+      "src/windows/winfsp_native.cpp": "123e90b1baf15d9b9fe081189387fc45e162b38e",
+      "src/windows/winfsp_native.hpp": "e5ad8ed6757e1f4ef9cb16f2de61c52cb3545a21",
+      "tests/test_winfsp_controller.cpp": "06458fd9e09d44421cf825a7df3b47e8730c422a",
+      "tests/test_winfsp_paged.cpp": "05bf580826f1ccf25ea52c662454ebca094c4abc"
+    }
+  },
+  "live_radeon": {
+    "run": "local-run-d7d228311f92462ebf50b6ccc3ec8f5c",
+    "peak_commit_bytes": 178896896,
+    "elapsed_seconds": 46.84400000000005,
+    "tree_retired": true,
+    "residual_children": 0,
+    "result_sha256": "0afa74dc9461b7fcf63e9076bed0a69960160244521a23c237e7bf5d557fa507",
+    "output_sha256": "de6f65eb66341e8f5544074a7b8271e91a479341a34b2418fe25ce1bf63fcf2e",
+    "preflight": {
+      "admitted": true,
+      "reason": null,
+      "utc": "2026-11-26T11:46:19.2693235Z",
+      "driver": "32.0.32029.2010",
+      "build": "26300",
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "luid": "ca77010000000000",
+      "available_bytes": 34366156800,
+      "reserved_bytes": 4294967296,
+      "gpu_peak": 0.0,
+      "cpu_peak": 13.747829462818807,
+      "target_samples": 656
+    },
+    "fixture_sha256": "904ee2c6c3222d812ec29f223b8c112dd73ecc7252463d950a803566c7ffe4a0",
+    "fixture_artifacts": {
+      "amd/LICENSE": {
+        "bytes": 35184,
+        "sha256": "6f1e622c82a380075843bb084a7ec3b1f1d12a4a02526d75e78b0924a860aa75"
+      },
+      "amd/native-lz4-read-qualification.json": {
+        "bytes": 4246,
+        "sha256": "8c04aa4c8a26485faab2c1817ea25ba174201bcf3f6bbba8fde5e7f7332f5117"
+      },
+      "amd/native-lz4-read/flitzfs_native_lz4_read_worker.exe": {
+        "bytes": 562688,
+        "sha256": "70ebb2605c68a6854dd7c9277813fd148563b8544ffd161e00327804f46f164b"
+      },
+      "amd/native-lz4-read/flitzfs_rocm_native_lz4_decode.dll": {
+        "bytes": 145920,
+        "sha256": "d5c46512c13866c134762a473edcf9360f93c28e8b7d7c703c7f9deeef3300f6"
+      },
+      "amd/qualification-manifest.json": {
+        "bytes": 1441,
+        "sha256": "98718635bc098512535ac85c219bffc5d400af1135536324d39fb4cf64e99fba"
+      },
+      "flitzfs_winfsp_controller_tests.exe": {
+        "bytes": 3169792,
+        "sha256": "1a7bac70fb3be7ed3ad21114c072af3b99d55f01d8c959ffc0784e363822456b"
+      },
+      "winfsp-x64.dll": {
+        "bytes": 200816,
+        "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+      }
+    },
+    "later_read": {
+      "interval_ms": 406,
+      "learned_turnaround_ms": 1016,
+      "intervening_cpu_requests": 3,
+      "target": 524288,
+      "gpu_callbacks": 2,
+      "byte_exact": 1
+    },
+    "installed_session": {
+      "missing": 0,
+      "demand_bytes": 65536,
+      "acquisitions": 1,
+      "identity_queries": 1,
+      "gpu_submitted": 2,
+      "gpu_verified": 4,
+      "lead_refusals": 0,
+      "worker_ms": 500,
+      "turnaround_ms": 1015,
+      "learned_cpu": 0,
+      "byte_exact": 1,
+      "retired": 1
+    }
+  },
+  "fallback_checks": [
+    {
+      "run": "local-run-27b912be90774dd4b8d33a3643564f3a",
+      "peak_commit_bytes": 94785536,
+      "elapsed_seconds": 3.45299999999952,
+      "tree_retired": true,
+      "residual_children": 0,
+      "result_sha256": "9174c30b5e3e59cde352ef3f86118677d4ead3a86aeee5cb948b5007c7cc4649",
+      "output_sha256": "ca02bf74f8b72410564ec6307cbcfa01aeb007574674a528b0494185ade81acf",
+      "preflight": {
+        "admitted": false,
+        "reason": "Existing host load above the fixture envelope",
+        "utc": "2026-11-26T11:47:38.2780204Z",
+        "driver": "32.0.32029.2010",
+        "build": "26300",
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "luid": "ca77010000000000",
+        "available_bytes": 29181911040,
+        "reserved_bytes": 4294967296,
+        "gpu_peak": 98.1858149603776,
+        "cpu_peak": 5.2751757890861946,
+        "target_samples": 672
+      },
+      "status": "deferred by existing engine load"
+    },
+    {
+      "run": "local-run-d0169a9494734f9fb24cdae3e9415ed3",
+      "peak_commit_bytes": 96083968,
+      "elapsed_seconds": 3.375,
+      "tree_retired": true,
+      "residual_children": 0,
+      "result_sha256": "8f15141e52ecbfcea6ed2c4cbf5e190448e0bfc4d4cc0ceabf827e419d79e8f8",
+      "output_sha256": "67e8597ffdd096932087c41f073f0a442a4c903ef0434332b6caf70d46d1d962",
+      "preflight": {
+        "admitted": false,
+        "reason": "Existing host load above the fixture envelope",
+        "utc": "2026-11-26T11:50:03.5123010Z",
+        "driver": "32.0.32029.2010",
+        "build": "26300",
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "luid": "ca77010000000000",
+        "available_bytes": 29462093824,
+        "reserved_bytes": 4294967296,
+        "gpu_peak": 98.14630213332632,
+        "cpu_peak": 8.590716183141788,
+        "target_samples": 672
+      },
+      "status": "deferred at current resource admission"
+    }
+  ],
+  "windows_release_tests": {
+    "run": "local-run-4c9c3eefe748445da8f3066c75b47eca",
+    "peak_commit_bytes": 62111744,
+    "elapsed_seconds": 12.32799999999952,
+    "tree_retired": true,
+    "residual_children": 0,
+    "result_sha256": "c02031139141670d89b612db8b016340f5e52a84377d18d55139a05cbe944059",
+    "output_sha256": "c7f11832f50a6828ed8e395d964ab506024f102c8042810ce1d0309693b05610",
+    "passed": [
+      "bounded_winfsp_indexed_memory",
+      "bounded_winfsp_memory_remount",
+      "bounded_winfsp_paged_callbacks",
+      "bounded_winfsp_paged_ready-lz4-reads",
+      "bounded_winfsp_paged_ready-group-reads",
+      "bounded_winfsp_paged_ready-mixed-group-reads",
+      "bounded_winfsp_paged_ready-segmented-group-reads",
+      "bounded_winfsp_paged_ready-small-stream-group-reads"
+    ]
+  },
+  "windows_raw_tests": {
+    "run": "local-run-ca033f9531f1438b8e3510db4c85afc7",
+    "peak_commit_bytes": 62054400,
+    "elapsed_seconds": 4.67200000000048,
+    "tree_retired": true,
+    "residual_children": 0,
+    "result_sha256": "78d2e0441fa13b346b53974884893e803f3b3290e33197d90160081c15dc2065",
+    "output_sha256": "f8ebacbd3da53cf46292a4b17f16b184c325f4e306b3a7b809a7fdc6f11fbf39",
+    "passed": [
+      "bounded_winfsp_indexed_memory",
+      "bounded_winfsp_memory_remount",
+      "bounded_winfsp_paged_callbacks",
+      "bounded_winfsp_paged_ready-lz4-reads"
+    ]
+  },
+  "windows_asan_tests": {
+    "run": "local-run-bb026aa133de4ff6a1ab4f25bfb72418",
+    "peak_commit_bytes": 163307520,
+    "elapsed_seconds": 1.2029999999995198,
+    "tree_retired": true,
+    "residual_children": 0,
+    "result_sha256": "6f3ec70549ff770e1e307ed97c68c9fcd9780c19612ea4da75d501d0a2b0d7a6",
+    "output_sha256": "ca9792fedf9cbf49277fc067c9794dac9c7f4731a71d0759ea46dae14d230644",
+    "passed": [
+      "windows_asan_runtime_preflight",
+      "bounded_winfsp_paged_ready-lz4-reads"
+    ]
+  },
+  "source_navigation": {
+    "commit": "a39868c429a8d073b3f0fe40261662524e690bb8",
+    "files": 7,
+    "native_response_sha256": "7c8f3f1828fcebe88cc2249054cd65ceb996d3f0d52487ccad0d27a546fcdc78",
+    "receipt_sha256": "0ce2642481011c8d53fd251710fa0054b80a0d1d8cb767ad73fc3e6c441d6270"
+  },
+  "research": [
+    {
+      "receipt_sha256": "7009276405f36f3ad3af23315c527d35d0689e2bd9b2c256321ddba33eff46a2",
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "native_pages": [
+        {
+          "name": "hip-performance",
+          "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/performance_guidelines.html",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 56567,
+          "markdown_sha256": "b1ebddfdf7d3a817d42b7446af31cd37ded972fc43a25f95fe3851ad2d449306",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 1.889,
+          "capture": "hip-performance.native.json",
+          "capture_sha256": "71afe0d354ac3ebfc7fb4b1bbf31683dfc08ba2ddfd7b6e000c22033ff8d9434"
+        },
+        {
+          "name": "read-ahead",
+          "url": "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ccschedulereadaheadex",
+          "success": false,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 142412,
+          "markdown_sha256": "53616eece027f6970b0209075ae2df21cce41119d5c59125d74e9dcb710b4189",
+          "expected_content": false,
+          "failure_category": "unexpected_content",
+          "error": "",
+          "seconds": 1.211,
+          "capture": "read-ahead.native.json",
+          "capture_sha256": "ee8868386430518313eb498f0c3bb4343bc0a7343e6a24a0ca02e7dc9848c72b"
+        },
+        {
+          "name": "delayed-hit-feedback",
+          "url": "https://www.usenix.org/conference/nsdi26/presentation/keren",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 9995,
+          "markdown_sha256": "1c54bcafcfac2e90791f2d20adfec06c845947624c003c1036d83eaefd1e1497",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.978,
+          "capture": "delayed-hit-feedback.native.json",
+          "capture_sha256": "695ec2be2dfb83dafe7518a4a00b2426fd734391af23ede510ab630267c6e051"
+        },
+        {
+          "name": "working-set",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/ns-dxgi1_4-dxgi_query_video_memory_info",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 20625,
+          "markdown_sha256": "8113f919b68c514b8914e83ed94797a5d54ff95b3fde0906c5be892252cd2a95",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 1.242,
+          "capture": "working-set.native.json",
+          "capture_sha256": "0293158aef64f25b56b6d27173b4b6edfe9c3891ab28e8311bf48ae61de120d5"
+        }
+      ]
+    },
+    {
+      "receipt_sha256": "8fa14006fed8de9de3099bd20ca537076d50371e1f029425130b90d80717f76c",
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "native_pages": [
+        {
+          "name": "read-ahead",
+          "url": "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ccschedulereadaheadex",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 142412,
+          "markdown_sha256": "53616eece027f6970b0209075ae2df21cce41119d5c59125d74e9dcb710b4189",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 1.071,
+          "capture": "read-ahead.native.json",
+          "capture_sha256": "bcae286ef03023b56f68568e7c87f5611b8e9c38750884fec162a6c17bb5ca0e"
+        }
+      ]
+    }
+  ],
+  "mounted_comparative_performance_qualified": false,
+  "release_qualified": false
+}

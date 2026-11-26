@@ -24,6 +24,7 @@ struct WinFspGroupReadWindow {
 struct WinFspLz4ReadWindow {
   std::uint32_t minimum_frames=0;
   std::uint64_t required_lead_ms=0;
+  bool allow_later_range=false;
 };
 struct WinFspReadAheadWork {
   const WinFspNativeWritable* owner=nullptr;
@@ -38,6 +39,7 @@ struct WinFspReadAheadWork {
   std::pair<StoreIdentity,std::uint64_t> checkpoint{};
   bool expanded_group_window=false;
   detail::NativeLz4CapturePrefix lz4_prefix;
+  bool later_lz4_range=false;
   bool has_read_lead(std::uint64_t required_ms,std::uint64_t now_ms) const noexcept {
     if(!required_ms)return true;
     if(!hint_created_ms || now_ms<hint_created_ms)return false;
@@ -49,6 +51,9 @@ namespace detail {
 void plan_group_read_window(WinFspReadAheadWork&,WinFspGroupReadWindow,
     std::uint64_t observed_frames,std::uint64_t available_frames,
     std::uint64_t aligned_group_gap_ms,std::uint64_t now_ms) noexcept;
+void plan_lz4_read_window(WinFspReadAheadWork&,WinFspLz4ReadWindow,
+    std::uint64_t observed_frames,std::uint64_t available_frames,
+    std::uint64_t aligned_gap_ms,std::uint64_t now_ms) noexcept;
 }
 enum class WinFspReadAheadState {current,busy,superseded,demand_served};
 enum class NativeWriteCaptureSelection {single,recent,matching_size};

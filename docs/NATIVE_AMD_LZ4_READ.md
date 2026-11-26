@@ -785,6 +785,29 @@ device identity queries. Both runs kept exact data and retired their
 owned processes.
 [Host callback and fallback evidence](evidence/windows-narrow-amd-reads-2026-11-26.json)
 
+#### Later windows for independent LZ4 reads
+
+If observed worker turnaround exceeds the next request's lead, the
+controller can capture a later range within the same aligned, sequential
+run. It advances in whole observed requests. The completed run length,
+current memory allowance and qualified frame count bound the forecast.
+The CPU serves intervening requests immediately. The later capture
+retains the exact selected checkpoint and read run. A seek, commit
+or demand crossing the start of the selected range ends the opportunity.
+The controller learns a lower bound when demand passes the range while
+the worker is still unfinished. Only a completed, independently checked
+result supplies a new turnaround measurement.
+
+In the Windows SDK callback fixture, the Radeon used an initial 1,016 ms
+turnaround measurement to target a later two-frame range. With requests
+paced at 406 ms, three intervening callbacks completed on CPU and the
+two selected callbacks consumed the verified device frames. This
+measurement covers hiding startup through read-ahead. The startup
+and retirement costs remain part of the mounted throughput comparison.
+[Later independent read evidence](evidence/windows-later-lz4-reads-2026-11-26.json) ·
+[AMD HIP performance guidance](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/performance_guidelines.html) ·
+[NSDI 2026 delayed-hit analysis](https://www.usenix.org/conference/nsdi26/presentation/keren)
+
 ### Host transfer and startup costs
 
 The worker uploads descriptors and encoded bytes. When the verified HIP

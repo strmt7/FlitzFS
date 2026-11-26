@@ -126,6 +126,7 @@ struct NativeLz4ReadWorker::Impl {
   NativeLz4ReadWorkerStats& status;
   std::optional<Flight> flight;
   detail::NativeGroupReadTiming group_timing;
+  std::uint64_t unfinished_lz4_ms=0;
 
   Impl(NativeLz4ReadWorkerProfile config,detail::NativeLz4ReadSession& owner,const WindowsGpuEngineSampler* sampler)
       :profile(std::move(config)),engines(sampler),package(std::make_shared<PinnedReadPackage>(profile)),
@@ -137,7 +138,7 @@ struct NativeLz4ReadWorker::Impl {
   }
   std::uint64_t lz4_lead() const noexcept {
     return profile.minimum_lead_ms?
-        (std::max)(std::uint64_t{profile.minimum_lead_ms},status.last_turnaround_ms):0;
+        (std::max)({std::uint64_t{profile.minimum_lead_ms},status.last_turnaround_ms,unfinished_lz4_ms}):0;
   }
 
   bool has_lead(const WinFspReadAheadWork& work,std::uint64_t required,std::uint64_t now) noexcept {
@@ -260,7 +261,7 @@ WinFspLz4ReadWindow NativeLz4ReadWorker::lz4_read_window(std::uint64_t now) cons
   const auto& s=*impl_;
   if(s.flight || !s.status.retirement_confirmed || s.status.configuration_refused ||
       !s.engine_available(now).value_or(false) || !WorkerExchangeSession::available())return {};
-  return {s.profile.minimum_frames,s.lz4_lead()};
+  return {s.profile.minimum_frames,s.lz4_lead(),s.status.last_turnaround_ms || s.unfinished_lz4_ms};
 }
 
 WinFspGroupReadWindow NativeLz4ReadWorker::group_read_window() const noexcept {
@@ -414,6 +415,10 @@ bool NativeLz4ReadWorker::start(WinFspReadAheadWork& work,const NativeMaintenanc
     auto worker=s.launch(work,observed,stop_requested,plan,lead);
     if(!worker)return false;
     const auto submitted_at=worker->started_at;
+    if(work.later_lz4_range) {
+      ++s.status.later_lz4_submitted;
+      s.status.last_later_lz4_offset=work.offset;
+    }
     work.frames.clear();
     s.flight.emplace(Impl::Flight{std::move(exchange),std::move(*worker),std::move(work),submitted_at,frames});
     ++s.status.submitted;
@@ -437,11 +442,15 @@ void NativeLz4ReadWorker::observe(const WinFspNativeWritable& adapter,bool cance
   const auto now=GetTickCount64();
   const auto waited=handle?WaitForSingleObject(handle,0):WAIT_FAILED;
   if(state==State::demand_served && !f.superseded) {
-    ++s.status.group_demand_misses;
+    if(f.work.groups)++s.status.group_demand_misses;
+    else ++s.status.lz4_demand_misses;
     const auto started=f.ready_at_submit?f.submitted_at:f.worker.started_at;
     // Only an unfinished exchange establishes a lower bound on delivery.
-    if(waited==WAIT_TIMEOUT && now>started && now-started<=s.profile.worker.timeout_ms)
-      s.group_timing.observe_unfinished(now-started,f.ready_at_submit);
+    if(waited==WAIT_TIMEOUT && now>started && now-started<=s.profile.worker.timeout_ms) {
+      const auto elapsed=now-started;
+      if(f.work.groups)s.group_timing.observe_unfinished(elapsed,f.ready_at_submit);
+      else s.unfinished_lz4_ms=(std::max)(s.unfinished_lz4_ms,elapsed);
+    }
   }
   // A missing observation pauses submission without discarding preparation
   // between samples. A fresh refusal can retire an unused child.
@@ -517,7 +526,10 @@ bool NativeLz4ReadWorker::verify_and_publish(WinFspNativeWritable& adapter,
       const auto turnaround=complete-f.worker.started_at;
       const auto after_submit=complete-f.submitted_at;
       if(f.work.groups)s.group_timing.observe_accepted(turnaround,after_submit,f.ready_at_submit);
-      else s.status.last_turnaround_ms=turnaround;
+      else {
+        s.status.last_turnaround_ms=turnaround;
+        s.unfinished_lz4_ms=0;
+      }
       if(f.preparation.maximum_members)s.status.last_prepared_submit_ms=after_submit;
       (void)s.session.recovery.finish(f.worker.ticket,GpuRecoveryOutcome::accepted,true);
     }else {

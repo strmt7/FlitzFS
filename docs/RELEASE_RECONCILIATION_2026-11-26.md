@@ -12,6 +12,14 @@ the gates.
 [Implementation packages](IMPLEMENTATION_PLAN.md#3-execution-order-and-dependencies) ·
 [Release gates](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
 
+The independent LZ4 decoder now uses measured turnaround to select
+later ranges during a bounded sequential stream. In the installed
+Radeon callback fixture the 1,016 ms initial measurement informed a
+later two-frame forecast at 406 ms request spacing. Three intervening
+callbacks completed on CPU before two distinct callbacks consumed
+verified device output. The ordinary mounted comparison remains open.
+[Later independent read evidence](evidence/windows-later-lz4-reads-2026-11-26.json)
+
 The follow-up on `6c7f4b67ad2947ae85261360df92410f80397545`
 admitted the installed AMD decoder from sequential 64 KiB demand.
 Two separate Windows SDK callbacks consumed verified Radeon output.

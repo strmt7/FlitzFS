@@ -1031,12 +1031,70 @@ void narrow_lz4_read_ahead() {
   h.close(context);
 }
 
+void later_lz4_read_ahead() {
+  constexpr auto extent=kNativeExtentBytes;
+  const auto plan=[&](std::uint64_t history,std::uint64_t grant,std::uint64_t now) {
+    WinFspReadAheadWork work{nullptr,1,6*extent,1,extent};
+    work.hint_created_ms=1000;
+    work.observed_lead_ms=50;
+    detail::plan_lz4_read_window(work,{2,120,true},history,grant,50,now);
+    return work;
+  };
+  const auto fitted=plan(6,2,1000);
+  require(fitted.later_lz4_range && fitted.offset==8*extent && fitted.bytes==2*extent &&
+      fitted.observed_lead_ms==150 && !fitted.lz4_prefix.bytes,
+      "Later independent capture did not account for the preceding demand");
+  require(!plan(3,2,1000).later_lz4_range && !plan(6,1,1000).later_lz4_range &&
+      !plan(6,2,1050).later_lz4_range,"Later independent capture outlived its demand or budget");
+
+  constexpr StoreCompressionOptions fast{StoreCompressionMode::fast,1,false};
+  Harness h(4096,nullptr,nullptr,nullptr,nullptr,true,fast,true);
+  const auto context=h.create(51);
+  std::array<Bytes,14> extents;
+  for(std::size_t i=0;i<extents.size();++i) {
+    extents[i]=native_lz4_fixture::source();
+    extents[i].front()=static_cast<std::byte>(i);
+    h.write(context,extents[i],i*extent);
+  }
+  unsigned index=0;
+  for(;index<6;++index) {
+    if(index)Sleep(45);
+    h.read(context,extents[index],index*extent);
+  }
+  auto observation=h.clock.next();
+  observation.captured_ms=GetTickCount64();
+  const std::atomic<bool> stop=false;
+  auto work=h.adapter->capture_native_lz4_read_ahead(observation,observation.captured_ms,
+      h.adapter->foreground_activity(),stop,{},{},{2,135,true});
+  require(work && work->later_lz4_range && work->frames.size()==2 &&
+      !h.adapter->prepare_captured_native_lz4_read(*work,stop),"Later device work changed CPU read-ahead");
+  const auto target=work->offset/extent;
+  require(target>index && target+1<extents.size(),"Later capture used an unexpected file range");
+  using State=WinFspReadAheadState;
+  for(;index<target;++index) {
+    h.read(context,extents[index],index*extent);
+    require(h.adapter->read_ahead_state(*work)==State::current,"Earlier CPU demand cancelled the later capture");
+  }
+  auto ready=detail::NativeLz4ReadyReads::decode_captured(work->frames);
+  require(h.adapter->publish_read_ahead(*work,std::move(ready),{},stop) &&
+      !h.adapter->native_lz4_read_ahead_pending(),"Later result failed to replace its obsolete CPU hint");
+  h.read(context,extents[index],index*extent);++index;
+  require(h.adapter->read_ahead_state(*work)==State::demand_served,
+      "The selected range could still publish after its first demand");
+  h.read(context,extents[index],index*extent);
+  require(h.adapter->native_lz4_read_ahead_hits()==2,"The two later callbacks did not consume their exact frames");
+  h.read(context,extents[0],0);
+  require(h.adapter->read_ahead_state(*work)==State::superseded,"A new read run retained the old forecast");
+  h.close(context);
+}
+
 void ready_lz4_reads() {
   if(!store_lz4_available()){
     std::cout<<"winfsp_ready_lz4 cpu_decoder=0\n";
     return;
   }
   narrow_lz4_read_ahead();
+  later_lz4_read_ahead();
   constexpr StoreCompressionOptions fast{StoreCompressionMode::fast,1,false};
   {
     const auto head=ram(4096),image=ram(4096);

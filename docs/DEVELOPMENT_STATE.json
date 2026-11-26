@@ -8,6 +8,16 @@
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
   "current_release_review": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
   "source_and_portability_review": "docs/architecture/RELEASE_REVIEW_2026-11-26.md",
+  "amd_later_independent_reads": {
+    "source_parent": "a39868c429a8d073b3f0fe40261662524e690bb8",
+    "tested_source_tree": "223ba683bd1a0365b55b15c47137e61c9d91c281",
+    "evidence": "docs/evidence/windows-later-lz4-reads-2026-11-26.json",
+    "request_interval_ms": 406,
+    "measured_initial_turnaround_ms": 1016,
+    "intervening_cpu_callbacks": 3,
+    "later_verified_radeon_callbacks": 2,
+    "release_qualified": false
+  },
   "amd_narrow_sequential_reads": {
     "source_parent": "6c7f4b67ad2947ae85261360df92410f80397545",
     "tested_source_tree": "97cf784e2f653a346f905cf37b7a64d3f4c71d77",

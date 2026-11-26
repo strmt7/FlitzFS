@@ -74,6 +74,7 @@ struct NativeLz4ReadWorkerStats {
   std::uint64_t submitted=0,published=0,superseded=0,failures=0,declined=0;
   std::uint64_t submitted_frames=0,verified_frames=0,budget_queries=0,last_worker_elapsed_ms=0;
   std::uint64_t last_turnaround_ms=0,lead_refusals=0,group_demand_misses=0;
+  std::uint64_t lz4_demand_misses=0,later_lz4_submitted=0,last_later_lz4_offset=0;
   std::uint64_t prepared_groups_started=0,prepared_groups_submitted=0,last_prepared_submit_ms=0;
   std::uint64_t prepared_groups_retargeted=0;
   std::uint32_t last_worker_exit_code=0;

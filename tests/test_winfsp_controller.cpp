@@ -1171,7 +1171,7 @@ int live_amd_read_ahead(char** argv,bool refuse,AmdReadFixtureLayout layout=AmdR
   return 0;
 }
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
-int live_installed_native_read(bool missing,bool narrow=false) {
+int live_installed_native_read(bool missing,bool narrow=false,bool later=false) {
   const auto qualified=installed_native_read_profile();
   require(qualified && qualified->minimum_frames==2 && qualified->maximum_frames==2 && store_lz4_available(),
       "The installed native-read fixture requires a two-frame AMD package");
@@ -1314,6 +1314,53 @@ int live_installed_native_read(bool missing,bool narrow=false) {
       require(observed.submitted==completed.submitted && observed.budget_queries==completed.budget_queries &&
           observed.lead_refusals>completed.lead_refusals,"The measured turnaround did not keep a later read on CPU");
       learned_cpu=true;
+    }
+    if(later) {
+      const auto interval=static_cast<DWORD>((std::max)(std::uint64_t{qualified->minimum_lead_ms},
+          completed.last_turnaround_ms*2/5));
+      require(narrow && 2*std::uint64_t{interval}<completed.last_turnaround_ms,
+          "The current measured turnaround gives no earlier demand interval");
+      callback_cleanup_close(provider,context);
+      context=nullptr;
+      constexpr unsigned extent_count=18;
+      bytes.assign(extent_count*extent,std::byte{});
+      for(unsigned i=6;i<extent_count;++i) {
+        const auto motif=data(extent/8,1541+i);
+        for(std::size_t pos=0;pos<extent;pos+=motif.size())
+          std::ranges::copy(motif,bytes.begin()+static_cast<std::ptrdiff_t>(i*extent+pos));
+      }
+      callback_file(provider,1,bytes,extent);
+      await([&]{const auto current=owner.view();return current.maintenance_quiescent &&
+          !current.payload_scrub_faults;},45000,"Later native read fixture did not settle");
+      wchar_t later_name[]=L"\\f1";
+      require(fs->Interface->Open(fs,later_name,FILE_NON_DIRECTORY_FILE|(1U<<24),FILE_READ_DATA,&context,&info)==STATUS_SUCCESS &&
+          context && info.FileSize==bytes.size(),"Later native read opened an unexpected file");
+      unsigned cpu_prefix=0;
+      bool delivered=false;
+      for(unsigned index=0;index+1<extent_count;++index) {
+        const auto progress=owner.view().amd_read;
+        const bool selected=progress.later_lz4_submitted>completed.later_lz4_submitted;
+        if(selected && progress.last_later_lz4_offset==index*extent) {
+          require(progress.published==completed.published+1 && progress.verified_frames==completed.verified_frames+2 &&
+              progress.retirement_confirmed,"The later GPU result missed actual foreground demand");
+          const auto before=adapter->native_lz4_read_ahead_hits();
+          demand(index);
+          require(adapter->native_lz4_read_ahead_hits()==before+1,"First later request missed verified AMD bytes");
+          Sleep(interval);
+          demand(index+1);
+          require(adapter->native_lz4_read_ahead_hits()==before+2,"Second later request missed verified AMD bytes");
+          delivered=true;
+          break;
+        }
+        require(!selected || progress.last_later_lz4_offset>index*extent,"Demand skipped the selected AMD range");
+        demand(index);
+        if(selected)++cpu_prefix;
+        Sleep(interval);
+      }
+      require(delivered && cpu_prefix,"Steady narrow reads did not consume a later GPU range after intervening CPU reads");
+      std::cout<<"installed_later_read interval_ms="<<interval<<" learned_turnaround_ms="<<completed.last_turnaround_ms
+          <<" intervening_cpu_requests="<<cpu_prefix<<" target="<<owner.view().amd_read.last_later_lz4_offset
+          <<" gpu_callbacks=2 byte_exact=1\n";
     }
   }
   callback_cleanup_close(provider,context);
@@ -5391,6 +5438,7 @@ int main(int argc,char** argv){try {
   const bool profile_installed_read=argc==2 && std::string_view(argv[1])=="--profile-installed-native-read";
   const bool narrow_installed_read=argc==2 && std::string_view(argv[1])=="--live-installed-narrow-read";
   const bool narrow_missing_read=argc==2 && std::string_view(argv[1])=="--live-installed-narrow-read-missing";
+  const bool later_installed_read=argc==2 && std::string_view(argv[1])=="--live-installed-later-native-read";
   const bool profile_existing_prefix=argc==7 && std::string_view(argv[1])=="--live-anchor-owner" &&
       std::string_view(argv[6])=="prefix-extension";
   const bool profile_automatic_sealed_read=argc==11 &&
@@ -5401,7 +5449,8 @@ int main(int argc,char** argv){try {
        std::string_view(argv[1])=="--live-amd-paired-sealed-refusal" ||
        std::string_view(argv[1])=="--live-amd-dense-sealed-read" ||
        std::string_view(argv[1])=="--live-amd-dense-sealed-refusal");
-  app_fixture::Budget budget(true,profile_installed_read || narrow_installed_read || narrow_missing_read || profile_existing_prefix ||
+  app_fixture::Budget budget(true,profile_installed_read || narrow_installed_read || narrow_missing_read ||
+      later_installed_read || profile_existing_prefix ||
       profile_automatic_sealed_read || profile_paired_sealed_read);DWORD before=0,after=0;
   if(argc==2 && std::string_view(argv[1])=="--paired-near-full-seal") {
     (void)volume_file_sealed_callbacks(PairedWorkspaceFixture::locked_memory,4096,true);
@@ -5446,6 +5495,7 @@ int main(int argc,char** argv){try {
   if(argc==2 && std::string_view(argv[1])=="--live-installed-native-read-missing")
     return live_installed_native_read(true);
   if(narrow_installed_read || narrow_missing_read)return live_installed_native_read(narrow_missing_read,true);
+  if(later_installed_read)return live_installed_native_read(false,true,true);
   if(argc==1)anchor_launch_budget();
   if(argc==2 && std::string_view(argv[1])=="--live-installed-retired-reply")
     return live_installed_retired_reply(BatchForegroundTrial::read_after_retirement);

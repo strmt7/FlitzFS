@@ -223,6 +223,25 @@ UINT32 attributes(UINT32 value,bool directory) {
   return (value&~UINT32(FILE_ATTRIBUTE_DIRECTORY))|(directory?FILE_ATTRIBUTE_DIRECTORY:0);
 }
 NativeWindowsIoOutcome success() noexcept{return {STATUS_SUCCESS,false};}
+struct LaterReadWindow {
+  std::uint64_t skip_frames,lead_ms;
+};
+std::optional<LaterReadWindow> later_read_window(const WinFspReadAheadWork& work,
+    std::uint64_t history,std::uint64_t minimum,std::uint64_t interval_ms,
+    std::uint64_t required_ms,std::uint64_t now_ms) noexcept {
+  const auto request=work.bytes/kNativeExtentBytes;
+  if(!request || !interval_ms || minimum>history || !work.hint_created_ms || now_ms<work.hint_created_ms)return {};
+  const auto maximum=(std::numeric_limits<std::uint64_t>::max)();
+  const auto spent=now_ms-work.hint_created_ms;
+  if(required_ms>maximum-spent)return {};
+  // A partial read can arrive sooner than the next aligned boundary.
+  const auto immediate=(std::min)(work.observed_lead_ms,interval_ms);
+  const auto required=spent+required_ms;
+  if(required<=immediate)return {};
+  const auto shifts=1+(required-immediate-1)/interval_ms;
+  if(shifts>(history-minimum)/request || shifts>(maximum-immediate)/interval_ms)return {};
+  return LaterReadWindow{shifts*request,immediate+shifts*interval_ms};
+}
 }
 void detail::plan_group_read_window(WinFspReadAheadWork& work,WinFspGroupReadWindow window,
     std::uint64_t observed_frames,std::uint64_t available_frames,
@@ -241,22 +260,37 @@ void detail::plan_group_read_window(WinFspReadAheadWork& work,WinFspGroupReadWin
     return;
   }
   const auto minimum=(std::max)(request,window.minimum_frames);
-  if(!aligned_group_gap_ms || !window.minimum_frames || limit<minimum || !work.hint_created_ms ||
-      now_ms<work.hint_created_ms)return;
-  const auto spent=now_ms-work.hint_created_ms;
-  if(window.required_lead_ms>maximum-spent)return;
-  // An adjacent partial request can arrive much sooner than the next full
-  // extent boundary. Count the immediate lead separately from each skip.
-  const auto immediate=(std::min)(work.observed_lead_ms,aligned_group_gap_ms);
-  const auto missing=spent+window.required_lead_ms-immediate;
-  const auto shifts=1+(missing-1)/aligned_group_gap_ms;
-  if(shifts>(history-minimum)/request || shifts>(maximum-immediate)/aligned_group_gap_ms)return;
-  const auto skip=shifts*request;
-  const auto frames=(std::min)(limit,history-skip);
-  work.offset+=skip*kNativeExtentBytes;
+  if(!window.minimum_frames || limit<minimum)return;
+  const auto later=later_read_window(work,history,minimum,aligned_group_gap_ms,window.required_lead_ms,now_ms);
+  if(!later)return;
+  const auto frames=(std::min)(limit,history-later->skip_frames);
+  work.offset+=later->skip_frames*kNativeExtentBytes;
   work.bytes=static_cast<std::uint32_t>(frames*kNativeExtentBytes);
-  work.observed_lead_ms=immediate+shifts*aligned_group_gap_ms;
+  work.observed_lead_ms=later->lead_ms;
   work.expanded_group_window=frames>request;
+}
+
+void detail::plan_lz4_read_window(WinFspReadAheadWork& work,WinFspLz4ReadWindow window,
+    std::uint64_t observed_frames,std::uint64_t available_frames,
+    std::uint64_t aligned_gap_ms,std::uint64_t now_ms) noexcept {
+  const auto addressable=((std::numeric_limits<std::uint64_t>::max)()-work.offset)/kNativeExtentBytes;
+  const auto history=(std::min)({observed_frames,addressable,std::uint64_t{kNativeMaxReadBytes}/kNativeExtentBytes});
+  const auto minimum=window.minimum_frames;
+  if(!minimum || !window.required_lead_ms || minimum>history || minimum>available_frames)return;
+  if(work.has_read_lead(window.required_lead_ms,now_ms)) {
+    if(work.bytes/kNativeExtentBytes<minimum) {
+      work.lz4_prefix.bytes=work.bytes;
+      work.bytes=minimum*kNativeExtentBytes;
+    }
+    return;
+  }
+  if(!window.allow_later_range || !work.has_read_lead(1,now_ms))return;
+  const auto later=later_read_window(work,history,minimum,aligned_gap_ms,window.required_lead_ms,now_ms);
+  if(!later)return;
+  work.offset+=later->skip_frames*kNativeExtentBytes;
+  work.bytes=minimum*kNativeExtentBytes;
+  work.observed_lead_ms=later->lead_ms;
+  work.later_lz4_range=true;
 }
 
 struct WinFspNativeWritable::Impl {
@@ -767,10 +801,16 @@ struct WinFspNativeWritable::Impl {
     if(slot->read_revision==work.stream_revision)return &*slot;
     // A completed CPU read can pass the start of an in-flight group window.
     // Keep the capture only while that stream still needs some of its bytes.
-    if(work.groups && slot->read_revision>work.stream_revision &&
+    if(slot->read_revision<=work.stream_revision)return nullptr;
+    if(work.groups &&
         slot->last_read.sequential_since<=work.stream_revision) {
       if(work.groups->has_data_after(slot->last_read.end))return &*slot;
       if(demand_served)*demand_served=true;
+    } else if(!work.groups && work.sequential_since==slot->last_read.sequential_since) {
+      // Independent LZ4 captures pin an exact checkpoint and must arrive
+      // before any bytes of their selected range have been read by demand.
+      if(work.later_lz4_range && slot->last_read.end<=work.offset)return &*slot;
+      if(slot->last_read.end>work.offset && demand_served)*demand_served=true;
     }
     return nullptr;
   }
@@ -1921,14 +1961,8 @@ std::optional<WinFspReadAheadWork> WinFspNativeWritable::capture_native_lz4_read
         group_lease=impl_->session.lease_native_group_capture(slot.handle,work.offset);
       }
       else {
-        const auto minimum=lz4_window.minimum_frames;
-        const auto history=target.consecutive_aligned_bytes/kNativeExtentBytes;
-        const auto addressable=((std::numeric_limits<std::uint64_t>::max)()-work.offset)/kNativeExtentBytes;
-        if(immediate_frames<minimum && minimum<=history && minimum<=available_frames && minimum<=addressable &&
-            lz4_window.required_lead_ms && work.has_read_lead(lz4_window.required_lead_ms,now)) {
-          work.lz4_prefix.bytes=work.bytes;
-          work.bytes=minimum*kNativeExtentBytes;
-        }
+        detail::plan_lz4_read_window(work,lz4_window,target.consecutive_aligned_bytes/kNativeExtentBytes,
+            available_frames,work.bytes==target.bytes?target.observed_lead_ms:0,now);
         lease=impl_->session.lease_native_lz4_capture(slot.handle,work.offset,frame_bytes);
       }
     }
@@ -1996,9 +2030,11 @@ bool WinFspNativeWritable::publish_read_ahead(WinFspReadAheadWork& work,
         (impl_->native_lz4_reads && impl_->native_lz4_reads->pending()))return false;
     const auto* slot=impl_->current_read_target(work);
     if(!slot)return false;
-    if(groups && slot->read_revision!=work.stream_revision) {
-      groups->discard_before(slot->last_read.end);
-      if(!groups->pending())return false;
+    if(slot->read_revision!=work.stream_revision) {
+      if(groups) {
+        groups->discard_before(slot->last_read.end);
+        if(!groups->pending())return false;
+      }
       if(impl_->read_ahead && impl_->read_ahead->token==work.token)impl_->read_ahead.reset();
     }
     if(lz4)lz4->keep_metadata(std::move(work.metadata));
@@ -2020,7 +2056,7 @@ bool WinFspNativeWritable::prepare_captured_native_lz4_read(WinFspReadAheadWork&
           impl_->stopped.load(std::memory_order_acquire) || impl_->offline.load(std::memory_order_acquire) ||
           stop_requested.load(std::memory_order_acquire);
     };
-    if(work.owner!=this || interrupted())return false;
+    if(work.owner!=this || work.later_lz4_range || interrupted())return false;
     if(work.groups)
       return publish_read_ahead(work,{},detail::NativeGroupReadyReads::decode_captured(*work.groups,interrupted),stop_requested);
     auto frames=std::span<const detail::NativeLz4CapturedFrame>(work.frames);
