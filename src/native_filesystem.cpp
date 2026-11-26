@@ -3019,8 +3019,9 @@ std::vector<detail::NativeCapturedWrite> detail::NativeWriteCaptureLease::read(
 }
 std::vector<detail::NativeLz4CapturedFrame> detail::NativeLz4CaptureLease::capture_range(
     std::uint32_t bytes,std::size_t maximum_frame_bytes,const std::function<bool()>& interrupted,
-    std::shared_ptr<PagedReadMetadata>* metadata) const {
+    std::shared_ptr<PagedReadMetadata>* metadata,NativeLz4CapturePrefix* prefix) const {
   if(metadata)metadata->reset();
+  if(prefix)prefix->frames=0;
   if(!bytes || bytes>kNativeMaxReadBytes || offset_%kNativeExtentBytes || !maximum_frame_bytes)return {};
   try {
     const StoreCaptureReadScope capture(interrupted);
@@ -3028,7 +3029,7 @@ std::vector<detail::NativeLz4CapturedFrame> detail::NativeLz4CaptureLease::captu
     const auto query=snapshot_.scoped_query();
     const auto view=verify_indexed_root(snapshot_,root_);
     auto frames=view.capture_native_lz4_range(view.inode(inode_),offset_,bytes,maximum_encoded_,
-        maximum_frame_bytes,interrupted);
+        maximum_frame_bytes,interrupted,prefix);
     if(metadata && !frames.empty())*metadata=snapshot_.take_query_metadata();
     return frames;
   }catch(const std::exception&){return {};}

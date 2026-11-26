@@ -1171,12 +1171,12 @@ int live_amd_read_ahead(char** argv,bool refuse,AmdReadFixtureLayout layout=AmdR
   return 0;
 }
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
-int live_installed_native_read(bool missing) {
+int live_installed_native_read(bool missing,bool narrow=false) {
   const auto qualified=installed_native_read_profile();
   require(qualified && qualified->minimum_frames==2 && qualified->maximum_frames==2 && store_lz4_available(),
       "The installed native-read fixture requires a two-frame AMD package");
   constexpr std::uint64_t extent=kNativeExtentBytes,capacity=8ULL*1024*1024;
-  constexpr std::size_t window=2*extent;
+  const std::size_t window=narrow?extent:2*extent;
   auto domain=MemoryVolumeDomain::create(capacity+kVolumeHeadBytes);
   auto head=domain.create_store(kVolumeHeadBytes);
   auto image=domain.create_store(capacity);
@@ -1189,9 +1189,8 @@ int live_installed_native_read(bool missing) {
   Provider::active=&provider;
   WinFspVolumeController owner(std::move(source),provider.api(),plan(),domain);
   await([&]{return owner.view().state==SessionState::running;},5000,"Installed read controller startup");
-  // Keep the three cadence windows sparse so this two-frame read fixture
-  // does not also start a collective compression scan over unrelated extents.
-  Bytes bytes(4*window);
+  // Keep the three cadence windows sparse while capturing two stored frames.
+  Bytes bytes(3*window+2*extent);
   for(std::size_t i=0;i<2;++i) {
     const auto motif=data(extent/8,917+static_cast<unsigned>(i));
     for(std::size_t pos=0;pos<extent;pos+=motif.size())
@@ -1250,11 +1249,14 @@ int live_installed_native_read(bool missing) {
     }
     const auto hits=adapter->native_lz4_read_ahead_hits();
     demand(3);
-    require(adapter->native_lz4_read_ahead_hits()==hits+2,"CPU preparation did not supply the two requested frames");
+    require(adapter->native_lz4_read_ahead_hits()==hits+window/extent,"CPU preparation missed immediate demand");
+    if(narrow)demand(4);
   };
   cpu_turn(0);
-  require(owner.view().installed_read_attempts==0 && owner.view().installed_read_lead_refusals &&
-      !owner.view().amd_read.submitted,"Unqualified read cadence touched the AMD package");
+  const auto burst=owner.view();
+  require(burst.installed_read_attempts==0 &&
+      (narrow?burst.installed_read_shape_refusals:burst.installed_read_lead_refusals) &&
+      !burst.amd_read.submitted,"Unqualified read cadence touched the AMD package");
   constexpr DWORD paced_gap=1500;
   require(qualified->minimum_lead_ms<paced_gap,"The fixture gap does not cover the approved lead");
   const auto initial=prepare(paced_gap);
@@ -1279,7 +1281,11 @@ int live_installed_native_read(bool missing) {
       "Incorrect installed identity query count");
   bool learned_cpu=false;
   await([&]{return owner.view().read_ahead_prepared>initial;},12000,"Acquisition did not preserve CPU read-ahead");
+  const auto cpu_hits=adapter->native_lz4_read_ahead_hits();
   demand(3);
+  require(adapter->native_lz4_read_ahead_hits()==cpu_hits+window/extent,
+      "Installed-role acquisition displaced immediate CPU preparation");
+  if(narrow)demand(4);
   if(missing) {
     Sleep(qualified->worker.timeout_ms);
     cpu_turn(paced_gap);
@@ -1287,15 +1293,19 @@ int live_installed_native_read(bool missing) {
         "Unchanged missing package was retried after its evidence interval");
   }else {
     cpu_turn(0);
-    require(owner.view().amd_read.lead_refusals && !owner.view().amd_read.budget_queries && !owner.view().amd_read.submitted,
+    require((narrow || owner.view().amd_read.lead_refusals) && !owner.view().amd_read.budget_queries && !owner.view().amd_read.submitted,
         "A short read interval reached the installed GPU budget or worker");
     const auto hits=adapter->native_lz4_read_ahead_hits();
     prepare(paced_gap);
-    await([&]{return owner.view().amd_read.published || owner.view().amd_read.failures;},18000,
+    await([&]{return owner.view().amd_read.published || owner.view().amd_read.failures;},narrow?paced_gap:18000,
         "Installed native decoder did not finish");
     require(owner.view().amd_read.published==1 && owner.view().amd_read.verified_frames==2 &&
         owner.view().amd_read.retirement_confirmed,"Installed route did not publish verified GPU frames");
     demand(3);
+    if(narrow) {
+      require(adapter->native_lz4_read_ahead_hits()==hits+1,"First narrow demand missed the AMD frame");
+      demand(4);
+    }
     require(adapter->native_lz4_read_ahead_hits()==hits+2,"Callbacks did not consume the installed AMD result");
     const auto completed=owner.view().amd_read;
     if(completed.last_turnaround_ms>2*std::uint64_t{paced_gap}) {
@@ -1311,7 +1321,7 @@ int live_installed_native_read(bool missing) {
   const auto last=owner.view();
   require(last.retired && last.amd_read.retirement_confirmed && !last.controller_failed &&
       provider.fs.UserContext==nullptr,"Installed read controller did not retire");
-  std::cout<<"installed_native_read missing="<<missing<<" acquisitions="<<last.installed_read_attempts
+  std::cout<<"installed_native_read missing="<<missing<<" demand_bytes="<<window<<" acquisitions="<<last.installed_read_attempts
       <<" identity_queries="<<last.installed_read_queries<<" gpu_submitted="<<last.amd_read.submitted
       <<" gpu_verified="<<last.amd_read.verified_frames<<" lead_refusals="<<last.amd_read.lead_refusals
       <<" worker_ms="<<last.amd_read.last_worker_elapsed_ms<<" turnaround_ms="<<last.amd_read.last_turnaround_ms
@@ -5379,6 +5389,8 @@ int main(int argc,char** argv){try {
   }
 #endif
   const bool profile_installed_read=argc==2 && std::string_view(argv[1])=="--profile-installed-native-read";
+  const bool narrow_installed_read=argc==2 && std::string_view(argv[1])=="--live-installed-narrow-read";
+  const bool narrow_missing_read=argc==2 && std::string_view(argv[1])=="--live-installed-narrow-read-missing";
   const bool profile_existing_prefix=argc==7 && std::string_view(argv[1])=="--live-anchor-owner" &&
       std::string_view(argv[6])=="prefix-extension";
   const bool profile_automatic_sealed_read=argc==11 &&
@@ -5389,7 +5401,7 @@ int main(int argc,char** argv){try {
        std::string_view(argv[1])=="--live-amd-paired-sealed-refusal" ||
        std::string_view(argv[1])=="--live-amd-dense-sealed-read" ||
        std::string_view(argv[1])=="--live-amd-dense-sealed-refusal");
-  app_fixture::Budget budget(true,profile_installed_read || profile_existing_prefix ||
+  app_fixture::Budget budget(true,profile_installed_read || narrow_installed_read || narrow_missing_read || profile_existing_prefix ||
       profile_automatic_sealed_read || profile_paired_sealed_read);DWORD before=0,after=0;
   if(argc==2 && std::string_view(argv[1])=="--paired-near-full-seal") {
     (void)volume_file_sealed_callbacks(PairedWorkspaceFixture::locked_memory,4096,true);
@@ -5433,6 +5445,7 @@ int main(int argc,char** argv){try {
     return live_installed_native_read(false);
   if(argc==2 && std::string_view(argv[1])=="--live-installed-native-read-missing")
     return live_installed_native_read(true);
+  if(narrow_installed_read || narrow_missing_read)return live_installed_native_read(narrow_missing_read,true);
   if(argc==1)anchor_launch_budget();
   if(argc==2 && std::string_view(argv[1])=="--live-installed-retired-reply")
     return live_installed_retired_reply(BatchForegroundTrial::read_after_retirement);

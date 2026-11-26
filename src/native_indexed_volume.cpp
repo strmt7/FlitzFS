@@ -2846,7 +2846,7 @@ bool IndexedVolumeView::capture_native_lz4(const IndexedInodeInput& selected,std
 }
 std::vector<NativeLz4CapturedFrame> IndexedVolumeView::capture_native_lz4_range(
     const IndexedInodeInput& selected,std::uint64_t offset,std::uint32_t bytes,std::size_t maximum_encoded,
-    std::size_t remaining_frame_bytes,const std::function<bool()>& interrupted) const {
+    std::size_t remaining_frame_bytes,const std::function<bool()>& interrupted,NativeLz4CapturePrefix* prefix) const {
   if(selected.directory || selected.lifetime!=IndexedLifetime::linked || offset>=selected.size ||
       offset%kNativeExtentBytes || !bytes || bytes>kNativeMaxReadBytes || !remaining_frame_bytes)return {};
   const auto end=offset+(std::min)(std::uint64_t(bytes),selected.size-offset);
@@ -2856,20 +2856,24 @@ std::vector<NativeLz4CapturedFrame> IndexedVolumeView::capture_native_lz4_range(
       static_cast<std::size_t>(last-first+1));
   std::vector<NativeLz4CapturedFrame> frames;
   frames.reserve(range.size());
+  std::size_t prefix_frames=0;
   for(const auto& entry:range) {
     if(interrupted && interrupted())return {};
-    if(native_extent_block(entry.key.name)>last || !remaining_frame_bytes)break;
+    const auto block=native_extent_block(entry.key.name);
+    if(block>last || !remaining_frame_bytes)break;
     if((entry.value&ordinal_mask)>=root_.next_extent)return {};
     NativeLz4CapturedFrame frame;
     if(store_.capture_native_lz4(entry.value,extent_header+kNativeExtentBytes,maximum_encoded,frame,
           remaining_frame_bytes)) {
       remaining_frame_bytes-=frame.key().decoded_bytes+frame.encoded().size();
       frames.push_back(std::move(frame));
+      if(prefix && block-first<prefix->bytes/kNativeExtentBytes)++prefix_frames;
     }
   }
   const auto info=store_.info();
   if(info.degraded_roots || info.degraded_metadata || info.degraded_payloads ||
       (interrupted && interrupted()))return {};
+  if(prefix)prefix->frames=prefix_frames;
   return frames;
 }
 std::unique_ptr<NativeGroupReadBatch> IndexedVolumeView::capture_group_range(

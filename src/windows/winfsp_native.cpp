@@ -262,7 +262,7 @@ void detail::plan_group_read_window(WinFspReadAheadWork& work,WinFspGroupReadWin
 struct WinFspNativeWritable::Impl {
   struct ReadHistory {
     std::uint64_t end=0,completed_ms=0,idle_before_ms=0,group_idle_before_ms=0;
-    std::uint32_t bytes=0,consecutive_group_bytes=0;
+    std::uint32_t bytes=0,consecutive_group_bytes=0,consecutive_aligned_bytes=0;
     std::uint64_t sequential_since=0;
     std::uint64_t group_boundary=0,group_boundary_ms=0,group_interval_ms=0;
   };
@@ -282,6 +282,7 @@ struct WinFspNativeWritable::Impl {
     bool tiled=false;
     std::uint32_t consecutive_group_bytes=0;
     std::uint64_t aligned_group_gap_ms=0;
+    std::uint32_t consecutive_aligned_bytes=0;
     bool overlaps(std::uint64_t start,std::uint32_t length) const noexcept {
       return length && (start<=offset?offset-start<length:start-offset<bytes);
     }
@@ -845,7 +846,12 @@ struct WinFspNativeWritable::Impl {
     // Keep samples from adjacent grouped reads even when the width changes.
     const auto group_idle=continues_group?idle:0;
     const auto sequential_since=adjacent?previous.sequential_since:slot.read_revision;
-    slot.last_read={end,completed_ms,same_width_idle,group_idle,length,group_bytes,sequential_since};
+    std::uint32_t aligned_bytes=0;
+    if(offset%kNativeExtentBytes==0 && length%kNativeExtentBytes==0) {
+      const auto prior=adjacent && previous.bytes==length?previous.consecutive_aligned_bytes:0;
+      aligned_bytes=static_cast<std::uint32_t>((std::min)(std::uint64_t{kNativeMaxReadBytes},std::uint64_t{prior}+length));
+    }
+    slot.last_read={end,completed_ms,same_width_idle,group_idle,length,group_bytes,aligned_bytes,sequential_since};
     const auto gap=(kNativeExtentBytes-end%kNativeExtentBytes)%kNativeExtentBytes;
     std::uint64_t partial_group_gap=0;
     if(length<kNativeExtentBytes) {
@@ -883,7 +889,7 @@ struct WinFspNativeWritable::Impl {
       const bool retain_group=read_ahead && read_ahead->tiled && read_ahead->consecutive_group_bytes>=kNativeExtentBytes &&
           completed_ms>=read_ahead->created_ms && completed_ms-read_ahead->created_ms<read_ahead->observed_lead_ms;
       if(window<=maximum-end-gap && (lead || !retain_group))read_ahead=ReadAhead{slot.token,end+gap,window,completed_ms,
-          lead,demand_cost,group_bytes!=0,group_bytes,aligned_group_gap};
+          lead,demand_cost,group_bytes!=0,group_bytes,aligned_group_gap,aligned_bytes};
     }
     return bytes;
   }
@@ -1875,7 +1881,7 @@ std::optional<WinFspReadAheadWork> WinFspNativeWritable::capture_native_lz4_read
     const NativeMaintenanceObservation& observed,std::uint64_t now,std::uint64_t epoch,
     const std::atomic<bool>& stop_requested,
     const std::function<void(const WinFspReadAheadWork&)>& before_group_capture,
-    WinFspGroupReadWindow group_window) noexcept {
+    WinFspGroupReadWindow group_window,WinFspLz4ReadWindow lz4_window) noexcept {
   try {
     const auto resources=detail::maintenance_resources(observed,now,impl_->group_policy);
     constexpr auto frame_bytes=kNativeExtentBytes+detail::kIndexedExtentHeaderBytes;
@@ -1914,7 +1920,17 @@ std::optional<WinFspReadAheadWork> WinFspNativeWritable::capture_native_lz4_read
             available_frames,work.bytes==target.bytes?target.aligned_group_gap_ms:0,now);
         group_lease=impl_->session.lease_native_group_capture(slot.handle,work.offset);
       }
-      else lease=impl_->session.lease_native_lz4_capture(slot.handle,target.offset,frame_bytes);
+      else {
+        const auto minimum=lz4_window.minimum_frames;
+        const auto history=target.consecutive_aligned_bytes/kNativeExtentBytes;
+        const auto addressable=((std::numeric_limits<std::uint64_t>::max)()-work.offset)/kNativeExtentBytes;
+        if(immediate_frames<minimum && minimum<=history && minimum<=available_frames && minimum<=addressable &&
+            lz4_window.required_lead_ms && work.has_read_lead(lz4_window.required_lead_ms,now)) {
+          work.lz4_prefix.bytes=work.bytes;
+          work.bytes=minimum*kNativeExtentBytes;
+        }
+        lease=impl_->session.lease_native_lz4_capture(slot.handle,work.offset,frame_bytes);
+      }
     }
     const auto interrupted=[&]{
       return foreground_pending() || foreground_activity()!=epoch ||
@@ -1929,7 +1945,8 @@ std::optional<WinFspReadAheadWork> WinFspNativeWritable::capture_native_lz4_read
       work.groups=group_lease->capture(work.bytes,static_cast<std::size_t>(grant),interrupted);
     }else {
       const auto frame_grant=static_cast<std::size_t>(work.bytes/kNativeExtentBytes)*2*frame_bytes;
-      work.frames=lease->capture_range(work.bytes,frame_grant,interrupted,&work.metadata);
+      work.frames=lease->capture_range(work.bytes,frame_grant,interrupted,&work.metadata,
+          work.lz4_prefix.bytes?&work.lz4_prefix:nullptr);
     }
     if((work.frames.empty() && !work.groups) || interrupted())return {};
     return work;
@@ -2006,7 +2023,13 @@ bool WinFspNativeWritable::prepare_captured_native_lz4_read(WinFspReadAheadWork&
     if(work.owner!=this || interrupted())return false;
     if(work.groups)
       return publish_read_ahead(work,{},detail::NativeGroupReadyReads::decode_captured(*work.groups,interrupted),stop_requested);
-    return publish_read_ahead(work,detail::NativeLz4ReadyReads::decode_captured(work.frames,interrupted),{},stop_requested);
+    auto frames=std::span<const detail::NativeLz4CapturedFrame>(work.frames);
+    if(work.lz4_prefix.bytes) {
+      // A refused GPU batch must not widen background CPU decoding.
+      work.bytes=work.lz4_prefix.bytes;
+      frames=frames.first((std::min)(frames.size(),work.lz4_prefix.frames));
+    }
+    return publish_read_ahead(work,detail::NativeLz4ReadyReads::decode_captured(frames,interrupted),{},stop_requested);
   }catch(...) {return false;}
 }
 void WinFspNativeWritable::discard_native_lz4_read_ahead(std::uint64_t epoch,bool measure_demand) noexcept {

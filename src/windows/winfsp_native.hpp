@@ -21,6 +21,10 @@ struct WinFspGroupReadWindow {
   std::uint64_t required_lead_ms=0;
   std::uint32_t minimum_frames=0;
 };
+struct WinFspLz4ReadWindow {
+  std::uint32_t minimum_frames=0;
+  std::uint64_t required_lead_ms=0;
+};
 struct WinFspReadAheadWork {
   const WinFspNativeWritable* owner=nullptr;
   std::uintptr_t token=0;
@@ -33,6 +37,7 @@ struct WinFspReadAheadWork {
   std::uint64_t stream_revision=0,sequential_since=0;
   std::pair<StoreIdentity,std::uint64_t> checkpoint{};
   bool expanded_group_window=false;
+  detail::NativeLz4CapturePrefix lz4_prefix;
   bool has_read_lead(std::uint64_t required_ms,std::uint64_t now_ms) const noexcept {
     if(!required_ms)return true;
     if(!hint_created_ms || now_ms<hint_created_ms)return false;
@@ -224,7 +229,7 @@ class WinFspNativeWritable final {
   std::optional<WinFspReadAheadWork> capture_native_lz4_read_ahead(const NativeMaintenanceObservation&,
       std::uint64_t now_ms,std::uint64_t foreground_epoch,const std::atomic<bool>& stop_requested,
       const std::function<void(const WinFspReadAheadWork&)>& before_group_capture={},
-      WinFspGroupReadWindow group_window={}) noexcept;
+      WinFspGroupReadWindow group_window={},WinFspLz4ReadWindow lz4_window={}) noexcept;
   WinFspReadAheadState read_ahead_state(const WinFspReadAheadWork&) const noexcept;
   WinFspReadAheadState group_preparation_state(const WinFspReadAheadWork&,std::uint64_t now_ms) const noexcept;
   // Keep verified buffers with the caller until the current target admits publication.

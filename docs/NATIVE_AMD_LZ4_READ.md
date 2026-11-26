@@ -766,6 +766,24 @@ tested fixture. Matched, representative mounted-workload measurements
 still determine whether to ship a profile for this class.
 [Installed read verification](evidence/installed-native-amd-read-2026-11-22.json)
 
+#### Sequential requests below the profile minimum
+
+An aligned run of equal-size requests can fund a larger independent LZ4
+capture when it has enough measured lead for the installed decoder's
+minimum frame count. The controller uses the same allowance during
+initial package acquisition and after binding. The backing reader checks
+the whole capture against the selected checkpoint. CPU preparation uses
+only the original forecast range when the runtime declines, even when
+only the widened suffix contains an eligible frame.
+
+The installed Radeon fixture acquired the two-frame profile from a stream
+of 64 KiB callbacks. Two separate callbacks consumed the verified device
+frames. The worker exchange took 1,079 ms, with 1,094 ms from submission
+through publication. The controlled demand intervals were 1,500 ms.
+Repeating the sequence with the package absent used CPU and made zero
+device identity queries. Both runs kept exact data and retired their
+owned processes.
+[Host callback and fallback evidence](evidence/windows-narrow-amd-reads-2026-11-26.json)
 
 ### Host transfer and startup costs
 

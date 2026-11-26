@@ -16,6 +16,7 @@ class WinFspNativeWritable;
 class WindowsGpuEngineSampler;
 struct WinFspReadAheadWork;
 struct WinFspGroupReadWindow;
+struct WinFspLz4ReadWindow;
 struct NativeMaintenanceObservation;
 
 // The installation and workload qualification owner supplies these exact
@@ -107,6 +108,7 @@ class NativeLz4ReadWorker final {
   NativeLz4ReadWorker(const NativeLz4ReadWorker&)=delete;
   NativeLz4ReadWorker& operator=(const NativeLz4ReadWorker&)=delete;
   bool bind_installed_route() noexcept;
+  WinFspLz4ReadWindow lz4_read_window(std::uint64_t now_ms) const noexcept;
   WinFspGroupReadWindow group_read_window() const noexcept;
   bool prepare_group(const WinFspReadAheadWork&,const NativeMaintenanceObservation&,const std::atomic<bool>&) noexcept;
   bool start(WinFspReadAheadWork&,const NativeMaintenanceObservation&,const std::atomic<bool>&) noexcept;

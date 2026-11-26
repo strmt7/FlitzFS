@@ -204,6 +204,10 @@ recovery campaign constrain the remaining work.
 
 ## Research decisions
 
+The [prioritized Windows GPU and storage investigation](../research/windows-gpu-storage-priorities-2026-11-26.md)
+binds the next implementation decisions to current source reports,
+Windows contracts and published storage research.
+
 - Base the Windows compatibility matrix on observed builds and signed
   artifacts. Microsoft's release table treats 26H1 as the servicing
   track for new devices. The WinFsp interface supplies the callback

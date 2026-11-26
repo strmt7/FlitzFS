@@ -7,6 +7,10 @@ namespace flitzfs {class PagedObjectStoreSnapshot;}
 
 namespace flitzfs::detail {
 class PagedReadMetadata;
+struct NativeLz4CapturePrefix {
+  std::uint32_t bytes=0;
+  std::size_t frames=0;
+};
 struct NativeLz4ReadKey {
   StoreIdentity image{};
   std::uint64_t object=0,generation=0;

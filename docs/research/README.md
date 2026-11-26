@@ -13,6 +13,7 @@ Use the [current plan](../DEVELOPMENT_PLAN.md) and
 | Durability and repair | [Resilient store](../RESILIENT_STORE_DESIGN.md), [persistence model](../PERSISTENCE_MODEL.md) |
 | GPU codec selection | [Candidate review](../GPU_CODEC_CANDIDATES.md), [kernel review](../GPU_LZ4_KERNEL_REVIEW.md) |
 | Windows architecture and product behavior | [Windows architecture](../WINDOWS_ARCHITECTURE.md), [product plan](../WINDOWS_PRODUCT.md) |
+| Highest-impact Windows release problems | [GPU, durability, scaling and compression priorities](windows-gpu-storage-priorities-2026-11-26.md) |
 
 Source captures and qualification records belong with their evidence, not in the
 product README. Preserve failed or superseded observations with their dates and

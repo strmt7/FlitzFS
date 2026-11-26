@@ -975,11 +975,68 @@ void batched_read_ahead() {
       <<" total_prepared_bytes="<<shared+prepared<<'\n';
 }
 
+void narrow_lz4_read_ahead() {
+  constexpr auto extent=kNativeExtentBytes;
+  constexpr StoreCompressionOptions fast{StoreCompressionMode::fast,1,false};
+  Harness h(4096,nullptr,nullptr,nullptr,nullptr,true,fast,true);
+  const auto context=h.create(49);
+  const auto first=native_lz4_fixture::source();
+  auto second=first;
+  second.front()^=std::byte{1};
+  // The sparse prefix supplies cadence while the forecast captures real frames.
+  const Bytes zero(extent);
+  h.write(context,first,3*extent);
+  h.write(context,second,4*extent);
+  const auto capture=[&](PVOID stream,DWORD gap,std::uint64_t required_lead=10) {
+    h.read(stream,zero,0);
+    if(gap)Sleep(gap);
+    h.read(stream,zero,extent);
+    if(gap)Sleep(gap);
+    h.read(stream,zero,2*extent);
+    auto observation=h.clock.next();
+    observation.captured_ms=GetTickCount64();
+    const std::atomic<bool> stop=false;
+    return h.adapter->capture_native_lz4_read_ahead(observation,observation.captured_ms,
+        h.adapter->foreground_activity(),stop,{},{},WinFspLz4ReadWindow{2,required_lead});
+  };
+  const std::atomic<bool> stop=false;
+  auto work=capture(context,0,2000);
+  require(work && work->frames.size()==1 && work->bytes==extent && !work->lz4_prefix.bytes,
+      "A burst of short reads widened the forecast without measured lead");
+  work=capture(context,80);
+  require(work && work->offset==3*extent && work->bytes==2*extent && work->frames.size()==2 &&
+      work->lz4_prefix.bytes==extent && work->lz4_prefix.frames==1,
+      "A funded short read sequence did not capture the minimum LZ4 batch");
+  auto ready=detail::NativeLz4ReadyReads::decode_captured(work->frames);
+  require(h.adapter->publish_read_ahead(*work,std::move(ready),{},stop),"Narrow read batch did not publish");
+  h.read(context,first,3*extent);
+  require(h.adapter->native_lz4_read_ahead_hits()==1,"First narrow demand missed ready data");
+  h.read(context,second,4*extent);
+  require(h.adapter->native_lz4_read_ahead_hits()==2,"Second narrow demand discarded adjacent ready data");
+  work=capture(context,80);
+  require(work && work->frames.size()==2 && h.adapter->prepare_captured_native_lz4_read(*work,stop),
+      "A refused accelerator batch did not preserve immediate CPU preparation");
+  h.read(context,first,3*extent);
+  h.read(context,second,4*extent);
+  require(h.adapter->native_lz4_read_ahead_hits()==3,"CPU fallback prepared beyond the immediate request");
+  const auto sparse=h.create(50);
+  h.write(sparse,second,4*extent);
+  work=capture(sparse,80);
+  require(work && work->frames.size()==1 && work->lz4_prefix.bytes==extent && !work->lz4_prefix.frames &&
+      !h.adapter->prepare_captured_native_lz4_read(*work,stop),"CPU fallback decoded a later extent across an uncaptured prefix");
+  h.read(sparse,zero,3*extent);
+  h.read(sparse,second,4*extent);
+  require(h.adapter->native_lz4_read_ahead_hits()==3,"A speculative read populated an unrequested suffix on refusal");
+  h.close(sparse);
+  h.close(context);
+}
+
 void ready_lz4_reads() {
   if(!store_lz4_available()){
     std::cout<<"winfsp_ready_lz4 cpu_decoder=0\n";
     return;
   }
+  narrow_lz4_read_ahead();
   constexpr StoreCompressionOptions fast{StoreCompressionMode::fast,1,false};
   {
     const auto head=ram(4096),image=ram(4096);

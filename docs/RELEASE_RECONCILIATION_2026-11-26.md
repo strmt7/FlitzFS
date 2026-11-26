@@ -12,7 +12,18 @@ the gates.
 [Implementation packages](IMPLEMENTATION_PLAN.md#3-execution-order-and-dependencies) ·
 [Release gates](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
 
-The current checkpoint builds on `c60544afdbbe7987d49ee5c1ce085854eb2eeee3`.
+The follow-up on `6c7f4b67ad2947ae85261360df92410f80397545`
+admitted the installed AMD decoder from sequential 64 KiB demand.
+Two separate Windows SDK callbacks consumed verified Radeon output.
+The absent-package control remained byte-exact on CPU with zero GPU
+identity queries or submissions. Current adapter binding, callback
+and sanitizer results are retained with the source tree. The next
+performance gate requires representative mounted consumption and
+matched CPU measurements.
+[Narrow read evidence](evidence/windows-narrow-amd-reads-2026-11-26.json) ·
+[Prioritized follow-up](research/windows-gpu-storage-priorities-2026-11-26.md)
+
+The prepared-write recovery checkpoint builds on `c60544afdbbe7987d49ee5c1ce085854eb2eeee3`.
 Source tree `6cc3b3ec72515c3b502c6e4c93fe70c4b4c71731` applies evidence-based
 retry to unused prepared write workers. Two expired leases required
 two independent healthy observations triggered by matching CPU writes.

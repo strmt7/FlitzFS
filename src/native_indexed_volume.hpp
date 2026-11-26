@@ -5,6 +5,7 @@
 
 namespace flitzfs::detail {
 class NativeGroupReadBatch;
+struct NativeLz4CapturePrefix;
 
 inline constexpr std::size_t kIndexedVolumeIdentityOffset=72;
 inline constexpr std::size_t kIndexedVolumeRootMaximumBytes=136;
@@ -274,7 +275,8 @@ class IndexedVolumeView final {
       NativeLz4CapturedFrame&) const;
   std::vector<NativeLz4CapturedFrame> capture_native_lz4_range(const IndexedInodeInput&,
       std::uint64_t offset,std::uint32_t bytes,std::size_t maximum_encoded,
-      std::size_t remaining_frame_bytes,const std::function<bool()>& interrupted) const;
+      std::size_t remaining_frame_bytes,const std::function<bool()>& interrupted,
+      NativeLz4CapturePrefix* prefix) const;
   std::unique_ptr<NativeGroupReadBatch> capture_group_range(const IndexedInodeInput&,
       std::uint64_t offset,std::uint32_t bytes,std::size_t remaining_frame_bytes,
       const std::function<bool()>& interrupted) const;

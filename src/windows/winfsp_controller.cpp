@@ -404,10 +404,15 @@ struct WinFspVolumeController::Impl {
                         read_ahead_timing.predicted_ns(),&read_ahead_backing_refused);
                     if(allowance && !interrupted()) {
                       const auto before=backing_use.elapsed_ns();
-                      auto work=adapter->capture_native_lz4_read_ahead(*allowance,GetTickCount64(),epoch,stop_requested,
+                      const auto now=GetTickCount64();
+                      auto lz4_window=read_worker?read_worker->lz4_read_window(now):WinFspLz4ReadWindow{};
+#ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
+                      if(!read_worker)lz4_window=installed_lz4_read_window(*allowance,now);
+#endif
+                      auto work=adapter->capture_native_lz4_read_ahead(*allowance,now,epoch,stop_requested,
                           [&](const auto& forecast) {
                             if(read_worker)(void)read_worker->prepare_group(forecast,*allowance,stop_requested);
-                          },read_worker?read_worker->group_read_window():WinFspGroupReadWindow{});
+                          },read_worker?read_worker->group_read_window():WinFspGroupReadWindow{},lz4_window);
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
                       if(work && !read_worker)begin_read_acquisition(*work,*allowance);
 #endif
@@ -1020,6 +1025,22 @@ struct WinFspVolumeController::Impl {
     if(status_changed.value)SetEvent(status_changed.value);
   }
 
+  bool read_acquisition_checks_input() const noexcept {
+    return read_acquisition_started && read_acquisition.status!=HipDiscoveryStatus::transport_busy &&
+        read_acquisition.status!=HipDiscoveryStatus::engine_deferred;
+  }
+  ProcessBudget installed_read_budget(const NativeMaintenanceObservation& observed) const noexcept {
+    const auto& budget=installed_read->worker;
+    return plan_resource_process_budget(budget.memory_mib*1024ULL*1024,observed.physical_available,
+        observed.commit_available,budget.memory_share_divisor,budget.cpu_rate,budget.timeout_ms);
+  }
+  WinFspLz4ReadWindow installed_lz4_read_window(const NativeMaintenanceObservation& observed,
+      std::uint64_t now) const noexcept {
+    if(!installed_read || !acquisition_retired || acquisition_thread.joinable() ||
+        (read_acquisition_checks_input() && (now<next_read_evidence_ms || !read_inputs)) ||
+        !WorkerExchangeSession::available() || !valid_process_budget(installed_read_budget(observed)))return {};
+    return {installed_read->minimum_frames,installed_read->minimum_lead_ms};
+  }
   void begin_read_acquisition(const WinFspReadAheadWork& work,const NativeMaintenanceObservation& observed) {
     if(!installed_read || !acquisition_retired || acquisition_thread.joinable() ||
         (work.groups && (!installed_read->packed_groups ||
@@ -1040,14 +1061,12 @@ struct WinFspVolumeController::Impl {
       refused(&WinFspControllerView::installed_read_lead_refusals);
       return;
     }
-    const auto& budget=installed_read->worker;
-    if(!valid_process_budget(plan_resource_process_budget(budget.memory_mib*1024ULL*1024,observed.physical_available,
-        observed.commit_available,budget.memory_share_divisor,budget.cpu_rate,budget.timeout_ms))) {
+    if(!valid_process_budget(installed_read_budget(observed))) {
       refused(&WinFspControllerView::installed_read_resource_refusals);
       return;
     }
-    if(read_acquisition_started && read_acquisition.status!=HipDiscoveryStatus::transport_busy &&
-        read_acquisition.status!=HipDiscoveryStatus::engine_deferred) {
+    const auto& budget=installed_read->worker;
+    if(read_acquisition_checks_input()) {
       if(now<next_read_evidence_ms || !read_inputs)return;
       // A sampled input must change. The interval bounds metadata checks.
       next_read_evidence_ms=now+budget.timeout_ms;

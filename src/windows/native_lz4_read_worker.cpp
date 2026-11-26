@@ -135,6 +135,10 @@ struct NativeLz4ReadWorker::Impl {
     if(!engines)return true;
     return engines->available(profile.luid,now,minimum_background_gpu_idle_ppm);
   }
+  std::uint64_t lz4_lead() const noexcept {
+    return profile.minimum_lead_ms?
+        (std::max)(std::uint64_t{profile.minimum_lead_ms},status.last_turnaround_ms):0;
+  }
 
   bool has_lead(const WinFspReadAheadWork& work,std::uint64_t required,std::uint64_t now) noexcept {
     if(work.has_read_lead(required,now))return true;
@@ -252,6 +256,13 @@ bool NativeLz4ReadWorker::bind_installed_route() noexcept {
   return !impl_->flight && impl_->session.bind(impl_->configuration);
 }
 
+WinFspLz4ReadWindow NativeLz4ReadWorker::lz4_read_window(std::uint64_t now) const noexcept {
+  const auto& s=*impl_;
+  if(s.flight || !s.status.retirement_confirmed || s.status.configuration_refused ||
+      !s.engine_available(now).value_or(false) || !WorkerExchangeSession::available())return {};
+  return {s.profile.minimum_frames,s.lz4_lead()};
+}
+
 WinFspGroupReadWindow NativeLz4ReadWorker::group_read_window() const noexcept {
   const auto& s=*impl_;
   const auto& profile=s.profile;
@@ -366,8 +377,7 @@ bool NativeLz4ReadWorker::start(WinFspReadAheadWork& work,const NativeMaintenanc
     }catch(...) {++s.status.declined;return false;}
   }
   if(!WorkerExchangeSession::available())return false;
-  const auto lead=grouped?s.group_timing.start_lead(profile.minimum_lead_ms):
-      profile.minimum_lead_ms?(std::max)(std::uint64_t{profile.minimum_lead_ms},s.status.last_turnaround_ms):0;
+  const auto lead=grouped?s.group_timing.start_lead(profile.minimum_lead_ms):s.lz4_lead();
   if(!s.has_lead(work,lead,GetTickCount64()))return false;
   try {
     std::uint32_t frames=0,encoded=0,decoded=0;
