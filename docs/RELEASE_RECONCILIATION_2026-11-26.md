@@ -12,7 +12,20 @@ the gates.
 [Implementation packages](IMPLEMENTATION_PLAN.md#3-execution-order-and-dependencies) ·
 [Release gates](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
 
-The current checkpoint builds on `eed13ab39fceaf2ee7ef92b9a163bec1797d18dd`.
+The current checkpoint builds on `a53e1f64bd2630b7edc2069c211bd7672496c652`.
+Source tree `065471ac5cee6bfba2d5624536f8effef9d2d79f` stages a private Windows
+volume helper with system-only normal imports, its exact WinFsp user-mode
+DLL and the configured approved AMD files. The relocated helper passed
+its loader check on Windows with a System32-only PATH and a different
+working directory. A missing or modified DLL returned a controlled
+status. Two attachment tests and the helper model checks passed.
+The registered WinFsp kernel component remained stopped. The next
+installation work is signed deployment, compatible kernel discovery
+and owned upgrade and rollback.
+[Private Windows bundle](WINDOWS_VOLUME_APP.md#private-development-bundle) ·
+[Source-bound loader and attachment evidence](evidence/windows-private-volume-bundle-2026-11-26.json)
+
+The preceding read-recovery checkpoint builds on `eed13ab39fceaf2ee7ef92b9a163bec1797d18dd`.
 Source tree `cd5acee1be5ff1dcba537657cbc0c514c908ac39` retains the installed
 native read route's recovery policy when replacing a worker. Launch and
 prepared submission check the bound Windows device off the foreground

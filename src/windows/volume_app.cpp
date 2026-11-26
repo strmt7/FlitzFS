@@ -12,6 +12,7 @@
 #include <cwchar>
 #include <filesystem>
 #include <string>
+#include <string_view>
 #include <vector>
 #include <stdexcept>
 
@@ -366,6 +367,13 @@ LRESULT CALLBACK procedure(HWND window,UINT message,WPARAM w,LPARAM l) {
 }
 }
 int WINAPI wWinMain(HINSTANCE instance,HINSTANCE,PWSTR command_line,int) {
+  if(command_line && std::wstring_view(command_line)==L"--check-installation") {
+#ifdef FLITZFS_BUILD_EXPLORER_APP
+    try { (void)load_volume_app_winfsp(); }
+    catch(...) { return 5; }
+#endif
+    return 0;
+  }
 #ifdef FLITZFS_EXPLORER_FILE_BACKING
   std::optional<VolumeFileRequest> startup_file;
   if(command_line && *command_line) {

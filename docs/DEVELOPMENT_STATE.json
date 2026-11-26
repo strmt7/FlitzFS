@@ -8,6 +8,18 @@
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
   "current_release_review": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
   "source_and_portability_review": "docs/architecture/RELEASE_REVIEW_2026-11-26.md",
+  "portable_volume_bundle": {
+    "source_parent": "a53e1f64bd2630b7edc2069c211bd7672496c652",
+    "tested_source_tree": "065471ac5cee6bfba2d5624536f8effef9d2d79f",
+    "evidence": "docs/evidence/windows-private-volume-bundle-2026-11-26.json",
+    "stages_app_local_winfsp_runtime": true,
+    "stages_approved_amd_files": true,
+    "system_only_normal_imports": true,
+    "relocated_runtime_check_status": 0,
+    "missing_and_changed_runtime_status": [5, 5],
+    "attachment_tests_passed": 2,
+    "release_qualified": false
+  },
   "installed_native_read_recovery": {
     "source_parent": "eed13ab39fceaf2ee7ef92b9a163bec1797d18dd",
     "tested_source_tree": "cd5acee1be5ff1dcba537657cbc0c514c908ac39",

@@ -7,6 +7,41 @@ acquisition when a qualified package admits the work.
 [Memory factory](WINDOWS_MEMORY_VOLUME_FACTORY.md) ·
 [Windows background maintenance](WINDOWS_BACKGROUND_MAINTENANCE.md)
 
+## Private development bundle
+
+Configure the helper with `FLITZFS_PORTABLE_CPU=ON` and use matching
+static-runtime LZ4 and Zstandard libraries if those codecs are enabled.
+With Python available to CMake, build the packaging target from that
+configuration.
+
+```powershell
+cmake --build build --config Release --target flitzfs_stage_volume_app
+```
+
+The target creates a new `flitzfs-volume-*` directory in the build
+tree. It verifies the helper's AMD64 PE imports before staging. An
+Explorer build includes the exact WinFsp DLL bound to the executable
+and the approved AMD files, when configured, in the expected `amd`
+layout. The completed directory contains `bundle.json` with import
+and file digests. Each run creates a separate directory, so another
+application's installation or package can stay under its original
+ownership.
+
+Run `flitzfs_volume_app.exe --check-installation` for an unattended
+loader check. The Explorer executable checks the packaged WinFsp
+identity and resolves its imports. The command exits with status 0
+on success and 5 if the runtime check fails. A normal Attach still
+goes through the volume controller and requires compatible Windows
+kernel support.
+
+The staged development bundle supplies the required user-mode helper
+dependency privately. Signed deployment, dependency notices, kernel
+compatibility and transactional upgrade qualification remain release
+work.
+[MSVC runtime selection](https://cmake.org/cmake/help/v4.5/variable/CMAKE_MSVC_RUNTIME_LIBRARY.html) ·
+[WinFsp stable SDK](https://github.com/winfsp/winfsp/releases/tag/v2.2) ·
+[Relocated bundle evidence](evidence/windows-private-volume-bundle-2026-11-26.json)
+
 ## Explorer attachment
 
 Configure `FLITZFS_BUILD_EXPLORER_APP=ON` and provide the reviewed

@@ -1,0 +1,387 @@
+{
+  "schema": 1,
+  "date_utc": "2026-11-26",
+  "source": {
+    "parent": "a53e1f64bd2630b7edc2069c211bd7672496c652",
+    "base_tree": "61aa99e4097865f33d21e1da6742a306c8fbd45a",
+    "tree": "065471ac5cee6bfba2d5624536f8effef9d2d79f",
+    "elements": [
+      {
+        "path": "CMakeLists.txt",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "0e2d82c965468a8a0e5312779f02491f5f2881c9",
+        "bytes": 100831
+      },
+      {
+        "path": "src/windows/volume_app.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "ef6be0c29e01c1e854061b026c0439d969026741",
+        "bytes": 21807
+      },
+      {
+        "path": "tools/ci/stage_volume_app.py",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "4283896f68c602167f1cc9c76e7950b6563b5e10",
+        "bytes": 4677
+      }
+    ]
+  },
+  "navigation": {
+    "commit": "a53e1f64bd2630b7edc2069c211bd7672496c652",
+    "source_files": 8,
+    "queries": 1,
+    "native_sha256": "5741e7335a15108becac5cca108cb6a822d28e8d31eb1299eefc191b3df87e53",
+    "receipt_sha256": "bb520d4d1e9557db77afc22f56d345f22e70167974fd935e9d386a6ec6624615"
+  },
+  "research": {
+    "initial": {
+      "version": "0.9.5+flitzzip.portable2",
+      "robots": true,
+      "external_llm": false,
+      "receipt_sha256": "7e921bd42d3a3f7a20aa07e141f624c10aac6a8aa18d4c6dc40264d0bee8eeb9",
+      "pages": [
+        {
+          "name": "cmake",
+          "url": "https://cmake.org/cmake/help/v4.5/command/install.html",
+          "success": true,
+          "http_status": 200,
+          "markdown_bytes": 85295,
+          "markdown_sha256": "9fd3c7e708466bfc073617c264b7b38a4e22d40e4562466fc4e132ba089d7759",
+          "capture_sha256": "472f90ba39387b5a442c1865be75ecc43c13c56b25b30236478749087fdbe182",
+          "failure_category": ""
+        },
+        {
+          "name": "winfsp",
+          "url": "https://github.com/winfsp/winfsp/blob/master/doc/WinFsp-Registry-Settings.md",
+          "success": true,
+          "http_status": 200,
+          "markdown_bytes": 15739,
+          "markdown_sha256": "2f305863090ce57a6223d1913f26125264822feaca49c620b49b8a7bffd83918",
+          "capture_sha256": "1eb5ea52738d1b0116b016e4ce598f1b2aca59010f9aaf83cf71115852ceeb9b",
+          "failure_category": ""
+        },
+        {
+          "name": "release",
+          "url": "https://github.com/winfsp/winfsp/releases/tag/v2.2",
+          "success": false,
+          "http_status": 200,
+          "markdown_bytes": 14058,
+          "markdown_sha256": "e0ac00553497ee7f058f79f0d137cf795f0c0005e26b5b33f5968b36606f2624",
+          "capture_sha256": "a1845d5cb0fe4957e73f288d7c227e3d4a72a1c18805a65948fd2cee9d2906eb",
+          "failure_category": "unexpected_content"
+        }
+      ]
+    },
+    "current_versions": {
+      "version": "0.9.5+flitzzip.portable2",
+      "robots": true,
+      "external_llm": false,
+      "receipt_sha256": "294773b7499b916eb8f1d843d32f8a5aa8c9f57342fb7b2b53ebb787ef7cd423",
+      "pages": [
+        {
+          "name": "winfsp-release",
+          "url": "https://github.com/winfsp/winfsp/releases/tag/v2.2",
+          "success": true,
+          "http_status": 200,
+          "markdown_bytes": 14058,
+          "markdown_sha256": "e0ac00553497ee7f058f79f0d137cf795f0c0005e26b5b33f5968b36606f2624",
+          "capture_sha256": "938e8c019b5cf3e8e15e6d0b6d139f14cad32ebde739993b2c0b1b2b9c285d93",
+          "failure_category": ""
+        },
+        {
+          "name": "msvc-runtime",
+          "url": "https://cmake.org/cmake/help/v4.5/variable/CMAKE_MSVC_RUNTIME_LIBRARY.html",
+          "success": true,
+          "http_status": 200,
+          "markdown_bytes": 5376,
+          "markdown_sha256": "6ed71c84978fefa26e903f5424a15c87e1b965127b5fe78dcb4ea5eec77a2341",
+          "capture_sha256": "a6c2329c19919b891afc47ff93c87046396269316aa99fe8c1cc8f91c9ec82ac",
+          "failure_category": ""
+        }
+      ]
+    },
+    "winfsp_attach_source": {
+      "git_blob": "1fdc49b21600c5bbe56f84b22c9a4fa58c3d8f8e",
+      "sha256": "db75f8fb11a50efe3dd13f506c4932977e46b927c54b1b7698507caad068859a",
+      "bytes": 3090
+    }
+  },
+  "build": {
+    "configuration": "Release",
+    "portable_cpu": true,
+    "lz4_static_runtime": true,
+    "zstandard_static_runtime": true,
+    "approved_amd_roles": [
+      "uniform write"
+    ],
+    "winfsp": {
+      "archive": "winfsp-2.2.26323.msi",
+      "sha256": "36ce01f9eedbbe6842b7fb4bedc79d7d4f71983e8aceb6877b46a07b331c7e19",
+      "source_commit": "ada6de157df4fa99f5a866b6ac7af66918d6d838",
+      "provenance_sha256": "086e34041de22b026a78150db70013bd1e1fb3d3446aadf123aa2413ecb519a0",
+      "user_mode": {
+        "path": "bin/winfsp-x64.dll",
+        "bytes": 200816,
+        "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+      }
+    }
+  },
+  "bundle": {
+    "manifest_sha256": "82a9d048e202140da2257e648fbf095b51111e4e9ecf46147b16c5aff36fc6e0",
+    "schema": 1,
+    "development_artifact": true,
+    "architecture": "AMD64",
+    "entry_point": "flitzfs_volume_app.exe",
+    "application_os_imports": [
+      "advapi32.dll",
+      "api-ms-win-core-synch-l1-2-0.dll",
+      "bcrypt.dll",
+      "cfgmgr32.dll",
+      "dxgi.dll",
+      "gdi32.dll",
+      "kernel32.dll",
+      "ole32.dll",
+      "pdh.dll",
+      "shell32.dll",
+      "user32.dll",
+      "wintrust.dll"
+    ],
+    "application_delay_imports": [
+      "winfsp-x64.dll"
+    ],
+    "winfsp_os_imports": [
+      "advapi32.dll",
+      "credui.dll",
+      "kernel32.dll",
+      "netapi32.dll",
+      "ole32.dll",
+      "rpcrt4.dll",
+      "secur32.dll",
+      "shell32.dll",
+      "user32.dll",
+      "version.dll",
+      "wldap32.dll"
+    ],
+    "approved_amd_manifest_sha256": "47e4276bf3d9189e1a293ae67ed1cce3e8dc59f0ef4262c11d64a7f1c3711e9d",
+    "files": [
+      {
+        "path": "flitzfs_volume_app.exe",
+        "bytes": 2829824,
+        "sha256": "a4371040cb547fe673e57cee9b9dbb7860e3c7e76a5b84499cae3e9b40feca30"
+      },
+      {
+        "path": "winfsp-x64.dll",
+        "bytes": 200816,
+        "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+      },
+      {
+        "path": "amd/qualification-manifest.json",
+        "bytes": 1342,
+        "sha256": "47e4276bf3d9189e1a293ae67ed1cce3e8dc59f0ef4262c11d64a7f1c3711e9d"
+      },
+      {
+        "path": "amd/flitzfs_hip_lz4_worker.exe",
+        "bytes": 622592,
+        "sha256": "5488521657d0be8e91ff497bda27e8ee0c35c1847ec2fd11c5f7def714d97544"
+      },
+      {
+        "path": "amd/hip-uniform-lz4/flitzfs_rocm_uniform_lz4_candidate.dll",
+        "bytes": 322048,
+        "sha256": "179797e791a8aac3e43c1277aca4a88edfe4650122af535d08c8b199d32b89c4"
+      },
+      {
+        "path": "amd/uniform-write-trial-qualification.json",
+        "bytes": 517,
+        "sha256": "01b2a8b024d155b15072e44feced412cf6208e1e65616f3fadc55871de031004"
+      }
+    ]
+  },
+  "local_relocation": {
+    "present_code": 0,
+    "missing_code": 5,
+    "changed_code": 5,
+    "manifest_sha256": "82a9d048e202140da2257e648fbf095b51111e4e9ecf46147b16c5aff36fc6e0",
+    "files": 6,
+    "path_independent": true,
+    "app_imports": [
+      "advapi32.dll",
+      "api-ms-win-core-synch-l1-2-0.dll",
+      "bcrypt.dll",
+      "cfgmgr32.dll",
+      "dxgi.dll",
+      "gdi32.dll",
+      "kernel32.dll",
+      "ole32.dll",
+      "pdh.dll",
+      "shell32.dll",
+      "user32.dll",
+      "wintrust.dll"
+    ],
+    "delay_imports": [
+      "winfsp-x64.dll"
+    ],
+    "winfsp_kernel_observation": {
+      "Name": "WinFsp+20260516T182719Z",
+      "State": "Stopped",
+      "StartMode": "Manual"
+    },
+    "runner_sha256": "ce53741514ba507cb9b12f3085b8decb5ca63df66cda441f150049dbd86bc3a8",
+    "private_working_directory": true,
+    "child_path": "Windows System32",
+    "owns_no_remaining_processes": true
+  },
+  "staged_import_refusal": {
+    "exit_code": 1,
+    "staged_entries": 0,
+    "expected": "RuntimeError: Unbundled Windows imports: ['api-ms-win-crt-heap-l1-1-0.dll', 'api-ms-win-crt-locale-l1-1-0.dll', 'api-ms-win-crt-math-l1-1-0.dll', 'api-ms-win-crt-runtime-l1-1-0.dll', 'api-ms-win-crt-stdio-l1-1-0.dll', 'api-ms-win-crt-string-l1-1-0.dll', 'msvcp140.dll', 'msvcp140_atomic_wait.dll', 'vcruntime140.dll', 'vcruntime140_1.dll']"
+  },
+  "results": {
+    "flitzPortableAppConfigure": {
+      "exit_code": 1,
+      "retired": true,
+      "peak_job_bytes": 295411712,
+      "seconds": 7.781,
+      "cpu_percent": 23,
+      "result_sha256": "a702ab76b36c144e43a8782194b81323236f28acc83da824ec4ec381e5f417e4",
+      "log_sha256": "551d0de1a6b2d09b8e33be3fa60ee40bcefb6afd63bc4b791d6fb1d86113fa9e",
+      "last_lines": [
+        "",
+        "",
+        "-- Configuring incomplete, errors occurred!"
+      ]
+    },
+    "flitzBundleZstdStatic": {
+      "exit_code": 0,
+      "retired": true,
+      "peak_job_bytes": 299098112,
+      "seconds": 9.265,
+      "cpu_percent": 23,
+      "result_sha256": "18079de20673e447219b0f0fd0079ce3505bd8d70bbd80bdb0fa8e2ffcadca18",
+      "log_sha256": "828e4cfd7142d8d6791406edaf99d820f534328dc94a9f40ac7c598d66a3a6ec",
+      "last_lines": [
+        "  zstd_v07.c",
+        "  Generating Code...",
+        "  libzstd_static.vcxproj -> E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\packed-reclaim-failure-06c605d9e89843d7abc302de114b34c0\\portable-volume-static-6ccb\\zstd\\lib\\Release\\zstd_static.lib"
+      ]
+    },
+    "flitzBundleLz4StaticFixed": {
+      "exit_code": 0,
+      "retired": true,
+      "peak_job_bytes": 228405248,
+      "seconds": 4.344,
+      "cpu_percent": 23,
+      "result_sha256": "b975703d359dc52c5eb782922559282fa988f8fba8a4be1e2b758273ad18ed28",
+      "log_sha256": "89d70d0f7c2deb9371cfdcef96d84b9ec98a2eb5b1ade8a4d9a8e2ba4af1e250",
+      "last_lines": [
+        "  xxhash.c",
+        "  Generating Code...",
+        "  lz4_static.vcxproj -> E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\packed-reclaim-failure-06c605d9e89843d7abc302de114b34c0\\portable-volume-static-6ccb\\lz4\\Release\\lz4.lib"
+      ]
+    },
+    "flitzPortableAppConfigureStatic": {
+      "exit_code": 0,
+      "retired": true,
+      "peak_job_bytes": 195444736,
+      "seconds": 12.265,
+      "cpu_percent": 23,
+      "result_sha256": "7dd0a6ada74fc9ec5bee5ba00fbf07cc9b03f4e63e3f53fb80b6a694fff08848",
+      "log_sha256": "95f1eaad17f5a7719c63a915c5e66758ea21b65f15592d371bfbf9f20fa81f4b",
+      "last_lines": [
+        "-- Configuring done (10.8s)",
+        "-- Generating done (1.3s)",
+        "-- Build files have been written to: E:/FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42/packed-reclaim-failure-06c605d9e89843d7abc302de114b34c0/portable-volume-ready-6ccb"
+      ]
+    },
+    "flitzPortableAppStageStatic": {
+      "exit_code": 1,
+      "retired": true,
+      "peak_job_bytes": 691707904,
+      "seconds": 167.547,
+      "cpu_percent": 23,
+      "result_sha256": "e71072798bdc17b68a5e23b6ca5ba3b2a9ecd59e204d6601e1a53c372bf6fa68",
+      "log_sha256": "4ff595bb9c1d6fdc2e122c4c9a5742a5cd9fcdbb2c8f1c590879012b7d14d9d3",
+      "last_lines": [
+        "                 ~~~~~~~~~^^^^^^",
+        "  KeyError: 'qualification-manifest.json'",
+        "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Microsoft\\VC\\v180\\Microsoft.CppCommon.targets(254,5): error MSB8066: Custom build for 'E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\packed-reclaim-failure-06c605d9e89843d7abc302de114b34c0\\portable-volume-ready-6ccb\\CMakeFiles\\349bcc466acbbfe4261462b0338441a4\\flitzfs_stage_volume_app.rule;E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\repo\\CMakeLists.txt' exited with code 1. [E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\packed-reclaim-failure-06c605d9e89843d7abc302de114b34c0\\portable-volume-ready-6ccb\\flitzfs_stage_volume_app.vcxproj]"
+      ]
+    },
+    "flitzPortableAppStageFixed": {
+      "exit_code": 0,
+      "retired": true,
+      "peak_job_bytes": 371757056,
+      "seconds": 11.687,
+      "cpu_percent": 23,
+      "result_sha256": "785bf7eef439f336c431b2d0b9e52d8200bcaed1fc9db83f768ee44ae52f7e51",
+      "log_sha256": "a28907e298f59b73c5fdcdd5d357340d217c9262d66c2eea84b7138cc131c654",
+      "last_lines": [
+        "  Building Custom Rule E:/FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42/repo/CMakeLists.txt",
+        "  windows_volume_app_tests.cpp",
+        "  flitzfs_volume_app_tests.vcxproj -> E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\packed-reclaim-failure-06c605d9e89843d7abc302de114b34c0\\portable-volume-ready-6ccb\\Release\\flitzfs_volume_app_tests.exe"
+      ]
+    },
+    "flitzPortableAttachmentTests": {
+      "exit_code": 0,
+      "retired": true,
+      "peak_job_bytes": 11878400,
+      "seconds": 1.547,
+      "cpu_percent": 20,
+      "result_sha256": "a561f894fb7d6b62b53e71cc54b7771db31d45d4e052a166ec4edbcb90ed62dd",
+      "log_sha256": "38085abd5d1458cc6a031082cc2e0a61bf6f1b8db9110c051a50557f6113a06a",
+      "last_lines": [
+        "100% tests passed out of 2",
+        "",
+        "Total Test time (real) =   1.03 sec"
+      ]
+    },
+    "flitzPortableRelocation": {
+      "exit_code": 0,
+      "retired": true,
+      "peak_job_bytes": 43327488,
+      "seconds": 2.328,
+      "cpu_percent": 20,
+      "result_sha256": "f444ddc231f102eca0266aa120ffc641711b85dc290b2729a500b1acfe43df52",
+      "log_sha256": "1526e45827bd4522a40bc7914b9c81bd0171cdd10e57f6324bf4e38b610b64b6",
+      "last_lines": [
+        "{\"present_code\":0,\"missing_code\":5,\"changed_code\":5,\"manifest_sha256\":\"82a9d048e202140da2257e648fbf095b51111e4e9ecf46147b16c5aff36fc6e0\",\"files\":6,\"path_independent\":true,\"app_imports\":[\"advapi32.dll\",\"api-ms-win-core-synch-l1-2-0.dll\",\"bcrypt.dll\",\"cfgmgr32.dll\",\"dxgi.dll\",\"gdi32.dll\",\"kernel32.dll\",\"ole32.dll\",\"pdh.dll\",\"shell32.dll\",\"user32.dll\",\"wintrust.dll\"],\"delay_imports\":[\"winfsp-x64.dll\"],\"winfsp_kernel_observation\":{\"Name\":\"WinFsp+20260516T182719Z\",\"State\":\"Stopped\",\"StartMode\":\"Manual\"}}"
+      ]
+    },
+    "flitzPortableRejectDynamic": {
+      "exit_code": 1,
+      "retired": true,
+      "peak_job_bytes": 47448064,
+      "seconds": 0.25,
+      "cpu_percent": 20,
+      "result_sha256": "55f3a6efa3189559c405a5bab55c2b029303a2d3203d1ef131f16af9526ce43a",
+      "log_sha256": "ae1c0a3c2c88a2cbd0fd5ace2e8e8ba1246998f9a4e1a4a629c37a08421f1734",
+      "last_lines": [
+        "  File \"E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\repo\\tools\\ci\\check_portable_cpu.py\", line 32, in require",
+        "    raise RuntimeError(message)",
+        "RuntimeError: Unbundled Windows imports: ['api-ms-win-crt-heap-l1-1-0.dll', 'api-ms-win-crt-locale-l1-1-0.dll', 'api-ms-win-crt-math-l1-1-0.dll', 'api-ms-win-crt-runtime-l1-1-0.dll', 'api-ms-win-crt-stdio-l1-1-0.dll', 'api-ms-win-crt-string-l1-1-0.dll', 'msvcp140.dll', 'msvcp140_atomic_wait.dll', 'vcruntime140.dll', 'vcruntime140_1.dll']"
+      ]
+    },
+    "flitzPortableVolumeModel": {
+      "exit_code": 0,
+      "retired": true,
+      "peak_job_bytes": 17031168,
+      "seconds": 0.954,
+      "cpu_percent": 20,
+      "result_sha256": "28a441b96a588bf86c8161e9a827287e9322c585bce74b364f3e569032548731",
+      "log_sha256": "1d5f445ae7ee7ca35d5d63cf92e409ce35396a2073af2aef437af3b5bc108abf",
+      "last_lines": [
+        "Application handle balance: 156 -> 156",
+        "Windows volume application checks: 841. Real CPU engine and bounded process-lifetime memory.",
+        "Application fixture peak commit: 15716352 bytes"
+      ]
+    }
+  },
+  "qualification": {
+    "signed_installation": false,
+    "kernel_mount": false,
+    "gpu_execution": false,
+    "release_qualified": false
+  }
+}

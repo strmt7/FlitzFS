@@ -1398,6 +1398,25 @@ if(FLITZFS_BUILD_VOLUME_APP)
     add_custom_command(TARGET flitzfs_volume_app POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_if_different "${FLITZFS_WINFSP_DLL}" "$<TARGET_FILE_DIR:flitzfs_volume_app>")
   endif()
+  if(FLITZFS_PORTABLE_CPU)
+    find_package(Python3 3.10 QUIET COMPONENTS Interpreter)
+    if(Python3_Interpreter_FOUND)
+      set(flitzfs_volume_bundle_args)
+      if(FLITZFS_BUILD_EXPLORER_APP)
+        list(APPEND flitzfs_volume_bundle_args --winfsp "${FLITZFS_WINFSP_DLL}"
+          --winfsp-sha256 "${flitzfs_explorer_runtime_sha256}")
+        if(FLITZFS_INSTALLED_AMD_PACKAGE_DIR)
+          list(APPEND flitzfs_volume_bundle_args --amd-package "${FLITZFS_INSTALLED_AMD_PACKAGE_DIR}"
+            --amd-manifest-sha256 "${FLITZFS_INSTALLED_AMD_MANIFEST_SHA256}")
+        endif()
+      endif()
+      add_custom_target(flitzfs_stage_volume_app
+        COMMAND "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/tools/ci/stage_volume_app.py"
+          --app "$<TARGET_FILE:flitzfs_volume_app>" --parent "${CMAKE_CURRENT_BINARY_DIR}"
+          ${flitzfs_volume_bundle_args}
+        DEPENDS flitzfs_volume_app VERBATIM)
+    endif()
+  endif()
   if(FLITZFS_BUILD_TESTS)
     add_executable(flitzfs_volume_app_tests tests/windows_volume_app_tests.cpp)
     target_link_libraries(flitzfs_volume_app_tests PRIVATE flitzfs_volume_app_core flitzfs_process user32)
