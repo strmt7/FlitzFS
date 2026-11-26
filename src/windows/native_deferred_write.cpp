@@ -98,7 +98,7 @@ bool NativeDeferredWriteService::enqueue_locked(FSP_FILE_SYSTEM* fs,const Native
     if(gate!=GpuGateCode::admitted) {
       if(gate==GpuGateCode::stale_budget && now>=health_.memory.captured_ms &&
           (!last_budget_probe_ || (now>=last_budget_probe_ && now-last_budget_probe_>=kGpuMaxBudgetAgeMs)))
-        request_budget_locked(health_.memory.captured_ms,false);
+        request_budget_locked(health_.memory.captured_ms);
       return false;
     }
     if(options_.measured_shape) {
@@ -124,7 +124,7 @@ bool NativeDeferredWriteService::enqueue_locked(FSP_FILE_SYSTEM* fs,const Native
   }
   request->filesystem=fs;request->hint=hint;request->handle=handle;
   request->offset=offset;request->append=append;request->constrained=constrained;
-  request_=std::move(request);completion_.reset();force_cpu_=false;
+  request_=std::move(request);completion_.reset();force_cpu_=false;completion_budget_accepted_=false;
   stats_.native_pending=true;stats_.worker_busy=true;increment(stats_.queued);
   notify_worker_locked();return true;
 }
@@ -149,7 +149,7 @@ void NativeDeferredWriteService::note_cpu_write_locked(std::size_t bytes,UINT64 
   prepare_requested_=true;
   const auto now=GetTickCount64();
   if(check_gpu_memory_budget(health_.memory,health_.memory.luid,health_.memory.node_mask,now,0)==GpuGateCode::stale_budget)
-    request_budget_locked(health_.memory.captured_ms,false);
+    request_budget_locked(health_.memory.captured_ms);
   notify_worker_locked();
 }
 void NativeDeferredWriteService::drain_locked(std::unique_lock<std::mutex>& lock){
@@ -165,6 +165,7 @@ void NativeDeferredWriteService::disable_gpu_budget_locked() noexcept {
   budget_task_.reset();
   budget_work_.store(false,std::memory_order_release);
   budget_disabled_=true;
+  completion_budget_accepted_=false;
   prepare_requested_=false;
   if(stats_.native_pending)force_cpu_=true;
   notify_worker_locked();
@@ -191,16 +192,17 @@ void NativeDeferredWriteService::wait_for_work_locked(std::unique_lock<std::mute
   stats_.stopping=true;
   disable_gpu_budget_locked();
 }
-void NativeDeferredWriteService::request_budget_locked(std::uint64_t after_ms,bool completion) noexcept {
+void NativeDeferredWriteService::request_budget_locked(std::uint64_t after_ms,
+    std::int64_t validation_counter) noexcept {
   if(!controller_collects_budget() || !activity_event_ || budget_disabled_ || stats_.stopping ||
-      (budget_task_ && budget_task_->after_ms>=after_ms))return;
+      (budget_task_ && (budget_task_->validation_counter ||
+          (!validation_counter && budget_task_->after_ms>=after_ms))))return;
   if(budget_sequence_==(std::numeric_limits<std::uint64_t>::max)()) {
     disable_gpu_budget_locked();
     return;
   }
-  budget_for_completion_=completion;
   budget_task_=NativeGpuBudgetTask{++budget_sequence_,after_ms,health_.memory.luid,health_.memory.node_mask,
-      options_.controller_route_pins};
+      options_.controller_route_pins,validation_counter};
   budget_work_.store(true,std::memory_order_release);
   signal_activity_locked();
 }
@@ -208,7 +210,7 @@ std::optional<NativeGpuBudgetTask> NativeDeferredWriteService::budget_task_locke
   return stats_.stopping || budget_disabled_?std::nullopt:budget_task_;
 }
 bool NativeDeferredWriteService::accept_budget_locked(const NativeGpuBudgetTask& task,
-    const GpuMemorySnapshot& observed,std::uint64_t now) noexcept {
+    const GpuMemorySnapshot& observed,std::uint64_t now,std::int64_t capture_counter) noexcept {
   if(stats_.stopping || budget_disabled_ || !budget_task_ || budget_task_->sequence!=task.sequence)return false;
   const auto pending=*budget_task_;
   budget_task_.reset();
@@ -221,13 +223,19 @@ bool NativeDeferredWriteService::accept_budget_locked(const NativeGpuBudgetTask&
     disable_gpu_budget_locked();
     return false;
   }
-  if(gate!=GpuGateCode::stale_budget && observed.captured_ms>pending.after_ms) {
+  const bool completion=pending.validation_counter!=0;
+  // Windows allows one counter tick of ambiguity across threads. The
+  // coarse observation still governs age and rejects backward movement.
+  const bool ordered=completion?observed.captured_ms>=pending.after_ms &&
+      capture_counter>1 && capture_counter-1>pending.validation_counter:observed.captured_ms>pending.after_ms;
+  if(gate!=GpuGateCode::stale_budget && ordered) {
     ++health_.sequence;
     health_.memory=observed;
+    completion_budget_accepted_=completion;
     notify_worker_locked();
     return true; // A valid pressure observation can still select CPU.
   }
-  if(budget_for_completion_)force_cpu_=true;
+  if(completion)force_cpu_=true;
   notify_worker_locked();
   return false;
 }
@@ -378,20 +386,25 @@ void NativeDeferredWriteService::run() noexcept{
       bool validation_seen=false,completion_requested=false;
       while(!completed){
         const bool force=force_cpu_||stats_.stopping||offline_.load(std::memory_order_acquire);
+        const bool ordered_completion=completion_budget_accepted_;
         const auto snapshot=health_.memory;const auto now=GetTickCount64();
         guard.unlock();
         if(force){(void)operation.use_cpu_fallback();(void)operation.request_cancel();}
-        else if(!operation.awaiting_fresh_observation() || snapshot.captured_ms>validation_finished ||
+        else if(!operation.awaiting_fresh_observation() || ordered_completion ||
+            (!controller_collects_budget() && snapshot.captured_ms>validation_finished) ||
             now-started>=options_.deadline_ms){
-          (void)operation.poll(snapshot,now);
+          (void)operation.poll(snapshot,now,ordered_completion);
           if(operation.awaiting_fresh_observation() && !validation_seen){
             validation_finished=GetTickCount64();validation_seen=true;
           } // AFTER CPU validation returned
         }
         guard.lock();
-        if(validation_seen && !completion_requested && !force_cpu_ && !stats_.stopping) {
+        if(controller_collects_budget() && validation_seen && !completion_requested && !force_cpu_ && !stats_.stopping) {
           completion_requested=true;
-          request_budget_locked(validation_finished,true);
+          LARGE_INTEGER validated{};
+          if(QueryPerformanceCounter(&validated) && validated.QuadPart>0)
+            request_budget_locked(validation_finished,validated.QuadPart);
+          else disable_gpu_budget_locked();
         }
         if(force){increment(stats_.cpu_forced);}
         if(auto finished=operation.finish()){result=*finished;completed=true;}
@@ -402,7 +415,7 @@ void NativeDeferredWriteService::run() noexcept{
           wait_for_work_locked(guard,supervisor,static_cast<DWORD>(options_.deadline_ms-elapsed));
         }
       }
-      if(budget_for_completion_) {
+      if(budget_task_ && budget_task_->validation_counter) {
         budget_task_.reset();
         budget_work_.store(false,std::memory_order_release);
       }

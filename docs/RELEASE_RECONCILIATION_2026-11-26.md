@@ -245,15 +245,21 @@ qualify.
    finite dispatch. A refused or failed route leaves CPU I/O available
    without waiting for GPU cleanup. Retry only with relevant changed
    evidence and confirmed retirement.
-3. If post-readiness time accounts for a material loss, measure the fresh
-   completion observation separately. Prototype a monotonic capture
-   stamp bound to the exact ordered budget request. Verify that capture
-   starts after CPU comparison even when both events fall in one coarse
-   tick. Reuse the existing live DXGI sampler on one owner while LUID,
-   node, topology and pinned route remain current. Pair against the
-   current event-driven path. Old or failed evidence, device changes,
-   missing headroom and wait faults must select CPU. The prepared result
-   still cannot publish before independent verification.
+3. The foreground writer now binds the fresh completion observation to the
+   exact request and records counter order after CPU validation. The SDK
+   verifies acceptance within a coarse tick and CPU fallback on ambiguous
+   ordering. Measure actual collection and handoff latency on the installed
+   path. If those costs materially affect service, reuse the live DXGI
+   sampler on one owner while LUID, node, topology and pinned route remain
+   current. Pair against the current event-driven path and preserve
+   refusal on old evidence, missing headroom or device changes.
+   A controlled Radeon callback accepted both fresh budget observations
+   and stored 16 device-compressed extents. Independent CPU readback
+   verified 1 MiB. The cold callback took 4.006 s. Prioritize amortizing
+   worker setup across useful work while recording the smaller stages
+   for attribution.
+   [Completion observation](OWNED_DEFERRED_WRITES.md#ordering-the-completion-observation) ·
+   [Live Radeon and CPU readback](evidence/windows-ordered-write-budget-2026-11-26.json)
 4. For foreground compression, price a prepared process and compare
    occupied bytes and end-to-end client time against the existing CPU
    writer. If the device wins only over a batch, use a funded finite burst

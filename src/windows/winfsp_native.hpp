@@ -169,7 +169,8 @@ class WinFspNativeWritable final {
   // One controller reads the demand, observes resources outside the callback
   // lock and returns a sample for exactly that still-current demand.
   std::optional<NativeGpuBudgetTask> gpu_budget_task() const;
-  bool complete_gpu_budget_task(const NativeGpuBudgetTask&,const GpuMemorySnapshot&,std::uint64_t now);
+  bool complete_gpu_budget_task(const NativeGpuBudgetTask&,const GpuMemorySnapshot&,std::uint64_t now,
+      std::int64_t capture_counter=0);
   HostedVolumeMaintenanceResult recompress_managed_hosted(
       std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_image_identity,
       StoreCompressionOptions candidate={});

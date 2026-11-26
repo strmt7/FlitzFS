@@ -7,6 +7,18 @@
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
   "current_release_review": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
+  "ordered_write_budget": {
+    "source_parent": "caecb90bde1532d3c56d48a8b1c4baabd677ce96",
+    "tested_source_tree": "c8cc48b9156c554cc784163e4237f538172d8287",
+    "evidence": "docs/evidence/windows-ordered-write-budget-2026-11-26.json",
+    "windows_tests": 238,
+    "same_coarse_tick_callback_check": true,
+    "ambiguous_order_cpu_fallback": true,
+    "radeon_stored_extents": 16,
+    "independently_reopened_bytes": 1048576,
+    "ordinary_mounted_speed_qualified": false,
+    "release_qualified": false
+  },
   "deferred_write_events": {
     "source_parent": "51458d20b4bdcea117cd15dcf58ab29bdc41c586",
     "tested_source_tree": "52ed7824bad94c425f33846dd250c304a35ddb93",

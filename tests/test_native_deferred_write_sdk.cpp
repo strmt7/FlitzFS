@@ -627,7 +627,7 @@ void mismatched_measured_layout_uses_cpu(const std::filesystem::path& worker) {
       h.adapter->snapshot().read("target",0,count)==bytes,"Layout mismatch lost or deferred caller bytes");
   h.close(target);
 }
-void completion_budget_refusal(const std::filesystem::path& worker) {
+void completion_budget_refusal(const std::filesystem::path& worker,bool counter_ambiguous) {
   if(!gpu_lz4_cpu_verification_available())return;
   auto settings=options(worker,1);
   settings.controller_health=health();
@@ -657,24 +657,29 @@ void completion_budget_refusal(const std::filesystem::path& worker) {
   std::optional<NativeGpuBudgetTask> completion;
   eventually([&]{completion=h.adapter->gpu_budget_task();return completion.has_value();},
       "independent reply validation did not request a newer budget");
-  check(completion->sequence>demand->sequence && completion->after_ms>=current.captured_ms,
+  check(completion->sequence>demand->sequence && completion->after_ms>=current.captured_ms &&
+      completion->validation_counter>0 && !completion->wait_ms(completion->after_ms),
       "worker completion did not bind its newer budget");
-  check(!h.adapter->complete_gpu_budget_task(*completion,{},GetTickCount64()),
-      "unavailable budget accepted a worker result");
+  auto evidence=counter_ambiguous?health().memory:GpuMemorySnapshot{};
+  evidence.captured_ms=completion->after_ms+1;
+  const auto counter=counter_ambiguous?completion->validation_counter+1:0;
+  check(!h.adapter->complete_gpu_budget_task(*completion,evidence,evidence.captured_ms,counter),
+      "Unavailable or ambiguously ordered telemetry accepted a worker result");
   const auto response=h.reply(0,[]{});
   const auto stats=h.adapter->deferred_write_stats();
   check(response.Hint==expected_hint && response.IoStatus.Status==STATUS_SUCCESS &&
       response.IoStatus.Information==bytes.size() && stats.cpu_forced==1 &&
-      stats.worker_submitted==1 && !stats.advised,"completion resource loss failed to select CPU exactly once");
+      stats.worker_submitted==1 && !stats.advised,"completion budget refusal failed to select CPU exactly once");
   check(h.adapter->snapshot().read("target",offset,static_cast<ULONG>(bytes.size()))==bytes,
-      "CPU fallback after completion resource loss changed bytes");
+      "CPU fallback after a completion budget refusal changed bytes");
   h.close(target);
   NativeDeferredStop stopped=NativeDeferredStop::running;
   eventually([&]{stopped=h.adapter->stop_deferred_writes_hosted();return stopped!=NativeDeferredStop::running;},
       "budget completion fixture did not retire");
   check(stopped==NativeDeferredStop::quiescent && h.adapter->deferred_write_stats().response_attempts==1 &&
       !h.adapter->gpu_budget_task() && !h.adapter->requires_offline(),
-      "unavailable completion budget retained ownership");
+      "refused completion budget retained ownership");
+  std::cout<<"deferred_completion_refusal ambiguous_counter="<<counter_ambiguous<<" readback=1 retired=1\n";
 }
 enum class PreparedWriteCase {stop,submit,pressure,refused};
 void prepared_only_write(const std::filesystem::path& worker,PreparedWriteCase action) {
@@ -743,7 +748,12 @@ void prepared_only_write(const std::filesystem::path& worker,PreparedWriteCase a
     std::optional<NativeGpuBudgetTask> completion;
     eventually([&]{completion=h.adapter->gpu_budget_task();return completion.has_value();},
         "Prepared reply did not request a newer budget after CPU verification");
-    refresh(*completion);
+    check(completion->validation_counter>0 && !completion->wait_ms(completion->after_ms),
+        "Verified completion still waited for another coarse tick");
+    auto same_tick=health().memory;
+    same_tick.captured_ms=completion->after_ms;
+    check(h.adapter->complete_gpu_budget_task(*completion,same_tick,same_tick.captured_ms,
+        completion->validation_counter+2),"Ordered GPU completion in the same coarse tick was refused");
     const auto response=h.reply(0,[]{});
     const auto stats=h.adapter->deferred_write_stats();
     check(response.IoStatus.Status==STATUS_SUCCESS && response.IoStatus.Information==length &&
@@ -1963,7 +1973,7 @@ int wmain(int argc,wchar_t** argv){try{
       PreparedWriteCase::refused})
     prepared_only_write(worker,action);
   mismatched_measured_layout_uses_cpu(worker);
-  completion_budget_refusal(worker);
+  for(const bool counter_ambiguous : {false,true})completion_budget_refusal(worker,counter_ambiguous);
   for(const auto indexed : {false,true})for(unsigned kind=0;kind<4;++kind){
     run(worker,kind,indexed);
     check(locked_ram_fixture::locked_bytes.load()==0 && locked_ram_fixture::cleanup_ok.load(),

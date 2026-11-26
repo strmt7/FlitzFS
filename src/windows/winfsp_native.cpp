@@ -1451,9 +1451,9 @@ std::optional<NativeGpuBudgetTask> WinFspNativeWritable::gpu_budget_task() const
   return impl_->deferred->budget_task_locked();
 }
 bool WinFspNativeWritable::complete_gpu_budget_task(const NativeGpuBudgetTask& task,
-    const GpuMemorySnapshot& snapshot,std::uint64_t now) {
+    const GpuMemorySnapshot& snapshot,std::uint64_t now,std::int64_t capture_counter) {
   std::lock_guard guard(impl_->control);
-  return impl_->deferred && impl_->deferred->accept_budget_locked(task,snapshot,now);
+  return impl_->deferred && impl_->deferred->accept_budget_locked(task,snapshot,now,capture_counter);
 }
 bool WinFspNativeWritable::maintenance_event_failed() const noexcept {
   return impl_->maintenance_event && impl_->maintenance_event->failed.load(std::memory_order_acquire);

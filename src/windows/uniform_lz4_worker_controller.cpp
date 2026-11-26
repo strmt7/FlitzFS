@@ -123,14 +123,18 @@ UniformLz4WorkerStart UniformLz4WorkerController::begin_owned(PreparedUniformLz4
   }
 }
 GpuWorkerState UniformLz4WorkerController::poll(const GpuMemorySnapshot& after,std::uint64_t now) noexcept{
+  return poll(after,now,false);
+}
+GpuWorkerState UniformLz4WorkerController::poll(const GpuMemorySnapshot& after,std::uint64_t now,
+    bool ordered_completion) noexcept{
   if(state_!=GpuWorkerState::waiting)return state_;
   if(now<started_ || now>=deadline_){
     select_cpu(GpuRecoveryOutcome::temporary_pressure,GpuGateCode::expired,false);
     (void)request_cancel();return state_;
   }
   if(verified_){
-    if(now<=verified_poll_)return state_;
-    if(after.captured_ms<=verified_poll_){
+    if(!ordered_completion && now<=verified_poll_)return state_;
+    if(!ordered_completion && after.captured_ms<=verified_poll_){
       select_cpu(GpuRecoveryOutcome::temporary_pressure,GpuGateCode::stale_budget);return state_;
     }
     const auto code=check_gpu_memory_transition(baseline_,after,baseline_.luid,baseline_.node_mask,

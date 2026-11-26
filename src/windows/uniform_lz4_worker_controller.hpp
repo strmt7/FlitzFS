@@ -56,6 +56,7 @@ class UniformLz4WorkerController final {
   unsigned consecutive_failures() const noexcept{return policy_.consecutive_failures();}
  private:
   friend class ControlledNativeUniformWrite;
+  GpuWorkerState poll(const GpuMemorySnapshot&,std::uint64_t now_ms,bool ordered_completion) noexcept;
   void* supervisor_wait_handle() const noexcept {
     return session_?session_->supervisor_wait_handle():nullptr;
   }

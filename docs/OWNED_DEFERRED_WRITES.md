@@ -561,6 +561,25 @@ cases remain covered by the same SDK harness.
 [Windows result and source evidence](evidence/windows-deferred-write-events-2026-11-26.json) ·
 [Windows event and thread waits](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitformultipleobjects)
 
+### Ordering the completion observation
+
+After independent CPU validation, the writer records a performance counter
+value and publishes the budget request with its own sequence. The controller
+can collect immediately. It records its counter before collection and
+returns that value with the sample for the matching request. The writer
+requires a gap greater than one counter tick because Windows documents
+cross-thread ambiguity in that interval.
+
+The existing elapsed-time, adapter, node and memory limits still apply.
+An ordered sample can fall within the coarse tick in which validation
+finished. A late receipt for an earlier request cannot advance the write.
+Missing telemetry or an ambiguous capture order selects the original CPU
+source. Standalone callers without the controller still use the strict
+later-tick observation path.
+[Windows counter ordering](https://learn.microsoft.com/en-us/windows/win32/sysinfo/acquiring-high-resolution-time-stamps) ·
+[Current DXGI budget query](https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/nf-dxgi1_4-idxgiadapter3-queryvideomemoryinfo) ·
+[Completion and fallback evidence](evidence/windows-ordered-write-budget-2026-11-26.json)
+
 ## Driver-independent control target
 
 The owned service now builds as flitzfs_native_write_control. It consumes the

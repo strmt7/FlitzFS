@@ -63,6 +63,10 @@ struct NativeGpuBudgetTask {
   std::array<std::byte,8> luid{};
   std::uint32_t node_mask=0;
   std::shared_ptr<const HipRoutePins> pins;
+  std::int64_t validation_counter=0;
+  std::uint64_t wait_ms(std::uint64_t now) const noexcept {
+    return validation_counter || now>after_ms?0:after_ms-now+1;
+  }
 };
 enum class NativeDeferredStop {running,quiescent,retirement_unconfirmed};
 enum class NativeDeferredActivation {busy,refused,active};
@@ -94,10 +98,11 @@ class NativeDeferredWriteService final {
   // The adapter owns this noninheritable signal handle until this service joins.
   void bind_activity_event_locked(HANDLE event) noexcept{activity_event_=event;}
   std::optional<NativeGpuBudgetTask> budget_task_locked() const noexcept;
-  bool accept_budget_locked(const NativeGpuBudgetTask&,const GpuMemorySnapshot&,std::uint64_t now) noexcept;
+  bool accept_budget_locked(const NativeGpuBudgetTask&,const GpuMemorySnapshot&,std::uint64_t now,
+      std::int64_t capture_counter) noexcept;
   NativeDeferredStop stop();
  private:
-  void request_budget_locked(std::uint64_t after_ms,bool completion) noexcept;
+  void request_budget_locked(std::uint64_t after_ms,std::int64_t validation_counter=0) noexcept;
   void disable_gpu_budget_locked() noexcept;
   void signal_activity_locked() noexcept;
   void notify_worker_locked() noexcept;
@@ -122,7 +127,7 @@ class NativeDeferredWriteService final {
   std::optional<NativeGpuBudgetTask> budget_task_;
   std::atomic<bool> budget_work_{false};
   std::uint64_t budget_sequence_=0,last_budget_probe_=0;
-  bool budget_for_completion_=false,budget_disabled_=false;
+  bool completion_budget_accepted_=false,budget_disabled_=false;
   const std::unique_ptr<void,decltype(&CloseHandle)> work_event_;
   std::condition_variable published_;
   std::unique_ptr<Request> request_;

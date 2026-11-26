@@ -733,7 +733,9 @@ It waits on that event, the exact child supervisor or the paid deadline.
 A parked preparation can retire on supervisor exit even without a new
 write. Callbacks that require ordered CPU progress signal the writer
 and wait for publication. The response and worker retirement have
-distinct lifetimes.
+distinct lifetimes. The completion budget request is published after CPU
+validation and carries the validation counter. The controller collects
+the matching observation without a coarse-clock delay.
 
 ```mermaid
 flowchart TD
@@ -752,7 +754,8 @@ flowchart TD
 ```
 
 [Owned writer](../../src/windows/native_deferred_write.cpp) ·
-[Event-driven write evidence](../evidence/windows-deferred-write-events-2026-11-26.json)
+[Event-driven write evidence](../evidence/windows-deferred-write-events-2026-11-26.json) ·
+[Ordered completion evidence](../evidence/windows-ordered-write-budget-2026-11-26.json)
 
 ### Prepared grouped read-ahead
 

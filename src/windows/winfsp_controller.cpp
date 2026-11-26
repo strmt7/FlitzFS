@@ -229,15 +229,20 @@ struct WinFspVolumeController::Impl {
 #endif
           apply_foreground_offer();
           const auto gpu=adapter->gpu_budget_task();
-          if(gpu && now>gpu->after_ms) {
+          if(gpu && !gpu->wait_ms(now)) {
             // CPU completion uses a different owner and can proceed while the
             // operating system supplies telemetry. Never query under the lock.
             const bool device_ready=!gpu->pins || gpu->pins->device_ready();
-            const auto observation=device_ready?query_windows_gpu_budget(gpu->luid,gpu->node_mask):WindowsGpuBudgetResult{};
+            LARGE_INTEGER capture_started{};
+            const bool clock_ready=!gpu->validation_counter ||
+                (QueryPerformanceCounter(&capture_started) && capture_started.QuadPart>0);
+            const bool collect=device_ready && clock_ready;
+            const auto observation=collect?query_windows_gpu_budget(gpu->luid,gpu->node_mask):WindowsGpuBudgetResult{};
             if(stop_requested.load(std::memory_order_acquire))break;
-            const auto applied=adapter->complete_gpu_budget_task(*gpu,observation.snapshot,GetTickCount64());
+            const auto applied=adapter->complete_gpu_budget_task(*gpu,observation.snapshot,GetTickCount64(),
+                capture_started.QuadPart);
             std::lock_guard lock(mutex);
-            if(device_ready)++current.gpu_budget_queries;
+            if(collect)++current.gpu_budget_queries;
             if(!applied)++current.gpu_budget_refusals;
             continue;
           }
@@ -264,7 +269,7 @@ struct WinFspVolumeController::Impl {
             auto delay=pending?(std::min)(next-now,maximum_finite_wait):std::uint64_t{INFINITE};
             if(reference_delay)delay=(std::min)(delay,*reference_delay);
             if(!disabled && !scrub_due)delay=(std::min)({delay,next_scrub-now,maximum_finite_wait});
-            if(gpu)delay=(std::min)({delay,gpu->after_ms-now+1,maximum_finite_wait});
+            if(gpu)delay=(std::min)({delay,gpu->wait_ms(now),maximum_finite_wait});
             if(awaiting_anchor) {
               const auto due=anchor->deadline();
               delay=(std::min)(delay,due>now?due-now:std::uint64_t{0});
@@ -423,7 +428,7 @@ struct WinFspVolumeController::Impl {
                 continuation=result.continuation;
                 if(disabled || continuation==WinFspMaintenanceContinuation::none ||
                     !can_continue_preparation(result.progress) || interrupted() ||
-                    (gpu && GetTickCount64()>gpu->after_ms))break;
+                    (gpu && !gpu->wait_ms(GetTickCount64())))break;
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
                 if(acquisition_thread.joinable())break;
 #endif

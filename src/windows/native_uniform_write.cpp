@@ -204,7 +204,11 @@ bool ControlledNativeUniformWrite::try_retire() noexcept {
   return true;
 }
 GpuWorkerState ControlledNativeUniformWrite::poll(const GpuMemorySnapshot& after,std::uint64_t now) noexcept{
-  return pending_ && submitted_?controller_.poll(after,now):GpuWorkerState::cpu_selected;
+  return poll(after,now,false);
+}
+GpuWorkerState ControlledNativeUniformWrite::poll(const GpuMemorySnapshot& after,std::uint64_t now,
+    bool ordered_completion) noexcept{
+  return pending_ && submitted_?controller_.poll(after,now,ordered_completion):GpuWorkerState::cpu_selected;
 }
 std::span<const std::byte> ControlledNativeUniformWrite::use_cpu_fallback() noexcept{
   if(!pending_)return {};
