@@ -1,0 +1,298 @@
+{
+  "schema": 1,
+  "date": "2026-11-26",
+  "source_parent": "087e849569900f88cbcf0abb993c80682b2525fc",
+  "tested_source_tree": "75e1ef992355a8fec4c9836a6892896db277c3de",
+  "tested_source_blobs": [
+    {
+      "path": "src/windows/native_amd_write_policy.cpp",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "298717afc560147063d389f35c52cb5cd763814f",
+      "bytes": 32322
+    },
+    {
+      "path": "src/windows/native_amd_write_policy.hpp",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e060a65bb96751313928b64f8624a1edbe319672",
+      "bytes": 6526
+    },
+    {
+      "path": "src/windows/winfsp_controller.cpp",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "419beee3e7c7237579406bc9ec44015c5d615a83",
+      "bytes": 69197
+    },
+    {
+      "path": "tests/test_native_deferred_write_sdk.cpp",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f3e6ffebda74d6f05c5ed37b02cccb21ac8a5bc8",
+      "bytes": 125392
+    }
+  ],
+  "scope": "Bounded Windows SDK callbacks and protected native replays. The installed AMD trial uses the largest fully funded request count up to its profile maximum.",
+  "checks": {
+    "release_build": {
+      "exit_code": 0,
+      "retired": true,
+      "elapsed_seconds": 59.89000000001397,
+      "peak_job_bytes": 553164800,
+      "memory_limit_bytes": 2188378112,
+      "inherited_error_mode": 32771,
+      "log_sha256": "0fb27f95a9ba28cfcaf76eaedc305eeb338de78e5ba86e409f7ccd29d1c1181c",
+      "result_sha256": "bb4da85e883093fd8946af6a70fcf49f5f19ac5ac41aacde1160dbd5fed2ff92"
+    },
+    "focused_sdk": {
+      "exit_code": 0,
+      "retired": true,
+      "elapsed_seconds": 7.35899999999674,
+      "peak_job_bytes": 37707776,
+      "memory_limit_bytes": 780140544,
+      "inherited_error_mode": 32771,
+      "passed_tests": 2,
+      "log_sha256": "10caf209f9859fd662405c19e063ec2eeb29d72ba31e7943972050bcb25f5c58",
+      "result_sha256": "af29751e03599562892898590c3d4f1d71e305dc5479e21ae33e8de429fa5e5a"
+    },
+    "full_windows": {
+      "exit_code": 0,
+      "retired": true,
+      "elapsed_seconds": 158.71900000001187,
+      "peak_job_bytes": 863088640,
+      "memory_limit_bytes": 909115392,
+      "inherited_error_mode": 32771,
+      "passed_tests": 238,
+      "log_sha256": "78e6c61a0e82d7e703530d246475363c0ed36c951a6a7839cccf688c6aeaf13f",
+      "result_sha256": "e0bc4cbf69addf70d6186faa37d369c953fd689e5b83ccee7c057ac47a5f035b"
+    },
+    "asan_build": {
+      "exit_code": 0,
+      "retired": true,
+      "elapsed_seconds": 36.812000000005355,
+      "peak_job_bytes": 736313344,
+      "memory_limit_bytes": 1875902464,
+      "inherited_error_mode": 32771,
+      "log_sha256": "501886cae75e8639cb721c72347bd2f075e6968de4fa6965464d1faf48b569db",
+      "result_sha256": "c165bc12557a6c96d85d4df232e01e71babf29b8cf76b02ba9cfe4cd320f138c"
+    },
+    "asan_focused": {
+      "exit_code": 0,
+      "retired": true,
+      "elapsed_seconds": 23.26600000000326,
+      "peak_job_bytes": 514109440,
+      "memory_limit_bytes": 1742733312,
+      "inherited_error_mode": 32771,
+      "passed_tests": 3,
+      "log_sha256": "b56724bf5e815c38a7eec6a2f194e0d09756a22716549d44db7e5046eef58386",
+      "result_sha256": "d11479dc67b1b895ca5c634cf95c70237f61390ce83a6ca879fff9c4f032cec1"
+    },
+    "raw_build": {
+      "exit_code": 0,
+      "retired": true,
+      "elapsed_seconds": 24.687000000005355,
+      "peak_job_bytes": 429322240,
+      "memory_limit_bytes": 806354944,
+      "inherited_error_mode": 32771,
+      "log_sha256": "1bec48ddcbcab2ddf873b4d3efde02812f9510bb72b959f9161307a09ea22f3d",
+      "result_sha256": "c0b26a94646caddb8fd6f5cfbe4dfe7b634c5cbda287116b5c0cf4cd9a2eab3c"
+    },
+    "raw_sdk": {
+      "exit_code": 0,
+      "retired": true,
+      "elapsed_seconds": 0.6089999999967404,
+      "peak_job_bytes": 33890304,
+      "memory_limit_bytes": 847249408,
+      "inherited_error_mode": 32771,
+      "passed_tests": 1,
+      "log_sha256": "9a6c615bbfc95a7412e389683a00aee7d0da83cd7490e17afb036d3b48fc80bd",
+      "result_sha256": "1c5c94dbc78ed057670d0c3fb622505f74f6219b8b17b6680c47b5311b1240d2"
+    },
+    "device_preflight": {
+      "exit_code": 0,
+      "retired": true,
+      "elapsed_seconds": 4.235000000015134,
+      "peak_job_bytes": 101195776,
+      "memory_limit_bytes": 1347420160,
+      "inherited_error_mode": 32771,
+      "log_sha256": "399207b78d26d13b40b1ceb1f4e98d2bd41a6b7042578f9f7f6d4d32b3b27c57",
+      "result_sha256": "1330b2cd2d979ff8d928d24c34a4564836af2e1f64252363ce1db67fdd9b0201"
+    },
+    "radeon_fixture": {
+      "exit_code": 0,
+      "retired": true,
+      "elapsed_seconds": 3.14000000001397,
+      "peak_job_bytes": 111706112,
+      "memory_limit_bytes": 1924136960,
+      "inherited_error_mode": 32771,
+      "log_sha256": "e74b498260fdf339ac779097afe9620b6959862818066baf4f5647a6595a9218",
+      "result_sha256": "087cafcc9e515bb59efb113e27ac87f8d68e33868d262f09a5947d839adbe432"
+    }
+  },
+  "sdk_coverage": {
+    "deferred_assertions": 389,
+    "full_ceiling_when_funded": true,
+    "reduced_ceiling_preserves_request_geometry": true,
+    "oversized_ceiling_is_bounded": true,
+    "rejects_partial_minimum_grant": true,
+    "asan_runtime_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed"
+  },
+  "radeon": {
+    "headroom": {
+      "admitted": true,
+      "reason": null,
+      "utc": "2026-11-26T01:37:55.7618770Z",
+      "driver": "32.0.32029.2010",
+      "build": "26300",
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "luid": "9d75010000000000",
+      "available_bytes": 31181201408,
+      "reserved_bytes": 4294967296,
+      "gpu_peak": 0,
+      "cpu_peak": 9.98715668451825,
+      "target_samples": 800
+    },
+    "stage_manifest_sha256": "19f7a6091e5b33925aa0698baeee2b8b25777c702811cfb3172b155960bf4cb2",
+    "package_manifest_sha256": "47e4276bf3d9189e1a293ae67ed1cce3e8dc59f0ef4262c11d64a7f1c3711e9d",
+    "artifacts": {
+      "amd/qualification-manifest.json": {
+        "bytes": 1342,
+        "sha256": "47e4276bf3d9189e1a293ae67ed1cce3e8dc59f0ef4262c11d64a7f1c3711e9d"
+      },
+      "amd/flitzfs_hip_lz4_worker.exe": {
+        "bytes": 622592,
+        "sha256": "5488521657d0be8e91ff497bda27e8ee0c35c1847ec2fd11c5f7def714d97544"
+      },
+      "amd/hip-uniform-lz4/flitzfs_rocm_uniform_lz4_candidate.dll": {
+        "bytes": 322048,
+        "sha256": "179797e791a8aac3e43c1277aca4a88edfe4650122af535d08c8b199d32b89c4"
+      },
+      "amd/uniform-write-trial-qualification.json": {
+        "bytes": 517,
+        "sha256": "01b2a8b024d155b15072e44feced412cf6208e1e65616f3fadc55871de031004"
+      },
+      "flitzfs_native_deferred_write_sdk_tests.exe": {
+        "bytes": 2647552,
+        "sha256": "6cfc92279a908134038b79f5c0c6dc7a5f0e73a1caa4bc705a5bb115780e17bc"
+      },
+      "winfsp-x64.dll": {
+        "bytes": 200816,
+        "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+      }
+    },
+    "requested_maximum": 3,
+    "funded_requests": 2,
+    "admitted_requests": 2,
+    "one_initialized_worker": true,
+    "later_cpu_write_after_readiness": true,
+    "independently_verified_bytes": 131072,
+    "device_encoded_extents_in_private_replay": 2,
+    "original_cpu_writes_verified": true,
+    "worker_confirmed_retired": true,
+    "readiness_ns": 2159397500,
+    "exchange_ns": 2612683700,
+    "matched_performance": false,
+    "ordinary_mounted_path": false
+  },
+  "source_navigation": {
+    "source_commit": "087e849569900f88cbcf0abb993c80682b2525fc",
+    "provider_version": "0.2.43",
+    "receipt_sha256": "fbd39f9e4484ee86404037158a3881aa7ec0fdc9af21604caa20451376a091e5",
+    "native_response_sha256": "39a5be11f2b3cf8eb4d28933604b5328483e11a8097afe7c11cbb06c7856e1e4",
+    "source_files": 2,
+    "actual_searches": 1,
+    "confirmed_in_live_source": true
+  },
+  "primary_sources": [
+    {
+      "digest": "4e8dd88e710f33401575fb470220dd1702fb0e7903266146fc71f68aefa65b7e",
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "provider_lock_sha256": "01fbef3b628f772e4aba9724b6ced11c0f211d4d3bf51e38d1b9d0039eac997b",
+      "robots": true,
+      "external_LLM": false,
+      "timeout_seconds_per_page": 45,
+      "pages": [
+        {
+          "name": "amd-guidance",
+          "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/performance_guidelines.html",
+          "success": false,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 56567,
+          "markdown_sha256": "b1ebddfdf7d3a817d42b7446af31cd37ded972fc43a25f95fe3851ad2d449306",
+          "expected_content": false,
+          "failure_category": "unexpected_content",
+          "error": "",
+          "seconds": 3.038,
+          "capture": "amd-guidance.native.json",
+          "capture_sha256": "a65cf66df68f54a455f1fbe0e715c77facf9df8be1b8e93b8ac5c166d1536250"
+        },
+        {
+          "name": "amd-init",
+          "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_runtime_api/initialization.html",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 24762,
+          "markdown_sha256": "0c10f76d1d2e978b48e18e7adc6388cab281302448951d65cf568b492a107af5",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.688,
+          "capture": "amd-init.native.json",
+          "capture_sha256": "0dd37711ec4427fb79ce59a906d278aaa8cdebf3dc85b31c9f0b738f344488bb"
+        },
+        {
+          "name": "dxgi-budget",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/ns-dxgi1_4-dxgi_query_video_memory_info",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 20625,
+          "markdown_sha256": "8113f919b68c514b8914e83ed94797a5d54ff95b3fde0906c5be892252cd2a95",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 1.426,
+          "capture": "dxgi-budget.native.json",
+          "capture_sha256": "7015e02161db0573f8f401e25b94008f481c5a9fff3e9689cfc4c014652827c9"
+        }
+      ]
+    },
+    {
+      "digest": "4e4ccac316026a93885875a6ff163f4117cd1d7ed57773c29158c06e2c793d26",
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "provider_lock_sha256": "01fbef3b628f772e4aba9724b6ced11c0f211d4d3bf51e38d1b9d0039eac997b",
+      "robots": true,
+      "external_LLM": false,
+      "timeout_seconds_per_page": 45,
+      "pages": [
+        {
+          "name": "amd-guidance",
+          "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/performance_guidelines.html",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 51332,
+          "markdown_sha256": "f5b26916040d693275684ca2fd5b19265fe6f96cd77bea62fef8bf9a02020387",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.89,
+          "capture": "amd-guidance.native.json",
+          "capture_sha256": "e38ea468a1e53c0693617f49c8e1a79498ce1159fc7fc803b01b60bcaa3c98f9"
+        }
+      ]
+    }
+  ],
+  "qualification": {
+    "remaining_fixture_processes": 0,
+    "host_mounted": false,
+    "release_qualified": false
+  }
+}

@@ -423,6 +423,21 @@ mount a filesystem.
 
 ### Reusing the worker for a later write
 
+Burst admission prices the largest complete request count within the
+profile ceiling and the current host grant. The plan covers owned
+input, the child, transport and reply buffers, and an independent CPU
+replay. If the grant can fund two complete requests, one initialized
+worker can handle both. Each later request still needs an eligible
+committed source and fresh admission.
+
+On the RX 9070 XT, the constrained fixture funded two of three slots.
+It captured the second 64 KiB write after the worker was ready, stored
+both device-encoded extents in a private native replay, and verified both
+original files and the replay on CPU. Readiness took 2.159 s of the
+2.613 s exchange. The fixture measures supervised reuse on this shape.
+[Live funded burst](evidence/windows-adaptive-amd-write-bursts-2026-11-26.json) ·
+[AMD HIP performance guidelines](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/performance_guidelines.html)
+
 An approved `await_later_writes` profile can start with one ordinary,
 already-committed write. After completing a request, the worker keeps its
 initialized HIP runtime, stream and bounded working buffer while it sleeps

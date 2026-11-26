@@ -887,8 +887,8 @@ struct WinFspVolumeController::Impl {
         profile.maximum_batch_chunks/extent_count,profile.worker,allowance):
         plan_native_amd_write_worker(storage,inputs,launch,profile.worker,allowance);
     if(!worker_plan && launch==NativeAmdTrialLaunch::prepared_requests) {
-      // A single full-size write can fit when a finishable batch cannot fund
-      // even its second request. Price the complete sealed exchange instead.
+      // Use a single sealed exchange if the current grant cannot fund two
+      // complete arriving writes.
       launch=NativeAmdTrialLaunch::prepared;
       worker_plan=plan_native_amd_write_worker(storage,inputs,launch,profile.worker,allowance);
     }

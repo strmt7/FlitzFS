@@ -7,6 +7,18 @@
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
   "current_release_review": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
+  "adaptive_amd_write_bursts": {
+    "source_parent": "087e849569900f88cbcf0abb993c80682b2525fc",
+    "tested_source_tree": "75e1ef992355a8fec4c9836a6892896db277c3de",
+    "evidence": "docs/evidence/windows-adaptive-amd-write-bursts-2026-11-26.json",
+    "windows_tests": 238,
+    "radeon_requested_maximum": 3,
+    "radeon_funded_and_admitted": 2,
+    "later_cpu_commit_after_readiness": true,
+    "independently_verified_bytes": 131072,
+    "ordinary_mounted_speed_qualified": false,
+    "release_qualified": false
+  },
   "ordered_write_budget": {
     "source_parent": "caecb90bde1532d3c56d48a8b1c4baabd677ce96",
     "tested_source_tree": "c8cc48b9156c554cc784163e4237f538172d8287",

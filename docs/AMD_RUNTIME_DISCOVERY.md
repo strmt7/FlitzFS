@@ -44,8 +44,11 @@ pre-captured behavior. An approved `allow_smaller_writes` profile also
 admits a smaller later write into the allocation sized for the first write.
 It requires `await_later_writes` and a worker qualified for shorter
 continuations. Each frame keeps its exact native extent geometry. If an
-initial write fits the profile and current allowance but a finishable burst
-does not fit, the controller can compare one complete sealed exchange.
+initial write fits the profile, the planner reserves the largest burst
+that fits the current allowance up to the configured maximum. This
+includes the worker, retained source, framed replies and CPU replay.
+When the allowance cannot fund two complete requests, the controller
+can compare one sealed exchange.
 
 A uniform-only manifest without a trial profile retains diagnostic
 acquisition and ordinary CPU observation. Foreground route selection

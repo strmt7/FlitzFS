@@ -287,16 +287,33 @@ std::optional<NativeAmdWriteWorkerPlan> plan_native_amd_write_burst(const Native
     std::uint32_t request_bytes,std::uint32_t maximum_requests,ProcessBudget budget,
     std::uint64_t allowance) noexcept {
   if(maximum_requests<2 || !valid_shape({request_bytes,storage}))return {};
-  std::uint64_t bytes=0;
-  uniform_lz4::Layout group{},work{};
-  if(!uniform_lz4::multiply(request_bytes,maximum_requests,bytes) ||
-      !uniform_lz4::make_layout(bytes,kNativeExtentBytes,group) ||
-      !uniform_lz4::make_layout(request_bytes,kNativeExtentBytes,work))return {};
-  constexpr auto metadata=sizeof(UniformLz4Bytes)+sizeof(UniformLz4BatchInput)+sizeof(UniformLz4Request);
-  const auto plan=make_native_amd_worker_plan(group,work,maximum_requests,metadata,budget,allowance);
-  if(!plan || plan->channel.reply_bytes>allowance-plan->parent_metadata_bytes ||
-      !native_amd_cpu_replay_fits(bytes,maximum_requests,allowance-plan->parent_metadata_bytes-plan->channel.reply_bytes))return {};
-  return plan;
+  uniform_lz4::Layout work{};
+  if(!uniform_lz4::make_layout(request_bytes,kNativeExtentBytes,work))return {};
+  const auto plan_for=[&](std::uint32_t count)->std::optional<NativeAmdWriteWorkerPlan> {
+    std::uint64_t bytes=0;
+    uniform_lz4::Layout group{};
+    if(!uniform_lz4::multiply(request_bytes,count,bytes) ||
+        !uniform_lz4::make_layout(bytes,kNativeExtentBytes,group))return {};
+    constexpr auto metadata=sizeof(UniformLz4Bytes)+sizeof(UniformLz4BatchInput)+sizeof(UniformLz4Request);
+    auto plan=make_native_amd_worker_plan(group,work,count,metadata,budget,allowance);
+    if(!plan || plan->channel.reply_bytes>allowance-plan->parent_metadata_bytes ||
+        !native_amd_cpu_replay_fits(bytes,count,allowance-plan->parent_metadata_bytes-plan->channel.reply_bytes))return {};
+    return plan;
+  };
+  if(auto full=plan_for(maximum_requests))return full;
+
+  // With a fixed request size, framing, owned input and replay costs can
+  // only rise with the request count. Keep the largest complete grant.
+  std::optional<NativeAmdWriteWorkerPlan> funded;
+  std::uint32_t low=2,high=maximum_requests-1;
+  while(low<=high) {
+    const auto count=low+(high-low)/2;
+    if(auto candidate=plan_for(count)) {
+      funded=std::move(candidate);
+      low=count+1;
+    }else high=count-1;
+  }
+  return funded;
 }
 
 NativeAmdDeviceTrial record_native_amd_device_trial(const NativeAmdWriteShape& shape,

@@ -436,6 +436,13 @@ void detached_write_batch(const std::filesystem::path& helper) {
       <<" stored_advice="<<advised->stored_lz4_candidates<<" retired=1 gpu_executed=0\n";
 }
 
+std::uint64_t planned_worker_host_bytes(const NativeAmdWriteWorkerPlan& plan,ProcessBudget budget) {
+  constexpr std::uint64_t mib=1024*1024;
+  const auto& limits=plan.host_limits;
+  return budget.memory_mib*mib+6*limits.request_bytes+3*limits.reply_bytes+
+      12*limits.chunks+4*mib+kNativeExtentBytes+sizeof(std::uint64_t)+plan.parent_metadata_bytes;
+}
+
 void native_amd_worker_plan() {
   constexpr std::uint64_t mib=1024*1024;
   constexpr ProcessBudget budget{128,2000,5000,16};
@@ -457,9 +464,7 @@ void native_amd_worker_plan() {
   check(plan_native_amd_write_worker(storage,unequal,NativeAmdTrialLaunch::prepared,budget,allowance).has_value() &&
       !plan_native_amd_write_worker(storage,unequal,NativeAmdTrialLaunch::prepared_requests,budget,allowance),
       "Unequal geometry changed grouped eligibility");
-  const auto& limits=grouped->host_limits;
-  const auto grouped_charge=budget.memory_mib*mib+6*limits.request_bytes+3*limits.reply_bytes+
-      12*limits.chunks+4*mib+kNativeExtentBytes+sizeof(std::uint64_t);
+  const auto grouped_charge=planned_worker_host_bytes(*grouped,budget);
   check(grouped->fits(budget,grouped_charge) && !repeated->fits(budget,grouped_charge) &&
       !plan_native_amd_write_worker(storage,equal,NativeAmdTrialLaunch::prepared_requests,budget,grouped_charge),
       "Separate requests could use a grant that covered only the grouped reply");
@@ -470,6 +475,19 @@ void native_amd_worker_plan() {
       burst->channel.reply_bytes==3*(repeated->channel.reply_bytes/2) &&
       burst->parent_metadata_bytes>repeated->parent_metadata_bytes,
       "Burst did not fund later frames without an assumed source");
+  const auto two=plan_native_amd_write_burst(storage,kNativeExtentBytes,2,budget,allowance);
+  check(two && two->maximum_requests==2,"Missing reference grant for two complete requests");
+  const auto two_charge=planned_worker_host_bytes(*two,budget);
+  const auto funded=plan_native_amd_write_burst(storage,kNativeExtentBytes,3,budget,two_charge);
+  check(!burst->fits(budget,two_charge) && funded && funded->maximum_requests==2 &&
+      funded->group.input_bytes==two->group.input_bytes && funded->work.input_bytes==two->work.input_bytes &&
+      funded->channel.request_bytes==two->channel.request_bytes && funded->channel.reply_bytes==two->channel.reply_bytes,
+      "A tighter grant did not keep the complete affordable burst");
+  const auto capped=plan_native_amd_write_burst(storage,kNativeExtentBytes,
+      (std::numeric_limits<std::uint32_t>::max)(),budget,two_charge);
+  check(capped && capped->maximum_requests==2 &&
+      !plan_native_amd_write_burst(storage,kNativeExtentBytes,3,budget,two_charge-1),
+      "Burst planning crossed its largest funded prefix");
   check(!plan_native_amd_write_burst(storage,kNativeExtentBytes,0,budget,allowance) &&
       !plan_native_amd_write_burst(storage,kNativeExtentBytes,1,budget,allowance) &&
       !plan_native_amd_write_burst(storage,kNativeExtentBytes-1,3,budget,allowance) &&
@@ -1699,17 +1717,23 @@ int compare_installed_detached_writes(const std::filesystem::path& corpus,bool g
 int compare_installed_arriving_burst(std::wstring_view mode) {
   const bool single=mode==L"single";
   const bool duplicate=mode==L"duplicate";
-  check(single || duplicate || mode==L"later","Unknown arriving write fixture");
+  const bool limited=mode==L"limited";
+  check(single || duplicate || limited || mode==L"later","Unknown arriving write fixture");
   gpu_probe_fixture::Budget controller_budget;
   SYSTEM_INFO system{};
   GetSystemInfo(&system);
   const auto memory=observe_memory_volume_headroom();
-  const auto allowance=usable_memory_volume_headroom(memory)/sized_worker_memory_share_divisor(diagnostic_worker_budget);
+  auto allowance=usable_memory_volume_headroom(memory)/sized_worker_memory_share_divisor(diagnostic_worker_budget);
   const NativeManagedForeground storage{{StoreCompressionMode::fast,1,false},{system.dwPageSize}};
   constexpr std::uint32_t maximum_requests=3;
+  if(limited) {
+    const auto two=plan_native_amd_write_burst(storage,kNativeExtentBytes,2,diagnostic_worker_budget,allowance);
+    check(two && two->maximum_requests==2,"Could not fund the two-request fixture");
+    allowance=planned_worker_host_bytes(*two,diagnostic_worker_budget);
+  }
   const auto plan=plan_native_amd_write_burst(storage,kNativeExtentBytes,maximum_requests,
       diagnostic_worker_budget,allowance);
-  check(plan.has_value(),"Arriving burst lacks a complete grant");
+  check(plan && plan->maximum_requests==(limited?2:maximum_requests),"Arriving burst lacks its expected grant");
   const NativeUniformSweepGrant grant{plan->work.chunks,plan->work.total_bytes};
   const auto discovery=discover_installed_hip_route(diagnostic_worker_budget,4);
   const auto& route=require_indexed_route(discovery);
@@ -1807,10 +1831,11 @@ int compare_installed_arriving_burst(std::wstring_view mode) {
       check(measured.exchange==WorkerExchangeCode::completed && measured.sample && measured.sample->device_executed &&
           measured.sample->cpu_readback_verified && measured.sample->retirement_confirmed &&
           measured.sample->stored_lz4_candidates==inputs.size() && measured.sample->input_digest==cpu->input_digest &&
-          measured.sample->transactions==inputs.size() && admitted==inputs.size() && boundaries==inputs.size(),
+          measured.sample->transactions==inputs.size() && admitted==inputs.size() &&
+          boundaries==inputs.size()-(limited?1:0),
           "A deterministic native replay changed the supplied prefix");
     }
-    std::cout<<"arriving_burst maximum="<<maximum_requests<<" admitted="<<admitted
+    std::cout<<"arriving_burst maximum="<<maximum_requests<<" funded="<<plan->maximum_requests<<" admitted="<<admitted
         <<" later_commits="<<bool(later_sequence)<<" callbacks="<<boundaries<<" replayed="
         <<(measured.sample?measured.sample->transactions:0)<<" stored="
         <<(measured.sample?measured.sample->stored_lz4_candidates:0)

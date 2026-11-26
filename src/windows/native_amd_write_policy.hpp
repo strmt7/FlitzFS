@@ -68,8 +68,8 @@ struct NativeAmdWriteWorkerPlan {
 // Plan the complete transport and host footprint before touching the runtime.
 std::optional<NativeAmdWriteWorkerPlan> plan_native_amd_write_worker(const NativeManagedForeground&,
     std::span<const UniformLz4BatchInput>,NativeAmdTrialLaunch,ProcessBudget,std::uint64_t allowance) noexcept;
-// Reserve an upper bound using one eligible write's size. No future source
-// contents or committed images are needed when planning this exchange.
+// Reserve the largest funded prefix of the requested burst. Only the first
+// eligible write's size is needed. Every later frame retains its own admission.
 std::optional<NativeAmdWriteWorkerPlan> plan_native_amd_write_burst(const NativeManagedForeground&,
     std::uint32_t request_bytes,std::uint32_t maximum_requests,ProcessBudget,std::uint64_t allowance) noexcept;
 struct NativeAmdDeviceTrial {
