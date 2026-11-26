@@ -18,14 +18,15 @@ preserves the earlier order and assessment.
 
 **Development qualification.** The code provides a writable WinFsp filesystem
 with a native indexed store, independent CPU recovery and protected compression
-dependencies. Current tests confirm a smaller protected byte-plane image
-on both AITDCC splits and equal occupied bytes on CPython. The next release risks
+dependencies. Compact control records reduce the settled grouped CPython
+image to 593,920 bytes from its 696,320-byte mirror. The next release risks
 are useful automatic AMD delivery, the amount of work startup does at scale,
 the value of stronger collective compression, and recovery on persistent media.
 Installed discovery and subsequent staging or submissions now consume current
 engine capacity for the exact adapter. Advance that path through the ordinary
 Windows operation witness before extending more codec or worker variants.
 [Retained AMD evidence](evidence/windows-retained-amd-admission-2026-11-25.json) ·
+[Compact seal evidence](evidence/windows-compact-sealed-controls-2026-11-26.json) ·
 [Latest implementation order](RELEASE_RECONCILIATION_2026-11-26.md#detailed-implementation-order)
 
 | Subsystem | Demonstrated | Work that still determines release |
@@ -471,7 +472,7 @@ separately. [Persistence model](PERSISTENCE_MODEL.md)
 | 1 | Shared E01/E02/E03/E08/E11/E12 integration trace | Reuse the populated Win32 witness. Attribute charged work, advisory cursor, continuation refusals and actual wakes through quiescence. | Common comparison and fault harness |
 | 2 | E01/E02/E11 checked attach and settled ownership | Full-audit differential with attach phase counters, preserved flush witness and allocator settlement under churn. | Generation-bound prototype and held-out scale curve |
 | 2 | E03/E08 ordinary AMD acquisition and CPU continuity | Pair the later-range candidate with the CPU witness when fresh headroom admits it. Compare initialized leases with cold startup and trace consumed, verified bytes on a winning ordinary I/O shape. | Measured offer and route outcomes by role |
-| 2 | E01/E04/E05/E06 protected-size frontier | Compare denser metadata and point lookups with the current compact, inline control on a named tree. Price missed savings and restart units on held-out revision families. | A candidate with demonstrable protected savings, bounded range reads and a credible migration cost |
+| 2 | E01/E04/E05/E06 protected-size frontier | Compare a sparse fragment shortlist to exact saved allocation on held-out revision families. Hold the verified compact placement and restart units fixed. | A candidate with demonstrable protected savings, bounded range reads and a credible migration cost |
 | 3 | E06/E07/E09 collective storage, policy and upgrade | CPU-first reader, protected dependency publication, bounded migration and a measured offline policy. | Windows client, recovery and comparative qualification |
 | 3 | E08–E11 installed Windows experience | Signed artifact passes current Windows 11 installation, interaction and removal, backing lifecycle, compatibility and scoped physical-recovery campaigns. | Freeze executable, driver, format and supported platform inputs |
 | 4 | E12/E13 comparisons and stabilization | Matched real-host reports, reliability and soak evidence, and an owner decision packet for the twelve gates. | Owner approval |
@@ -479,9 +480,9 @@ separately. [Persistence model](PERSISTENCE_MODEL.md)
 The three measurement lanes share the first trace and can progress on
 independent fixtures. Favor the largest measured cost or complete storage
 saving in each lane before expanding format or worker variants.
-[Current measurements, release gates and research](RELEASE_RECONCILIATION_2026-11-25.md) ·
+[Current measurements, release gates and research](RELEASE_RECONCILIATION_2026-11-26.md) ·
 [Detailed package steps](IMPLEMENTATION_PLAN.md)
-[Next implementation steps](RELEASE_RECONCILIATION_2026-11-25.md#ordered-implementation-and-decision-points)
+[Next implementation steps](RELEASE_RECONCILIATION_2026-11-26.md#implement-the-next-three-integrated-results)
 
 The ordered implementation steps add a common acknowledgement witness,
 ordinary Radeon delivery, scale and space reuse, held-out compression

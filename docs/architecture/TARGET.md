@@ -320,18 +320,18 @@ statistics and candidate keys needed to improve later choices. Every committed
 restart unit remains independently readable with the CPU compatibility
 registry even when the policy record has to be rebuilt.
 [FAST 2026 chunk and access grouping](https://www.usenix.org/conference/fast26/presentation/huang) ·
-[Evidence-ranked implementation order](../RELEASE_RECONCILIATION_2026-11-26.md#decide-the-next-batch-from-three-integrated-results)
+[Evidence-ranked implementation order](../RELEASE_RECONCILIATION_2026-11-26.md#implement-the-next-three-integrated-results)
 
 Price each representation after its selected generation settles and old
 reader pins release. The measured store cost includes the selector,
 protected frames, indexes, mandatory references, allocation rounding and
 physical backing after retirement. Track temporary coexistence, scratch
-and actual writes alongside it. Compact roots already removed 120 KiB
-of fixed cost from one 4 KiB placement. The next corpus comparison
-should distinguish achievable savings in the payload encoding from
-savings in its protection layout. A new placement must preserve the
-declared failure coverage and exact independent CPU range decoding.
-[Occupied-byte decomposition](../evidence/windows-compact-paged-roots-2026-11-25.json)
+and actual writes alongside it. At 4 KiB compact sealed control slots
+remove 360 KiB of fixed physical space from a historical seal. Hold
+both arms to this geometry when isolating new encoder savings. A new
+placement must preserve the declared failure coverage and exact
+independent CPU range decoding.
+[Matched protected placements](../evidence/windows-compact-sealed-controls-2026-11-26.json)
 
 Use an ordered coordinate, payload revision and image identity as the
 minimum resumable advice. A scan unit gets a checked view, samples
@@ -529,13 +529,14 @@ pressure. It expires the lease when those conditions change. Keep waits
 event-driven and measure worker readiness, expiry, idle residency, useful
 requests and budget-refresh cost as separate stages. A new completion
 observation must follow CPU validation, including when both fall within a
-single coarse clock tick. AMD's
-current HIP documentation describes stream priorities as disabled.
+single coarse clock tick. Treat runtime-supported stream priority as an
+optional hint.
 Enforce background limits through bounded submissions, cooperative
 yielding and cancellation of pending work. Measure prepared streams before
 trying reusable graphs. Graph replay is a candidate when dispatch overhead is
 a material share of a winning repeated workload. Qualification binds the
 actual Windows package and exact device and runtime.
+[AMD Windows SDK release notes](https://rocm.docs.amd.com/projects/install-on-windows/en/latest/about/releasenotes.html) ·
 [AMD HIP graphs](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_runtime_api/hipgraph.html) ·
 [AMD HIP stream management](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_runtime_api/asynchronous.html)
 

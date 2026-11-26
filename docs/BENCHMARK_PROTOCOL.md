@@ -19,6 +19,7 @@ and explicit affinity, cache and data controls across paired trials.
 | Microsoft DiskSpd | Sequential/random file I/O, queue depths, mixed read/write, latency and structured results | File targets only in disposable test volumes; never raw devices. Use features supported by every comparator. |
 | fio | Reproducible job files, verification, mixed workloads, latency distributions and controlled data redundancy | Use a supported native Windows engine/build. Explicitly configure and disclose buffer reuse, compression and deduplication patterns. |
 | WinFsp `fsbench` | Creates/opens/listing and other Windows filesystem operations | Use the current implementation against FlitzFS and baselines; preserve all results. |
+| UL PCMark 10 Storage | Application trace replay as a secondary comparison | Use only a supported target and licensed runner with matched fixture size, access and repeat budget. Keep the composite score separate from the file-operation witness and protected occupation. |
 | WinFsp `winfsp-tests`, `winfstest`, Windows FSX and applicable Microsoft IfsTest/HLK tests | Windows semantics, random read/write and mapped-I/O correctness | Correctness gates, not compression records. Faulty-driver/kernel campaigns use isolation, not the owner host. |
 | lzbench | Matched in-memory CPU codec compression/decompression controls and exact readback | Raw codec result is separate from complete filesystem size; admit its whole-input memory requirement or partition every comparator identically. |
 | Small FlitzFS-specific harness | Group discovery, protected dependencies, whole-image size, CPU/GPU fallback, migration, background interference and crash acknowledgement | These properties are not supplied by a throughput benchmark. Publish the gap, source and independent oracle. |
@@ -32,6 +33,11 @@ hashes before running them.
 [DiskSpd](https://github.com/microsoft/diskspd/tree/v2.3),
 [fio](https://github.com/axboe/fio/tree/fio-3.43),
 [lzbench](https://github.com/inikep/lzbench/tree/v2.4).
+
+UL documents separate filesystem and physical-drive targets in the
+Full System Drive method. Qualify a supported filesystem-targeted
+variant within the available fixture budget before comparing scores.
+[UL Storage benchmark methodology](https://support.benchmarks.ul.com/support/solutions/articles/44002171465-full-system-drive-benchmark)
 
 WinFsp published stable v2.2 on 19 November 2026. Use the checksum-pinned
 v2.2 package and the matched correctness tools for that qualification lane.

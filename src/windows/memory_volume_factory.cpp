@@ -198,7 +198,7 @@ MemoryCompactionStep MemoryVolumeBacking::advance_compaction(NativeFileSession& 
         alternate_identity_=fresh_volume_identity();
         workspace_=domain->create_store(reserve);
         hybrid_.emplace(NativeHybridBacking::prepare(session,workspace_,image->contract(),alternate_identity_,
-            layout.image_capacity,staging));
+            layout.image_capacity,staging,{},NativeHybridControls::compact));
         phase_=CompactionPhase::copying;
         return MemoryCompactionStep::copying;
       }

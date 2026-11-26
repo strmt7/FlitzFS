@@ -14,6 +14,8 @@ constexpr bool paired_volume_file(NativeVolumePlacement placement) noexcept {
 // at base_bytes and overlays the writable roots and bytes after indexed_end.
 struct NativePairedSealedRange {
   std::uint64_t base_bytes=0,indexed_end=0;
+  std::uint32_t tail_slot_bytes=kStoreCommitUnit;
+  std::uint64_t tail_prefix_bytes() const noexcept {return 4ULL*tail_slot_bytes;}
   bool operator==(const NativePairedSealedRange&) const = default;
 };
 struct NativeVolumeSelection {

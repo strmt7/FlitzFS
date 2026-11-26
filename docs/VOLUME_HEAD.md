@@ -49,21 +49,31 @@ little-endian fields.
 | 96 | 65408 | Capability-specific fields followed by reserved zero |
 | 65504 | 32 | Existing unkeyed BLAKE3 integrity over bytes 0..65503 |
 
-Capability 1 reserves all bytes after offset 95. Capabilities 2–7 store the
+Capability 1 reserves all bytes after offset 95. Capabilities 2–9 store the
 image kind at offset 96 and the indexed byte limit at offset 104. Offset
-100 remains reserved. Capabilities 6 and 7 extend 4 and 5 respectively with
-two little-endian 64-bit fields. The packed base length starts at offset
-112 and the corresponding end of the folded indexed address space starts
-at offset 120. The base starts at the beginning of the selected paired
-range and the tail follows it. The tail binding must confirm both lengths
-and the selected image identity. Earlier capabilities reserve all bytes
-after their last defined field. Current readers accept those earlier layouts.
+100 remains reserved. Capabilities 6–9 store the physical base length
+at offset 112 and the end of the folded indexed address space at offset
+120. The base begins at the start of the selected range and the tail
+follows it.
+
+| Capability | Paired ranges | Tail control slot | Reserved bytes begin |
+|---:|---|---:|---:|
+| 4 | Image pair | — | 112 |
+| 5 | Image and catalog pairs | — | 112 |
+| 6 | Image pair with sealed selection | 65,536 | 128 |
+| 7 | Image and catalog pairs with sealed selection | 65,536 | 128 |
+| 8 | Image pair with sealed selection | 32-bit width at offset 128 | 132 |
+| 9 | Image and catalog pairs with sealed selection | 32-bit width at offset 128 | 132 |
+
+The width is 4,096, 8,192, 16,384 or 32,768 bytes for capabilities 8 and 9.
+The checked tail binding confirms the selected image identity, both
+lengths and the width. The current reader accepts capabilities 1–9.
 
 During a mixed mirror/sealed handoff, adjacent epochs keep the same outer
 paired layout and capacity. Each peer independently describes its own
-image. The higher bound epoch selects its complete image. Older readers
-reject an intact sealed capability. A fresh verified mirrored successor
-uses capability 4 or 5 again.
+image. The higher bound epoch selects its complete image. A reader
+requires support for every intact peer capability before selection.
+A fresh verified mirrored successor uses capability 4 or 5 again.
 [Paired sealed layout](PERSISTENT_VOLUME_FILE.md#sealed-paired-images)
 
 The selector has its own encoding. The selected image retains its own

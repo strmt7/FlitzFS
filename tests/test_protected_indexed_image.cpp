@@ -265,11 +265,12 @@ struct HybridFixture {
   NativeVolumeHeadInfo selected;
   std::size_t bootstrap_calls=0;
 
-  HybridFixture(std::span<const Bytes> files,std::uint32_t unit,StoreCompressionOptions policy)
+  HybridFixture(std::span<const Bytes> files,std::uint32_t unit,StoreCompressionOptions policy,
+      NativeHybridControls controls=NativeHybridControls::legacy)
       :source(make_indexed(files,unit,policy)),head(empty(unit)),workspace(empty(unit)),
        base(empty(unit)),tail(empty(unit)) {
     const auto old=NativeFilesystemSnapshot::open_image(source,ordinary_storage);
-    hybrid=NativeHybridBacking::create(old,workspace,base,tail,id(2),limits.maximum_physical_bytes,policy);
+    hybrid=NativeHybridBacking::create(old,workspace,base,tail,id(2),limits.maximum_physical_bytes,policy,controls);
     bootstrap_calls=tail->calls;
     const auto copy=NativeFilesystemSnapshot::open_image(hybrid,ordinary_storage);
     auto writer=NativeVolumeHeadWriter::create(head,id(9),old);
@@ -348,13 +349,15 @@ std::size_t apply_hybrid_patch(std::shared_ptr<StoreByteIo> head,std::shared_ptr
   return calls;
 }
 
-void hybrid_faults(std::uint32_t unit) {
+void hybrid_faults(std::uint32_t unit,NativeHybridControls controls=NativeHybridControls::legacy) {
   const std::array files{data(713'821,810),data(263'482,183)};
-  HybridFixture f(files,unit,raw);
+  HybridFixture f(files,unit,raw,controls);
+  const auto slot=controls==NativeHybridControls::compact?unit:kStoreCommitUnit;
+  const auto base_prefix=2*slot;
   const auto frozen=f.base->stable;
   const auto initial_tail=f.tail->stable;
   const auto selected_head=f.head->stable;
-  require(f.tail->extent()==tail_prologue && detail::folded_mirror_extent(f.hybrid->extent())==f.workspace->extent() &&
+  require(f.tail->extent()==4*slot && detail::folded_mirror_extent(f.hybrid->extent())==f.workspace->extent() &&
       f.hybrid->occupied()==f.base->extent()+f.tail->extent() && f.hybrid->occupied()<f.hybrid->extent(),
       "hybrid allocation does not account for both files and the folded workspace");
   const auto original=NativeFilesystemSnapshot::open_image(f.source,ordinary_storage);
@@ -363,6 +366,10 @@ void hybrid_faults(std::uint32_t unit) {
   require(f.hybrid->extent()==mirror->extent(),"fold changed the mirrored address space");
   require(std::ranges::equal(std::span(mirror->stable).first(prefix),std::span(f.workspace->stable).first(prefix)),
       "folded workspace changed the root area");
+  Bytes virtual_roots(prefix);
+  f.hybrid->read_exact(0,virtual_roots);
+  require(std::ranges::equal(virtual_roots,std::span(mirror->stable).first(prefix)),
+      "hybrid root projection changed the virtual address space");
   for(std::uint64_t at=prefix;at<mirror->extent();at+=2*unit) {
     const auto expected=std::span(mirror->stable).subspan(at,unit);
     const auto actual=std::span(f.workspace->stable).subspan(detail::folded_mirror_offset(at,unit),unit);
@@ -375,14 +382,14 @@ void hybrid_faults(std::uint32_t unit) {
   auto limited=empty(unit),limited_base=empty(unit),limited_tail=empty(unit);
   limited->capacity=f.workspace->extent();
   const auto fitted=NativeHybridBacking::create(original,limited,limited_base,limited_tail,id(2),
-      limits.maximum_physical_bytes,raw);
+      limits.maximum_physical_bytes,raw,controls);
   verify(NativeFilesystemSnapshot::open_image(fitted,ordinary_storage),files);
   require(limited->extent()==limited->capacity && limited->extent()<mirror->extent(),
       "builder required a mirrored-sized workspace");
   auto short_workspace=empty(unit),short_base=empty(unit),short_tail=empty(unit);
   short_workspace->capacity=limited->capacity-1;
   rejects([&]{(void)NativeHybridBacking::create(original,short_workspace,short_base,short_tail,id(2),
-      limits.maximum_physical_bytes,raw);},"insufficient folded workspace was accepted");
+      limits.maximum_physical_bytes,raw,controls);},"insufficient folded workspace was accepted");
   require(!short_workspace->writes && !short_base->writes && !short_tail->writes,
       "folded capacity refusal attempted writes");
   const auto prior=NativeFilesystemSnapshot::open_image(f.hybrid,ordinary_storage);
@@ -393,7 +400,7 @@ void hybrid_faults(std::uint32_t unit) {
   std::ranges::copy(patch,expected[0].begin()+kNativeExtentBytes-31);
   const auto calls=apply_hybrid_patch(f.head,f.hybrid,*f.tail,patch,raw);
   require(calls>=5 && f.base->stable==frozen && f.base->live==frozen &&
-      std::ranges::equal(std::span(f.tail->stable).first(prefix),std::span(initial_tail).first(prefix)),
+      std::ranges::equal(std::span(f.tail->stable).first(2*slot),std::span(initial_tail).first(2*slot)),
       "ordinary writes changed cold data or its binding");
   verify(prior,files);
   {
@@ -432,7 +439,7 @@ void hybrid_faults(std::uint32_t unit) {
   for(const bool damage_binding:{false,true}) {
     auto base=image(frozen,unit),tail=image(initial_tail,unit);
     if(damage_binding)damage(*tail,0,unit);
-    else damage(*base,prefix+unit,unit);
+    else damage(*base,base_prefix+unit,unit);
     const auto recovered=reopen_hybrid(std::move(base),std::move(tail));
     const auto snapshot=NativeFilesystemSnapshot::open_image(recovered,ordinary_storage);
     verify(snapshot,files);
@@ -449,8 +456,8 @@ void hybrid_faults(std::uint32_t unit) {
     verify(reopened,files);
   }
   auto uncertain=image(frozen,unit);
-  damage(*uncertain,prefix,unit);
-  damage(*uncertain,prefix+unit,unit);
+  damage(*uncertain,base_prefix,unit);
+  damage(*uncertain,base_prefix+unit,unit);
   rejects([&]{const auto invalid=reopen_hybrid(uncertain,image(initial_tail,unit));invalid->verify_backing();},
       "double loss in one protected stripe was accepted");
   auto read_only=image(initial_tail,unit);
@@ -461,20 +468,57 @@ void hybrid_faults(std::uint32_t unit) {
 
   auto other_files=files;
   other_files[0][41]^=std::byte{0x53};
-  HybridFixture other(other_files,unit,raw);
+  HybridFixture other(other_files,unit,raw,controls);
   auto same_id_different_base=image(other.base->stable,unit),untouched_tail=image(initial_tail,unit);
   rejects([&]{(void)reopen_hybrid(same_id_different_base,untouched_tail);},
       "same image ID with different frozen roots supplied a base");
   require(!same_id_different_base->writes && !untouched_tail->writes,"failed hybrid identity check attempted writes");
-  std::cout<<"hybrid_tail_cuts unit="<<unit<<" attempted="<<3*calls<<" old_exact="<<old_count
+  std::cout<<"hybrid_tail_cuts unit="<<unit<<" control_slot="<<slot<<" attempted="<<3*calls<<" old_exact="<<old_count
       <<" new_exact="<<new_count<<" base_unchanged=1 read_only_rescue=1 recovered_to_mirror=1"
       <<" exact_fold_verified=1 folded_capacity_admitted=1\n";
 }
 
-void interrupted_hybrid_binding() {
+void compact_control_recovery(std::uint32_t unit) {
+  const std::array files{data(713'821,810),data(263'482,183)};
+  HybridFixture f(files,unit,raw,NativeHybridControls::compact);
+  const auto implicit_legacy=unit==kStoreCommitUnit;
+  require(f.tail->extent()==4ULL*unit &&
+      f.base->extent()==ProtectedStripeImage::projected_occupied(id(2),f.workspace->extent(),unit,
+          limits.maximum_physical_bytes,true),"compact control allocation differs from the provider geometry");
+  for(unsigned slot=0;slot<6;++slot) {
+    auto base=image(f.base->stable,unit),tail=image(f.tail->stable,unit);
+    if(slot<2)damage(*base,std::uint64_t{slot}*unit,unit);
+    else damage(*tail,std::uint64_t{slot-2}*unit,unit);
+    const auto checked=reopen_hybrid(std::move(base),std::move(tail));
+    const auto snapshot=NativeFilesystemSnapshot::open_image(checked,ordinary_storage);
+    verify(snapshot,files);
+    require(snapshot.storage_info().degraded_checkpoint,"lost control unit did not reach the recovery status");
+    if(slot<4) {
+      rejects([&]{(void)PagedObjectStoreWriter::resume(checked,id(2),snapshot.storage_info().generation,limits,raw);},
+          "degraded immutable controls admitted writes without a rebuild");
+    }else {
+      {
+        const auto repaired=PagedObjectStoreWriter::resume(checked,id(2),snapshot.storage_info().generation,limits,raw);
+      }
+      const auto restored=NativeFilesystemSnapshot::open_image(checked,ordinary_storage);
+      require(!restored.storage_info().degraded_checkpoint,"mutable root repair retained degraded status");
+      verify(restored,files);
+    }
+  }
+  if(!implicit_legacy) {
+    auto larger_tail=image(f.tail->stable,unit*2);
+    rejects([&]{(void)reopen_hybrid(image(f.base->stable,unit),larger_tail);},
+        "compact tail accepted a wider write failure unit");
+    require(!larger_tail->writes,"refused provider changed the tail");
+  }
+  std::cout<<"compact_control_recovery unit="<<unit<<" lost_units=6 base_bytes="<<f.base->extent()
+      <<" tail_bytes="<<f.tail->extent()<<" exact_cpu=1 legacy_spacing="<<implicit_legacy<<'\n';
+}
+
+void interrupted_hybrid_binding(NativeHybridControls controls=NativeHybridControls::legacy) {
   constexpr auto unit=4096U;
   const std::array files{data(713'821,333),data(263'482,167)};
-  HybridFixture fixture(files,unit,raw);
+  HybridFixture fixture(files,unit,raw,controls);
   const auto original=NativeFilesystemSnapshot::open_image(fixture.source,ordinary_storage);
   const auto original_bytes=fixture.source->stable;
   const auto scratch_calls=fixture.workspace->calls;
@@ -486,7 +530,7 @@ void interrupted_hybrid_binding() {
       workspace->failure=failure;
       workspace->fail_at=cut;
       rejects([&]{(void)NativeHybridBacking::create(original,workspace,base,tail,id(3),
-          limits.maximum_physical_bytes,raw);},"failed workspace reached sealing");
+          limits.maximum_physical_bytes,raw,controls);},"failed workspace reached sealing");
       require(!base->writes && !tail->writes && fixture.source->live==original_bytes &&
           fixture.source->stable==original_bytes,"failed folded workspace affected selected or sealed data");
       ++scratch_cuts;
@@ -500,7 +544,7 @@ void interrupted_hybrid_binding() {
     tail->failure=failure;
     tail->fail_at=cut;
     rejects([&]{(void)NativeHybridBacking::create(original,workspace,base,tail,id(3),
-        limits.maximum_physical_bytes,raw);},"failed hybrid binding returned success");
+        limits.maximum_physical_bytes,raw,controls);},"failed hybrid binding returned success");
     require(fixture.source->stable==original_bytes && fixture.source->live==original_bytes,
         "failed hybrid bootstrap touched the old image");
     std::shared_ptr<NativeHybridBacking> recovered;
@@ -517,7 +561,7 @@ void interrupted_hybrid_binding() {
   auto workspace=empty(unit),base=empty(unit),tail=empty(unit);
   const std::array small{data(45,6)};
   const auto tiny=NativeFilesystemSnapshot::open_image(make_indexed(small,unit,raw),ordinary_storage);
-  rejects([&]{(void)NativeHybridBacking::create(tiny,workspace,base,tail,id(3),limits.maximum_physical_bytes,raw);},
+  rejects([&]{(void)NativeHybridBacking::create(tiny,workspace,base,tail,id(3),limits.maximum_physical_bytes,raw,controls);},
       "hybrid placement enlarged a small protected image");
   require(!base->writes && !tail->writes,"rejected hybrid capacity cost wrote a published backing");
   std::cout<<"hybrid_binding_cuts attempted="<<3*calls<<" incomplete="<<incomplete<<" complete="<<complete
@@ -738,7 +782,7 @@ void cooperative_hybrid() {
       <<" stale_refusals=2 staging_refusals=1 lost_contract_refusals=1 binding_refusals=1 growth_refusals=2\n";
 }
 
-void live_hybrid_selection_faults(std::uint32_t unit) {
+void live_hybrid_selection_faults(std::uint32_t unit,NativeHybridControls controls=NativeHybridControls::legacy) {
   constexpr unsigned selector_steps=4;
   const std::array files{data(713'821,810),data(263'482,183)};
   const auto original=make_indexed(files,unit,raw);
@@ -756,7 +800,7 @@ void live_hybrid_selection_faults(std::uint32_t unit) {
     auto handle=session.open(path(0),{true,true,false});
     auto workspace=empty(unit),base=empty(65536),tail=empty(unit);
     auto work=NativeHybridBacking::prepare(session,workspace,base,tail,id(2),
-        limits.maximum_physical_bytes,limits.maximum_physical_bytes,raw);
+        limits.maximum_physical_bytes,limits.maximum_physical_bytes,raw,controls);
     CooperativeProgress progress;
     advance_hybrid(work,session,*workspace,*base,*tail,source->extent(),progress);
     head->failure=mode;
@@ -1054,6 +1098,13 @@ int main(int argc,char** argv) {
       cooperative_hybrid();
       for(const auto unit:{4096U,65536U})live_hybrid_selection_faults(unit);
       cold_seal_recovery();
+      return 0;
+    }
+    if(argc==2 && std::string_view(argv[1])=="--compact"){
+      for(const auto unit:{4096U,8192U,16384U,32768U,65536U})compact_control_recovery(unit);
+      hybrid_faults(4096U,NativeHybridControls::compact);
+      interrupted_hybrid_binding(NativeHybridControls::compact);
+      live_hybrid_selection_faults(4096U,NativeHybridControls::compact);
       return 0;
     }
     require(argc==1,"invalid protected image fixture options");

@@ -1927,7 +1927,8 @@ void near_full_volatile_seal(bool expect_success,bool private_credit=false) {
     put(session,"witness",witness_bytes);
     put(session,"sparse",sparse);
     require(!session.persistent_reclamation_pending() &&
-        session.persistent_reclamation_pending(true)==!private_credit,
+        session.persistent_reclamation_pending(NativeVolumeReclaimMode::include_cold,slot) &&
+        (!private_credit || !session.persistent_reclamation_pending(true)),
         "near-full fixture did not isolate the intended seal credit");
   }
   const auto verify=[&](const NativeFilesystemSnapshot& snapshot) {

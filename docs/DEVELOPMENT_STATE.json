@@ -7,6 +7,19 @@
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
   "current_release_review": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
+  "compact_sealed_controls": {
+    "source_parent": "5dacbcae6e0215c7ec4b7b9773dc8715d7b81883",
+    "tested_source_tree": "dfc42cb6d683316a366e4a44b25f61342a2067f0",
+    "evidence": "docs/evidence/windows-compact-sealed-controls-2026-11-26.json",
+    "tested_failure_unit_bytes": [4096, 8192, 16384, 32768, 65536],
+    "cpython_grouped_mirror_bytes": 696320,
+    "cpython_compact_seal_bytes": 593920,
+    "mixed_compact_seal_bytes": 21557248,
+    "selected_group_members": 48,
+    "selected_group_bases": 13,
+    "independent_cpu_readback": true,
+    "release_qualified": false
+  },
   "retained_group_placement": {
     "source_parent": "df014de23efcf93c0b5e8f72bc0e838a2c914c2d",
     "tested_source_tree": "47121686f44fd2a72f3ee1c60b51760e461254a9",

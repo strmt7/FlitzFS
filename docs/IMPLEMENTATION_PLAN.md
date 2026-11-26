@@ -1,15 +1,14 @@
 # FlitzFS detailed implementation plan
 
-**Reconciled on 26 November 2026.** The retained-group and mixed layout
-comparisons establish where sealing pays and where fixed control slots
-dominate. Compare compact protection geometry against that frontier on
-a fresh named-family holdout before changing admission or fragment
-discovery. Connect the populated Windows
-client trace to useful grouped AMD reads and collective search. Measure
-attach after churn to design and verify the incremental proof.
+**Reconciled on 26 November 2026.** Compact sealed controls make the
+grouped CPython fixture 14.7% smaller than its grouped mirror. Measure
+attainable saved allocation on a fresh named-family holdout before
+changing fragment selection. Connect the populated Windows client trace
+to useful grouped AMD reads and collective search. Run an evidence-only
+attach proof beside the CPU audit and compare it after named-file churn.
 The E01–E13 contracts below define the individual release exits.
 [Current assessment](RELEASE_RECONCILIATION_2026-11-26.md) ·
-[Source, tests and research](evidence/windows-retained-group-placement-2026-11-26.json) ·
+[Source, tests and research](evidence/windows-compact-sealed-controls-2026-11-26.json) ·
 [Ordered implementation steps](RELEASE_RECONCILIATION_2026-11-26.md#implement-the-next-three-integrated-results)
 
 The [current architecture](architecture/CURRENT.md) shows the implementation.

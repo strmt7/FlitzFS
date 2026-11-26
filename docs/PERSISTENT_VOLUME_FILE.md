@@ -46,8 +46,8 @@ Sandbox fixture. Physical power-loss qualification remains a separate gate.
 
 A qualified range provider can create a paired volume with two aligned
 image ranges of the same declared capacity. Capability 4 contains the
-image pair. Capability 5 adds reserved catalog ranges. Capabilities 6 and
-7 bind a sealed selection within those respective range layouts. The head and advice
+image pair. Capability 5 adds reserved catalog ranges. Capabilities 6–9
+bind a sealed selection within those respective range layouts. The head and advice
 retain the positions above. If the image capacity is C, the first image
 range begins at 256 KiB, and the second begins at 256 KiB + C. Odd epochs
 select the first range and even epochs select the second. The indexed
@@ -393,6 +393,40 @@ The Windows memory and file-backed owners derive their bounds from the
 same paged inventory. The final builder still checks the exact workspace,
 sealed footprint, source checkpoint and provider contract before selection.
 [Live inventory and retained groups](evidence/windows-retained-group-placement-2026-11-26.json)
+
+#### Physical control records
+
+The paired owners choose control spacing from the qualified backing
+contract. The base has two outer root slots. The tail has two immutable
+binding slots followed by two mutable indexed root slots. A compact slot
+starts at the boundary of an independently covered failure unit and holds
+only the bytes that fit within that unit.
+
+| Component | Encoding | Physical slot width |
+|---|---|---:|
+| Sealed parity base | `FLTXSP01` | 65,536 bytes |
+| Sealed parity base | `FLTXSP02` | Base failure unit, at least 4,096 bytes |
+| Writable tail | `FLTXHB01` | 65,536 bytes |
+| Writable tail | `FLTXHB02` | Folded workspace unit, at least 4,096 bytes |
+
+The 65,536-byte unit uses the original encoding. The base can use that
+geometry while the tail uses narrower slots when its own contract permits
+them. The selector binds the tail slot width to the base length and indexed
+end. The indexed reader still sees roots at virtual offsets 0 and 65,536
+and a 131,072-byte virtual prefix. The compact tail supplies the virtual
+zero padding. Stripe descriptor, parity and indexed object encodings stay
+the same.
+
+Opening follows a checked first record to its peer. When the first
+fails verification, a bounded search checks recognized isolated peer
+offsets and requires one unambiguous survivor. Before selection the builder
+flushes and verifies the parity base, copies and checks both mutable roots,
+and flushes each tail binding separately. A degraded immutable root or
+tail binding admits CPU reads and requires recovery before new writes.
+The writable indexed root uses the ordinary checked peer repair procedure.
+An insufficiently isolated writable backing refuses admission.
+[Selector fields](VOLUME_HEAD.md#legacy-and-paired-file-encoding) ·
+[Control-unit recovery and occupied size](evidence/windows-compact-sealed-controls-2026-11-26.json)
 
 The Windows controller can place the workspace in locked memory when it
 fits the current idle memory allowance after reserving ordinary

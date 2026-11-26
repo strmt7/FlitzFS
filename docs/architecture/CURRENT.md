@@ -453,6 +453,41 @@ when neither copy verifies.
 [Format and recovery](../PERSISTENT_VOLUME_FILE.md#moving-live-data-across-allocation-groups) ·
 [Cross-group test evidence](../evidence/dense-cross-group-2026-11-23.json)
 
+### Sealed base and writable tail
+
+The volume owner can publish a parity-protected cold base with a small
+writable tail. The published selector names both ranges and binds the
+physical tail layout. The indexed layer uses one virtual address space.
+Root positions and folded frame addresses retain their previous offsets.
+
+```mermaid
+flowchart TD
+    V["Paired selector with identity, epoch and sealed range"] --> B["Sealed base range"]
+    V --> T["Writable tail range"]
+    B --> R["Two isolated base roots"]
+    B --> P["Checked data units, descriptor and parity per stripe"]
+    T --> C["Two isolated immutable tail bindings"]
+    T --> M["Two isolated mutable indexed roots"]
+    T --> A["Appended indexed records"]
+    R --> H["Checked hybrid CPU reader"]
+    P --> H
+    C --> H
+    M --> H
+    A --> H
+    H --> I["Virtual root pair, folded objects and writable append"]
+```
+
+At a qualified 4 KiB failure unit the six control slots occupy 24 KiB.
+The 64 KiB unit keeps the historical 384 KiB total. A provider can require
+different units for the base and the tail. Each new source is verified
+with both bindings and roots before selector publication. An immutable
+control survivor permits independent CPU reads and fences writes until
+recovery. The current allocation, repair and unsupported-feature rules
+still govern writability.
+[Physical layout and publication](../PERSISTENT_VOLUME_FILE.md#physical-control-records) ·
+[Selector binding](../VOLUME_HEAD.md#legacy-and-paired-file-encoding) ·
+[Recovery and named workloads](../evidence/windows-compact-sealed-controls-2026-11-26.json)
+
 ## 8. Background learning, grouping and reclamation
 
 The Windows controller uses live resource samples and foreground activity to fund

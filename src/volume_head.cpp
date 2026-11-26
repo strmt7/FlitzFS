@@ -2,6 +2,7 @@
 #include "flitzfs/native_hybrid_backing.hpp"
 #include "record_digest.hpp"
 #include <algorithm>
+#include <bit>
 #include <cstring>
 #include <limits>
 #include <optional>
@@ -19,6 +20,7 @@ const char* slot_magic(std::size_t bytes) noexcept {
 }
 constexpr auto paired_file_capability=4U,paired_catalog_capability=5U;
 constexpr auto sealed_file_capability=6U,sealed_catalog_capability=7U;
+constexpr auto compact_sealed_file_capability=8U,compact_sealed_catalog_capability=9U;
 void put(Bytes& b,std::size_t at,std::uint64_t v,unsigned n=8) {
   for(unsigned i=0;i<n;++i)b[at+i]=static_cast<std::byte>(v>>(8*i));
 }
@@ -37,11 +39,12 @@ void valid(const NativeVolumeSelection& s,Code code) {
       ((s.storage.kind==NativeImageKind::paged || indexed) && s.storage.maximum_physical_bytes)))
     fail(code,"invalid volume image storage descriptor");
   if(s.sealed_range) {
-    const auto [base,end]=*s.sealed_range;
-    constexpr std::uint64_t minimum_unit=4096;
+    const auto& range=*s.sealed_range;
+    const auto base=range.base_bytes,end=range.indexed_end,prefix=range.tail_prefix_bytes();
     if(!paired_volume_file(s.placement) || s.epoch<2 || end>s.storage.maximum_physical_bytes ||
-        end<=kNativeHybridTailPrefixBytes || base>=end-kNativeHybridTailPrefixBytes ||
-        base<=kVolumeHeadBytes || base%minimum_unit || end%minimum_unit)
+        range.tail_slot_bytes<minimum_slot_bytes || range.tail_slot_bytes>kStoreCommitUnit ||
+        !std::has_single_bit(range.tail_slot_bytes) || end<=prefix || base>=end-prefix ||
+        base<=kVolumeHeadBytes || base%minimum_slot_bytes || end%minimum_slot_bytes)
       fail(code,"invalid paired sealed image geometry");
   }
   if(!s.epoch||zero(s.volume_identity)||zero(s.image_identity)||s.volume_identity==s.image_identity||
@@ -65,10 +68,13 @@ Bytes encoded(const NativeVolumeSelection& s,unsigned slot,std::size_t slot_byte
   const auto digest_at=slot_bytes-digest_bytes;
   const auto kind=static_cast<std::uint32_t>(s.storage.kind);
   auto capability=kind+1;
+  const bool compact_sealed=s.sealed_range && s.sealed_range->tail_slot_bytes!=kStoreCommitUnit;
   if(s.placement==NativeVolumePlacement::paired_file_catalog_ranges)
-    capability=s.sealed_range?sealed_catalog_capability:paired_catalog_capability;
+    capability=compact_sealed?compact_sealed_catalog_capability:
+        s.sealed_range?sealed_catalog_capability:paired_catalog_capability;
   else if(s.placement==NativeVolumePlacement::paired_file_ranges)
-    capability=s.sealed_range?sealed_file_capability:paired_file_capability;
+    capability=compact_sealed?compact_sealed_file_capability:
+        s.sealed_range?sealed_file_capability:paired_file_capability;
   std::memcpy(b.data(),slot_magic(slot_bytes),8);put(b,8,capability,4);put(b,12,slot,4);put(b,16,s.epoch);
   std::copy(s.volume_identity.begin(),s.volume_identity.end(),b.begin()+24);
   std::copy(s.image_identity.begin(),s.image_identity.end(),b.begin()+40);
@@ -76,6 +82,7 @@ Bytes encoded(const NativeVolumeSelection& s,unsigned slot,std::size_t slot_byte
   put(b,72,s.minimum_checkpoint);put(b,80,s.namespace_sequence);put(b,88,s.parent_checkpoint);
   if(kind){put(b,96,kind,4);put(b,104,s.storage.maximum_physical_bytes);}
   if(s.sealed_range){put(b,112,s.sealed_range->base_bytes);put(b,120,s.sealed_range->indexed_end);}
+  if(compact_sealed)put(b,128,s.sealed_range->tail_slot_bytes,4);
   const auto digest=detail::record_digest(std::span<const std::byte>(b).first(digest_at));
   std::copy(digest.begin(),digest.end(),b.begin()+digest_at);return b;
 }
@@ -88,10 +95,12 @@ std::optional<NativeVolumeSelection> decoded(std::span<const std::byte> b,unsign
   const auto capability=get(b,8,4);
   const bool paired=capability>=paired_file_capability;
   const bool sealed=capability>=sealed_file_capability;
+  const bool compact_sealed=capability>=compact_sealed_file_capability;
   const auto kind=paired?static_cast<std::uint64_t>(NativeImageKind::indexed_paged):capability-1;
-  const auto reserved_at=sealed?128:(capability>1?112:96);
-  if(std::memcmp(b.data(),slot_magic(b.size()),8)||capability<1||capability>sealed_catalog_capability||
+  const auto reserved_at=compact_sealed?132:sealed?128:(capability>1?112:96);
+  if(std::memcmp(b.data(),slot_magic(b.size()),8)||capability<1||capability>compact_sealed_catalog_capability||
       (paired && b.size()!=kStoreCommitUnit)||get(b,12,4)!=slot||
+      (compact_sealed && get(b,128,4)>=kStoreCommitUnit) ||
       (capability>1 && (get(b,96,4)!=kind || get(b,100,4)!=0)) ||
       !std::all_of(b.begin()+reserved_at,b.begin()+digest_at,[](auto x){return x==std::byte{};}))
     fail(Code::corrupt,"intact volume head framing unsupported");
@@ -100,9 +109,11 @@ std::optional<NativeVolumeSelection> decoded(std::span<const std::byte> b,unsign
   std::copy_n(b.begin()+56,16,s.parent_identity.begin());
   s.minimum_checkpoint=get(b,72);s.namespace_sequence=get(b,80);s.parent_checkpoint=get(b,88);
   if(capability>1)s.storage={static_cast<NativeImageKind>(kind),get(b,104)};
-  if(paired)s.placement=(capability==paired_catalog_capability || capability==sealed_catalog_capability)?
+  if(paired)s.placement=(capability==paired_catalog_capability || capability==sealed_catalog_capability ||
+      capability==compact_sealed_catalog_capability)?
       NativeVolumePlacement::paired_file_catalog_ranges:NativeVolumePlacement::paired_file_ranges;
-  if(sealed)s.sealed_range=NativePairedSealedRange{get(b,112),get(b,120)};
+  if(sealed)s.sealed_range=NativePairedSealedRange{get(b,112),get(b,120),
+      compact_sealed?static_cast<std::uint32_t>(get(b,128,4)):static_cast<std::uint32_t>(kStoreCommitUnit)};
   valid(s,Code::corrupt);
   if(expected && s.volume_identity!=*expected)fail(Code::corrupt,"volume head identity mismatch");
   return s;

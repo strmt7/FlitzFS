@@ -17,11 +17,11 @@ namespace {
 using detail::Digest;
 using detail::ProtectedStripeImage;
 using Bytes=std::vector<std::byte>;
-constexpr std::uint64_t roots=detail::kFoldedMirrorRoots,tail_start=kNativeHybridTailPrefixBytes;
-static_assert(tail_start==2*roots);
+constexpr std::uint64_t roots=detail::kFoldedMirrorRoots;
+static_assert(kNativeHybridTailPrefixBytes==2*roots);
 constexpr std::size_t root_size=detail::kPagedStoreCheckpointWriteBytes/2;
 constexpr std::uint64_t maximum_io=static_cast<std::uint64_t>((std::numeric_limits<std::int64_t>::max)());
-constexpr std::string_view binding_magic="FLTXHB01";
+constexpr std::string_view binding_magic="FLTXHB01",compact_binding_magic="FLTXHB02";
 using BindingRecord=std::array<std::byte,128>;
 
 [[noreturn]] void fail(const char* reason) {throw std::runtime_error(reason);}
@@ -31,10 +31,17 @@ struct Binding {
   StoreIdentity identity{};
   Digest frozen_roots{};
   std::uint64_t virtual_limit=0;
+  std::uint64_t slot_bytes=0;
   bool operator==(const Binding&) const=default;
 
   std::uint64_t folded_extent() const noexcept {return detail::folded_mirror_extent(base_end);}
+  std::uint64_t tail_prefix() const noexcept {return 4*slot_bytes;}
+  bool compact() const noexcept {return slot_bytes!=kStoreCommitUnit;}
 };
+
+constexpr std::uint64_t slot_bytes(std::uint64_t unit,NativeHybridControls controls) noexcept {
+  return controls==NativeHybridControls::compact?unit:kStoreCommitUnit;
+}
 
 std::uint64_t get64(std::span<const std::byte> bytes,std::size_t offset) noexcept {
   std::uint64_t value=0;
@@ -51,7 +58,8 @@ template<std::size_t N>std::array<std::byte,N> field(std::span<const std::byte> 
 }
 BindingRecord encode(const Binding& binding) noexcept {
   BindingRecord bytes{};
-  std::ranges::copy(std::as_bytes(std::span(binding_magic)),bytes.begin());
+  const auto magic=binding.compact()?compact_binding_magic:binding_magic;
+  std::ranges::copy(std::as_bytes(std::span(magic)),bytes.begin());
   put64(bytes,8,binding.unit);
   put64(bytes,16,binding.base_end);
   put64(bytes,24,binding.base_occupied);
@@ -61,33 +69,57 @@ BindingRecord encode(const Binding& binding) noexcept {
   std::ranges::copy(detail::record_digest(std::span(bytes).first(96)),bytes.begin()+96);
   return bytes;
 }
-std::optional<Binding> read_binding(const StoreByteIo& tail,std::uint64_t offset) {
+std::optional<Binding> read_binding(const StoreByteIo& tail,std::uint64_t offset,bool probing=false) {
   BindingRecord bytes{};
+  if(offset>tail.extent() || bytes.size()>tail.extent()-offset)return {};
   try {tail.read_exact(offset,bytes);}
   catch(const std::bad_alloc&){throw;}
+  catch(const detail::StoreCaptureInterrupted&){throw;}
   catch(const std::exception&){return {};}
   const auto front=std::span(bytes).first(96);
   if(detail::record_digest(front)!=field<32>(bytes,96))return {};
-  if(!std::ranges::equal(front.first(8),std::as_bytes(std::span(binding_magic))) || get64(bytes,88))
+  const auto has=[&](std::string_view magic) {
+    return std::ranges::equal(front.first(magic.size()),std::as_bytes(std::span(magic)));
+  };
+  if(probing && !has("FLTXHB"))return {};
+  const bool compact=has(compact_binding_magic),legacy=has(binding_magic);
+  const auto unit=get64(bytes,8);
+  const auto spacing=compact?unit:kStoreCommitUnit;
+  if(probing && (compact || legacy) && offset!=spacing)return {};
+  if((!legacy && !compact) || (offset && offset!=spacing) || (compact && unit>=kStoreCommitUnit) || get64(bytes,88))
     fail("unsupported intact hybrid backing binding");
-  return Binding{get64(bytes,8),get64(bytes,16),get64(bytes,24),field<16>(bytes,32),
-      field<32>(bytes,48),get64(bytes,80)};
+  return Binding{unit,get64(bytes,16),get64(bytes,24),field<16>(bytes,32),
+      field<32>(bytes,48),get64(bytes,80),spacing};
 }
 std::pair<Binding,bool> load_binding(const StoreByteIo& tail) {
   const auto first=read_binding(tail,0);
-  const auto second=read_binding(tail,kStoreCommitUnit);
+  std::optional<Binding> second;
+  if(first) {
+    // A checksummed record must supply a legal peer address before use.
+    if(first->slot_bytes<root_size || first->slot_bytes>kStoreCommitUnit || !std::has_single_bit(first->slot_bytes))
+      fail("invalid hybrid binding slot");
+    second=read_binding(tail,first->slot_bytes);
+  }else {
+    for(std::uint64_t offset=root_size;offset<=kStoreCommitUnit;offset*=2) {
+      if(auto recovered=read_binding(tail,offset,true)) {
+        if(second)fail("ambiguous hybrid backing peer");
+        second=std::move(recovered);
+      }
+    }
+  }
   if(!first && !second)fail("missing hybrid backing binding");
   if(first && second && *first!=*second)fail("conflicting hybrid backing bindings");
   return {first?*first:*second,!(first && second)};
 }
 void check_limits(StoreIdentity identity,std::uint64_t virtual_limit,std::uint64_t physical_limit) {
   if(identity==StoreIdentity{} || virtual_limit<=roots || virtual_limit>maximum_io ||
-      physical_limit<tail_start || physical_limit>maximum_io)
+      physical_limit<4*root_size || physical_limit>maximum_io)
     fail("invalid hybrid backing limits");
 }
 void check_geometry(const Binding& binding) {
   const auto unit=binding.unit;
   if(unit<root_size || unit>kStoreCommitUnit || !std::has_single_bit(unit) ||
+      (binding.compact() && binding.slot_bytes!=unit) ||
       binding.base_end<roots+2*unit || binding.base_end>binding.virtual_limit ||
       (binding.base_end-roots)%(2*unit))
     fail("invalid hybrid base geometry");
@@ -112,25 +144,28 @@ std::uint64_t check_empty_backings(const std::shared_ptr<StoreByteIo>& workspace
 }
 
 std::uint64_t seal_footprint(StoreIdentity identity,std::uint64_t end,
-    std::uint32_t base_unit,std::uint64_t limit) {
+    std::uint32_t base_unit,std::uint64_t limit,std::uint64_t slot) {
+  const auto tail_prefix=4*slot;
+  if(limit<=tail_prefix)fail("hybrid seal capacity");
   const auto occupied=ProtectedStripeImage::projected_occupied(identity,detail::folded_mirror_extent(end),
-      base_unit,limit-tail_start);
-  if(occupied+tail_start>=end)fail("hybrid base and tail do not reduce the protected footprint");
+      base_unit,limit-tail_prefix,slot<kStoreCommitUnit);
+  if(occupied+tail_prefix>=end)fail("hybrid base and tail do not reduce the protected footprint");
   return occupied;
 }
 
 Binding bind_workspace(const detail::FoldedCheckpoint& packed,const StoreByteIo& workspace,StoreIdentity identity,
-    std::uint64_t virtual_limit,std::uint64_t unit,std::uint32_t base_unit,std::uint64_t physical_limit) {
-  Binding binding{packed.unit,packed.virtual_end,0,identity,packed.roots,virtual_limit};
+    std::uint64_t virtual_limit,std::uint64_t unit,std::uint32_t base_unit,std::uint64_t physical_limit,
+    std::uint64_t slot) {
+  Binding binding{packed.unit,packed.virtual_end,0,identity,packed.roots,virtual_limit,slot};
   check_geometry(binding);
   if(binding.unit!=unit || binding.folded_extent()!=workspace.extent())
     fail("hybrid folded workspace checkpoint differs");
-  binding.base_occupied=seal_footprint(identity,binding.base_end,base_unit,physical_limit);
+  binding.base_occupied=seal_footprint(identity,binding.base_end,base_unit,physical_limit,slot);
   return binding;
 }
 
-void check_staging(std::uint64_t workspace,std::uint64_t base,std::uint64_t limit) {
-  if(workspace>limit || base+tail_start>limit-workspace)
+void check_staging(std::uint64_t workspace,std::uint64_t base,std::uint64_t tail_prefix,std::uint64_t limit) {
+  if(workspace>limit || base+tail_prefix>limit-workspace)
     fail("hybrid staging exceeds the workspace and candidate budget");
 }
 
@@ -145,19 +180,21 @@ class TailBootstrap {
     switch(phase_) {
       case Phase::roots: {
         if(tail.extent())fail("hybrid tail is no longer empty");
-        tail.admit_write(tail_start);
-        roots_.resize(roots);
+        const auto slot=binding.slot_bytes;
+        tail.admit_write(binding.tail_prefix());
+        roots_.resize(2*slot);
         tail.write_exact(0,roots_);
-        sealed.read_exact(0,roots_);
-        tail.write_exact(roots,roots_);
+        sealed.read_exact(0,std::span(roots_).first(slot));
+        sealed.read_exact(kStoreCommitUnit,std::span(roots_).last(slot));
+        tail.write_exact(2*slot,roots_);
         tail.flush();
         phase_=Phase::first;
         return false;
       }
       case Phase::first: {
-        Bytes copied(roots);
-        tail.read_exact(roots,copied);
-        if(copied!=roots_ || tail.extent()!=tail_start)fail("hybrid mutable roots differ");
+        Bytes copied(roots_.size());
+        tail.read_exact(2*binding.slot_bytes,copied);
+        if(copied!=roots_ || tail.extent()!=binding.tail_prefix())fail("hybrid mutable roots differ");
         roots_.clear();
         tail.write_exact(0,encode(binding));
         tail.flush();
@@ -165,7 +202,7 @@ class TailBootstrap {
         return false;
       }
       case Phase::second:
-        tail.write_exact(kStoreCommitUnit,encode(binding));
+        tail.write_exact(binding.slot_bytes,encode(binding));
         tail.flush();
         phase_=Phase::ready;
         break;
@@ -201,16 +238,18 @@ struct NativeHybridBacking::Impl {
 
   std::uint64_t tail_extent() const {
     const auto extent=tail.io->extent();
-    if(extent<tail_start || extent>physical_limit-binding.base_occupied ||
-        extent-tail_start>binding.virtual_limit-binding.base_end)
+    const auto prefix=binding.tail_prefix();
+    if(extent<prefix || extent>physical_limit-binding.base_occupied ||
+        extent-prefix>binding.virtual_limit-binding.base_end)
       fail("hybrid writable tail outside admitted bounds");
     return extent;
   }
   std::uint64_t tail_offset(std::uint64_t at) const noexcept {
-    return tail_start+(at-binding.base_end);
+    return binding.tail_prefix()+(at-binding.base_end);
   }
   std::shared_ptr<ProtectedStripeImage> open_bound_base(const Binding& expected) const {
-    auto checked=ProtectedStripeImage::open(base_owner.io,physical_limit-tail_start);
+    if(physical_limit<=expected.tail_prefix())fail("hybrid backing capacity");
+    auto checked=ProtectedStripeImage::open(base_owner.io,physical_limit-expected.tail_prefix());
     if(checked->identity()!=expected.identity || checked->extent()!=expected.folded_extent() ||
         checked->occupied()!=expected.base_occupied || root_binding(*checked)!=expected.frozen_roots)
       fail("hybrid base does not match the checked binding");
@@ -231,15 +270,17 @@ NativeHybridBacking::~NativeHybridBacking()=default;
 std::uint64_t NativeHybridBacking::workspace_capacity(StoreIdentity identity,StoreIoContract storage,
     std::uint64_t packed_end_bound,std::uint64_t staging_bytes,std::uint64_t private_workspace_bytes) {
   if(!valid_store_io_contract(storage) || packed_end_bound<=roots || packed_end_bound>maximum_io ||
-      staging_bytes<=tail_start || staging_bytes>maximum_io)return 0;
+      staging_bytes>maximum_io)return 0;
   const auto alignment=(std::max<std::uint64_t>)(root_size,storage.write_failure_unit_bytes);
-  const auto budget=staging_bytes-tail_start;
+  const auto tail_prefix=4*alignment;
+  if(staging_bytes<=tail_prefix)return 0;
+  const auto budget=staging_bytes-tail_prefix;
   // A file workspace overlaps its candidate's allocation budget. A
   // separately owned workspace can use its own admitted capacity.
   const auto workspace_limit=private_workspace_bytes?private_workspace_bytes:budget/2;
   std::uint64_t low=0,high=(std::min)(detail::folded_mirror_extent(packed_end_bound),workspace_limit)/alignment;
   const auto base_bytes=[&](std::uint64_t workspace) {
-    return ProtectedStripeImage::projected_occupied(identity,workspace,storage.write_failure_unit_bytes,maximum_io);
+    return ProtectedStripeImage::projected_occupied(identity,workspace,storage.write_failure_unit_bytes,maximum_io,true);
   };
   while(low<high) {
     const auto middle=low+(high-low+1)/2;
@@ -249,7 +290,7 @@ std::uint64_t NativeHybridBacking::workspace_capacity(StoreIdentity identity,Sto
     else high=middle-1;
   }
   const auto profitable=[&](std::uint64_t workspace) {
-    return workspace>roots && base_bytes(workspace)+tail_start<roots+2*(workspace-roots);
+    return workspace>roots && base_bytes(workspace)+tail_prefix<roots+2*(workspace-roots);
   };
   if(profitable(low*alignment))return low*alignment;
   if(!low)return 0;
@@ -262,13 +303,14 @@ std::array<std::shared_ptr<StoreByteIo>,2> NativeHybridBacking::components() con
   return {impl_->base_owner.io,impl_->tail.io};
 }
 NativePairedSealedRange NativeHybridBacking::sealed_range() const noexcept {
-  return {impl_->binding.base_occupied,impl_->binding.base_end};
+  const auto& b=impl_->binding;
+  return {b.base_occupied,b.base_end,static_cast<std::uint32_t>(b.slot_bytes)};
 }
 
 std::shared_ptr<NativeHybridBacking> NativeHybridBacking::open(std::shared_ptr<StoreByteIo> base,
     std::shared_ptr<StoreByteIo> tail,StoreIdentity expected,std::uint64_t virtual_limit,std::uint64_t physical_limit) {
   check_limits(expected,virtual_limit,physical_limit);
-  if(!base || !tail || base==tail || tail->extent()<tail_start || tail->extent()>physical_limit)
+  if(!base || !tail || base==tail || tail->extent()<4*root_size || tail->extent()>physical_limit)
     fail("hybrid image needs a bounded tail and a distinct base");
   auto state=std::make_unique<Impl>(std::move(base),std::move(tail),physical_limit);
   auto [binding,degraded]=load_binding(*state->tail.io);
@@ -286,17 +328,20 @@ std::shared_ptr<NativeHybridBacking> NativeHybridBacking::open(std::shared_ptr<S
 
 std::shared_ptr<NativeHybridBacking> NativeHybridBacking::create(const NativeFilesystemSnapshot& source,
     std::shared_ptr<StoreByteIo> workspace,std::shared_ptr<StoreByteIo> base,std::shared_ptr<StoreByteIo> tail,
-    StoreIdentity identity,std::uint64_t physical_limit,StoreCompressionOptions compression) {
+    StoreIdentity identity,std::uint64_t physical_limit,StoreCompressionOptions compression,
+    NativeHybridControls controls) {
   const auto source_storage=source.image_storage();
   check_limits(identity,source_storage.maximum_physical_bytes,physical_limit);
   if(source_storage.kind!=NativeImageKind::indexed_paged || source.needs_session_recovery() ||
       identity==source.identity())
     fail("hybrid creation needs a closed indexed source and a new identity");
   const auto unit=check_empty_backings(workspace,base,tail);
+  const auto slot=slot_bytes(unit,controls);
   const auto packed=source.build_folded_workspace(workspace,identity,compression);
   const auto binding=bind_workspace(packed,*workspace,identity,source_storage.maximum_physical_bytes,unit,
-      base->contract().write_failure_unit_bytes,physical_limit);
-  const auto sealed=ProtectedStripeImage::seal(workspace,base,identity,physical_limit-tail_start);
+      base->contract().write_failure_unit_bytes,physical_limit,slot);
+  const auto sealed=ProtectedStripeImage::seal(workspace,base,identity,physical_limit-binding.tail_prefix(),
+      binding.compact());
   if(sealed->occupied()!=binding.base_occupied || root_binding(*sealed)!=binding.frozen_roots)
     fail("hybrid checked base differs from the staged checkpoint");
   {
@@ -316,13 +361,14 @@ std::shared_ptr<NativeHybridBacking> NativeHybridBacking::create(const NativeFil
 struct NativeHybridBacking::Build::Impl {
   Impl(PagedObjectStoreWriter::Rewrite rewrite,std::shared_ptr<StoreByteIo> workspace,
       StoreIoContract base_contract,NativeImageStorage storage,StoreIdentity identity,std::uint64_t unit,
-      std::uint64_t candidate_limit,std::uint64_t staging_limit,bool owned_file_target)
+      std::uint64_t candidate_limit,std::uint64_t staging_limit,bool owned_file_target,std::uint64_t control_slot)
       :rewrite(std::move(rewrite)),workspace(std::move(workspace)),base_contract(base_contract),
        storage(storage),identity(identity),unit(unit),candidate_limit(candidate_limit),staging_limit(staging_limit),
-       owned_file_target(owned_file_target) {}
+       control_slot(control_slot),owned_file_target(owned_file_target) {}
 
   void begin_seal() {
-    seal.emplace(ProtectedStripeImage::begin_seal(workspace,base,identity,candidate_limit-tail_start));
+    seal.emplace(ProtectedStripeImage::begin_seal(workspace,base,identity,candidate_limit-binding.tail_prefix(),
+        binding.compact()));
     phase=BuildPhase::sealing;
   }
 
@@ -338,8 +384,8 @@ struct NativeHybridBacking::Build::Impl {
         detail::FoldedCheckpoint packed;
         if(!source.advance_folded_recompression(rewrite,packed))return false;
         binding=bind_workspace(packed,*workspace,identity,storage.maximum_physical_bytes,unit,
-            base_contract.write_failure_unit_bytes,candidate_limit);
-        check_staging(binding.folded_extent(),binding.base_occupied,staging_limit);
+            base_contract.write_failure_unit_bytes,candidate_limit,control_slot);
+        check_staging(binding.folded_extent(),binding.base_occupied,binding.tail_prefix(),staging_limit);
         generation=packed.generation;
         phase=BuildPhase::awaiting_base;
         if(base)begin_seal();
@@ -386,7 +432,7 @@ struct NativeHybridBacking::Build::Impl {
   StoreIoContract base_contract;
   NativeImageStorage storage;
   StoreIdentity identity;
-  std::uint64_t unit,candidate_limit,staging_limit;
+  std::uint64_t unit,candidate_limit,staging_limit,control_slot;
   const bool owned_file_target;
   BuildPhase phase=BuildPhase::workspace;
   Binding binding;
@@ -402,13 +448,14 @@ struct NativeHybridBacking::Build::Impl {
 NativeHybridBacking::Build NativeHybridBacking::prepare(const NativeFileSession& session,
     std::shared_ptr<StoreByteIo> workspace,std::shared_ptr<StoreByteIo> base,std::shared_ptr<StoreByteIo> tail,
     StoreIdentity identity,std::uint64_t candidate_limit,std::uint64_t staging_limit,
-    StoreCompressionOptions compression) {
+    StoreCompressionOptions compression,NativeHybridControls controls) {
   const auto& owner=session.ready();
   session.admit_replacement(owner,workspace,identity);
   session.admit_replacement(owner,base,identity);
   session.admit_replacement(owner,tail,identity);
   (void)check_empty_backings(workspace,base,tail);
-  auto work=prepare(session,std::move(workspace),base->contract(),identity,candidate_limit,staging_limit,compression);
+  auto work=prepare(session,std::move(workspace),base->contract(),identity,candidate_limit,staging_limit,compression,
+      controls);
   work.impl_->base=std::move(base);
   work.impl_->tail=std::move(tail);
   return work;
@@ -416,14 +463,15 @@ NativeHybridBacking::Build NativeHybridBacking::prepare(const NativeFileSession&
 
 NativeHybridBacking::Build NativeHybridBacking::prepare(const NativeFileSession& session,
     std::shared_ptr<StoreByteIo> workspace,StoreIoContract base_contract,StoreIdentity identity,
-    std::uint64_t candidate_limit,std::uint64_t staging_limit,StoreCompressionOptions compression) {
+    std::uint64_t candidate_limit,std::uint64_t staging_limit,StoreCompressionOptions compression,
+    NativeHybridControls controls) {
   return prepare_impl(session,std::move(workspace),base_contract,identity,candidate_limit,staging_limit,
-      compression,false);
+      compression,false,controls);
 }
 NativeHybridBacking::Build NativeHybridBacking::prepare_impl(const NativeFileSession& session,
     std::shared_ptr<StoreByteIo> workspace,StoreIoContract base_contract,StoreIdentity identity,
     std::uint64_t candidate_limit,std::uint64_t staging_limit,StoreCompressionOptions compression,
-    bool owned_file_target) {
+    bool owned_file_target,NativeHybridControls controls) {
   const auto& writer=session.hybrid_source(owned_file_target);
   session.admit_replacement(session.ready(),workspace,identity,owned_file_target);
   if(workspace->extent() || !valid_store_io_contract(workspace->contract()) || !valid_store_io_contract(base_contract))
@@ -431,16 +479,18 @@ NativeHybridBacking::Build NativeHybridBacking::prepare_impl(const NativeFileSes
   const auto source=writer.snapshot();
   const auto storage=source.image_storage();
   check_limits(identity,storage.maximum_physical_bytes,candidate_limit);
-  if(storage.kind!=NativeImageKind::indexed_paged || identity==source.identity() || staging_limit<tail_start)
-    fail("invalid managed source or hybrid staging budget");
   const auto unit=(std::max<std::uint64_t>)(root_size,workspace->contract().write_failure_unit_bytes);
+  const auto slot=slot_bytes(unit,controls);
+  if(storage.kind!=NativeImageKind::indexed_paged || identity==source.identity() || staging_limit<4*slot)
+    fail("invalid managed source or hybrid staging budget");
   const auto base_unit=base_contract.write_failure_unit_bytes;
-  auto admission=[identity,base_unit,candidate_limit,staging_limit](std::uint64_t end) {
-    check_staging(detail::folded_mirror_extent(end),seal_footprint(identity,end,base_unit,candidate_limit),staging_limit);
+  auto admission=[identity,base_unit,candidate_limit,staging_limit,slot](std::uint64_t end) {
+    check_staging(detail::folded_mirror_extent(end),seal_footprint(identity,end,base_unit,candidate_limit,slot),
+        4*slot,staging_limit);
   };
   auto rewrite=writer.prepare_folded_recompression(workspace,identity,compression,admission);
   return Build(std::make_unique<Build::Impl>(std::move(rewrite),std::move(workspace),base_contract,
-      storage,identity,unit,candidate_limit,staging_limit,owned_file_target));
+      storage,identity,unit,candidate_limit,staging_limit,owned_file_target,slot));
 }
 
 NativeHybridBacking::Build::Build(std::unique_ptr<Impl> state) noexcept:impl_(std::move(state)) {}
@@ -472,7 +522,7 @@ std::uint64_t NativeHybridBacking::Build::required_store_bytes() const noexcept 
   if(phase()==BuildPhase::awaiting_base)return impl_->binding.base_occupied;
   if(phase()==BuildPhase::awaiting_tail) {
     const auto& b=impl_->binding;
-    return (std::min)(impl_->candidate_limit-b.base_occupied,tail_start+(b.virtual_limit-b.base_end));
+    return (std::min)(impl_->candidate_limit-b.base_occupied,b.tail_prefix()+(b.virtual_limit-b.base_end));
   }
   return 0;
 }
@@ -533,16 +583,22 @@ std::uint64_t NativeHybridBacking::occupied() const {
   return impl_->binding.base_occupied+impl_->tail_extent();
 }
 std::uint64_t NativeHybridBacking::extent() const {
-  return impl_->binding.base_end+(impl_->tail_extent()-tail_start);
+  return impl_->binding.base_end+(impl_->tail_extent()-impl_->binding.tail_prefix());
 }
 void NativeHybridBacking::read_exact(std::uint64_t at,std::span<std::byte> output) const {
   detail::StoreCaptureReadScope::require_active();
   const auto& state=*impl_;
   const auto& binding=state.binding;
   if(at>binding.virtual_limit || output.size()>binding.virtual_limit-at)fail("hybrid read bounds");
-  if(at<roots && !output.empty()) {
-    const auto count=(std::min<std::uint64_t>)(output.size(),roots-at);
-    state.tail.io->read_exact(roots+at,output.first(count));
+  while(at<roots && !output.empty()) {
+    const auto at_slot=at%kStoreCommitUnit;
+    const auto count=(std::min<std::uint64_t>)(output.size(),kStoreCommitUnit-at_slot);
+    const auto retained=at_slot<binding.slot_bytes?(std::min)(count,binding.slot_bytes-at_slot):0;
+    if(retained) {
+      const auto offset=(2+at/kStoreCommitUnit)*binding.slot_bytes+at_slot;
+      state.tail.io->read_exact(offset,output.first(retained));
+    }
+    std::ranges::fill(output.subspan(retained,count-retained),std::byte{});
     output=output.subspan(count);
     at+=count;
   }
@@ -561,11 +617,16 @@ void NativeHybridBacking::read_exact(std::uint64_t at,std::span<std::byte> outpu
 void NativeHybridBacking::write_exact(std::uint64_t at,std::span<const std::byte> input) {
   if(!has_writer() || !allows_writer())fail("hybrid backing has no healthy writer");
   const auto& state=*impl_;
+  const auto& binding=state.binding;
   if(at<roots && input.size()<=roots-at) {
-    state.tail.io->write_exact(roots+at,input);
+    if(binding.compact()) {
+      const auto at_slot=at%kStoreCommitUnit;
+      if(at_slot>=binding.slot_bytes || input.size()>binding.slot_bytes-at_slot)
+        fail("hybrid write exceeds a mutable root slot");
+      state.tail.io->write_exact((2+at/kStoreCommitUnit)*binding.slot_bytes+at_slot,input);
+    }else state.tail.io->write_exact(roots+at,input);
     return;
   }
-  const auto& binding=state.binding;
   if(at<binding.base_end || at>binding.virtual_limit || input.size()>binding.virtual_limit-at)
     fail("hybrid writes cannot overlap the sealed base");
   const auto offset=state.tail_offset(at);
@@ -606,7 +667,7 @@ bool NativeHybridBacking::allows_writer() const noexcept {
 void NativeHybridBacking::verify_prepared_binding() const {
   const auto& state=*impl_;
   const auto [observed,degraded]=load_binding(*state.tail.io);
-  if(degraded || observed!=state.binding || state.tail_extent()!=tail_start ||
+  if(degraded || observed!=state.binding || state.tail_extent()!=observed.tail_prefix() ||
       state.open_bound_base(observed)->degraded())
     fail("prepared hybrid binding changed before selection");
 }

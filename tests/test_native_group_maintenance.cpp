@@ -945,7 +945,7 @@ void profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expect
     bool compare_reencoding=false,NativeIndexedDataLayout layout=NativeIndexedDataLayout::extents,
     NativeVolumeHeadLayout head_layout=NativeVolumeHeadLayout::legacy,
     PagedStoreBankLayout image_layout=PagedStoreBankLayout::shared,bool byte_planes=false,
-    bool compare_sealing=false) {
+    std::optional<NativeHybridControls> seal_controls={}) {
   if(!store_zstd_available())return;
   const StoreCompressionOptions policy{StoreCompressionMode::automatic,3,true,byte_planes};
   constexpr NativeImageStorage storage{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes};
@@ -1079,14 +1079,14 @@ void profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expect
     f.session.emplace(NativeFileSession::resume_closed_indexed_volume(f.head,id(90),1,resolve,policy));
     cold_copy(f,"group_then_cold");
   }
-  if(compare_sealing) {
+  if(seal_controls) {
     auto workspace=ram(4096),base=ram(4096),tail=ram(4096);
     const auto retained=f.session->snapshot();
     const auto group=retained.shared_base_info();
     const auto selected=f.session->volume_info().selection;
     const auto mirror=f.image->extent()+f.head->extent();
     auto stage=NativeHybridBacking::prepare(*f.session,workspace,base,tail,id(8),
-        kStoreMaxPhysicalBytes,kStoreMaxPhysicalBytes,{StoreCompressionMode::automatic,3,true});
+        kStoreMaxPhysicalBytes,kStoreMaxPhysicalBytes,{StoreCompressionMode::automatic,3,true},*seal_controls);
     try {
       for(std::uint64_t turn=0;stage.phase()!=NativeHybridBacking::BuildPhase::ready;++turn) {
         require(turn<1024+f.image->extent()/32,"grouped seal exceeded the declared profile work");
@@ -1190,7 +1190,8 @@ void profile_retained_short_peer() {
 void profile_public_packs(const std::filesystem::path& filename,bool complete_files,bool compare_reencoding=false,
     NativeIndexedDataLayout layout=NativeIndexedDataLayout::extents,
     NativeVolumeHeadLayout head_layout=NativeVolumeHeadLayout::legacy,
-    PagedStoreBankLayout image_layout=PagedStoreBankLayout::shared,bool byte_planes=false,bool compare_sealing=false,
+    PagedStoreBankLayout image_layout=PagedStoreBankLayout::shared,bool byte_planes=false,
+    std::optional<NativeHybridControls> seal_controls={},
     const std::filesystem::path& second_corpus={}) {
   if(!store_zstd_available()) {
     require(!complete_files,"complete-file packing profile requires Zstandard");
@@ -1201,7 +1202,7 @@ void profile_public_packs(const std::filesystem::path& filename,bool complete_fi
     auto extra=read_packed_corpus(second_corpus,complete_files);
     inputs.insert(inputs.end(),std::make_move_iterator(extra.begin()),std::make_move_iterator(extra.end()));
   }
-  profile_similarity_packing(inputs,0,compare_reencoding,layout,head_layout,image_layout,byte_planes,compare_sealing);
+  profile_similarity_packing(inputs,0,compare_reencoding,layout,head_layout,image_layout,byte_planes,seal_controls);
 }
 
 void profile_indexed_pair_oracle(const std::filesystem::path& filename,bool tails=false) {
@@ -4485,9 +4486,12 @@ int main(int argc,char** argv){try{
   } else if(argc==3 && std::string_view(argv[1])=="--profile-public-byte-planes") {
     profile_public_packs(argv[2],true,true,NativeIndexedDataLayout::extents,
         NativeVolumeHeadLayout::legacy,PagedStoreBankLayout::shared,true);
-  } else if((argc==3 || argc==4) && std::string_view(argv[1])=="--profile-public-grouped-seal") {
+  } else if((argc==3 || argc==4) && (std::string_view(argv[1])=="--profile-public-grouped-seal" ||
+      std::string_view(argv[1])=="--profile-public-compact-seal")) {
+    const auto controls=std::string_view(argv[1])=="--profile-public-compact-seal"?
+        NativeHybridControls::compact:NativeHybridControls::legacy;
     profile_public_packs(argv[2],true,true,NativeIndexedDataLayout::extents,
-        NativeVolumeHeadLayout::legacy,PagedStoreBankLayout::shared,true,true,
+        NativeVolumeHeadLayout::legacy,PagedStoreBankLayout::shared,true,controls,
         argc==4?std::filesystem::path(argv[3]):std::filesystem::path{});
   } else if(argc==3 && std::string_view(argv[1])=="--profile-indexed-tail-oracle") {
     profile_indexed_pair_oracle(argv[2],true);

@@ -334,10 +334,12 @@ std::optional<NativeVolumeFileReclaimer::SealPlan> NativeVolumeFileReclaimer::se
     if(fitted<=kVolumeHeadBytes)return {};
     // Reserve the whole unit that contains the last fitted workspace byte.
     const auto workspace=(1+(fitted-1)/kStoreCommitUnit)*kStoreCommitUnit;
+    constexpr auto root_unit=static_cast<std::uint32_t>(detail::kPagedStoreCheckpointWriteBytes/2);
+    const auto tail_prefix=4ULL*(std::max)(root_unit,contract.write_failure_unit_bytes);
     const auto base=ProtectedStripeImage::projected_occupied(selected.volume_identity,workspace,
-        contract.write_failure_unit_bytes,spare_->capacity);
-    const auto staging=workspace+base+kNativeHybridTailPrefixBytes;
-    const auto backing=allowance?base+kNativeHybridTailPrefixBytes:staging;
+        contract.write_failure_unit_bytes,spare_->capacity,true);
+    const auto staging=workspace+base+tail_prefix;
+    const auto backing=allowance?base+tail_prefix:staging;
     if(backing>spare_->capacity)return {};
     // Include overwritten roots and binding records in the selected charge.
     return SealPlan{workspace,staging,backing,backing+kVolumeHeadBytes};
@@ -478,7 +480,7 @@ Progress NativeVolumeFileReclaimer::begin_seal(NativeFileSession& session,const 
     scratch_bytes_=plan->workspace;
   }else workspace_=NativeVolumeFile::Region::slice(spare_,spare_->capacity-plan->workspace,plan->workspace,0);
   seal_.emplace(NativeHybridBacking::prepare_impl(session,scratch_?scratch_->store():workspace_,destination,identity,
-      spare_->capacity,plan->staging,compression,true));
+      spare_->capacity,plan->staging,compression,true,NativeHybridControls::compact));
   return Progress::copying;
 }
 Progress NativeVolumeFileReclaimer::advance_seal(NativeFileSession& session) {
@@ -743,14 +745,15 @@ NativeVolumeFile::Regions NativeVolumeFile::open_regions(std::shared_ptr<StoreBy
     if(writable)regions.image=Region::pin_image(image);
     return regions;
   }
-  const auto [base_bytes,indexed_end]=*selected.sealed_range;
+  const auto& sealed=*selected.sealed_range;
+  const auto base_bytes=sealed.base_bytes,indexed_end=sealed.indexed_end,tail_prefix=sealed.tail_prefix_bytes();
   const auto present=(std::min)(visible,image->extent());
-  if(present<base_bytes+kNativeHybridTailPrefixBytes)
+  if(present<base_bytes+tail_prefix)
     fail(Error::corrupt,"sealed image components are outside the selected file range");
   const auto contract=image->contract();
   if(writable && (!valid_store_io_contract(contract) || base_bytes%contract.write_failure_unit_bytes))
     fail(Error::invalid_operation,"sealed component alignment exceeds the current backing contract");
-  const auto tail_capacity=(std::min)(bytes-base_bytes,kNativeHybridTailPrefixBytes+(bytes-indexed_end));
+  const auto tail_capacity=(std::min)(bytes-base_bytes,tail_prefix+(bytes-indexed_end));
   auto pin=Region::pin_image(image);
   auto base=Region::slice(image,0,base_bytes,base_bytes,pin);
   auto tail=Region::slice(image,base_bytes,tail_capacity,(std::min)(tail_capacity,present-base_bytes),std::move(pin));

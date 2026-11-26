@@ -1933,20 +1933,32 @@ auto open_sealed_candidate(const std::shared_ptr<const flitzfs::ReadOnlyFile>& f
     flitzfs::NativeImageStorage storage) {
   std::array<std::byte,64> outer{};
   file->read_exact_at(selector_alternate_offset,outer.data(),outer.size());
-  constexpr std::string_view magic="FLTXSP01";
-  require(std::ranges::equal(std::span(outer).first(magic.size()),std::as_bytes(std::span(magic))),
+  const auto has_magic=[](std::span<const std::byte> bytes,std::string_view magic) {
+    return std::ranges::equal(bytes.first(magic.size()),std::as_bytes(std::span(magic)));
+  };
+  const auto get64=[](std::span<const std::byte> bytes,std::size_t offset) {
+    std::uint64_t value=0;
+    for(unsigned byte=0;byte<8;++byte)
+      value|=std::to_integer<std::uint64_t>(bytes[offset+byte])<<(8*byte);
+    return value;
+  };
+  require(has_magic(outer,"FLTXSP01") || has_magic(outer,"FLTXSP02"),
       "Inactive range did not contain the prepared protected base");
-  std::uint64_t base_bytes=0;
-  for(unsigned byte=0;byte<8;++byte)
-    base_bytes|=std::to_integer<std::uint64_t>(outer[24+byte])<<(8*byte);
+  const auto base_bytes=get64(outer,24);
   const auto capacity=storage.maximum_physical_bytes;
-  require(base_bytes>flitzfs::kVolumeHeadBytes && base_bytes<capacity-flitzfs::kNativeHybridTailPrefixBytes,
+  require(base_bytes>flitzfs::kVolumeHeadBytes && base_bytes<capacity && capacity-base_bytes>=64,
       "Prepared base length is outside the inactive range");
+  std::array<std::byte,64> binding{};
+  file->read_exact_at(selector_alternate_offset+base_bytes,binding.data(),binding.size());
+  const bool compact=has_magic(binding,"FLTXHB02");
+  require(compact || has_magic(binding,"FLTXHB01"),"Prepared tail binding is unavailable");
+  const auto slot=compact?get64(binding,8):flitzfs::kStoreCommitUnit;
+  require(slot>=4096 && slot<=flitzfs::kStoreCommitUnit && !(slot&(slot-1)) &&
+      4*slot<=capacity-base_bytes,"Prepared tail control spacing differs");
   flitzfs::StoreIdentity id{};
   std::copy_n(outer.begin()+32,id.size(),id.begin());
   auto base=std::make_shared<SelectorImageReader>(file,selector_alternate_offset,base_bytes);
-  auto tail=std::make_shared<SelectorImageReader>(file,selector_alternate_offset+base_bytes,
-      flitzfs::kNativeHybridTailPrefixBytes);
+  auto tail=std::make_shared<SelectorImageReader>(file,selector_alternate_offset+base_bytes,4*slot);
   auto backing=flitzfs::NativeHybridBacking::open(std::move(base),std::move(tail),id,capacity,capacity);
   auto result=flitzfs::NativeFilesystemSnapshot::open_image(backing,storage);
   result.verify_all();

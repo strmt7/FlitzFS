@@ -10,12 +10,14 @@ detailed package contracts and the release execution plan retains the gates.
 [Implementation packages](IMPLEMENTATION_PLAN.md#3-execution-order-and-dependencies) ·
 [Release gates](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
 
-This checkpoint builds on `df014de23efcf93c0b5e8f72bc0e838a2c914c2d`.
-Source tree `47121686f44fd2a72f3ee1c60b51760e461254a9` prices sealed
-placement from checked live inventory. The comparison follows retained
-groups from the ordinary maintenance controller through compacted
-mirroring, seal admission and independent CPU reopen.
-[Current evidence](evidence/windows-retained-group-placement-2026-11-26.json) ·
+This checkpoint builds on `5dacbcae6e0215c7ec4b7b9773dc8715d7b81883`.
+The tested source tree `dfc42cb6d683316a366e4a44b25f61342a2067f0`
+sizes sealed control records to the covered failure unit. The paired
+owner uses the smaller layout automatically when the backing can isolate
+the records. The grouped CPython fixture now fits a sealed base and tail
+in 593,920 bytes including its selector. An independent CPU reader
+verified every file and all 48 shared references.
+[Current evidence](evidence/windows-compact-sealed-controls-2026-11-26.json) ·
 [Source review](architecture/REVIEW.md)
 
 The follow-up AMD checkpoint made priority optional in the Windows workers.
@@ -40,8 +42,11 @@ Radeon grouped-read check. The SDK callback fixture consumed two
 independently verified device frames totaling 131,072 bytes across 32
 client-shaped calls. The exact worker retired. This validates the
 existing grouped path on the physical adapter. The byte-plane encoder
-and inverse ran on CPU. Mounted throughput remains a separate gate.
-[Current live AMD evidence](evidence/windows-native-byte-plane-2026-11-26.json)
+and inverse ran on CPU. Both admission attempts for the compact-control
+checkpoint deferred under concurrent adapter load. Mounted throughput
+remains a separate gate.
+[Radeon callback evidence](evidence/windows-native-byte-plane-2026-11-26.json) ·
+[Current admission checks](evidence/windows-compact-sealed-controls-2026-11-26.json)
 
 ## Repository and release evidence
 
@@ -49,8 +54,8 @@ and inverse ran on CPU. Mounted throughput remains a separate gate.
 | --- | --- | --- |
 | Windows and volume ownership | The helper and WinFsp callbacks use exclusive memory and file-backed volume ownership. Signed guest clients covered populated operations, cached and mapped flush interruption, reclaim and writable reopen. | Qualify the ordinary signed helper and driver together on current Windows 11. Verify Explorer behavior, lifecycle, sharing and the advertised file semantics. |
 | Indexed store and scale | Copy-on-write names, inodes, extent maps and payload ownership are queryable in pages. Read callbacks reuse checked metadata. A 32-callback control read 54,672 backing bytes after the change, down from 341,008. Writable reopen verifies the full inventory, including Windows admission checks. | Put a durable bound on normal attach I/O without skipping namespace, allocation or dependency invariants. Measure named-file growth and memory on a held-out scale tier. |
-| Space reuse and recovery | Protected append, paired selectors, staged compaction, reader pins, alternate peer recovery and independently readable sealed parity are implemented. Priced packing and the locked-workspace seal both run through the volume owner. | Qualify continuous settlement under churn and pressure, all relevant publication cuts and each advertised storage medium. Prove the bounds on delay from pinned readers and incomplete work. |
-| Compression | Foreground CPU codecs, verified device candidates, protected small-file packing and shared bases exist. Opt-in standalone byte planes reduced complete protected AITDCC I–P occupancy by 1,327,104 bytes. CPython tied at the same geometry. | Compare verified transforms, shared bases and parity at equal failure coverage. Charge model, dependency, allocation and rewrite costs. |
+| Space reuse and recovery | Protected append, paired selectors, staged compaction, reader pins, alternate peer recovery and independently readable sealed parity are implemented. The paired owner can isolate compact controls using the provider's declared failure unit. | Qualify continuous settlement under churn and pressure, all relevant publication cuts and each advertised storage medium. Prove the bounds on delay from pinned readers and incomplete work. |
+| Compression | Foreground CPU codecs, verified device candidates, protected small-file packing and shared bases exist. Standalone byte planes helped named AITDCC inputs. Compact placement now also reduces fixed overhead while retaining the CPython group. | Compare verified transforms, shared bases and parity at equal failure coverage on unseen file families. Charge model, dependency, allocation and rewrite costs. |
 | AMD | HIP workers can use a nonblocking stream when stream priority is unavailable. Radeon callbacks delivered verified read and write bytes. The foreground write service wakes on worker exit, adapts burst depth to headroom and can revisit a larger grant. The latest public-source write fixture favored CPU on occupied size, 240 versus 264 KiB. | Establish winning workloads on the ordinary mount, by role. Bind retained preparation to measured demand and account for discovery, readiness, validation, committed size, misses and idle residency. Target predictable grouped reads and collective search before more small uniform-write tuning. |
 | Autonomous policy | Persistent sparse candidates, revision guards, input-funded maintenance and live contention/resource gates already exist. | Test drift, restart, fairness, idle recovery and write cost with ordinary workloads. Qualify the full chain from offline advice to independently verified net savings. |
 | Evolution and deployment | CPU readers, required features, format checks and pinned setup exist. Format and provider evidence is distributed across historical fixtures. | Freeze the supported compatibility window, run interrupted gradual migration, and qualify private dependency setup, the exact signed installer and offline recovery. |
@@ -321,6 +326,15 @@ Its result is a measurement. An independently qualified offer can be
 applied to the live callback path, where the exact request still has to
 qualify.
 
+AMD's current Core SDK release notes list 10.2.0. Its native Windows HIP
+SDK release notes list 7.2.0. Use the vendor's Windows package and
+adapter/driver/runtime compatibility for installation and execution.
+Discover the actual runtime and capabilities at launch. Core SDK release
+numbers alone give no Windows package or driver guarantee.
+[AMD Core SDK release notes](https://rocm.docs.amd.com/en/latest/about/release-notes.html) ·
+[Windows HIP SDK release notes](https://rocm.docs.amd.com/projects/install-on-windows/en/latest/about/releasenotes.html) ·
+[AMD platform versioning](https://rocm.docs.amd.com/projects/install-on-windows/en/latest/about/release-versioning.html)
+
 1. Bind the populated client witness to the exact signed helper, runtime,
    modules, adapter, CPU decoder and owned backing. First collect a cold
    CPU run and a CPU replay under concurrent but refused device demand.
@@ -442,21 +456,38 @@ gives the next comparison a baseline for both occupied size and
 read amplification. The names and decoded bytes matched in both arms.
 [Retained group comparison and workspace funding](evidence/windows-retained-group-placement-2026-11-26.json)
 
-The small grouped image makes the next placement decision concrete.
-Repricing the CPython packed mirror in the current sealed geometry
-gives a projected 962,560 bytes. Sizing the two outer roots and four tail
-control slots to the same qualified 4 KiB failure unit projects 593,920
-bytes. This is a layout
-calculation before implementation or timing. Test both old and compact
-descriptors and their independent CPU readers, including individual
-control-unit loss and interrupted tail publication. Select the smaller
-verified layout on the blind corpus. Inform range order with measured
-access patterns, as illustrated by RubikFS's affinity and hotness
-comparison. Account for the complete dependencies and redundancy in the
-same way as the published EROFS deduplication comparison reports image
-occupation.
-[RubikFS](https://www.usenix.org/conference/fast26/presentation/huang) ·
-[EROFS image comparisons](https://erofs.docs.kernel.org/en/latest/comparison/dedupe.html)
+The compact layout now realizes the earlier 593,920-byte CPython projection.
+The same test executable ran the historical and compact layouts on the
+same inputs with a modeled 4 KiB failure unit. Every total includes the
+same 131,072-byte selector.
+
+| Input | Settled mirror | Historical seal | Compact seal | Compact minus mirror |
+| --- | ---: | ---: | ---: | ---: |
+| CPython, 24 files | 696,320 B | Declined before staging | 593,920 B | −102,400 B |
+| AITDCC A–H | 14,925,824 B | 9,854,976 B | 9,486,336 B | −5,439,488 B |
+| AITDCC I–P | 33,816,576 B | 21,659,648 B | 21,291,008 B | −12,525,568 B |
+| CPython with AITDCC I–P | 34,234,368 B | 21,925,888 B | 21,557,248 B | −12,677,120 B |
+
+The three matched seals reclaimed exactly 368,640 bytes of control space
+with the same sampled data-read bytes and verified dependencies. The
+CPython seal rewrote 594,432 backing bytes in the measured transition and
+used 356,352 workspace write bytes. Its sampled read traffic increased
+from 1,006,352 to 1,110,016 bytes compared with the mirror, about 10.3%.
+Measure demand and repair on the same workload before using this result
+to predict service time. A low-overhead layout and equal bytes on reopen
+are implementation evidence. The 4 KiB failure assumptions still need
+qualification for each physical provider.
+[Exact input, byte and recovery evidence](evidence/windows-compact-sealed-controls-2026-11-26.json)
+
+Microsoft exposes a physical sector for alignment and documents explicit
+file-buffer flushes. These interfaces inform the provider contract.
+Qualify that contract separately for torn or reordered writes and for
+the backing's actual persistence domain. The FAST 2026 LESS study
+measures repair traffic separately from steady state. Use both counts
+when deciding how far to trade mirrors for protected sealing.
+[Windows file buffering](https://learn.microsoft.com/en-us/windows/win32/fileio/file-buffering) ·
+[Windows flush semantics](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers) ·
+[FAST 2026 LESS](https://www.usenix.org/conference/fast26/presentation/cheng)
 
 1. Reuse the current two-placement seal projection and confirm both
    admission paths on the same named workload. Record private scratch
@@ -490,6 +521,15 @@ occupation.
 **E01, E04, E07 and S2, S6.** The current inventory verifies checked name
 pages, every inode and extent, Windows admission and reference ownership.
 Keep it as the baseline for old or ambiguous images.
+
+Indexed pages already provide local integrity and the complete CPU audit
+provides global ownership checks. The next design must preserve both.
+The OSDI 2025 WOFS prototype groups checked metadata by operation in a
+different persistence domain. Carry over the transaction-local evidence
+idea and keep FlitzFS's existing ordered Windows provider fences. Compare
+startup reads, mutation writes and recovery work as a joint cost.
+[OSDI 2025 WOFS](https://www.usenix.org/conference/osdi25/presentation/pan) ·
+[Existing transaction authority](architecture/CURRENT.md#5-indexed-transaction-and-failure-boundaries)
 
 1. Specify which checked fields are sufficient for a normal writable
    attach. Bind the volume identity, root generation, required features,
@@ -668,11 +708,16 @@ exhausted-resource behavior. Document the exact supported semantics.
 **E12–E13 and S11–S12.** First replay the ordinary Windows witness with
 fixed test files and independently verified outcomes. Predeclare which
 workloads require a gain and report neutral and negative cohorts.
-Run DiskSpd 2.3 as the recognized throughput and access-latency tool.
-Use the named-tree operation trace for Windows semantics, cold/steady
+Run DiskSpd 2.3 as the primary throughput and access-latency tool. Use
+the named-tree operation trace for Windows semantics, cold and settled
 maintenance and storage allocation. AITDCC A–H and I–P are separate
-controls. Named real files and at least one fresh protected cohort
-exercise grouped behavior across files and directories.
+reproducibility controls. Use a new named file family for a blind
+grouping comparison. Evaluate UL PCMark 10 Storage traces as a secondary
+control when its licensed runner, target validity and fixture budget can
+be matched on all arms.
+[DiskSpd 2.3](https://github.com/microsoft/diskspd/releases/tag/v2.3) ·
+[UL PCMark 10 Storage methodology](https://support.benchmarks.ul.com/support/solutions/articles/44002171465-full-system-drive-benchmark) ·
+[AITDCC 2026 inputs](https://aitdcc.github.io/dataset.html)
 
 - On the same current Windows build and equivalent disposable backing,
   compare plain NTFS, Windows-native NTFS compression, FlitzFS CPU and
@@ -684,8 +729,11 @@ exercise grouped behavior across files and directories.
   latter includes metadata, dependencies and protection. Expose any
   difference between NTFS and FlitzFS protection in the comparison.
   Run common cache and client flush scenarios before any provider-specific
-  benchmarks. Use a dedicated memory-backed fixture for the host speed
-  comparisons and separate provider failure proof for durability.
+  benchmarks. Use Microsoft-defined native compression on the comparator
+  throughout. Record late changes in inherited state as failed trials.
+  Qualify provider durability separately from host performance.
+  [Native compression control](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_compression) ·
+  [Native format constants](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/62de177d-ed90-4884-ae04-9de52f1180f1)
 - Keep public workload hashes, benchmark parameters and raw results.
   Alternate trial order and report dispersion, p50/p95/p99 access, durable
   write and read throughput, peak and settled bytes, decode amplification,
@@ -707,7 +755,7 @@ exercise grouped behavior across files and directories.
 
 | Priority and decision | Next deliverable | Acceptance and follow-through |
 | --- | --- | --- |
-| 1. Minimize complete protected size | Use the retained-group and mixed comparison to check compact seal metadata before ranking a fresh named holdout. | Prove the selected group and placement on exact names and bytes. Charge dependency, access, repair and retirement work. Keep the strongest arm for each measured cohort, including small files. |
+| 1. Minimize complete protected size | Use the compact seal as the baseline and run a sparse fragment shortlist against an exact saved-allocation oracle on a fresh named holdout. | Prove the selected group and placement on exact names and bytes. Charge dependency, access, repair and retirement work. Keep the strongest arm for each measured cohort, including small files. |
 | 2. Consume automatic AMD work through Windows | Join actual client demand, worker readiness, verified results and consumption in the populated Win32 witness. Start with grouped sequential reads and collective candidate search. Use short writes as the matched CPU reference and add larger recurring cohorts. | Alternate matched lanes. Report verified and consumed bytes, CPU continuity, occupied size, p99, idle residency and retirement on the observed installation. A device result earns a policy only when the useful path gains after all overhead. |
 | 3. Bound writable attach and recovery | Build a source-bound checked-attach comparison against the existing CPU inventory. Add named churn at geometric tiers, including one reserved larger tier. | Show identical admission and reference ownership on healthy, stale and interrupted images. Record lookup I/O, memory, touched and live pages, fallback and repair debt. Qualify each promised provider boundary before changing writable attach. |
 
@@ -720,24 +768,30 @@ exercise grouped behavior across files and directories.
    temporary peak. Reconcile the categories to observed backing length
    or physical allocation. Hold each comparison to one input generation
    and a deliberate placement geometry.
-2. Test compact sealed control slots against the completed group and
-   independent controls. Use provider-qualified spacing, an explicit
-   checked layout and independently readable historical and compact
-   images. Compare the exact footprint and range, restart, repair and
-   retirement work. Retain the grouped mirror whenever it earns the
-   better outcome.
-3. Freeze a new named revision-family tree before training. Include
-   structured samples, source and ordinary document trees, unrelated
-   binaries and already-compressed media. Preserve AITDCC and CPython
-   as repeatable controls. Label a bounded sample with actual saved
-   allocation, work, touched data and read amplification.
-4. Try a cheap lane-divergence rule and measured access temperature before
-   a small offline model. Charge every rejected trial against its work
-   ledger. Rerun a bounded exhaustive fragment search for the cohorts
-   with the largest remaining savings. Track recall and savings by byte
-   share. Store only revision-scoped shortlist entries, score history
-   and resumable cursor in the existing advisory store. The CPU decoder
-   requires the published representation, including protected dependencies.
+2. Use compact sealing where the provider covers its declared geometry.
+   Hold the selector, group references, restart units and failure coverage
+   fixed across new encoder arms. Compare exact footprint, restart and
+   repair work after retirement. Retain a mirror where the verified seal
+   loses on space or exceeds the cohort's read or rewrite budget.
+3. Freeze a new named revision-family tree before training. Khronos glTF
+   Sample Assets includes related JSON, binary geometry and image resources
+   and alternate containers. Pin model families and revisions. Preserve
+   the paths and license records. Add a separately pinned document tree,
+   source tree and incompressible negative controls. Put all related
+   variants of each family in one split. Freeze the manifest, maximum
+   size, split and selection seed before encoding. Preserve AITDCC and
+   CPython as repeatable controls.
+   [Khronos glTF Sample Assets](https://github.com/KhronosGroup/glTF-Sample-Assets/blob/main/README.md)
+4. Start with current exact sharing and bounded banded matching. For
+   moved content add a content-defined shortlist in the experimental
+   fixture. Compare nominations to a bounded exact compression oracle on
+   the same candidates. Label by settled protected bytes saved per work
+   unit after charging shared bases, descriptors, padding, parity,
+   decode working set and realistic cancellation. Measure share of
+   attainable savings and read work, including dissimilar input. Try a
+   small offline ranker only where a cheap rule misses meaningful
+   attainable savings. Store bounded, revision-scoped shortlist entries,
+   score history and a resumable cursor in the advisory store.
 5. Admit background rewrites from live host and backing observations
    and use the volume owner's existing staged verification protocol.
    Count committed backing bytes, reclaim delay with readers and
@@ -761,6 +815,14 @@ exercise grouped behavior across files and directories.
    advice. Each retry needs relevant changed evidence and confirmed
    worker retirement. The authoritative CPU path remains serviceable
    throughout.
+   Calibrate the step from cold CPU-only service through preparing,
+   available, in flight and retiring. Keep a worker ready only while
+   observed demand is likely to consume enough verified work to repay
+   startup, transfers, validation and residency. Wait without periodic
+   compute dispatch. Keep discovery keyed to runtime identity, adapter
+   observation and cause of refusal. Fresh capacity can reopen a
+   resource refusal. A failed runtime identity needs relevant changed
+   evidence and confirmed quiescence.
 3. First measure a large grouped read and a batch of candidate discovery
    work through the ordinary route. Try the existing permutation and
    verified decoder with multiple independent extents per grant.
@@ -778,11 +840,16 @@ exercise grouped behavior across files and directories.
    Specify the touched keys and state transitions that can change each.
 2. Generate a proof beside the existing full audit. Bind its version,
    image identity, selector generation, feature set, index roots and
-   verified ownership aggregates in the authority. Validate touched
-   ranges and dependencies before allocating, changing or reclaiming.
-   Exercise old, stale, forked and interrupted inputs in comparison mode.
-   Let the full audit handle an absent or ambiguous proof. Keep it as an
-   independently runnable CPU recovery operation.
+   verified ownership aggregates in the checked publication. Pair a
+   live ownership/retirement delta with the mutation that creates it.
+   Report proof bytes, keep/drop decisions, deferred checks and extra
+   backed writes. Initially run in comparison mode with no authority
+   to attach. Diff allocation ownership, name-key consistency, shared
+   dependencies and retired ranges against the existing audit under
+   every mutation and cut. On eventual adoption, require the exclusive
+   lease and check every touched path before allocation, mutation or
+   reclaim. Absent or ambiguous evidence selects the independently
+   runnable full CPU recovery operation.
 3. Start the size and attach curves with existing 1,024 and 16,384-file
    controls, plus feasible smaller and larger tiers chosen from current
    headroom. Run named enumeration, random open/read, mutation,
@@ -809,11 +876,12 @@ signed artifacts and explicitly declared compatibility window.
 
 The existing package estimate remains **59–127 person-weeks** at low
 confidence, with an open research tail for stronger collective compression.
-The byte-plane route establishes a selective size gain. Its full measured
-cost, normal policy, supported backward-read window and mounted GPU use
-still need qualification. All twelve formal gates remain open for a stable
-candidate. Reprice after the same-image protection frontier, ordinary
-automatic AMD comparison, named-file attach curve and first backed
-interruption campaign. The project remains in development qualification
-and the owner makes the release decision.
+The compact control layout removes a measured cost and opens a previously
+unprofitable placement. The sustained mounted path and physical recovery
+campaign still determine release advancement. All twelve
+formal gates remain open for a stable candidate. Reprice after the first
+ordinary automatic AMD comparison, proof-versus-audit attach curve,
+blind complete-size comparison and backed interruption campaign. Close
+compatibility, installer, native NTFS comparison and soak on the same
+signed candidate. The owner makes the release decision.
 [Package effort and critical path](RELEASE_EXECUTION_PLAN.md#remaining-engineering-effort)

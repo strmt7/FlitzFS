@@ -9,8 +9,9 @@ class NativeVolumeFile;
 struct NativePairedSealedRange;
 namespace detail {class NativeVolumeFileReclaimer;}
 
-// Two immutable binding records followed by the mutable indexed root peers.
+// The legacy prefix spaces all four control records at 64 KiB.
 inline constexpr auto kNativeHybridTailPrefixBytes=4*kStoreCommitUnit;
+enum class NativeHybridControls { legacy, compact };
 
 // One ordinary mirrored indexed address space over a packed immutable base
 // and a separately qualified writable tail. The caller owns both backings
@@ -20,19 +21,20 @@ class NativeHybridBacking final : public StoreByteIo {
   static std::shared_ptr<NativeHybridBacking> create(const NativeFilesystemSnapshot& closed_source,
       std::shared_ptr<StoreByteIo> empty_workspace,std::shared_ptr<StoreByteIo> empty_base,
       std::shared_ptr<StoreByteIo> empty_tail,StoreIdentity new_image,std::uint64_t physical_limit,
-      StoreCompressionOptions={});
+      StoreCompressionOptions={},NativeHybridControls=NativeHybridControls::legacy);
   enum class BuildPhase { workspace, sealing, binding, ready, stopped, awaiting_base, awaiting_tail };
   class Build;
   // Resources cover the new candidate and its workspace. The caller retains
   // the selected image and admits each advance on its serialized opportunity.
   static Build prepare(const NativeFileSession& source,std::shared_ptr<StoreByteIo> empty_workspace,
       std::shared_ptr<StoreByteIo> empty_base,std::shared_ptr<StoreByteIo> empty_tail,StoreIdentity new_image,
-      std::uint64_t candidate_limit,std::uint64_t staging_limit,StoreCompressionOptions={});
+      std::uint64_t candidate_limit,std::uint64_t staging_limit,StoreCompressionOptions={},
+      NativeHybridControls=NativeHybridControls::legacy);
   // Allow an allocator to reserve an exact base and release the workspace
   // before reserving the writable tail. The source stays pinned throughout.
   static Build prepare(const NativeFileSession& source,std::shared_ptr<StoreByteIo> empty_workspace,
       StoreIoContract base_contract,StoreIdentity new_image,std::uint64_t candidate_limit,
-      std::uint64_t staging_limit,StoreCompressionOptions={});
+      std::uint64_t staging_limit,StoreCompressionOptions={},NativeHybridControls=NativeHybridControls::legacy);
   static std::shared_ptr<NativeHybridBacking> open(std::shared_ptr<StoreByteIo> base,
       std::shared_ptr<StoreByteIo> tail,StoreIdentity expected_image,std::uint64_t virtual_limit,
       std::uint64_t physical_limit);
@@ -58,7 +60,7 @@ class NativeHybridBacking final : public StoreByteIo {
   friend struct MemoryVolumeBacking;
   static Build prepare_impl(const NativeFileSession&,std::shared_ptr<StoreByteIo>,StoreIoContract,
       StoreIdentity,std::uint64_t candidate_limit,std::uint64_t staging_limit,StoreCompressionOptions,
-      bool owned_file_target);
+      bool owned_file_target,NativeHybridControls);
   static std::uint64_t workspace_capacity(StoreIdentity,StoreIoContract,
       std::uint64_t packed_end_bound,std::uint64_t staging_bytes,std::uint64_t private_workspace_bytes);
   NativePairedSealedRange sealed_range() const noexcept;

@@ -13,20 +13,20 @@ inline constexpr std::size_t kProtectedStripeDataUnits=8;
 // Stripe writes and decoded records are controlled by the CPU.
 struct ProtectedStripeLayout {
   StoreIdentity identity{};
-  std::uint64_t logical_bytes=0,physical_bytes=0,unit=0;
+  std::uint64_t logical_bytes=0,physical_bytes=0,unit=0,root_slot_bytes=0;
   bool operator==(const ProtectedStripeLayout&) const=default;
 };
 
 class ProtectedStripeImage final:public StoreByteIo {
  public:
   static std::uint64_t projected_occupied(StoreIdentity,std::uint64_t logical_bytes,
-      std::uint32_t failure_unit,std::uint64_t physical_limit);
+      std::uint32_t failure_unit,std::uint64_t physical_limit,bool compact_roots=false);
   static std::shared_ptr<ProtectedStripeImage> open(std::shared_ptr<StoreByteIo>,std::uint64_t physical_limit);
   class SealWork;
   static SealWork begin_seal(std::shared_ptr<StoreByteIo> closed_source,
-      std::shared_ptr<StoreByteIo> empty_output,StoreIdentity,std::uint64_t physical_limit);
+      std::shared_ptr<StoreByteIo> empty_output,StoreIdentity,std::uint64_t physical_limit,bool compact_roots=false);
   static std::shared_ptr<ProtectedStripeImage> seal(std::shared_ptr<StoreByteIo> closed_source,
-      std::shared_ptr<StoreByteIo> empty_output,StoreIdentity,std::uint64_t physical_limit);
+      std::shared_ptr<StoreByteIo> empty_output,StoreIdentity,std::uint64_t physical_limit,bool compact_roots=false);
   std::uint64_t extent() const override {return layout_.logical_bytes;}
   std::uint64_t occupied() const noexcept {return layout_.physical_bytes;}
   StoreIdentity identity() const noexcept {return layout_.identity;}
