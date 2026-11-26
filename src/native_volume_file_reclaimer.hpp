@@ -61,7 +61,7 @@ class NativeVolumeFileReclaimer final {
   SealPlans funded_seal_plans(const NativeFileSession&,std::uint64_t occupied,
       std::uint64_t private_workspace_bytes) const;
   NativeVolumeReclaimProgress begin_seal(NativeFileSession&,const std::function<StoreIdentity()>&,
-      const SealPlans&,NativeSealScratchOffer);
+      const SealPlans&,NativeSealScratchOffer,StoreCompressionOptions);
   NativeVolumeReclaimProgress advance_seal(NativeFileSession&);
   void check_inactive(const NativeVolumeHeadInfo&) const;
   NativeVolumeReclaimProgress retire(const NativeVolumeHeadInfo&);

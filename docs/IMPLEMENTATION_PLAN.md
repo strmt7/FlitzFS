@@ -1,14 +1,14 @@
 # FlitzFS detailed implementation plan
 
-**Reconciled on 26 November 2026.** Compare the measured byte-plane gain
-with existing sealed placement on the same protected snapshot. Use that
-frontier and a fresh named-family holdout to decide between admission,
-fragment discovery and allocation work. Connect the populated Windows
+**Reconciled on 26 November 2026.** The independent mirror and seal
+comparison and combined cold copy now have matched results. Compare
+retained groups with that frontier on a fresh named-family holdout
+before changing admission or fragment discovery. Connect the populated Windows
 client trace to useful grouped AMD reads and collective search. Measure
 attach after churn to design and verify the incremental proof.
 The E01–E13 contracts below define the individual release exits.
 [Current assessment](RELEASE_RECONCILIATION_2026-11-26.md) ·
-[Source, tests and research](evidence/windows-native-byte-plane-2026-11-26.json) ·
+[Source, tests and research](evidence/windows-folded-cold-placement-2026-11-26.json) ·
 [Ordered implementation steps](RELEASE_RECONCILIATION_2026-11-26.md#implement-the-next-three-integrated-results)
 
 The [current architecture](architecture/CURRENT.md) shows the implementation.

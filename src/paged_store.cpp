@@ -1597,7 +1597,7 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
        retention(std::move(filter)),projection(std::move(projected)),cold(std::move(cold_encoding)),
        folded_admission(std::move(fold)),
        reencode(encode),mode(rewrite_mode) {
-    if(folded_admission && (mode!=PagedRewriteMode::exact_checkpoint || retention || cold ||
+    if(folded_admission && (mode!=PagedRewriteMode::exact_checkpoint || retention ||
         root.empty() || encode || !original.mirrored))
       fail("folded staging requires an exact mirrored native checkpoint");
     if(mode!=PagedRewriteMode::exact_checkpoint && (retention || root.empty() || encode))
@@ -1608,10 +1608,10 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
             std::ranges::equal(projection->rebound_root,root))))
       fail("invalid packed inode projection");
     const bool screened=mode==PagedRewriteMode::cold_compression;
-    if((screened && !cold) || (cold && (mode==PagedRewriteMode::exact_checkpoint || !cold->first_object ||
+    if((screened && !cold) || (cold && ((mode==PagedRewriteMode::exact_checkpoint && !folded_admission) || !cold->first_object ||
         cold->first_object>=cold->past_last_object || cold->after_generation>original.generation ||
         bool(cold->reserve_writes)!=screened)))
-      fail("cold encoding requires a bound indexed reconciliation");
+      fail("cold encoding requires a bound indexed rewrite");
     if(screened)phase=PagedRewritePhase::screening_compression;
     if(cold)cold_through=original.generation;
     if(mode==PagedRewriteMode::reconcile_foreground && writer.payload_repairs &&

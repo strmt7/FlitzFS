@@ -452,7 +452,7 @@ bool NativeVolumeFileReclaimer::shed_scratch(std::uint64_t retained_bytes) noexc
   return true;
 }
 Progress NativeVolumeFileReclaimer::begin_seal(NativeFileSession& session,const std::function<StoreIdentity()>& next_identity,
-    const SealPlans& plans,NativeSealScratchOffer offer) {
+    const SealPlans& plans,NativeSealScratchOffer offer,StoreCompressionOptions compression) {
   const auto current=session.volume_info();
   check_inactive(current);
   const auto destination=spare_->contract();
@@ -477,7 +477,7 @@ Progress NativeVolumeFileReclaimer::begin_seal(NativeFileSession& session,const 
     scratch_bytes_=plan->workspace;
   }else workspace_=NativeVolumeFile::Region::slice(spare_,spare_->capacity-plan->workspace,plan->workspace,0);
   seal_.emplace(NativeHybridBacking::prepare_impl(session,scratch_?scratch_->store():workspace_,destination,identity,
-      spare_->capacity,plan->staging,{},true));
+      spare_->capacity,plan->staging,compression,true));
   return Progress::copying;
 }
 Progress NativeVolumeFileReclaimer::advance_seal(NativeFileSession& session) {
@@ -575,10 +575,18 @@ Progress NativeVolumeFileReclaimer::advance(NativeFileSession& session,const std
       }
       if(spare_.use_count()!=1 || spare_->allocation_extent())
         fail(Error::invalid_operation,"inactive volume range is unavailable");
-      if(!reclaim && allow_cold && !session.idle_cold_compaction_pending()) {
-        const auto space=session.indexed_volume_space();
-        const auto occupied=space.total_bytes-space.free_bytes;
-        return begin_seal(session,identity,funded_seal_plans(session,occupied,workspace),scratch);
+      if(!reclaim && allow_cold) {
+        const auto cold_pending=session.idle_cold_compaction_pending();
+        const auto foreground=session.managed_foreground();
+        const bool fuse=foreground && foreground->compression.experimental_cold_byte_planes;
+        if(fuse || !cold_pending) {
+          const auto space=session.indexed_volume_space();
+          const auto occupied=space.total_bytes-space.free_bytes;
+          const auto plans=funded_seal_plans(session,occupied,workspace);
+          const auto sealed=begin_seal(session,identity,plans,scratch,
+              fuse?foreground->compression:StoreCompressionOptions{});
+          if(sealed!=Progress::idle || !cold_pending)return sealed;
+        }
       }
       auto rewrite=reclaim?PagedRewriteMode::reconcile_foreground:PagedRewriteMode::cold_compression;
       if(reclaim && mode==NativeVolumeReclaimMode::pack_short_inodes && !packed_copy_attempted_ &&

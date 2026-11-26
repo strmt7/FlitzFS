@@ -327,8 +327,9 @@ void advance_hybrid(NativeHybridBacking::Build& work,NativeFileSession& source,c
 }
 
 
-std::shared_ptr<NativeHybridBacking> reopen_hybrid(std::shared_ptr<StoreByteIo> base,std::shared_ptr<StoreByteIo> tail) {
-  return NativeHybridBacking::open(std::move(base),std::move(tail),id(2),
+std::shared_ptr<NativeHybridBacking> reopen_hybrid(std::shared_ptr<StoreByteIo> base,std::shared_ptr<StoreByteIo> tail,
+    StoreIdentity identity=id(2)) {
+  return NativeHybridBacking::open(std::move(base),std::move(tail),identity,
       limits.maximum_physical_bytes,limits.maximum_physical_bytes);
 }
 
@@ -904,6 +905,135 @@ void profile_hybrid(const std::filesystem::path& corpus,bool mirror_first) {
       <<" mirror_range_ns="<<reference_reads.elapsed_ns<<" hybrid_range_ns="<<mapped_reads.elapsed_ns
       <<" independent_cpu_exact=1 sealed_writes=0\n";
 }
+
+struct ColdSealResult {
+  std::uint64_t occupied=0,writes=0;
+  bool selected=false,byte_planes=false;
+};
+
+ColdSealResult measure_cold_seal(NativeFileSession& session,Ram& head,std::span<const Bytes> files,
+    StoreCompressionOptions policy,const char* arm,bool repair_sample) {
+  const auto unit=head.contract().write_failure_unit_bytes;
+  auto workspace=empty(unit),base=empty(unit),tail=empty(unit);
+  const auto source=session.snapshot();
+  const auto head_writes=head.write_bytes;
+  auto work=NativeHybridBacking::prepare(session,workspace,base,tail,id(3),
+      limits.maximum_physical_bytes,limits.maximum_physical_bytes,policy);
+  CooperativeProgress progress;
+  try {
+    advance_hybrid(work,session,*workspace,*base,*tail,source.storage_info().physical_end,progress);
+  }catch(const std::runtime_error& error) {
+    if(std::string_view(error.what())!="hybrid base and tail do not reduce the protected footprint")throw;
+    require(!base->write_bytes && !tail->write_bytes && head.write_bytes==head_writes,
+        "unprofitable sealing changed authority or destination");
+    verify(session.snapshot(),files);
+    const auto occupied=head.extent()+source.storage_info().physical_end;
+    std::cout<<"cold_placement arm="<<arm<<" occupied_bytes="<<occupied<<" selector_bytes="<<head.extent()
+        <<" build_write_bytes="<<workspace->write_bytes<<" selected=0 declined_no_gain=1 cpu_exact=1\n";
+    return {occupied,workspace->write_bytes};
+  }
+  std::shared_ptr<NativeHybridBacking> published;
+  const bool selected=work.publish(session,published);
+  verify(source,files);
+
+  auto recovered_base=image(base->stable,unit),recovered_tail=image(tail->stable,unit);
+  if(repair_sample)damage(*recovered_base,prefix,unit);
+  const auto recovered=reopen_hybrid(recovered_base,recovered_tail,id(3));
+  std::array<std::byte,4> feature{};
+  recovered->read_exact(176,feature); // Paged root required features.
+  const bool byte_planes=feature[0]==std::byte{1};
+  const auto reopened=NativeFilesystemSnapshot::open_image(recovered,ordinary_storage);
+  verify(reopened,files);
+  if(selected) {
+    const auto chosen=NativeVolumeHeadView::open(image(head.stable,unit),id(9),
+        [&](const StoreIdentity& value)->std::shared_ptr<StoreByteIo>{return value==id(3)?recovered:nullptr;});
+    require(chosen.info().selection.image_identity==id(3),"cold sealed selector did not recover the winner");
+    verify(chosen.filesystem(),files);
+  }
+  const auto tail_reads=recovered_tail->read_bytes;
+  const auto sampled=measure_reads(reopened,*recovered_base,files);
+  const auto writes=workspace->write_bytes+base->write_bytes+tail->write_bytes+head.write_bytes-head_writes;
+  const auto occupied=head.extent()+recovered->occupied();
+  require(recovered->occupied()==base->extent()+tail->extent(),"cold sealed occupancy omitted a region");
+  std::cout<<"cold_placement arm="<<arm<<" occupied_bytes="<<occupied<<" selector_bytes="<<head.extent()
+      <<" base_bytes="<<base->extent()<<" tail_bytes="<<tail->extent()<<" workspace_bytes="<<workspace->extent()
+      <<" workspace_write_bytes="<<workspace->write_bytes<<" backing_write_bytes="<<writes-workspace->write_bytes
+      <<" build_write_bytes="<<writes<<" sampled_range_read_bytes="<<sampled.backing_bytes+recovered_tail->read_bytes-tail_reads
+      <<" selected="<<selected<<" byte_planes="<<byte_planes<<" repaired_unit="<<repair_sample<<" cpu_exact=1\n";
+  return {occupied,writes,selected,byte_planes};
+}
+
+void cold_placement(std::span<const Bytes> files,bool recovery_case) {
+  constexpr auto unit=4096U;
+  constexpr StoreCompressionOptions ordinary{StoreCompressionMode::automatic,3,true};
+  constexpr StoreCompressionOptions planes{StoreCompressionMode::automatic,3,true,true};
+  const auto initial=make_indexed(files,unit,ordinary),head=empty(unit);
+  {
+    const auto initial_view=NativeFilesystemSnapshot::open_image(initial,ordinary_storage);
+    const auto selector=NativeVolumeHeadWriter::create(head,id(9),initial_view);
+  }
+  const auto& selected=head->stable;
+  ColdSealResult staged;
+  std::uint64_t staged_writes=0;
+  for(const auto policy:{ordinary,planes}) {
+    const bool transformed=policy.experimental_cold_byte_planes;
+    auto input=image(initial->stable,unit),selector=image(selected,unit),mirror=empty(unit);
+    {
+      auto session=NativeFileSession::resume_closed_indexed_volume(selector,id(9),1,
+          [&](const StoreIdentity& value)->std::shared_ptr<StoreByteIo>{return value==id(1)?input:nullptr;},policy);
+      const auto selector_writes=selector->write_bytes;
+      require(session.begin_idle_compaction(mirror,id(2),PagedRewriteMode::reconcile_foreground),
+          "cold placement did not start the matched mirrored copy");
+      using Progress=NativeFileSession::RecompressionProgress;
+      auto progress=Progress::copying;
+      for(std::uint64_t turn=0;progress==Progress::copying && turn<1024+initial->extent()/64;++turn)
+        progress=session.advance_recompression();
+      require(progress==Progress::ready && session.publish_idle_recompression().has_value(),
+          "cold placement did not select the matched mirrored copy");
+      const auto packed=session.snapshot();
+      verify(packed,files);
+      const auto mirror_writes=mirror->write_bytes+selector->write_bytes-selector_writes;
+      const auto sampled=measure_reads(packed,*mirror,files);
+      std::cout<<"cold_placement arm="<<(transformed?"planes_mirror":"ordinary_mirror")
+          <<" occupied_bytes="<<packed.storage_info().physical_end+selector->extent()
+          <<" selector_bytes="<<selector->extent()<<" build_write_bytes="<<mirror_writes
+          <<" sampled_range_read_bytes="<<sampled.backing_bytes<<" selected=1 cpu_exact=1\n";
+      auto sealed=measure_cold_seal(session,*selector,files,ordinary,
+          transformed?"planes_seal":"ordinary_seal",false);
+      if(transformed) {
+        staged=sealed;
+        staged_writes=mirror_writes+sealed.writes;
+      }
+    }
+  }
+  auto input=image(initial->stable,unit),selector=image(selected,unit);
+  auto session=NativeFileSession::resume_closed_indexed_volume(selector,id(9),1,
+      [&](const StoreIdentity& value)->std::shared_ptr<StoreByteIo>{return value==id(1)?input:nullptr;},planes);
+  const auto fused=measure_cold_seal(session,*selector,files,planes,"planes_fused",recovery_case);
+  if(recovery_case) {
+    require(staged.selected && fused.selected && staged.byte_planes && fused.byte_planes,
+        "cold sealing did not preserve the required byte-plane representation");
+    require(fused.occupied<=staged.occupied && fused.writes<staged_writes,
+        "one-pass cold sealing did not avoid the staged mirror");
+  }
+  std::cout<<"cold_placement_summary staged_write_bytes="<<staged_writes
+      <<" fused_write_bytes="<<fused.writes<<" staged_seal_bytes="<<staged.occupied
+      <<" fused_seal_bytes="<<fused.occupied<<'\n';
+}
+
+void cold_seal_recovery() {
+  if(!store_zstd_available())return;
+  std::array<Bytes,4> files;
+  for(std::size_t file=0;file<files.size();++file) {
+    auto& bytes=files[file];
+    bytes=data(13*kNativeExtentBytes-1,52000+static_cast<unsigned>(file));
+    for(std::size_t at=0;at+3<bytes.size();at+=4) {
+      bytes[at+2]=std::byte{4};
+      bytes[at+3]=std::byte{7};
+    }
+  }
+  cold_placement(files,true);
+}
 }
 int main(int argc,char** argv) {
   try {
@@ -912,12 +1042,18 @@ int main(int argc,char** argv) {
     if(argc==3 && std::string_view(argv[1])=="--profile-hybrid-mirror-first"){profile_hybrid(argv[2],true);return 0;}
     if(argc==3 && std::string_view(argv[1])=="--profile-cooperative"){profile_cooperative(argv[2]);return 0;}
     if(argc==3 && std::string_view(argv[1])=="--profile-live-hybrid"){profile_cooperative(argv[2],true);return 0;}
+    if(argc==3 && std::string_view(argv[1])=="--profile-cold-placement"){
+      require(store_zstd_available(),"cold placement profile requires Zstandard");
+      cold_placement(read_packed_corpus(argv[2],true),false);
+      return 0;
+    }
     if(argc==2 && std::string_view(argv[1])=="--hybrid") {
       for(const auto unit:{4096U,65536U})hybrid_faults(unit);
       interrupted_hybrid_binding();
       deferred_hybrid_placement();
       cooperative_hybrid();
       for(const auto unit:{4096U,65536U})live_hybrid_selection_faults(unit);
+      cold_seal_recovery();
       return 0;
     }
     require(argc==1,"invalid protected image fixture options");

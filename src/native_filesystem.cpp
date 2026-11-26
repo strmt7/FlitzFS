@@ -2183,8 +2183,12 @@ PagedObjectStoreWriter::Rewrite NativeFilesystemWriter::prepare_folded_recompres
   if(poisoned() || !impl_->indexed || impl_->indexed->active_lifetimes || !admission)
     fail(Code::invalid_operation,"folded rewrite requires a healthy indexed writer and resolved file contexts");
   const auto root=detail::rebind_indexed_volume_root(*impl_->indexed,id);
+  std::optional<PagedObjectStoreWriter::RebuildColdEncoding> cold;
+  if(compression.experimental_cold_byte_planes)
+    cold.emplace(PagedObjectStoreWriter::RebuildColdEncoding{0,
+        detail::kNativeIndexedDataObject+1,2*detail::kNativeIndexedDataObject,{}});
   return impl_->objects.prepare_folded_rebuild(std::move(target),id,root,compression,
-      detail::kIndexedVolumeIdentityOffset,std::move(admission));
+      detail::kIndexedVolumeIdentityOffset,std::move(admission),std::move(cold));
 }
 
 bool NativeFilesystemWriter::advance_folded_recompression(PagedObjectStoreWriter::Rewrite& candidate,

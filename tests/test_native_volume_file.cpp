@@ -1989,6 +1989,47 @@ void near_full_volatile_seal(bool expect_success,bool private_credit=false) {
   }
 }
 
+void funded_cold_seal() {
+  if(!store_zstd_available())return;
+  constexpr auto unit=4096U;
+  constexpr PagedStoreLimits limits{12ULL*1024*1024};
+  constexpr StoreCompressionOptions planes{StoreCompressionMode::automatic,3,true,true};
+  const auto volume=id(81),first=id(82),next=id(83);
+  auto payload=data(2'861'348,167);
+  for(std::size_t at=0;at+3<payload.size();at+=4) {
+    payload[at+2]=std::byte{4};
+    payload[at+3]=std::byte{7};
+  }
+  auto io=std::make_shared<SparseVolumeRam>(unit,2*limits.maximum_physical_bytes+2*1024*1024);
+  std::uint64_t before=0;
+  {
+    auto session=NativeVolumeFile::create(io,volume,first,limits,planes);
+    put(session,"payload",payload);
+    put(session,"witness",witness_bytes);
+    before=io->occupied();
+    std::optional<NativeFilesystemSnapshot> held(session.snapshot());
+    const detail::NativeSealScratchOffer offer{limits.maximum_physical_bytes,model_seal_scratch};
+    stage_file_seal(session,next,offer);
+    require(session.advance_persistent_reclamation({},true)==Reclaim::published &&
+        session.volume_info().selection.sealed_range && session.volume_info().selection.epoch==2 &&
+        session.volume_info().selection.image_identity==next,
+        "funded cold policy published an intermediate mirrored image");
+    require(held->read("payload",0,payload.size())==payload &&
+        session.advance_persistent_reclamation({},true)==Reclaim::pinned,
+        "funded cold sealing retired the previous generation early");
+    held.reset();
+    release_inactive(session);
+  }
+  const auto reopened=NativeVolumeFile::inspect(io->replay(),volume);
+  reopened.filesystem().verify_all();
+  require(reopened.filesystem().read("payload",0,payload.size())==payload &&
+      reopened.filesystem().read("witness",0,witness_bytes.size())==witness_bytes &&
+      reopened.info().selection.sealed_range && io->occupied()<before && !scratch_leases,
+      "funded folded compression changed durable contents or retained staging");
+  std::cout<<"funded_cold_seal before="<<before<<" after="<<io->occupied()
+      <<" direct_selection=1 scratch_retired=1 cpu_exact=1\n";
+}
+
 void sealed_ranges(bool volatile_workspace) {
   const auto payload=data(2'861'348,167);
   const Bytes sparse(2*1024*1024);
@@ -3050,6 +3091,7 @@ int main(int argc,char** argv){
     if(argc==2 && (std::string_view(argv[1])=="--private-seal-credit" ||
         std::string_view(argv[1])=="--profile-private-seal-credit")) {
       near_full_volatile_seal(std::string_view(argv[1])=="--private-seal-credit",true);
+      if(std::string_view(argv[1])=="--private-seal-credit")funded_cold_seal();
       std::cout<<"PASS: "<<checks<<" private seal credit checks\n";
       return 0;
     }

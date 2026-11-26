@@ -7,6 +7,18 @@
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
   "current_release_review": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
+  "folded_cold_placement": {
+    "source_parent": "b0e4d6286debfbe5c60e1fa2e73663f71287710c",
+    "tested_source_tree": "fa5fb1619f7e144bd672db21c0580460b8fce4b6",
+    "evidence": "docs/evidence/windows-folded-cold-placement-2026-11-26.json",
+    "explicit_opt_in": true,
+    "aitdcc_i_p_sealed_protected_bytes": 21659648,
+    "aitdcc_i_p_staging_write_bytes_saved": 33824768,
+    "aitdcc_a_h_sealed_protected_bytes": 9854976,
+    "aitdcc_a_h_staging_write_bytes_saved": 14934016,
+    "independent_cpu_readback": true,
+    "release_qualified": false
+  },
   "native_cold_byte_planes": {
     "source_parent": "034e694684a6fc639d2e597356020cc6514a772f",
     "tested_source_tree": "efc3262d90784f626a69c14352a27ebb1c8d7a2a",

@@ -88,7 +88,7 @@ struct StoreCompressionOptions {
   StoreCompressionMode mode=StoreCompressionMode::automatic;
   int zstd_level=6; // 1..9, bounded single-threaded tables; no GPU dependency.
   bool require_zstd=false; // Fail before creation if bounded codec support is absent.
-  // Explicit experiment for staged native indexed cold copies.
+  // Explicit experiment for staged native indexed cold copies and folded sealing.
   bool experimental_cold_byte_planes=false;
 };
 // Opt-in metadata density; unit derives ONLY from the explicitly qualified

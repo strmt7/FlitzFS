@@ -10,15 +10,13 @@ detailed package contracts and the release execution plan retains the gates.
 [Implementation packages](IMPLEMENTATION_PLAN.md#3-execution-order-and-dependencies) ·
 [Release gates](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
 
-This checkpoint reconciles the 1,163 tracked paths at
-`034e694684a6fc639d2e597356020cc6514a772f` and the byte-plane change in
-tested source tree `efc3262d90784f626a69c14352a27ebb1c8d7a2a`. It
-carries forward the full inventory and checks the subsequent source
-changes for subgroup packing, interleaved read-ahead, cold encoding and
-required decoder features. It also traces the current writable admission,
-selector, GPU ownership and background maintenance paths. The evidence
-ledger links the measured change to the same design and release gates.
-[Current evidence](evidence/windows-native-byte-plane-2026-11-26.json) ·
+This checkpoint builds on `b0e4d6286debfbe5c60e1fa2e73663f71287710c`.
+The additional source review follows the folded read view, the cold
+encoder, storage admission, the active selector, and the independent CPU
+reopen. It compares the four codec and protection combinations from the
+same input, then tests a combined copy in source tree
+`fa5fb1619f7e144bd672db21c0580460b8fce4b6`.
+[Current evidence](evidence/windows-folded-cold-placement-2026-11-26.json) ·
 [Source review](architecture/REVIEW.md)
 
 The follow-up AMD checkpoint made priority optional in the Windows workers.
@@ -398,6 +396,35 @@ and a fresh CPU reopen. Attribute backing writes, flushes, released
 allocation and logical versus occupied capacity to each phase. Preserve
 the client's acknowledgement log and exact files.
 
+The matched Windows memory fixture produced these complete sizes,
+including the selector and the writable tail where present.
+
+| Dataset | Ordinary mirror | Byte-plane mirror | Ordinary seal | Byte-plane seal |
+| --- | ---: | ---: | ---: | ---: |
+| AITDCC I–P | 35,143,680 | 33,816,576 | 22,495,232 | 21,659,648 |
+| AITDCC A–H | 15,572,992 | 14,925,824 | 10,260,480 | 9,854,976 |
+| CPython revisions | 1,474,560 | 1,474,560 | 1,449,984 | 1,449,984 |
+
+The direct folded copy reached the byte-plane seal size in all three
+cohorts. On I–P it avoided 33,824,768 bytes of the two-pass build writes,
+including the intermediate mirror and selector update. In the same
+fixture, sampled range reads asked for 10,133,504 backing bytes from
+the byte-plane sealed arm and 8,906,099 from its mirrored counterpart.
+Use this distinction when modeling the read cost of parity. The
+independent CPU reader recovered a sample with one damaged sealed unit,
+and the funded file reclaimer selected the final sealed image in one
+publication while a snapshot pinned the previous generation.
+
+The CPython table measures independently encoded files from one initial
+image. Its previously measured **696,320-byte grouped** result remains a
+smaller alternative. Preserve the group before considering placement.
+Microsoft's mirror and parity tiers and the FAST 2026 repair study
+motivate measuring write, range-read and repair costs independently.
+[Current placement evidence](evidence/windows-folded-cold-placement-2026-11-26.json) ·
+[Grouped CPython control](evidence/windows-native-byte-plane-2026-11-26.json) ·
+[Microsoft mirror-accelerated parity](https://learn.microsoft.com/en-us/windows-server/storage/refs/mirror-accelerated-parity) ·
+[FAST 2026 repair study](https://www.usenix.org/conference/fast26/presentation/cheng)
+
 1. Reuse the current two-placement seal projection and confirm both
    admission paths on the same named workload. Record private scratch
    peak, backing capacity, writes and selector publication separately.
@@ -647,7 +674,7 @@ exercise grouped behavior across files and directories.
 
 | Priority and decision | Next deliverable | Acceptance and follow-through |
 | --- | --- | --- |
-| 1. Minimize complete protected size | Add an occupancy and work ledger to the existing indexed rewrite witness. Compare ordinary and byte-plane cold encoding before and after sealing from the same selected snapshot. Then use the ledger to decide between cheaper transform admission, fragment discovery and protected placement. | Require equal namespace and exact CPU reads, verified selectors, a declared common failure model and measured settlement after retirement. Include neutral names, restart access and rewrite costs on a fresh holdout. |
+| 1. Minimize complete protected size | Compare grouped states against the verified independent and folded arms. Add the existing group path to the placement witness before ranking a fresh named holdout. | Prove the selected group and placement on exact names and bytes. Charge dependency, access, repair and retirement work. Keep the strongest arm for each measured cohort, including small files. |
 | 2. Consume automatic AMD work through Windows | Join actual client demand, worker readiness, verified results and consumption in the populated Win32 witness. Start with grouped sequential reads and collective candidate search. Use short writes as the matched CPU reference and add larger recurring cohorts. | Alternate matched lanes. Report verified and consumed bytes, CPU continuity, occupied size, p99, idle residency and retirement on the observed installation. A device result earns a policy only when the useful path gains after all overhead. |
 | 3. Bound writable attach and recovery | Build a source-bound checked-attach comparison against the existing CPU inventory. Add named churn at geometric tiers, including one reserved larger tier. | Show identical admission and reference ownership on healthy, stale and interrupted images. Record lookup I/O, memory, touched and live pages, fallback and repair debt. Qualify each promised provider boundary before changing writable attach. |
 
@@ -660,12 +687,12 @@ exercise grouped behavior across files and directories.
    temporary peak. Reconcile the categories to observed backing length
    or physical allocation. Hold each comparison to one input generation
    and a deliberate placement geometry.
-2. Stage a four-arm comparison using ordinary and byte-plane cold
-   candidates in both mirrored and existing sealed placement. Include
-   the live tail and selector. Verify the common single-unit fault cases,
-   partial reads, restart and retirement. Keep the mirrored candidate
-   for any cohort or provider outside the sealed proof. Use the measured
-   interaction of transform and placement to choose where to invest.
+2. Extend the completed independent four-arm comparison to retained
+   groups. Compare a grouped mirror and its sealed form with the
+   established byte-plane and ordinary controls. Include the live tail
+   and selector. Verify single-unit fault cases, partial reads, restart
+   and retirement. Keep the better verified representation for each
+   cohort and provider.
 3. Freeze a new named revision-family tree before training. Include
    structured samples, source and ordinary document trees, unrelated
    binaries and already-compressed media. Preserve AITDCC and CPython

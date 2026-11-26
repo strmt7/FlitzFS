@@ -355,9 +355,12 @@ so a retained reader cannot race a writable reopen.
 
 ### Sealed paired images
 
-After ordinary reclamation and funded cold compression have yielded, the
-same maintenance owner can prepare a sealed base and writable tail in the
-inactive paired range. The existing advisory journal confirms the write
+After ordinary reclamation yields, the same maintenance owner can prepare
+a sealed base and writable tail in the inactive paired range. With the
+ordinary policy, a funded cold mirror is tried first. An explicit byte-plane
+policy can choose a funded folded seal first and evaluate existing and
+transformed Zstandard frames during the same copy. If a seal cannot start,
+eligible cold mirroring remains available. The advisory journal confirms the write
 charge before preparation. The charge includes the base, tail, ordered
 control writes and any workspace placed in the backing file. Advisory
 scans leave room for a complete image operation at the file-workspace cost.
@@ -373,10 +376,15 @@ verifies the base and
 rechecks both current selector peers before releasing a file workspace in
 bounded spans. The tail starts immediately after the base at a boundary
 admitted by the backing's failure-unit contract. Reclamation uses the
-outer provider's coarser aligned ranges. A new foreground commit invalidates
-the sealed candidate and leaves the acknowledged image selected.
+outer provider's coarser aligned ranges. Each combined copy binds an exact
+source checkpoint and independently decodes the selected representations.
+The projected footprint is based on the existing records. The prepared
+workspace supplies the measured final footprint before parity and tail
+publication. A new foreground commit invalidates the candidate and leaves
+the acknowledged image selected.
 [Windows storage geometry](https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_storage_info) ·
-[Windows range retirement](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_zero_data)
+[Windows range retirement](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_zero_data) ·
+[Paired layout and write comparison](evidence/windows-folded-cold-placement-2026-11-26.json)
 
 The Windows controller can place the workspace in locked memory when it
 fits the current idle memory allowance after reserving ordinary

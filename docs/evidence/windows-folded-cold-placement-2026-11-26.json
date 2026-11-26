@@ -1,0 +1,482 @@
+{
+  "schema": 1,
+  "date_utc": "2026-11-26",
+  "source": {
+    "parent": "b0e4d6286debfbe5c60e1fa2e73663f71287710c",
+    "parent_tree": "b9ca581a16652cf93c81b28e15535df02741663e",
+    "tested_tree": "fa5fb1619f7e144bd672db21c0580460b8fce4b6",
+    "files": [
+      {
+        "path": "include/flitzfs/object_store.hpp",
+        "blob": "0e6e843c32c329d56bf886b471649c61eff9cbd4"
+      },
+      {
+        "path": "src/native_filesystem.cpp",
+        "blob": "f0b04a875b89191f1bfd1fd99f046bca66d83555"
+      },
+      {
+        "path": "src/native_object_storage.hpp",
+        "blob": "16b9493f82cfe244bb353d38729a16795dd5acc4"
+      },
+      {
+        "path": "src/native_volume_file.cpp",
+        "blob": "d104289ecb7fa83aa0599e48121979b3049af2d9"
+      },
+      {
+        "path": "src/native_volume_file_reclaimer.hpp",
+        "blob": "cc3611b0ac5d05945aa3f67ecaf4d442d94e2aa2"
+      },
+      {
+        "path": "src/paged_store.cpp",
+        "blob": "ea492acc30cc783cd9c783177a8371d746ffaa19"
+      },
+      {
+        "path": "tests/test_native_volume_file.cpp",
+        "blob": "1dfdeb1584356408bd7ec080e83a5d0019ed1d24"
+      },
+      {
+        "path": "tests/test_protected_indexed_image.cpp",
+        "blob": "3d50ee44c19dd3472e3ef91fede6c5ac4ec915ae"
+      }
+    ]
+  },
+  "qualification_scope": "Windows callback and storage tests in bounded processes. Occupancy and write counts are measurements of the memory-backed fixture. The source corpus is identical in each arm. The independent codec comparison does not exercise the earlier grouped CPython winner.",
+  "profile_command_mode": "--profile-cold-placement",
+  "experimental_policy": {
+    "explicit_opt_in": true,
+    "one_source_checkpoint": true,
+    "ordinary_cpu_read_all": true,
+    "existing_paged_codec": 5,
+    "existing_required_feature_bit": 0,
+    "research_default_enabled": false
+  },
+  "profiles": [
+    {
+      "id": "ait-i-p",
+      "fixture_sha256": "26204e32bf232e5a40d5cce9d4f63a87c25fcb19f6eceadbff7c76321468c159",
+      "fixture_bytes": 25153047,
+      "logical_bytes": 25153011,
+      "files": 8,
+      "output_sha256": "7bfcabd126949fb977e0613358bfa541856b463bf0d0bc0f0d37a22f3f4035b9",
+      "supervisor_sha256": "003711541de7407f5b5fa3c5414a15bc181bc376b6258ae1ea1d4531ad7a6c8d",
+      "arms": [
+        {
+          "arm": "ordinary_mirror",
+          "occupied_bytes": 35143680,
+          "selector_bytes": 131072,
+          "build_write_bytes": 35151872,
+          "sampled_range_read_bytes": 9110879,
+          "selected": 1,
+          "cpu_exact": 1
+        },
+        {
+          "arm": "ordinary_seal",
+          "occupied_bytes": 22495232,
+          "selector_bytes": 131072,
+          "base_bytes": 22102016,
+          "tail_bytes": 262144,
+          "workspace_bytes": 17571840,
+          "workspace_write_bytes": 17580032,
+          "backing_write_bytes": 22495744,
+          "build_write_bytes": 40075776,
+          "sampled_range_read_bytes": 11264000,
+          "selected": 1,
+          "byte_planes": 0,
+          "repaired_unit": 0,
+          "cpu_exact": 1
+        },
+        {
+          "arm": "planes_mirror",
+          "occupied_bytes": 33816576,
+          "selector_bytes": 131072,
+          "build_write_bytes": 33824768,
+          "sampled_range_read_bytes": 8906099,
+          "selected": 1,
+          "cpu_exact": 1
+        },
+        {
+          "arm": "planes_seal",
+          "occupied_bytes": 21659648,
+          "selector_bytes": 131072,
+          "base_bytes": 21266432,
+          "tail_bytes": 262144,
+          "workspace_bytes": 16908288,
+          "workspace_write_bytes": 16916480,
+          "backing_write_bytes": 21660160,
+          "build_write_bytes": 38576640,
+          "sampled_range_read_bytes": 10133504,
+          "selected": 1,
+          "byte_planes": 1,
+          "repaired_unit": 0,
+          "cpu_exact": 1
+        },
+        {
+          "arm": "planes_fused",
+          "occupied_bytes": 21659648,
+          "selector_bytes": 131072,
+          "base_bytes": 21266432,
+          "tail_bytes": 262144,
+          "workspace_bytes": 16908288,
+          "workspace_write_bytes": 16916480,
+          "backing_write_bytes": 21660160,
+          "build_write_bytes": 38576640,
+          "sampled_range_read_bytes": 10133504,
+          "selected": 1,
+          "byte_planes": 1,
+          "repaired_unit": 0,
+          "cpu_exact": 1
+        }
+      ],
+      "comparison": {
+        "staged_write_bytes": 72401408,
+        "fused_write_bytes": 38576640,
+        "staged_seal_bytes": 21659648,
+        "fused_seal_bytes": 21659648,
+        "write_bytes_saved": 33824768,
+        "occupied_bytes_saved_from_ordinary_mirror": 13484032
+      }
+    },
+    {
+      "id": "ait-a-h",
+      "fixture_sha256": "bb25d5ebcdcdfe0daf4ebc0d78a452d9e8937808fbb2a481d33bafa5e15b1c42",
+      "fixture_bytes": 13136344,
+      "logical_bytes": 13136308,
+      "files": 8,
+      "output_sha256": "03646e000e494494d529fa5f2b8bc063e9533716eafd0d2075a0c9c1dd2293a8",
+      "supervisor_sha256": "58aa43a24bdfc91fbd7f887da677ee9962d34daa08485dd71800540366f06121",
+      "arms": [
+        {
+          "arm": "ordinary_mirror",
+          "occupied_bytes": 15572992,
+          "selector_bytes": 131072,
+          "build_write_bytes": 15581184,
+          "sampled_range_read_bytes": 7982305,
+          "selected": 1,
+          "cpu_exact": 1
+        },
+        {
+          "arm": "ordinary_seal",
+          "occupied_bytes": 10260480,
+          "selector_bytes": 131072,
+          "base_bytes": 9867264,
+          "tail_bytes": 262144,
+          "workspace_bytes": 7786496,
+          "workspace_write_bytes": 7794688,
+          "backing_write_bytes": 10260992,
+          "build_write_bytes": 18055680,
+          "sampled_range_read_bytes": 8847360,
+          "selected": 1,
+          "byte_planes": 0,
+          "repaired_unit": 0,
+          "cpu_exact": 1
+        },
+        {
+          "arm": "planes_mirror",
+          "occupied_bytes": 14925824,
+          "selector_bytes": 131072,
+          "build_write_bytes": 14934016,
+          "sampled_range_read_bytes": 7786089,
+          "selected": 1,
+          "cpu_exact": 1
+        },
+        {
+          "arm": "planes_seal",
+          "occupied_bytes": 9854976,
+          "selector_bytes": 131072,
+          "base_bytes": 9461760,
+          "tail_bytes": 262144,
+          "workspace_bytes": 7462912,
+          "workspace_write_bytes": 7471104,
+          "backing_write_bytes": 9855488,
+          "build_write_bytes": 17326592,
+          "sampled_range_read_bytes": 8581120,
+          "selected": 1,
+          "byte_planes": 1,
+          "repaired_unit": 0,
+          "cpu_exact": 1
+        },
+        {
+          "arm": "planes_fused",
+          "occupied_bytes": 9854976,
+          "selector_bytes": 131072,
+          "base_bytes": 9461760,
+          "tail_bytes": 262144,
+          "workspace_bytes": 7462912,
+          "workspace_write_bytes": 7471104,
+          "backing_write_bytes": 9855488,
+          "build_write_bytes": 17326592,
+          "sampled_range_read_bytes": 8581120,
+          "selected": 1,
+          "byte_planes": 1,
+          "repaired_unit": 0,
+          "cpu_exact": 1
+        }
+      ],
+      "comparison": {
+        "staged_write_bytes": 32260608,
+        "fused_write_bytes": 17326592,
+        "staged_seal_bytes": 9854976,
+        "fused_seal_bytes": 9854976,
+        "write_bytes_saved": 14934016,
+        "occupied_bytes_saved_from_ordinary_mirror": 5718016
+      }
+    },
+    {
+      "id": "cpython",
+      "fixture_sha256": "d053d6acd0551763909205a2ed670d6bf6bc3e61a13ef0cd13ca93e69c5489f9",
+      "fixture_bytes": 2510781,
+      "logical_bytes": 2510681,
+      "files": 24,
+      "output_sha256": "3dc64b5448e84d72ed373c2ef12040b2a517caa236b9c6aadc4d53138ac65dae",
+      "supervisor_sha256": "5765f1f5cab5b81b875c9769ddfac70e3d6f70888e5b73f6bbdd4928e6b5e3e0",
+      "arms": [
+        {
+          "arm": "ordinary_mirror",
+          "occupied_bytes": 1474560,
+          "selector_bytes": 131072,
+          "build_write_bytes": 1482752,
+          "sampled_range_read_bytes": 15011842,
+          "selected": 1,
+          "cpu_exact": 1
+        },
+        {
+          "arm": "ordinary_seal",
+          "occupied_bytes": 1449984,
+          "selector_bytes": 131072,
+          "base_bytes": 1056768,
+          "tail_bytes": 262144,
+          "workspace_bytes": 737280,
+          "workspace_write_bytes": 745472,
+          "backing_write_bytes": 1450496,
+          "build_write_bytes": 2195968,
+          "sampled_range_read_bytes": 14172160,
+          "selected": 1,
+          "byte_planes": 0,
+          "repaired_unit": 0,
+          "cpu_exact": 1
+        },
+        {
+          "arm": "planes_mirror",
+          "occupied_bytes": 1474560,
+          "selector_bytes": 131072,
+          "build_write_bytes": 1482752,
+          "sampled_range_read_bytes": 15011842,
+          "selected": 1,
+          "cpu_exact": 1
+        },
+        {
+          "arm": "planes_seal",
+          "occupied_bytes": 1449984,
+          "selector_bytes": 131072,
+          "base_bytes": 1056768,
+          "tail_bytes": 262144,
+          "workspace_bytes": 737280,
+          "workspace_write_bytes": 745472,
+          "backing_write_bytes": 1450496,
+          "build_write_bytes": 2195968,
+          "sampled_range_read_bytes": 14172160,
+          "selected": 1,
+          "byte_planes": 0,
+          "repaired_unit": 0,
+          "cpu_exact": 1
+        },
+        {
+          "arm": "planes_fused",
+          "occupied_bytes": 1449984,
+          "selector_bytes": 131072,
+          "base_bytes": 1056768,
+          "tail_bytes": 262144,
+          "workspace_bytes": 737280,
+          "workspace_write_bytes": 745472,
+          "backing_write_bytes": 1450496,
+          "build_write_bytes": 2195968,
+          "sampled_range_read_bytes": 14172160,
+          "selected": 1,
+          "byte_planes": 0,
+          "repaired_unit": 0,
+          "cpu_exact": 1
+        }
+      ],
+      "comparison": {
+        "staged_write_bytes": 3678720,
+        "fused_write_bytes": 2195968,
+        "staged_seal_bytes": 1449984,
+        "fused_seal_bytes": 1449984,
+        "write_bytes_saved": 1482752,
+        "occupied_bytes_saved_from_ordinary_mirror": 24576
+      }
+    }
+  ],
+  "earlier_grouped_cpython_control": {
+    "evidence": "docs/evidence/windows-native-byte-plane-2026-11-26.json",
+    "occupied_bytes": 696320
+  },
+  "recovery": {
+    "damaged_sealed_unit_test": {
+      "arm": "planes_fused",
+      "occupied_bytes": 2850816,
+      "selector_bytes": 131072,
+      "base_bytes": 2457600,
+      "tail_bytes": 262144,
+      "workspace_bytes": 1859584,
+      "workspace_write_bytes": 1867776,
+      "backing_write_bytes": 2851328,
+      "build_write_bytes": 4719104,
+      "sampled_range_read_bytes": 3624960,
+      "selected": 1,
+      "byte_planes": 1,
+      "repaired_unit": 1,
+      "cpu_exact": 1
+    },
+    "matched_synthetic_selection": {
+      "staged_write_bytes": 8446464,
+      "fused_write_bytes": 4719104,
+      "staged_seal_bytes": 2850816,
+      "fused_seal_bytes": 2850816
+    },
+    "file_owner_direct_selection": {
+      "before": 4390912,
+      "after": 2686976,
+      "direct_selection": 1,
+      "scratch_retired": 1,
+      "cpu_exact": 1
+    },
+    "old_snapshot_pinned_until_reader_release": true
+  },
+  "validation": [
+    {
+      "lane": "Windows focused storage and selector",
+      "passed": 4,
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 117776384,
+      "elapsed_seconds": 8.547000000020489,
+      "output_sha256": "a9107770dc90585fa5d43dcd037f89d1893ffed6c510ce9035980d8b41cf6228",
+      "supervisor_sha256": "f27320c73ff8c745704580dea18ef168bf8eb978380f7eb366bc2dc35d8ad7e9"
+    },
+    {
+      "lane": "Windows raw-only",
+      "passed": 3,
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 81375232,
+      "elapsed_seconds": 4.5,
+      "output_sha256": "e94a029dc30daacdc3793ec3334a41fbfaa895a96114eae700b746097d7279d9",
+      "supervisor_sha256": "ea055ae50156dab42bd001200d351f4bb3cf356a901b3ad25e52ffe6276f4709"
+    },
+    {
+      "lane": "Windows AddressSanitizer",
+      "passed": 4,
+      "includes_runtime_preflight": true,
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 737677312,
+      "elapsed_seconds": 19.59299999999348,
+      "output_sha256": "47217c3ea9944d84edf30bb3783088928bd55312e2cbd8f92386bf1c45ec1d5c",
+      "supervisor_sha256": "9d4c5ffe62075ce50432ca4bf4c98498074586510848fe5b2ccdbaa01db83141"
+    },
+    {
+      "lane": "Windows Release and WinFsp SDK",
+      "passed": 238,
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 680714240,
+      "elapsed_seconds": 317.75,
+      "output_sha256": "435ff17c2d618bdb69b42afa08f5f57367610d22e49fa60662efb11a6dc8b8da",
+      "supervisor_sha256": "5930fb421b64271498e36f7003d64bd18b5ce7e1950aa7c3c4a1180722691cdf"
+    }
+  ],
+  "earlier_fixture_corrections": [
+    {
+      "issue": "The initial small synthetic image was below the protected seal break-even. The successful recovery fixture uses more extents so it can exercise a published parity base.",
+      "output_sha256": "22b258917cfff405a5f74394891581354a98579d36dde66327cdb98eb634a0cb"
+    },
+    {
+      "issue": "The independent reopen helper was bound to the older fixture identity. The new fixture passes its candidate identity explicitly.",
+      "output_sha256": "29c8a4270e910bb91920b3c6d264a34e314e4dfd6101ebf47951b926768d717b"
+    }
+  ],
+  "amd": {
+    "scope": "Separate retained grouped-read fixture",
+    "candidate_stage_sha256": "de257cc0e2c4b819a0e169c21f53e178bebb9d4d2b8c748261d5c3d5d5c01e37",
+    "artifacts": {
+      "flitzfs_winfsp_paged_tests.exe": {
+        "bytes": 2363904,
+        "sha256": "ce54471afa37c3431f696f3cb0fe69e7bad9bf9161aa9f2ee45496d492a9581a"
+      },
+      "winfsp-x64.dll": {
+        "bytes": 200816,
+        "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+      },
+      "flitzfs_native_lz4_read_worker.exe": {
+        "bytes": 582144,
+        "sha256": "9767b60477dff8f0a62bd04dff4fbe466e229065f58874b58a4f9f65d675ae9c"
+      },
+      "flitzfs_rocm_native_lz4_decode.dll": {
+        "bytes": 173568,
+        "sha256": "5bf82b27d04632f91dce4731b9764c280169d6c3027490bc1fe6a7d2ab3c6223"
+      }
+    },
+    "admission": {
+      "admitted": false,
+      "reason": "Existing host load above the fixture envelope",
+      "utc": "2026-11-26T03:47:47.7267088Z",
+      "driver": "32.0.32029.2010",
+      "build": "26300",
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "luid": "9d75010000000000",
+      "available_bytes": 15251415040,
+      "reserved_bytes": 4294967296,
+      "gpu_peak": 100.55958418851083,
+      "cpu_peak": 15.57495981554986,
+      "target_samples": 816
+    },
+    "worker_started": false,
+    "output_sha256": "36008f44b57775cd051e4441cf449c748039f77532667fd4f0aa377efdd9f37a",
+    "supervisor_sha256": "ef3716591210ebdee4c2d48a0edfdc50601466a902aa010af714aed3738e27f8",
+    "last_independently_verified_device_delivery": "docs/evidence/windows-native-byte-plane-2026-11-26.json"
+  },
+  "research": {
+    "crawl": "0.9.5+flitzzip.portable2",
+    "lock": "01fbef3b628f772e4aba9724b6ced11c0f211d4d3bf51e38d1b9d0039eac997b",
+    "robots": true,
+    "external_LLM": false,
+    "timeout": 45,
+    "research_sha256": "241d922a0f7887f9bae9e6bb614a71c56e71aa2e1fb8b8de4d241ab87266b61b",
+    "pages": [
+      {
+        "name": "refs-mirror-parity",
+        "url": "https://learn.microsoft.com/en-us/windows-server/storage/refs/mirror-accelerated-parity",
+        "success": true,
+        "final_http_status": 200,
+        "expected_content": true,
+        "markdown_bytes": 28402,
+        "markdown_sha256": "99b7e6d70e8500bc4493a2bb1e232f1e42e66b1146d317bf948d70d7746f1e63",
+        "capture_sha256": "33386009b537dc906ac7d14821058fec9b66dfb2cbf1d994a0a1a636e61adcb2"
+      },
+      {
+        "name": "less-repair",
+        "url": "https://www.usenix.org/conference/fast26/presentation/cheng",
+        "success": true,
+        "final_http_status": 200,
+        "expected_content": true,
+        "markdown_bytes": 10304,
+        "markdown_sha256": "0ea45f43f4ea6056f57e70f054171ca2e59825feaad7bb5162b6378855841e91",
+        "capture_sha256": "616d767ff356dbc708fa19de2fa2919fbaec754aa5b4e6d93a8b879e239a1335"
+      }
+    ],
+    "source": {
+      "commit": "b0e4d6286debfbe5c60e1fa2e73663f71287710c",
+      "dirty_patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_files": 4,
+      "inventory_sha256": "b0eaa831ee756cd626f1a1873de74853dc0abab7517c97bdf25e32a7b63197bb",
+      "provider_version": "0.2.43",
+      "native_response_sha256": "1b6f59f4f50ef6b7427a68788954416b1c2ecb2b0db7e4254cb51eb8912a76c6",
+      "actual_searches": 1
+    },
+    "navigation_sha256": "ad9ee3b9e1daaa93e238290dbb7720e939ca8bc59fb9e385a592c56ace02e88e"
+  },
+  "physical_power_loss_qualified": false,
+  "mounted_performance_qualified": false,
+  "release_qualified": false
+}

@@ -89,11 +89,11 @@ class NativeObjectWriter final {
   const PagedObjectStoreWriter* paged_if() const noexcept {return std::get_if<PagedObjectStoreWriter>(&value_);}
   PagedObjectStoreWriter::Rewrite prepare_folded_rebuild(std::shared_ptr<StoreByteIo> target,StoreIdentity id,
       std::span<const std::byte> root,StoreCompressionOptions compression,std::size_t identity_offset,
-      std::function<void(std::uint64_t)> admission) const {
+      std::function<void(std::uint64_t)> admission,std::optional<PagedObjectStoreWriter::RebuildColdEncoding> cold) const {
     const auto* source=paged_if();
     if(!source)throw NativeFsError(NativeFsErrorCode::invalid_operation,"folded rewrite needs a paged writer");
     return source->prepare_rebuild_impl(std::move(target),id,compression,root,false,identity_offset,{},
-        PagedRewriteMode::exact_checkpoint,{},std::move(admission));
+        PagedRewriteMode::exact_checkpoint,std::move(cold),std::move(admission));
   }
   PagedObjectStoreWriter::Rewrite prepare_paged_rebuild(std::shared_ptr<StoreByteIo> target,
       StoreIdentity id,std::span<const std::byte> root,StoreCompressionOptions compression,bool reencode,
