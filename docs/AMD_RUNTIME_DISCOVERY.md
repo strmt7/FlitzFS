@@ -50,6 +50,15 @@ includes the worker, retained source, framed replies and CPU replay.
 When the allowance cannot fund two complete requests, the controller
 can compare one sealed exchange.
 
+The controller remembers the largest grant behind a verified comparison
+for each write size and protected layout. On later eligible writes, it
+prices the current memory allowance before copying data. A larger grant
+can start another comparison after the existing pacing gate. Equal or
+smaller grants skip the detached replays. The reported funded and
+admitted request counts distinguish reserved capacity from actual demand.
+[Windows live memory observations](https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-globalmemorystatusex) ·
+[Controller verification](evidence/windows-amd-write-grant-growth-2026-11-26.json)
+
 A uniform-only manifest without a trial profile retains diagnostic
 acquisition and ordinary CPU observation. Foreground route selection
 requires its own verified cost evidence.

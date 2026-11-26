@@ -70,8 +70,10 @@ std::optional<NativeAmdWriteWorkerPlan> plan_native_amd_write_worker(const Nativ
     std::span<const UniformLz4BatchInput>,NativeAmdTrialLaunch,ProcessBudget,std::uint64_t allowance) noexcept;
 // Reserve the largest funded prefix of the requested burst. Only the first
 // eligible write's size is needed. Every later frame retains its own admission.
+// A measured count makes smaller or equal plans ineligible for recalibration.
 std::optional<NativeAmdWriteWorkerPlan> plan_native_amd_write_burst(const NativeManagedForeground&,
-    std::uint32_t request_bytes,std::uint32_t maximum_requests,ProcessBudget,std::uint64_t allowance) noexcept;
+    std::uint32_t request_bytes,std::uint32_t maximum_requests,ProcessBudget,std::uint64_t allowance,
+    std::uint32_t measured_requests=0) noexcept;
 struct NativeAmdDeviceTrial {
   std::optional<NativeAmdWriteSample> sample,matched_cpu;
   std::uint64_t ready_ns=0,exchange_ns=0,cpu_wall_ns=0;

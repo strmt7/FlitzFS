@@ -488,6 +488,12 @@ void native_amd_worker_plan() {
   check(capped && capped->maximum_requests==2 &&
       !plan_native_amd_write_burst(storage,kNativeExtentBytes,3,budget,two_charge-1),
       "Burst planning crossed its largest funded prefix");
+  const auto grew=plan_native_amd_write_burst(storage,kNativeExtentBytes,3,budget,allowance,2);
+  check(!plan_native_amd_write_burst(storage,kNativeExtentBytes,3,budget,two_charge,2) &&
+      !plan_native_amd_write_burst(storage,kNativeExtentBytes,3,budget,two_charge-1,2) &&
+      grew && grew->maximum_requests==3 &&
+      !plan_native_amd_write_burst(storage,kNativeExtentBytes,3,budget,allowance,3),
+      "Measured requests did not block repeated grants and admit strictly larger ones");
   check(!plan_native_amd_write_burst(storage,kNativeExtentBytes,0,budget,allowance) &&
       !plan_native_amd_write_burst(storage,kNativeExtentBytes,1,budget,allowance) &&
       !plan_native_amd_write_burst(storage,kNativeExtentBytes-1,3,budget,allowance) &&

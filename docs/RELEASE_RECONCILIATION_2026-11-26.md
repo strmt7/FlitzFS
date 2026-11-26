@@ -239,17 +239,18 @@ qualify.
 2. Prioritize grouped reads with predictable lead and large or recurring
    write cohorts. Feed only a bounded eligible range into the retained
    worker. The installed write trial now funds the largest complete
-   burst within the observed grant. Record funded and completed request
-   counts separately. Revisit completed geometries when a materially
-   larger burst becomes fundable and retain results through unchanged
-   grants. Extend demand-lead estimates from actual arrivals, startup
-   distribution and measured reuse, with prompt retirement on stalls,
+   burst within the observed grant. It records funded and completed
+   request counts separately and can revisit a geometry when fresh
+   headroom funds a larger burst. Extend demand-lead estimates from
+   actual arrivals, startup distribution and measured reuse, with
+   prompt retirement on stalls,
    pressure, detach or incompatible I/O. Background admission on a
    runtime without stream priority requires fresh idle evidence and
    finite dispatch. A refused or failed route leaves CPU I/O available
    without waiting for GPU cleanup. Retry only with relevant changed
    evidence and confirmed retirement.
    [Funded burst and CPU verification](evidence/windows-adaptive-amd-write-bursts-2026-11-26.json)
+   · [Grant growth and engine deferral](evidence/windows-amd-write-grant-growth-2026-11-26.json)
 3. The foreground writer now binds the fresh completion observation to the
    exact request and records counter order after CPU validation. The SDK
    verifies acceptance within a coarse tick and CPU fallback on ambiguous

@@ -7,6 +7,20 @@
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
   "current_release_review": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
+  "amd_write_grant_growth": {
+    "source_parent": "00e10c271222c07f64e357330f8021022429d182",
+    "tested_source_tree": "f9d4d6628cdcfd4bd824e2e66ac2a07867078d27",
+    "evidence": "docs/evidence/windows-amd-write-grant-growth-2026-11-26.json",
+    "windows_tests": 238,
+    "deterministic_larger_grant_admitted": true,
+    "unchanged_grant_suppresses_replay": true,
+    "radeon_funded_requests": 8,
+    "radeon_admitted_requests": 2,
+    "independently_verified_bytes": 196608,
+    "engine_deferral_cpu_continuity_verified": true,
+    "ordinary_mounted_speed_qualified": false,
+    "release_qualified": false
+  },
   "adaptive_amd_write_bursts": {
     "source_parent": "087e849569900f88cbcf0abb993c80682b2525fc",
     "tested_source_tree": "75e1ef992355a8fec4c9836a6892896db277c3de",

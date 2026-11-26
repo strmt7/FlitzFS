@@ -285,8 +285,9 @@ std::optional<NativeAmdWriteWorkerPlan> plan_native_amd_write_worker(const Nativ
 
 std::optional<NativeAmdWriteWorkerPlan> plan_native_amd_write_burst(const NativeManagedForeground& storage,
     std::uint32_t request_bytes,std::uint32_t maximum_requests,ProcessBudget budget,
-    std::uint64_t allowance) noexcept {
-  if(maximum_requests<2 || !valid_shape({request_bytes,storage}))return {};
+    std::uint64_t allowance,std::uint32_t measured_requests) noexcept {
+  if(maximum_requests<2 || measured_requests>=maximum_requests ||
+      !valid_shape({request_bytes,storage}))return {};
   uniform_lz4::Layout work{};
   if(!uniform_lz4::make_layout(request_bytes,kNativeExtentBytes,work))return {};
   const auto plan_for=[&](std::uint32_t count)->std::optional<NativeAmdWriteWorkerPlan> {
@@ -305,7 +306,8 @@ std::optional<NativeAmdWriteWorkerPlan> plan_native_amd_write_burst(const Native
   // With a fixed request size, framing, owned input and replay costs can
   // only rise with the request count. Keep the largest complete grant.
   std::optional<NativeAmdWriteWorkerPlan> funded;
-  std::uint32_t low=2,high=maximum_requests-1;
+  auto low=(std::max)(2U,measured_requests+1);
+  auto high=maximum_requests-1;
   while(low<=high) {
     const auto count=low+(high-low)/2;
     if(auto candidate=plan_for(count)) {

@@ -438,6 +438,17 @@ original files and the replay on CPU. Readiness took 2.159 s of the
 [Live funded burst](evidence/windows-adaptive-amd-write-bursts-2026-11-26.json) ·
 [AMD HIP performance guidelines](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/performance_guidelines.html)
 
+The installed controller tests the current grant against the largest
+previously funded comparison for the write geometry. The boundary
+fixture progresses from two funded slots to three and rejects a grant
+that funds two again. The public-source controller run reserved eight
+slots, supplied a 128 KiB write and a later 64 KiB write, and verified
+the three device-encoded extents against CPU. On the repeat, the engine
+gate deferred. Both original writes still reopened byte for byte after
+confirmed retirement. The matched occupied sizes were 240 KiB for the
+CPU replay and 264 KiB for the device replay.
+[Grant growth and public-source readback](evidence/windows-amd-write-grant-growth-2026-11-26.json)
+
 An approved `await_later_writes` profile can start with one ordinary,
 already-committed write. After completing a request, the worker keeps its
 initialized HIP runtime, stream and bounded working buffer while it sleeps

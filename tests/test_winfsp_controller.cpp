@@ -4513,7 +4513,8 @@ void concurrent_memory_store_accounting() {
 }
 
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
-void amd_write_arrival_trial(std::string_view mode,const std::filesystem::path& public_input={}) {
+void amd_write_arrival_trial(std::string_view mode,const std::filesystem::path& public_input={},
+    bool allow_engine_deferral=false) {
   const bool mixed=mode=="mixed";
   const bool geometry=mode=="geometry";
   const bool oversized=mode=="oversized";
@@ -4583,12 +4584,14 @@ void amd_write_arrival_trial(std::string_view mode,const std::filesystem::path& 
   await([&]{const auto view=owner.view();return view.amd_write_waiting || view.amd_write_trial.has_value();},13000,
       "Owner did not reach its arriving write boundary");
   const auto parked=owner.view();
+  const bool deferred_before_arrival=allow_engine_deferral && parked.amd_write_trial &&
+      parked.amd_write_trial->status==HipDiscoveryStatus::engine_deferred;
   if(!parked.amd_write_waiting && parked.amd_write_trial) {
     const auto& failed=*parked.amd_write_trial;
     std::cerr<<"arriving_owner_status="<<static_cast<unsigned>(failed.status)
         <<" requests="<<failed.device.admitted_requests<<" ready_ns="<<failed.device.ready_ns<<'\n';
   }
-  require(parked.amd_write_waiting,"Owner did not park a completed request");
+  require(parked.amd_write_waiting || deferred_before_arrival,"Owner did not park a completed request");
   if(later)commit(L"\\later",following,1);
   if(stop_waiting)owner.stop_and_join();
   else await([&]{return owner.view().amd_write_trial.has_value();},9000,"Arriving trial did not settle");
@@ -4600,18 +4603,25 @@ void amd_write_arrival_trial(std::string_view mode,const std::filesystem::path& 
   const std::size_t expected=receive_later?2:1;
   const auto expected_bytes=initial.size()+(receive_later?following.size():0);
   std::cout<<"arriving_owner status="<<static_cast<unsigned>(trial.status)
-      <<" requests="<<device.admitted_requests<<" cpu_writes="<<trial.reference.sample.transactions
+      <<" funded="<<trial.funded_requests<<" requests="<<device.admitted_requests
+      <<" cpu_writes="<<trial.reference.sample.transactions
       <<" gpu_writes="<<(device.sample?device.sample->transactions:0)
       <<" stored="<<(device.sample?device.sample->stored_lz4_candidates:0)
       <<" verified_input_bytes="<<device.verified_input_bytes
       <<" exchange="<<static_cast<unsigned>(device.exchange)<<" worker_exit="<<device.worker_exit
-      <<" parked=1 ready_ns="<<device.ready_ns<<" device_wall_ns="<<trial.device_wall_ns
+      <<" parked="<<parked.amd_write_waiting<<" ready_ns="<<device.ready_ns<<" device_wall_ns="<<trial.device_wall_ns
       <<" cpu_wall_ns="<<trial.reference.wall_ns<<" retired="<<device.worker_retired<<'\n';
-  if(stop_waiting) {
+  if(allow_engine_deferral && trial.status==HipDiscoveryStatus::engine_deferred) {
+    require(!device.sample && (!device.supervised_ns || device.worker_retired) &&
+        WorkerExchangeSession::available(),"Deferred accelerator retained a worker or exposed a result");
+    owner.stop_and_join();
+  }else if(stop_waiting) {
     require(trial.status==HipDiscoveryStatus::cancelled && !device.sample && device.worker_retired,
         "Shutdown did not cancel and retire the parked worker");
   }else {
-    require(trial.status==HipDiscoveryStatus::ready && device.sample && device.matched_cpu && device.worker_retired &&
+    require(trial.status==HipDiscoveryStatus::ready && trial.funded_requests>=2 &&
+        trial.funded_requests<=profile->maximum_batch_chunks/(initial.size()/kNativeExtentBytes) &&
+        trial.funded_requests>=device.admitted_requests && device.sample && device.matched_cpu && device.worker_retired &&
         device.admitted_requests==expected && trial.reference.sample.transactions==expected &&
         device.sample->cpu_readback_verified && device.sample->transactions==expected &&
         device.sample->input_digest==trial.reference.sample.input_digest &&
@@ -5337,7 +5347,8 @@ int main(int argc,char** argv){try {
     const std::filesystem::path input=argc==4?argv[3]:"";
     amd_write_arrival_trial(argv[2],input);
     before=handle_count();
-    if(std::string_view(argv[2])!="geometry")amd_write_arrival_trial(argv[2],input);
+    const std::string_view mode=argv[2];
+    if(mode!="geometry")amd_write_arrival_trial(mode,input,mode=="mixed");
 #else
     throw std::runtime_error("Arriving write trial package is unavailable");
 #endif

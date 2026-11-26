@@ -1,0 +1,339 @@
+{
+  "schema": 1,
+  "date": "2026-11-26",
+  "source_parent": "00e10c271222c07f64e357330f8021022429d182",
+  "tested_source_tree": "f9d4d6628cdcfd4bd824e2e66ac2a07867078d27",
+  "tested_source_blobs": [
+    {
+      "path": "src/windows/native_amd_write_policy.cpp",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3d392a5256192d44d62890e8a54adc0df067bd67",
+      "bytes": 32431
+    },
+    {
+      "path": "src/windows/native_amd_write_policy.hpp",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0eec550c683397123e3e6a906e5c41877048138c",
+      "bytes": 6644
+    },
+    {
+      "path": "src/windows/winfsp_controller.cpp",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "15a2b8e38b3b3368b5f4770e7b4364d9f88ac3c0",
+      "bytes": 70373
+    },
+    {
+      "path": "src/windows/winfsp_controller.hpp",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f7492174973c9197351556495f92284ac6636685",
+      "bytes": 5056
+    },
+    {
+      "path": "tests/test_native_deferred_write_sdk.cpp",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f0ea518656467716affdba4a772d8ac31cd2cd99",
+      "bytes": 125885
+    },
+    {
+      "path": "tests/test_winfsp_controller.cpp",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3ce6f38950e2ee4a75172519c123e32640950695",
+      "bytes": 333603
+    }
+  ],
+  "scope": "Windows 11 SDK callback and controller fixture, backed by owned memory. A CPU model exercises changing host grants. Live Radeon runs exercise an admitted burst and a subsequent clean deferral.",
+  "checks": {
+    "release_build": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 12.452999999979511,
+      "peak_job_bytes": 440635392,
+      "launcher_error_mode": 32771,
+      "result_sha256": "957840b704955d23d21eb5fbdaad03e5957a4bc255cf3cc9a53ac8292ea0883c",
+      "output_sha256": "36552d2e5a1b67d5365a00bedafbdb9c48094dfb99f39e8c0a695050eb5446f4"
+    },
+    "full_windows": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 153.71900000001187,
+      "peak_job_bytes": 725704704,
+      "launcher_error_mode": 32771,
+      "passed_tests": 238,
+      "result_sha256": "68aa99d9c57687aa4d5a3249fdfce345e5e6024653c42c96488dd1dbb3edac91",
+      "output_sha256": "703aca6d9d3862a2c343ca6c5b83f872c661a3da6b67b07be0f2db074ce33c9e"
+    },
+    "sanitizer_build": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 15.98399999999674,
+      "peak_job_bytes": 710623232,
+      "launcher_error_mode": 32771,
+      "result_sha256": "3e3292c74d3b40a565886624f055e7b6fc1965e7d07d90c8889e797c027d4d50",
+      "output_sha256": "921c19cbab59de4332ac1b849c83a18ebe9343b98274040807852d3831394aee"
+    },
+    "sanitizer_focused": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 9.405999999988126,
+      "peak_job_bytes": 549208064,
+      "launcher_error_mode": 32771,
+      "passed_tests": 3,
+      "result_sha256": "850b4d0841a7de4e7fe26449e654673d9e5605b5c759418fc423dca9c3a0c7c7",
+      "output_sha256": "788590660bd9781050d107f694d68235f4c9d47d4755356f571bfac94310691e"
+    },
+    "raw_build": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 25.23399999999674,
+      "peak_job_bytes": 430247936,
+      "launcher_error_mode": 32771,
+      "result_sha256": "e30650162d7c5626d21e48e218701237ef9ac632d4edb794b0de3fc9cdf8704c",
+      "output_sha256": "0213436d04e08201ecefda79836c180f88f4a28bb6d10f5262c411bedc19cbf3"
+    },
+    "raw_sdk": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 0.5779999999795109,
+      "peak_job_bytes": 34304000,
+      "launcher_error_mode": 32771,
+      "passed_tests": 1,
+      "result_sha256": "f77016e4fe8a71226a39d90c46fa38b2d849d25628ce587323593195ab63b8e8",
+      "output_sha256": "9177c4b073ce2cb26a0ab3b65cc5f5ee20c1acde1815d32d08a300f3df0dd552"
+    },
+    "device_preflight": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 4.344000000011874,
+      "peak_job_bytes": 114688000,
+      "launcher_error_mode": 32771,
+      "result_sha256": "87e55aa600505da02ba37161c42a2af349bdff69ad7509f68a4a7e2a0dbded86",
+      "output_sha256": "b8b09c027af838e932ca9ba535a3b2181191186866bc758dea15b0254a0b3f7e"
+    }
+  },
+  "planner_regression": {
+    "deferred_callback_assertions": 390,
+    "initial_funded_requests": 2,
+    "larger_funded_requests": 3,
+    "unchanged_grant_suppresses_replay": true,
+    "smaller_grant_suppresses_replay": true,
+    "ceiling_suppresses_replay": true,
+    "asan_runtime_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed",
+    "raw_test_dependencies_unchanged_after_final_hardware_fixture_edit": true
+  },
+  "radeon": {
+    "admitted_headroom": {
+      "admitted": true,
+      "reason": null,
+      "utc": "2026-11-26T01:57:01.3675540Z",
+      "driver": "32.0.32029.2010",
+      "build": "26300",
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "luid": "9d75010000000000",
+      "available_bytes": 31421493248,
+      "reserved_bytes": 4294967296,
+      "gpu_peak": 0.0033923554008510387,
+      "cpu_peak": 32.98925295350451,
+      "target_samples": 800
+    },
+    "previous_headroom": [
+      {
+        "admitted": true,
+        "reason": null,
+        "utc": "2026-11-26T01:50:58.1047621Z",
+        "driver": "32.0.32029.2010",
+        "build": "26300",
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "luid": "9d75010000000000",
+        "available_bytes": 31175815168,
+        "reserved_bytes": 4294967296,
+        "gpu_peak": 0,
+        "cpu_peak": 6.542143092570152,
+        "target_samples": 800
+      },
+      {
+        "admitted": true,
+        "reason": null,
+        "utc": "2026-11-26T01:52:11.4928305Z",
+        "driver": "32.0.32029.2010",
+        "build": "26300",
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "luid": "9d75010000000000",
+        "available_bytes": 31707557888,
+        "reserved_bytes": 4294967296,
+        "gpu_peak": 0,
+        "cpu_peak": 6.932376421716102,
+        "target_samples": 800
+      }
+    ],
+    "stage_manifest_sha256": "e1620cbf4378f0908da476c5b2d54c2927f8ce573f89f6661c80df25defc8c50",
+    "package_manifest_sha256": "47e4276bf3d9189e1a293ae67ed1cce3e8dc59f0ef4262c11d64a7f1c3711e9d",
+    "artifacts": {
+      "amd/qualification-manifest.json": {
+        "bytes": 1342,
+        "sha256": "47e4276bf3d9189e1a293ae67ed1cce3e8dc59f0ef4262c11d64a7f1c3711e9d"
+      },
+      "amd/flitzfs_hip_lz4_worker.exe": {
+        "bytes": 622592,
+        "sha256": "5488521657d0be8e91ff497bda27e8ee0c35c1847ec2fd11c5f7def714d97544"
+      },
+      "amd/hip-uniform-lz4/flitzfs_rocm_uniform_lz4_candidate.dll": {
+        "bytes": 322048,
+        "sha256": "179797e791a8aac3e43c1277aca4a88edfe4650122af535d08c8b199d32b89c4"
+      },
+      "amd/uniform-write-trial-qualification.json": {
+        "bytes": 517,
+        "sha256": "01b2a8b024d155b15072e44feced412cf6208e1e65616f3fadc55871de031004"
+      },
+      "flitzfs_winfsp_controller_tests.exe": {
+        "bytes": 3130880,
+        "sha256": "942c9c5c4a3347dcadfe4bbf071d117c74cadf4217415f0c2e130fb3d2f8418b"
+      },
+      "winfsp-x64.dll": {
+        "bytes": 200816,
+        "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+      },
+      "public-input.cpp": {
+        "bytes": 332782,
+        "sha256": "8f574c6b0d13bd7f9e4094cf7f8327a1fad0f6f177123354b35bcff1ff3ace52"
+      }
+    },
+    "workload": {
+      "commit": "00e10c271222c07f64e357330f8021022429d182",
+      "file": "tests/test_winfsp_controller.cpp",
+      "blob": "1af095d735eb4f8ca08e27dad5928e00af45c51d",
+      "bytes": 332782,
+      "sha256": "8f574c6b0d13bd7f9e4094cf7f8327a1fad0f6f177123354b35bcff1ff3ace52",
+      "prefix_bytes": 196608,
+      "prefix_sha256": "f0457c24792f151e20c37f94d72d381d6514c2e37ec7f9141d70957bd5e0bc6c"
+    },
+    "attempts": [
+      {
+        "attempt": "initial",
+        "tested_source_tree": "9578770135d48ff5579a97c68ff0ccf3b34e5a49",
+        "result_sha256": "1f0a5cfab0ac0a227b74c7380449bdfa5ccfb36d4094d92fceda9fa9dd0da7f1",
+        "output_sha256": "14ae808e166a413437af48f67afe108db7dfebac647473b7c1bef2425f545d5f",
+        "exit_code": 1,
+        "tree_retired": true,
+        "elapsed_seconds": 12.328999999997905,
+        "peak_job_bytes": 118566912,
+        "summary_lines": [
+          "arriving_owner status=0 funded=8 requests=2 cpu_writes=2 gpu_writes=2 stored=3 verified_input_bytes=196608 exchange=0 worker_exit=0 parked=1 ready_ns=2527059500 device_wall_ns=3785429400 cpu_wall_ns=1699000 retired=1",
+          "write_layout unit=4096 compact_roots=1 shared_banks=0 inline_files=1 cpu_occupied=245760 amd_occupied=270336",
+          "arriving_originals verified=1 source_files=2 retained_after_stop=0"
+        ],
+        "outcome": "First trial verified. The original second-pass assertion rejected engine deferral before CPU readback."
+      },
+      {
+        "attempt": "retry",
+        "tested_source_tree": "9578770135d48ff5579a97c68ff0ccf3b34e5a49",
+        "result_sha256": "ebe119c8c4a2f0473cf2350b5fe0044982ad736ed88c36dc4241f3116e934a64",
+        "output_sha256": "aa7e182770533f53ff02f636d62f6fda8db16e619c44e305910c483761d5dcb7",
+        "exit_code": 1,
+        "tree_retired": true,
+        "elapsed_seconds": 12.03100000001723,
+        "peak_job_bytes": 119267328,
+        "summary_lines": [
+          "arriving_owner status=0 funded=8 requests=2 cpu_writes=2 gpu_writes=2 stored=3 verified_input_bytes=196608 exchange=0 worker_exit=0 parked=1 ready_ns=2358787400 device_wall_ns=3968341800 cpu_wall_ns=1735900 retired=1",
+          "write_layout unit=4096 compact_roots=1 shared_banks=0 inline_files=1 cpu_occupied=245760 amd_occupied=270336",
+          "arriving_originals verified=1 source_files=2 retained_after_stop=0"
+        ],
+        "outcome": "First trial verified. The original second-pass assertion rejected engine deferral before CPU readback."
+      },
+      {
+        "attempt": "final",
+        "tested_source_tree": "f9d4d6628cdcfd4bd824e2e66ac2a07867078d27",
+        "result_sha256": "f0f56ad36c49534fe467c264078e2712d02aec4cd183ec097419a484c42b455c",
+        "output_sha256": "bd05298ce91dd832489c8c30a0250b7aecbbc70a6417d3c29f1211ed99058f11",
+        "exit_code": 0,
+        "tree_retired": true,
+        "elapsed_seconds": 12.375,
+        "peak_job_bytes": 119812096,
+        "summary_lines": [
+          "arriving_owner status=0 funded=8 requests=2 cpu_writes=2 gpu_writes=2 stored=3 verified_input_bytes=196608 exchange=0 worker_exit=0 parked=1 ready_ns=2058779000 device_wall_ns=3852969600 cpu_wall_ns=1561200 retired=1",
+          "write_layout unit=4096 compact_roots=1 shared_banks=0 inline_files=1 cpu_occupied=245760 amd_occupied=270336",
+          "arriving_originals verified=1 source_files=2 retained_after_stop=0",
+          "arriving_owner status=17 funded=8 requests=0 cpu_writes=1 gpu_writes=0 stored=0 verified_input_bytes=0 exchange=3 worker_exit=0 parked=0 ready_ns=1377376200 device_wall_ns=1402646500 cpu_wall_ns=1320300 retired=1",
+          "arriving_originals verified=1 source_files=2 retained_after_stop=0",
+          "controller_handles before=328 after=328"
+        ],
+        "outcome": "Verified Radeon result and engine deferral with exact CPU continuity"
+      }
+    ],
+    "funded_requests": 8,
+    "actual_requests": 2,
+    "device_compressed_extents": 3,
+    "independent_cpu_readback_bytes": 196608,
+    "device_readiness_ns": 2058779000,
+    "device_replay_wall_ns": 3852969600,
+    "cpu_replay_wall_ns": 1561200,
+    "cpu_replay_occupied_bytes": 245760,
+    "device_replay_occupied_bytes": 270336,
+    "second_pass_status": "engine_deferred",
+    "second_pass_gpu_requests": 0,
+    "second_pass_cpu_files_verified": 2,
+    "confirmed_retirement": true,
+    "application_handles_before": 328,
+    "application_handles_after": 328,
+    "exact_cause_of_engine_deferral_observed": false,
+    "mounted_performance_qualified": false
+  },
+  "official_sources": {
+    "receipt_sha256": "9a14102fcd92155f4f549138859e08e9b9df8f49c64f45f2fa6529061bb7b7f0",
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "provider_lock_sha256": "01fbef3b628f772e4aba9724b6ced11c0f211d4d3bf51e38d1b9d0039eac997b",
+    "robots": true,
+    "external_LLM": false,
+    "pages": [
+      {
+        "name": "live-memory",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-globalmemorystatusex",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 23986,
+        "markdown_sha256": "4cdee1fc68e493283c148d7ddbb47a4496ace6652736b107a0b2c88a88b085de",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.561,
+        "capture": "live-memory.native.json",
+        "capture_sha256": "625c94c793f630c81d0cc05e6b34ac44579706dd477a80033a5f63bb4176f3b7"
+      },
+      {
+        "name": "commit-and-physical",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/ns-sysinfoapi-memorystatusex",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 23161,
+        "markdown_sha256": "c430c095c11da4843546d930382aa237f6f19af21895cda7e33c01d3f2285d37",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 2.042,
+        "capture": "commit-and-physical.native.json",
+        "capture_sha256": "8bc9a3d4a06a1c592b6a46955b4b4c8bbb18c5bd7cbdf9eba9e7375016134f36"
+      }
+    ]
+  },
+  "source_navigation": {
+    "receipt_sha256": "e255d35cd79779bb349c5a68518257d68b76fff9f4237a3a3efcd30e794021db",
+    "provider_version": "0.2.43",
+    "actual_searches": 1,
+    "native_response_sha256": "21f5e670eca57d677bbc6ca1804d2b10d5ed6dae1f3d514959ef5102e1390238",
+    "indexed_parent": "00e10c271222c07f64e357330f8021022429d182",
+    "confirmed_in_live_source": true
+  },
+  "qualification": {
+    "host_fixture_processes_remaining": 0,
+    "release_qualified": false
+  }
+}

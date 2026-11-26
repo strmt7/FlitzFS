@@ -19,6 +19,7 @@ struct WinFspAmdWriteTrial {
   HipDiscoveryStatus status=HipDiscoveryStatus::invalid_request;
   GpuConfigurationId configuration{};
   std::uint64_t discovery_ns=0,device_wall_ns=0,next_eligible_ms=0;
+  std::uint32_t funded_requests=0;
 };
 struct WinFspRebuildPhaseUse {
   std::uint64_t steps=0;
