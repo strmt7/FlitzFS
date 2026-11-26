@@ -12,6 +12,14 @@ the gates.
 [Implementation packages](IMPLEMENTATION_PLAN.md#3-execution-order-and-dependencies) ·
 [Release gates](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
 
+Writable reopen now retains a bounded set of packed inode pages for
+the name walk. The held-out 16,384-file fixture with permuted names
+used 47,886,704 image read bytes, down from 177,986,000. Ordered names
+and the named CPython control matched their previous I/O. Both
+replica checks and fences still run, and the CPU reader verified every
+file in the matched reopen workloads.
+[Packed inode audit evidence](evidence/windows-packed-audit-locality-2026-11-26.json)
+
 The independent AMD read path now packs unequal frame sizes into
 several dispatches inside one worker exchange. It charges the
 aggregate layout to the host grant and the largest slab to device

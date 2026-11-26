@@ -1284,3 +1284,30 @@ still checks reachability and the object walk still checks both stored copies.
 On the 16,384-file fixture, full verification read 56,629,855 backing bytes
 and the two-barrier writable reopen read 113,630,294 bytes with zero writes.
 [Indexed audit evidence](evidence/indexed-audit-reuse-2026-11-20.json)
+
+### Reuse packed inode pages during namespace verification
+
+A namespace can visit packed inodes in a different order from their
+creation. The audit retains checked pages by object ID during the name
+walk. The cache sizes itself from the selected image's inode geometry
+and shares the existing scratch allowance with the extent-owner list.
+If allocation declines, the audit uses its single checked page.
+The cache is released before the separate object walk, which still
+verifies both replicas. Name bindings, inode inventory, extent owners
+and the two writable fences remain required.
+
+| Files | Name order | Prior reopen image reads | Candidate image reads |
+| ---: | --- | ---: | ---: |
+| 1,024 | Permuted | 2,335,733 B | 1,286,029 B |
+| 4,096 | Creation order | 4,462,442 B | 4,462,442 B |
+| 4,096 | Permuted | 41,493,848 B | 6,796,952 B |
+| 8,192 | Permuted | 87,382,008 B | 20,311,320 B |
+| 16,384 | Permuted | 177,986,000 B | 47,886,704 B |
+
+Both arms verified every path, inode and payload through the CPU reader.
+The post-fence read counts in bytes matched and reopen wrote zero bytes.
+The 374-file CPython holdout also passed identical content and footprint
+checks. These measurements cover the complete audit and expose the
+effect of name order. A durable changed-page proof remains a separate
+writable admission requirement.
+[Paired writable reopen evidence](evidence/windows-packed-audit-locality-2026-11-26.json)

@@ -2096,6 +2096,38 @@ void profile_cpython_reopen(const char* path,bool compressed=false) {
 }
 
 enum class NamedInlineProfile { inline_control, fresh_packed, migrated, packed_reclaim };
+void profile_packed_reopen_order(unsigned files,bool permuted) {
+  constexpr unsigned batch=32;
+  const auto backing=empty();
+  backing->capacity=192ULL*1024*1024;
+  const auto name=[&](unsigned i){return file(permuted?(i*257U)%files:i);};
+  const auto published=[&] {
+    auto writer=NativeFilesystemWriter::initialize_indexed(
+        PagedObjectStoreWriter::create_mirrored(backing,identity(),{backing->capacity},raw,PagedStoreBankLayout::compact),
+        NativeIndexedDataLayout::packed_small_file_inodes);
+    file_apply(writer,file_create("Data",true));
+    for(unsigned first=0;first<files;first+=batch) {
+      std::vector<NativeFileMutation> edits;
+      edits.reserve(2*batch);
+      for(unsigned i=first;i<(std::min)(first+batch,files);++i) {
+        const auto path="Data/"+name(i);
+        edits.push_back(file_create(path));
+        edits.push_back(file_write(path,0,payload(i)));
+      }
+      writer.apply(edits);
+    }
+    return writer.snapshot();
+  }();
+  profile_indexed_reopen(backing,published,files,files*17ULL,permuted?"packed_permuted":"packed_ordered",
+      [&](const auto& snapshot) {
+        for(unsigned i=0;i<files;++i) {
+          const auto path="Data/"+name(i);
+          require(snapshot.stat(path).inode==i+3 && snapshot.read(path,0,17)==payload(i),
+              "Packed reopen changed the name binding or file bytes");
+        }
+      });
+}
+
 void profile_named_inline(const std::filesystem::path& path,NamedInlineProfile mode=NamedInlineProfile::inline_control,
     std::uint32_t unit=4096) {
   const bool compare_packed=mode!=NamedInlineProfile::inline_control;
@@ -2287,6 +2319,16 @@ int main(int argc,char** argv) {
       require(result.ec==std::errc{} && result.ptr==value.data()+value.size() && files && files<=16384,
           "invalid bounded reopen profile size");
       populated_native_snapshot(files,true);
+      return 0;
+    }
+    if(argc==4 && std::string_view(argv[1])=="--profile-packed-reopen-order") {
+      const std::string_view value(argv[2]),order(argv[3]);
+      unsigned files=0;
+      const auto result=std::from_chars(value.data(),value.data()+value.size(),files);
+      require(result.ec==std::errc{} && result.ptr==value.data()+value.size() && files &&
+          !(files&(files-1)) && files<=16384 && (order=="ordered" || order=="permuted"),
+          "invalid packed reopen profile size or order");
+      profile_packed_reopen_order(files,order=="permuted");
       return 0;
     }
     if(argc==3 && (std::string_view(argv[1])=="--profile-cpython-reopen" ||

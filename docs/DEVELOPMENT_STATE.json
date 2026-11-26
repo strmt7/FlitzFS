@@ -8,6 +8,16 @@
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
   "current_release_review": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
   "source_and_portability_review": "docs/architecture/RELEASE_REVIEW_2026-11-26.md",
+  "packed_inode_audit_locality": {
+    "source_parent": "c7c583beba54f4ef7591ccbbda9d9d3ee3ffec77",
+    "tested_source_tree": "7316d0d77effd135cb425814b0785ad194158067",
+    "evidence": "docs/evidence/windows-packed-audit-locality-2026-11-26.json",
+    "held_out_permuted_files": 16384,
+    "held_out_baseline_reopen_read_bytes": 177986000,
+    "held_out_candidate_reopen_read_bytes": 47886704,
+    "backing_write_bytes_on_reopen": 0,
+    "release_qualified": false
+  },
   "amd_mixed_lz4_dispatches": {
     "source_parent": "ec5285bef4f5434270898f1735ef626db24139b0",
     "tested_source_tree": "f9dfd8ab44b5176a54ad4b4a908295056193fe8f",

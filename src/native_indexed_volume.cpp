@@ -3012,18 +3012,39 @@ Bytes IndexedVolumeView::materialize_content(NativeContentToken& token,const Ind
   return full_extent(std::move(extent));
 }
 struct IndexedVolumeView::InodePageCache {
-  std::uint64_t object=0;
-  std::optional<Bytes> bytes;
+  struct Slot {
+    std::uint64_t object=0;
+    std::optional<Bytes> bytes;
+  };
+  Slot single;
+  std::unique_ptr<Slot[]> slots;
+  std::size_t slot_count=0;
+
+  InodePageCache()=default;
+  InodePageCache(const IndexedVolumeRoot& root,std::size_t scratch_bytes) {
+    if(!root.packed_inodes)return;
+    const auto possible_pages=1+(root.next_inode-1)/inode_page_slots;
+    const auto capacity=scratch_bytes/(maximum_inode_page_bytes+sizeof(Slot));
+    const auto count=static_cast<std::size_t>((std::min)({root.inodes,possible_pages,std::uint64_t{capacity}}));
+    if(count<2)return;
+    try {
+      slots=std::make_unique<Slot[]>(count);
+      slot_count=count;
+    }catch(const std::bad_alloc&) {
+      // Cache allocation is optional. The checked single page still serves reads.
+    }
+  }
 
   std::optional<IndexedInodeInput> read(const PagedObjectStoreSnapshot& store,const IndexedVolumeRoot& root,
       std::uint64_t inode) {
     if(!root.packed_inodes || inode<=1)return {};
     const auto key=inode_page_object(inode);
-    if(key!=object) {
-      bytes=fetch(store,key,maximum_inode_page_bytes);
-      object=key;
+    auto& slot=slot_count?slots[(key&ordinal_mask)%slot_count]:single;
+    if(key!=slot.object) {
+      slot.bytes=fetch(store,key,maximum_inode_page_bytes);
+      slot.object=key;
     }
-    return inode_from_page(root,inode,bytes);
+    return inode_from_page(root,inode,slot.bytes);
   }
 };
 std::uint64_t IndexedVolumeView::verify_namespace(const IndexedInodeInput& directory,std::size_t path_units,
@@ -3100,9 +3121,17 @@ void IndexedVolumeView::verify_inventory(bool published,const IndexedReopenAdmis
   };
   const auto root_inode=referenced_inode(1);
   visit(root_inode,false);
+  {
+    // A renamed namespace can visit the same packed pages out of inode order.
+    // Share the existing audit scratch allowance with the extent-owner list.
+    const auto scratch=kNativeMaxReadBytes-(std::min<std::size_t>)(kNativeMaxReadBytes,
+        namespace_owners.capacity()*sizeof(IndexedExtentOwner));
+    InodePageCache pages(root_,scratch);
+    if(verify_namespace(root_inode,0,0,reads,pages,visit)!=root_.inodes-root_.detached_inodes)
+      fail(Code::corrupt,"indexed namespace has unreachable inodes");
+  }
+  // The separate object walk still rereads and checks the physical replicas.
   InodePageCache pages;
-  if(verify_namespace(root_inode,0,0,reads,pages,visit)!=root_.inodes-root_.detached_inodes)
-    fail(Code::corrupt,"indexed namespace has unreachable inodes");
   std::ranges::sort(namespace_owners,{},&IndexedExtentOwner::inode);
   bool found_root=false;
   IndexedSharedBaseCache checked_bases;
