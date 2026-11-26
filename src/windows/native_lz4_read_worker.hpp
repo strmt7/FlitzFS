@@ -1,4 +1,5 @@
 #pragma once
+#include "flitzfs/gpu_recovery.hpp"
 #include "flitzfs/process_budget.hpp"
 #include <algorithm>
 #include <array>
@@ -10,6 +11,7 @@
 #include <string>
 
 namespace flitzfs {
+class HipRoutePins;
 class WinFspNativeWritable;
 class WindowsGpuEngineSampler;
 struct WinFspReadAheadWork;
@@ -32,6 +34,7 @@ struct NativeLz4ReadWorkerProfile {
   bool packed_groups=false;
   bool mixed_groups=false;
   std::uint32_t prepared_group_submit_lead_ms=0;
+  std::shared_ptr<const HipRoutePins> installed_route;
 };
 
 namespace detail {
@@ -73,17 +76,37 @@ struct NativeLz4ReadWorkerStats {
   std::uint64_t prepared_groups_started=0,prepared_groups_submitted=0,last_prepared_submit_ms=0;
   std::uint64_t prepared_groups_retargeted=0;
   std::uint32_t last_worker_exit_code=0;
-  bool pending=false,configuration_refused=false,retirement_confirmed=true;
+  bool pending=false,configuration_refused=false,retirement_confirmed=true,device_unavailable=false;
 };
+
+namespace detail {
+// The controller keeps retirement and quarantine across installed bindings.
+struct NativeLz4ReadSession {
+  GpuRecoveryPolicy recovery;
+  NativeLz4ReadWorkerStats status;
+  std::uint64_t sequence=0;
+  bool bind(const GpuConfigurationId& configuration) noexcept {
+    if(!status.retirement_confirmed || recovery.binding_status(configuration)!=GpuRouteReason::candidate)
+      return false;
+    status.configuration_refused=false;
+    status.device_unavailable=false;
+    status.last_turnaround_ms=0;
+    status.last_prepared_submit_ms=0;
+    return true;
+  }
+};
+}
 
 // Serialized maintenance owner. A flight owns only immutable input and
 // advisory data. Ordinary callbacks never observe or wait on its child.
 class NativeLz4ReadWorker final {
  public:
-  explicit NativeLz4ReadWorker(NativeLz4ReadWorkerProfile,const WindowsGpuEngineSampler* = nullptr);
+  NativeLz4ReadWorker(NativeLz4ReadWorkerProfile,detail::NativeLz4ReadSession&,
+      const WindowsGpuEngineSampler* = nullptr);
   ~NativeLz4ReadWorker();
   NativeLz4ReadWorker(const NativeLz4ReadWorker&)=delete;
   NativeLz4ReadWorker& operator=(const NativeLz4ReadWorker&)=delete;
+  bool bind_installed_route() noexcept;
   WinFspGroupReadWindow group_read_window() const noexcept;
   bool prepare_group(const WinFspReadAheadWork&,const NativeMaintenanceObservation&,const std::atomic<bool>&) noexcept;
   bool start(WinFspReadAheadWork&,const NativeMaintenanceObservation&,const std::atomic<bool>&) noexcept;

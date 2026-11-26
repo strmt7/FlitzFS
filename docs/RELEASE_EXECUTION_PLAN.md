@@ -7,6 +7,7 @@ generation-bound ownership proof to the full CPU inventory and fence
 checks on the same named workload. Qualify the acknowledgement,
 repair and interruption contract for each persistent provider.
 [Packed descriptor evidence](evidence/windows-packed-stripe-descriptors-2026-11-26.json) ·
+[Portable installation and prioritized work](architecture/RELEASE_REVIEW_2026-11-26.md#implementation-order) ·
 [Reconciled reopen evidence](evidence/windows-fenced-indexed-reopen-audit-2026-11-26.json) ·
 [Implementation sequence](RELEASE_RECONCILIATION_2026-11-26.md#implement-the-next-three-integrated-results)
 

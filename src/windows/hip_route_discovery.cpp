@@ -653,7 +653,7 @@ std::optional<NativeLz4ReadWorkerProfile> bind_installed_native_read(const HipDi
       ascii_hex(read_worker_sha256),ascii_hex(read_runtime_sha256),ascii_hex(read_module_sha256),
       route.memory.luid,route.memory.node_mask,route.ordinal,read_wave_mask,p.worker,
       p.minimum_frames,p.maximum_frames,p.maximum_slab_bytes,p.minimum_lead_ms,p.packed_groups,p.mixed_groups,
-      p.prepared_group_submit_lead_ms};
+      p.prepared_group_submit_lead_ms,route.pins};
 #else
   (void)route;
   return {};

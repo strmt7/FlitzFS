@@ -1,0 +1,565 @@
+{
+  "schema": 1,
+  "date_utc": "2026-11-26",
+  "source": {
+    "parent": "eed13ab39fceaf2ee7ef92b9a163bec1797d18dd",
+    "base_tree": "dfe98ab0ae2aa1e24676ba822173949ba85141a2",
+    "tree": "cd5acee1be5ff1dcba537657cbc0c514c908ac39",
+    "elements": [
+      {
+        "path": "include/flitzfs/gpu_recovery.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "cea3f87358c423e81b0a143cc1c60bcd6dc02518",
+        "bytes": 5153
+      },
+      {
+        "path": "src/gpu_recovery.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "3f8f20e678004be88757389e2e76addaf434e8ee",
+        "bytes": 8669
+      },
+      {
+        "path": "src/windows/hip_route_discovery.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "5c990b6f41160f303727c9c37d04b97655d0d5c9",
+        "bytes": 32495
+      },
+      {
+        "path": "src/windows/native_lz4_read_worker.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "3bed5c69b1de3304f6680007339ba2a412c2524d",
+        "bytes": 27823
+      },
+      {
+        "path": "src/windows/native_lz4_read_worker.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "052c7788cc935f04e122d8e67398c5154d28d189",
+        "bytes": 5061
+      },
+      {
+        "path": "src/windows/winfsp_controller.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "3bf178a415238e5096598a051c417257f15ff6c8",
+        "bytes": 71492
+      },
+      {
+        "path": "tests/test_winfsp_controller.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "d60c1e9ec6402d625403d9df2798a3927f436466",
+        "bytes": 340992
+      },
+      {
+        "path": "tests/test_winfsp_paged.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "02c0d05dc2ab32b3075012cd7e729d856b01a71a",
+        "bytes": 101847
+      }
+    ]
+  },
+  "behavior": {
+    "recovery_history_survives_replacement": true,
+    "device_ready_checked_before_submission": true,
+    "unconfirmed_retirement_blocks_replacement": true,
+    "retired_worker_releases_pins": true,
+    "future_demand_requires_changed_evidence": true,
+    "same_binding_device_fault_requires_independent_proof": true
+  },
+  "checks": {
+    "windows_release": {
+      "passed": 241,
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 262.328,
+      "peak_job_bytes": 686952448,
+      "memory_limit_bytes": 3577741312,
+      "cpu_percent": 24,
+      "timed_out": false,
+      "result_sha256": "13f602f03298ebd151300124190ac3bcddd61edb8dca4f299aa75f6965c0531c",
+      "log_sha256": "e10f90acc18861b1e36f072004b8c090644859705d97bc98fd188a6037569b30",
+      "observations": [
+        "100% tests passed out of 241",
+        "Total Test time (real) = 262.17 sec"
+      ]
+    },
+    "windows_build": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 103.235,
+      "peak_job_bytes": 552755200,
+      "memory_limit_bytes": 1658847232,
+      "cpu_percent": 24,
+      "timed_out": false,
+      "result_sha256": "74fd3b76194813386c452cc810b37773ee75530d62961ba11a2debd75d7b8aae",
+      "log_sha256": "45322af3a2b7268f5576da888cb1748e114daacc5502ab8891199b22db4d69fc",
+      "observations": []
+    },
+    "raw_only": {
+      "passed": 2,
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 11.5,
+      "peak_job_bytes": 22278144,
+      "memory_limit_bytes": 2008023040,
+      "cpu_percent": 20,
+      "timed_out": false,
+      "result_sha256": "10b6e0b051a864c90c75b3067b30a1b6f9323e79410228f358b20d336192bb68",
+      "log_sha256": "51431f9b3c0f92e10adf7a854fb649dc1a2207fbd48d94338098025c6f8446cc",
+      "observations": [
+        "100% tests passed out of 2",
+        "Total Test time (real) =  11.30 sec"
+      ]
+    },
+    "windows_asan": {
+      "configuration": "RelWithDebInfo",
+      "app_local_runtime_preflight": true,
+      "passed": 3,
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 7.282,
+      "peak_job_bytes": 422379520,
+      "memory_limit_bytes": 2187329536,
+      "cpu_percent": 20,
+      "timed_out": false,
+      "result_sha256": "b68022df13410393477448a2b1bd604334dd6214379cebc31891a0b46bfc0260",
+      "log_sha256": "880cf5c7107de5167a2f438b4a277283d635f10dc5a3b47cd612db82559d85bb",
+      "observations": [
+        "100% tests passed out of 3",
+        "Total Test time (real) =   7.21 sec"
+      ]
+    },
+    "asan_build": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 59.672,
+      "peak_job_bytes": 710406144,
+      "memory_limit_bytes": 1755316224,
+      "cpu_percent": 22,
+      "timed_out": false,
+      "result_sha256": "d4ea11b94794db2f644a367dcba94429c5075860eb59a9c23cd486e454faecd7",
+      "log_sha256": "8dca2d963f53cbca1ebc8e8e19191cbd073bd62c294fcb61a08aa42d8ae9ff17",
+      "observations": []
+    },
+    "earlier_release_in_asan_directory": {
+      "scope": "Regular Release configuration, excluded from sanitizer evidence.",
+      "exit_code": 0,
+      "log_sha256": "6bc57637cb8b6608accb8bab55b65a0dac84ee99626906a0efc5e52bd59a8316"
+    },
+    "earlier_focused": {
+      "tested_source_tree": "c2deb9eb1e2db74e6789912c427d2680219450d9",
+      "passed": 8,
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 13.906,
+      "peak_job_bytes": 40316928,
+      "memory_limit_bytes": 2094006272,
+      "cpu_percent": 21,
+      "timed_out": false,
+      "result_sha256": "ce926038e61d409ee7b44af3590685556bda829260fbc2c6060e18c84f803b3c",
+      "log_sha256": "2b700ee6d4644f1f25afbe8ff422d22ed1ff7fb730462b61d8a35f6ed41f6f7d",
+      "observations": [
+        "100% tests passed out of 8",
+        "Total Test time (real) =  13.48 sec"
+      ]
+    }
+  },
+  "source_audit": {
+    "inventory": {
+      "tree": "cd5acee1be5ff1dcba537657cbc0c514c908ac39",
+      "tracked_paths": 1173,
+      "statistics": {
+        "build_tooling_delivery": {
+          "files": 96,
+          "bytes": 1890700,
+          "text_files": 93,
+          "text_lines": 16000,
+          "source_files": 84,
+          "source_lines": 15739,
+          "binary": 3,
+          "json_parsed": 6,
+          "python_parsed": 58
+        },
+        "documentation_and_evidence": {
+          "files": 682,
+          "bytes": 12925727,
+          "text_files": 682,
+          "text_lines": 290888,
+          "json_parsed": 506
+        },
+        "public_headers": {
+          "files": 42,
+          "bytes": 241568,
+          "text_files": 42,
+          "text_lines": 4531,
+          "source_files": 42,
+          "source_lines": 4531
+        },
+        "core": {
+          "files": 77,
+          "bytes": 1484665,
+          "text_files": 77,
+          "text_lines": 29283,
+          "source_files": 77,
+          "source_lines": 29283
+        },
+        "amd_kernels": {
+          "files": 6,
+          "bytes": 46488,
+          "text_files": 6,
+          "text_lines": 1086,
+          "source_files": 6,
+          "source_lines": 1086
+        },
+        "windows": {
+          "files": 98,
+          "bytes": 1021356,
+          "text_files": 98,
+          "text_lines": 19241,
+          "source_files": 98,
+          "source_lines": 19241
+        },
+        "verification": {
+          "files": 153,
+          "bytes": 3783926,
+          "text_files": 153,
+          "text_lines": 63716,
+          "source_files": 148,
+          "source_lines": 62627,
+          "json_parsed": 1
+        },
+        "upstream": {
+          "files": 19,
+          "bytes": 527470,
+          "text_files": 19,
+          "text_lines": 14195,
+          "source_files": 13,
+          "source_lines": 13303,
+          "json_parsed": 2
+        }
+      },
+      "syntax_failures": [],
+      "markers": {},
+      "inventory_sha256": "b2b08191dd1cca78dd00484bd33346af64bae422f81804f005c70042bcd22f38"
+    },
+    "powershell": {
+      "tree": "cd5acee1be5ff1dcba537657cbc0c514c908ac39",
+      "powershell_files": 4,
+      "errors": []
+    },
+    "yaml": {
+      "tree": "cd5acee1be5ff1dcba537657cbc0c514c908ac39",
+      "parsed": 19,
+      "pyyaml": "6.0.3"
+    },
+    "targeted_manual_paths": "Deployment, namespace, attach, publication, accelerator routing and compression maintenance",
+    "complete_manual_line_review": false,
+    "navigation": {
+      "route": {
+        "commit": "eed13ab39fceaf2ee7ef92b9a163bec1797d18dd",
+        "version": "0.2.43",
+        "queries": 1,
+        "source_files": 4,
+        "native_response_sha256": "2552b5b53a5184f2e6362a20e5fc7c3e796722ccdf581b87631438aec75c77e3",
+        "receipt_sha256": "d40825f4c66395a969439b2d71fb09d7d4e2cefb8acdcd0ec5801167301508ee"
+      },
+      "release": {
+        "commit": "eed13ab39fceaf2ee7ef92b9a163bec1797d18dd",
+        "version": "0.2.43",
+        "source_files": 8,
+        "queries": 1,
+        "dirty_patch_sha256": "e516d6f87d693cc5475bd561525be8c846230876306905c3c27ddc2d2cf01795",
+        "native_response_sha256": "9d8f9aee09f9648c44d952c35aa51555f57cfbcb189b09956ef87229c19319ac",
+        "receipt_sha256": "3834a67b77bb95776c6f7949a87e8401a6b258368bb83f0a4c994d7fccb7b23f"
+      }
+    }
+  },
+  "research": {
+    "recovery": {
+      "version": "0.9.5+flitzzip.portable2",
+      "robots": true,
+      "external_llm": false,
+      "receipt_sha256": "4df7b0c22dfd246d34bd55e1af712093b27f682500dbe3c53aae789dcdadf0e0",
+      "pages": [
+        {
+          "name": "amd",
+          "url": "https://rocm.docs.amd.com/en/docs-10.2.0/about/release-notes.html",
+          "success": true,
+          "http_status": 200,
+          "markdown_bytes": 308620,
+          "markdown_sha256": "75810446f9eabf269787e24a9c8690b6332972b2dadea19f191ee0bf1b703984",
+          "capture_sha256": "be081816bcf77cbbe896ca7f47423879fba2868bb47b04c1fc3b944bf47adb94",
+          "failure_category": ""
+        },
+        {
+          "name": "dxgi",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/dxgi/nf-dxgi-idxgifactory1-iscurrent",
+          "success": true,
+          "http_status": 200,
+          "markdown_bytes": 22175,
+          "markdown_sha256": "b3c8266444e688ba9a6ef8cc75cf44bb81f3d2913cacd470263a5be2f61f129a",
+          "capture_sha256": "9038beadf40486091e3c5f9c4cea6a64489c746accb6f804591b19a94e812e5a",
+          "failure_category": ""
+        },
+        {
+          "name": "pnp",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/cfgmgr32/nf-cfgmgr32-cm_get_devnode_status",
+          "success": true,
+          "http_status": 200,
+          "markdown_bytes": 56859,
+          "markdown_sha256": "f35f9fc8b015ace3b33bffcde13128275581b7f664d2687958cbdeece027a777",
+          "capture_sha256": "f882b0a04b6d086a31a298a403c135df6728ec094e79935a325cf3e832494314",
+          "failure_category": ""
+        }
+      ]
+    },
+    "release": {
+      "version": "0.9.5+flitzzip.portable2",
+      "robots": true,
+      "external_llm": false,
+      "sha256": "83afc8e6017aea3bdbb20bea7e1db5449d63cbdf9a0b5f2a7fcee74e15f5f4c9",
+      "pages": [
+        {
+          "name": "windows",
+          "url": "https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information",
+          "success": true,
+          "http_status": 200,
+          "markdown_bytes": 78583,
+          "markdown_sha256": "2faae088806a31e9fb4957a073081fb98ba56f0b12a7541b87233f5d5d9ccbec",
+          "capture_sha256": "bf91213a68d039ec4ed89573f247a5cee6e3eb77237bf3d9a31a7b02938e8605",
+          "failure_category": ""
+        },
+        {
+          "name": "winfsp",
+          "url": "https://winfsp.dev/doc/WinFsp-API-winfsp.h/",
+          "success": false,
+          "http_status": 200,
+          "markdown_bytes": 73095,
+          "markdown_sha256": "23f2e7b26b2297a12d6e98acb7b612010c44361803cc72c3563f82571cce5837",
+          "capture_sha256": "b8aa4b9e445b235ad23ba4d8affca88c1e5ea699c0d159a0dc593fdd6397abcc",
+          "failure_category": "unexpected_content"
+        },
+        {
+          "name": "ntfs",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_compression",
+          "success": false,
+          "http_status": 200,
+          "markdown_bytes": 63183,
+          "markdown_sha256": "48b0bd005d9276173ea26d9d5ddfd0f6019586ea3a1cd33cb8e74730a01f060a",
+          "capture_sha256": "e560101ac840cc36e277549f19bf7655c7c82e17d0dc8a99046b3c0a6b6eafc9",
+          "failure_category": "unexpected_content"
+        },
+        {
+          "name": "diskspd",
+          "url": "https://github.com/microsoft/diskspd/releases/tag/v2.3",
+          "success": true,
+          "http_status": 200,
+          "markdown_bytes": 10898,
+          "markdown_sha256": "0365773817f65cbec629c1f9fd781de5dbf2021326e806d424ff0a827f6d0720",
+          "capture_sha256": "ebf205ea433e3c3395d47a7eb1127bac1e71ae5124fc29a3d1b52030db2fdec7",
+          "failure_category": ""
+        },
+        {
+          "name": "aitdcc",
+          "url": "https://aitdcc.github.io/dataset.html",
+          "success": true,
+          "http_status": 200,
+          "markdown_bytes": 6271,
+          "markdown_sha256": "766801630c0c3f7c80304f41397c0ae265fd0cb79387c2837c920c08b8987676",
+          "capture_sha256": "62b382b4141ce5468b5f934bcad51b77ee02de0f50a7fdb677db5f31c018d0ca",
+          "failure_category": ""
+        },
+        {
+          "name": "rubikfs",
+          "url": "https://www.usenix.org/conference/fast26/presentation/huang",
+          "success": true,
+          "http_status": 200,
+          "markdown_bytes": 10416,
+          "markdown_sha256": "dbc538fff3a57a4c36ef94c8a47e1737270a83880e2fb6957160b9b46f285256",
+          "capture_sha256": "16ccaa7c255cfe58d4c6fd270340a94cb63f7573c83f80122e465df2763ebd0e",
+          "failure_category": ""
+        },
+        {
+          "name": "ranking",
+          "url": "https://xgboost.readthedocs.io/en/latest/tutorials/learning_to_rank.html",
+          "success": true,
+          "http_status": 200,
+          "markdown_bytes": 28127,
+          "markdown_sha256": "e99e895e053a45a911e0436db6518f778ffaaccc78c2b47775e60b225fadc1a0",
+          "capture_sha256": "93a0701737403200b341e8124baf6e4c2cf9c32039dbc4b7a09abd6965fe57e6",
+          "failure_category": ""
+        },
+        {
+          "name": "llama",
+          "url": "https://github.com/ggml-org/llama.cpp/blob/master/docs/build.md?plain=1",
+          "success": true,
+          "http_status": 200,
+          "markdown_bytes": 55656,
+          "markdown_sha256": "7eba051be121ec28560032b4b1ea20651e12bff2d7e7737de8b6d89a4e60281a",
+          "capture_sha256": "2567f2195eae0fce452367dc9b83dddaf46bfccbd3eae42788f102808fcb49af",
+          "failure_category": ""
+        }
+      ]
+    },
+    "confirmed_platform": {
+      "version": "0.9.5+flitzzip.portable2",
+      "robots": true,
+      "external_llm": false,
+      "sha256": "e4a50fc09c9018cb354fb1b56fc0c1cb8c38cb1110c5aefb8808a7e1102b16d4",
+      "pages": [
+        {
+          "name": "winfsp",
+          "url": "https://winfsp.dev/doc/WinFsp-API-winfsp.h/",
+          "success": true,
+          "http_status": 200,
+          "markdown_bytes": 73095,
+          "markdown_sha256": "23f2e7b26b2297a12d6e98acb7b612010c44361803cc72c3563f82571cce5837",
+          "capture_sha256": "88c53dc52fcbc2334bc2e7bbbd4dcae0af5590a11cb1b1631cf0393b4243d453",
+          "failure_category": ""
+        },
+        {
+          "name": "ntfs",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_compression",
+          "success": true,
+          "http_status": 200,
+          "markdown_bytes": 63183,
+          "markdown_sha256": "48b0bd005d9276173ea26d9d5ddfd0f6019586ea3a1cd33cb8e74730a01f060a",
+          "capture_sha256": "6b8af1cdedf0c545746d8ea1f33cbcfeed19701664a889b9d6ab2a1df38f7e15",
+          "failure_category": ""
+        },
+        {
+          "name": "compact",
+          "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/compact",
+          "success": true,
+          "http_status": 200,
+          "markdown_bytes": 18096,
+          "markdown_sha256": "d664391783ea11d1f4c7d98c3c9c5edf9a2c6bc244652db9189b3c076a9cfee2",
+          "capture_sha256": "648235ec203baf871f8d3623c50117eee188bdd759a9d2e5cac8056ff88abd67",
+          "failure_category": ""
+        }
+      ]
+    }
+  },
+  "live_windows": {
+    "adapter": "AMD Radeon RX 9070 XT",
+    "gpu_output_observed_on_tested_tree": false,
+    "outcome": "Exact candidate deferred during host admission. Earlier fixture variations stopped before GPU execution.",
+    "checked_runner_sha256": "e2e5267082ce4f7e114793f01c4428ecb76b8320c109cb5bc74c055cc22a8122",
+    "last_preflight": {
+      "admitted": false,
+      "reason": "Existing host load above the fixture envelope",
+      "utc": "2026-11-26T07:57:18.8004715Z",
+      "driver": "32.0.32029.2010",
+      "build": "26300",
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "luid": "9d75010000000000",
+      "available_bytes": 20493848576,
+      "reserved_bytes": 4294967296,
+      "gpu_peak": 98.14041150578198,
+      "cpu_peak": 14.434662197049985,
+      "target_samples": 768,
+      "counter_errors": 0
+    },
+    "last_attempt": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 4.157,
+      "peak_job_bytes": 96231424,
+      "memory_limit_bytes": 1249902592,
+      "cpu_percent": 20,
+      "timed_out": false,
+      "result_sha256": "60c6acb0deae1c38b9040e85533393d37803450e58f9a3e94993a5257a233ca3",
+      "log_sha256": "57275b4f1be6582d910b9c8780a874e215afb08bf88285e5ce6c4b04faa89d80",
+      "observations": [
+        "group_lead_preflight {\"admitted\":false,\"reason\":\"Existing host load above the fixture envelope\",\"utc\":\"2026-11-26T07:57:18.8004715Z\",\"driver\":\"32.0.32029.2010\",\"build\":\"26300\",\"runtime_sha256\":\"e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7\",\"luid\":\"9d75010000000000\",\"available_bytes\":20493848576,\"reserved_bytes\":4294967296,\"gpu_peak\":98.14041150578198,\"cpu_peak\":14.434662197049985,\"target_samples\":768,\"counter_errors\":0}"
+      ]
+    },
+    "manifest_digests": {
+      "available": "f74ae5aeb6c3a95dcb7c63e2f3bc7508b64ca7a455b2afdb42c9ed066ec7238d",
+      "missing": "1c4e5523c7ff61e78f92d3a9f2a121564591da785c12a67714c99f534cb96f6f",
+      "explicit": "1c33d61db03f8923c787aec9807156f874ddb13500a56be95aa7a0da21ade361"
+    },
+    "earlier_observations": {
+      "flitzOrdReadLive": {
+        "exit": 1,
+        "retired": true,
+        "log_sha256": "a619c77661a6cf45fcb787617208f65cdf9565c9d74f5142806459ab04c807fe",
+        "note": ""
+      },
+      "flitzOrdReadLiveChecked": {
+        "exit": 1,
+        "retired": true,
+        "log_sha256": "d3a1e22b656f0f4bc35df5374fc803ecb38ba6a3dd3ba15a27377c290f586655",
+        "note": "after 12 checks: Installed read initial maintenance did not quiesce"
+      },
+      "flitzOrdReadLiveFinal": {
+        "exit": 1,
+        "retired": true,
+        "log_sha256": "3a607a5679fe53626e06816ad5d2bb450560d992364edb6d2b476b39c9278bfc",
+        "note": "after 12 checks: Installed read initial maintenance did not quiesce"
+      },
+      "flitzOrdReadActual": {
+        "exit": 1,
+        "retired": true,
+        "log_sha256": "9d9fe7b977eadac903d4841c6acf289192da225c5180bdc4b7a4d0272eb56603",
+        "note": "after 12 checks: Installed read initial scrub did not complete"
+      },
+      "flitzOrdReadAbsent": {
+        "exit": 1,
+        "retired": true,
+        "log_sha256": "4630df720e1332e46563c27b6826f537c0beb63c6769e4fa087133c9377d9ee5",
+        "note": "after 12 checks: Installed read initial scrub did not complete"
+      },
+      "flitzOrdAvailableVerified": {
+        "exit": 1,
+        "retired": true,
+        "log_sha256": "1f4a102a63bf659f94096cafc6db51db5ca137251cc9d97ca36ba83e295a6ed7",
+        "note": "after 17 checks: Installed route did not prepare CPU frames"
+      },
+      "flitzOrdMissingVerified": {
+        "exit": 1,
+        "retired": true,
+        "log_sha256": "4d10e35481306f1bd93d46986bba557eb18f1a98b0e37732a0c66cd80befb056",
+        "note": "after 12 checks: Installed read initial scrub did not complete"
+      },
+      "flitzOrdAutomaticRole": {
+        "exit": 0,
+        "retired": true,
+        "log_sha256": "02f7c5ec9f5cf6a58882af8fde48d057192a4d982b47066a5ddaca98626b469c",
+        "note": "group_lead_preflight {\"admitted\":false,\"reason\":\"Existing host load above the fixture envelope\",\"utc\":\"2026-11-26T07:51:13.7142770Z\",\"driver\":\"32.0.32029.2010\",\"build\":\"26300\",\"runtime_sha256\":\"e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7\",\"luid\":\"9d75010000000000\",\"available_bytes\":20442329088,\"reserved_bytes\":4294967296,\"gpu_peak\":97.78952369126695,\"cpu_peak\":23.212255869993157,\"target_samples\":816,\"counter_errors\":0}"
+      },
+      "flitzOrdExplicitRole": {
+        "exit": 0,
+        "retired": true,
+        "log_sha256": "3e9e5ea6b48c184ec3e865147030ebfa833064a4677ba305f43511d57906c02a",
+        "note": "group_lead_preflight {\"admitted\":false,\"reason\":\"Existing host load above the fixture envelope\",\"utc\":\"2026-11-26T07:51:19.2673063Z\",\"driver\":\"32.0.32029.2010\",\"build\":\"26300\",\"runtime_sha256\":\"e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7\",\"luid\":\"9d75010000000000\",\"available_bytes\":20391817216,\"reserved_bytes\":4294967296,\"gpu_peak\":97.83202558072979,\"cpu_peak\":17.376572394554668,\"target_samples\":816}"
+      },
+      "flitzOrdExplicitRecheck": {
+        "exit": 1,
+        "retired": true,
+        "log_sha256": "e43b6fd4451d37446e73b737c3a76228b419f2687a4f6737ddb01df8de793c1f",
+        "note": ""
+      }
+    },
+    "outstanding_owned_processes": 0,
+    "registered_winfsp_kernel_components": [
+      {
+        "Name": "WinFsp+20260516T182719Z",
+        "State": "Stopped",
+        "StartMode": "Manual"
+      }
+    ]
+  },
+  "qualification": {
+    "ordinary_mounted_amd": false,
+    "persistent_power_loss": false,
+    "release_qualified": false,
+    "priority_plan": "../architecture/RELEASE_REVIEW_2026-11-26.md#implementation-order"
+  }
+}

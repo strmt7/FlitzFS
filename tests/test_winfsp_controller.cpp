@@ -50,6 +50,53 @@ inline constexpr auto queued_anchor_members=1+(kAnchorProfileMaxQueuedDispatches
 #endif
 DWORD handle_count() {DWORD count=0;if(!GetProcessHandleCount(GetCurrentProcess(),&count))throw std::runtime_error("handle telemetry");return count;}
 void require(bool value,const char* why){++checks;if(!value)throw std::runtime_error(why);}
+void installed_read_binding_lifetime() {
+  detail::NativeLz4ReadSession session;
+  GpuHealthEvidence evidence;
+  evidence.configuration[0]=std::byte{1};
+  evidence.sequence=1;
+  evidence.compatible=evidence.supervisor_quiescent=true;
+  auto& memory=evidence.memory;
+  memory.valid=memory.amd_hardware=true;
+  memory.luid[0]=std::byte{1};
+  memory.node_mask=1;
+  memory.captured_ms=100;
+  memory.dedicated_bytes=memory.local_budget=1ULL<<30;
+  memory.nonlocal_budget=8ULL<<30;
+  memory.physical_total=memory.commit_limit=16ULL<<30;
+  memory.physical_available=memory.commit_available=8ULL<<30;
+  const auto first=evidence.configuration;
+  auto alternate=first;
+  alternate[0]=std::byte{2};
+  require(session.bind(first),"Initial native read route binding refused");
+  auto admitted=session.recovery.consider_native_lz4_read(true,evidence,65536,memory.captured_ms);
+  require(admitted.try_gpu() && session.recovery.finish(admitted.ticket,GpuRecoveryOutcome::integrity_failure,false),
+      "Failed native read was not quarantined");
+  session.status.configuration_refused=true;
+  session.status.retirement_confirmed=false;
+  session.status.failures=1;
+  session.sequence=evidence.sequence;
+  require(!session.bind(alternate) && session.recovery.binding_status(alternate)==GpuRouteReason::worker_busy,
+      "Replacing a native read binding bypassed unconfirmed retirement");
+  require(session.recovery.confirm_quiescent(admitted.ticket),"Native read retirement was not confirmed");
+  session.status.retirement_confirmed=true;
+  require(!session.bind(first) && session.status.configuration_refused &&
+      session.recovery.binding_status(first,99)==GpuRouteReason::configuration_blocked,
+      "New observations cleared native read integrity quarantine");
+  require(session.bind(alternate) && !session.status.configuration_refused &&
+      session.status.failures==1 && session.sequence==evidence.sequence,
+      "Alternate binding discarded native read history");
+  // The alternate device was unavailable before any worker was launched.
+  session.status.device_unavailable=session.status.configuration_refused=true;
+  require(session.bind(alternate) && !session.status.device_unavailable && !session.status.configuration_refused,
+      "Recovered device readiness was treated as a failed computation");
+  evidence.configuration=alternate;
+  evidence.sequence=++session.sequence;
+  ++memory.captured_ms;
+  admitted=session.recovery.consider_native_lz4_read(true,evidence,65536,memory.captured_ms);
+  require(admitted.try_gpu() && session.recovery.finish(admitted.ticket,GpuRecoveryOutcome::accepted,true) &&
+      !session.bind(first),"An accepted alternate binding lost the prior quarantine");
+}
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
 void anchor_launch_budget() {
   constexpr std::uint64_t gib = 1024ULL * 1024 * 1024;
@@ -1111,7 +1158,9 @@ int live_installed_native_read(bool missing) {
   Provider::active=&provider;
   WinFspVolumeController owner(std::move(source),provider.api(),plan(),domain);
   await([&]{return owner.view().state==SessionState::running;},5000,"Installed read controller startup");
-  auto bytes=data(4*window,1937);
+  // Keep the three cadence windows sparse so this two-frame read fixture
+  // does not also start a collective compression scan over unrelated extents.
+  Bytes bytes(4*window);
   for(std::size_t i=0;i<2;++i) {
     const auto motif=data(extent/8,917+static_cast<unsigned>(i));
     for(std::size_t pos=0;pos<extent;pos+=motif.size())
@@ -1119,13 +1168,18 @@ int live_installed_native_read(bool missing) {
   }
   callback_file(provider,0,bytes,window);
   try {
-    await([&]{return owner.view().payload_scrub_passes && !adapter->background_maintenance_pending();},
-        18000,"Installed read initial maintenance did not quiesce");
+    // Establish an idle controller before measuring this cadence. The
+    // normal duty policy can defer the next check after the first scrub.
+    await([&]{
+      const auto setup=owner.view();
+      return setup.payload_scrub_passes && !setup.payload_scrub_faults && setup.maintenance_quiescent;
+    },85000,"Installed read initial maintenance did not quiesce");
   }catch(...) {
     const auto setup=owner.view();
     std::cerr<<"installed_read_setup quanta="<<setup.maintenance_quanta<<" scrub_passes="<<setup.payload_scrub_passes
         <<" phase="<<static_cast<int>(setup.maintenance.phase)<<" deferral="<<static_cast<int>(setup.maintenance.deferral)
-        <<" unavailable="<<setup.maintenance_disabled<<" host="<<static_cast<int>(setup.host)<<'\n';
+        <<" unavailable="<<setup.maintenance_disabled<<" host="<<static_cast<int>(setup.host)
+        <<" maximum_quantum_ns="<<setup.maximum_quantum_ns<<'\n';
     throw;
   }
   PVOID context=nullptr;
@@ -1153,7 +1207,16 @@ int live_installed_native_read(bool missing) {
   };
   const auto cpu_turn=[&](DWORD gap) {
     const auto prior=prepare(gap);
-    await([&]{return owner.view().read_ahead_prepared>prior;},12000,"Installed route did not prepare CPU frames");
+    try {
+      await([&]{return owner.view().read_ahead_prepared>prior;},12000,"Installed route did not prepare CPU frames");
+    }catch(...) {
+      const auto state=owner.view();
+      std::cerr<<"installed_cpu_reference samples="<<state.read_ahead_demand_samples
+          <<" backing_refusals="<<state.read_ahead_backing_refusals
+          <<" pending="<<adapter->native_lz4_read_ahead_pending()
+          <<" quanta="<<state.maintenance_quanta<<" maximum_quantum_ns="<<state.maximum_quantum_ns<<'\n';
+      throw;
+    }
     const auto hits=adapter->native_lz4_read_ahead_hits();
     demand(3);
     require(adapter->native_lz4_read_ahead_hits()==hits+2,"CPU preparation did not supply the two requested frames");
@@ -5407,7 +5470,16 @@ int main(int argc,char** argv){try {
   // before the explicit long-volume mode measures controller ownership.
   if(lifetime_only || indexed_compaction)initialize_long_pdh_window();
   require(GetProcessHandleCount(GetCurrentProcess(),&before)!=FALSE,"initial handle count");
-  if(argc==1){windows_processor_windows();backing_maintenance_window();event_ownership();lifecycle();idle_until_owner_stop(100);invalid_and_unexpected();live_opportunities();}
+  if(argc==1) {
+    installed_read_binding_lifetime();
+    windows_processor_windows();
+    backing_maintenance_window();
+    event_ownership();
+    lifecycle();
+    idle_until_owner_stop(100);
+    invalid_and_unexpected();
+    live_opportunities();
+  }
   else if(lifetime_only)idle_until_owner_stop(31000);
   else if(selector_footprint)memory_selector_footprint();
   else if(read_ahead)live_read_ahead_admission(read_ahead_group_duty);

@@ -65,6 +65,7 @@ struct WinFspVolumeController::Impl {
   WindowsGpuEngineSampler gpu_engines;
 #endif
   std::unique_ptr<NativeAnchorSearchController> anchor;
+  detail::NativeLz4ReadSession read_session;
   std::unique_ptr<NativeLz4ReadWorker> read_worker;
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
   std::uint64_t last_write_engine_sample=0,last_read_engine_sample=0,last_anchor_engine_sample=0;
@@ -120,7 +121,7 @@ struct WinFspVolumeController::Impl {
     if(read_profile) {
       try {
         if(source->enable_native_lz4_read_ahead())
-          read_worker=std::make_unique<NativeLz4ReadWorker>(std::move(*read_profile));
+          read_worker=std::make_unique<NativeLz4ReadWorker>(std::move(*read_profile),read_session);
         else current.amd_read.configuration_refused=true;
       }catch(...) {current.amd_read.configuration_refused=true;}
     }
@@ -199,6 +200,23 @@ struct WinFspVolumeController::Impl {
           }
           adapter->signal_foreground_for_anchor(waiting_for_accelerator());
           if(read_worker)read_worker->observe(*adapter,disabled);
+#ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
+          if(installed_read && read_worker && read_session.status.configuration_refused &&
+              read_worker->stats().retirement_confirmed) {
+            // Keep the evidence baseline and quarantine. Drop only the
+            // retired worker's package pins so a changed route can be bound.
+            read_worker.reset();
+            if(read_session.status.device_unavailable) {
+              read_acquisition.status=HipDiscoveryStatus::device_not_ready;
+              if(read_inputs)read_inputs->note_device_unavailable();
+            }else read_acquisition.status=HipDiscoveryStatus::configuration_quarantined;
+            next_read_evidence_ms=now;
+            std::lock_guard lock(mutex);
+            current.installed_read_status=read_acquisition.status;
+            current.amd_read=read_session.status;
+            if(status_changed.value)SetEvent(status_changed.value);
+          }
+#endif
           if(const auto delivery=session->group_read_delivery();read_worker || delivery) {
             std::lock_guard lock(mutex);
             if(read_worker)current.amd_read=read_worker->stats();
@@ -1039,7 +1057,7 @@ struct WinFspVolumeController::Impl {
             read_acquisition=discover_installed_hip_native_read_route(stop,engine);
             if(read_acquisition.status==HipDiscoveryStatus::ready && read_acquisition.route && !stop.stop_requested()) {
               auto profile=bind_installed_native_read(*read_acquisition.route);
-              if(profile)acquired_read_worker=std::make_unique<NativeLz4ReadWorker>(std::move(*profile),&gpu_engines);
+              if(profile)acquired_read_worker=std::make_unique<NativeLz4ReadWorker>(std::move(*profile),read_session,&gpu_engines);
               else read_acquisition.status=HipDiscoveryStatus::profile_mismatch;
             }
             if(!priority.finish()) {
@@ -1071,8 +1089,8 @@ struct WinFspVolumeController::Impl {
     if(read_acquisition.status==HipDiscoveryStatus::engine_deferred)read_inputs.reset();
     if(read_acquisition.status==HipDiscoveryStatus::ready) {
       if(use_route && acquired_read_worker && !stop_requested.load(std::memory_order_acquire)) {
-        read_worker=std::move(acquired_read_worker);
-        read_inputs.reset();
+        if(acquired_read_worker->bind_installed_route())read_worker=std::move(acquired_read_worker);
+        else read_acquisition.status=HipDiscoveryStatus::configuration_quarantined;
       }else read_acquisition.status=HipDiscoveryStatus::cancelled;
     }
     acquired_read_worker.reset();

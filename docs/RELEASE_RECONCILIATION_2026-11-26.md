@@ -5,12 +5,29 @@ recovery reader. It has consumed real Radeon results in controlled Windows
 callbacks and passed separately signed guest mounts. A stable release still
 requires automatic AMD service on the ordinary mounted path, scalable
 writable reopen, supported-media recovery and matched Windows comparisons.
-Use this review for implementation order. The E01–E13 plan retains the
-detailed package contracts and the release execution plan retains the gates.
+Use the current source review for prioritized implementation order. The
+E01–E13 plan retains the package contracts and the release plan retains
+the gates.
+[Source review and implementation order](architecture/RELEASE_REVIEW_2026-11-26.md) ·
 [Implementation packages](IMPLEMENTATION_PLAN.md#3-execution-order-and-dependencies) ·
 [Release gates](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
 
-The current checkpoint builds on `225c3a3b6fe8d712abe32875bc5c767dcfcdcae0`.
+The current checkpoint builds on `eed13ab39fceaf2ee7ef92b9a163bec1797d18dd`.
+Source tree `cd5acee1be5ff1dcba537657cbc0c514c908ac39` retains the installed
+native read route's recovery policy when replacing a worker. Launch and
+prepared submission check the bound Windows device off the foreground
+callback. A current readiness refusal or retired fault can release the
+package pins. A new qualified demand still needs changed evidence and a
+binding that passes quarantine. CPU reads remain available while the
+controller checks the replacement.
+The current Windows suite passed 241 tests. Raw and instrumented checks
+passed, including the app-local AddressSanitizer runtime preflight.
+Live Radeon admission deferred after the host measured 98.1% existing
+engine utilization. The installed-role fixture also needs a successful
+end-to-end run through its startup and demand pacing on a quiet host.
+[Installed read recovery evidence](evidence/windows-installed-read-route-recovery-2026-11-26.json)
+
+The preceding packed-stripe checkpoint builds on `225c3a3b6fe8d712abe32875bc5c767dcfcdcae0`.
 Source tree `c8ebb42e1f9dda7a0c4fdd5ddc9da80d3af30b03` packs
 independently checked stripe descriptors into full failure units. The
 owned Windows memory volume uses the layout automatically when it

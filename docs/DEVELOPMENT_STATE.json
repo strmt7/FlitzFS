@@ -7,6 +7,18 @@
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
   "current_release_review": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
+  "source_and_portability_review": "docs/architecture/RELEASE_REVIEW_2026-11-26.md",
+  "installed_native_read_recovery": {
+    "source_parent": "eed13ab39fceaf2ee7ef92b9a163bec1797d18dd",
+    "tested_source_tree": "cd5acee1be5ff1dcba537657cbc0c514c908ac39",
+    "evidence": "docs/evidence/windows-installed-read-route-recovery-2026-11-26.json",
+    "quarantine_survives_replacement": true,
+    "device_readiness_checked_before_submission": true,
+    "role_device_fault_recovery_probe_pending": true,
+    "windows_tests_passed": 241,
+    "live_gpu_admission": "deferred by existing device load",
+    "release_qualified": false
+  },
   "packed_stripe_descriptors": {
     "source_parent": "225c3a3b6fe8d712abe32875bc5c767dcfcdcae0",
     "tested_source_tree": "c8ebb42e1f9dda7a0c4fdd5ddc9da80d3af30b03",

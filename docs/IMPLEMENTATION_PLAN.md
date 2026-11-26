@@ -14,6 +14,7 @@ Join automatic AMD demand to consumed results in the
 populated Windows client. Set release scope from those measurements,
 provider recovery and the signed Windows compatibility matrix.
 The E01–E13 contracts below define the individual release exits.
+[Current source review and priority order](architecture/RELEASE_REVIEW_2026-11-26.md#implementation-order) ·
 [Current assessment](RELEASE_RECONCILIATION_2026-11-26.md) ·
 [Packed seal, group-merge comparison and research](evidence/windows-packed-stripe-descriptors-2026-11-26.json) ·
 [Writable reopen evidence](evidence/windows-fenced-indexed-reopen-audit-2026-11-26.json) ·
@@ -1494,6 +1495,14 @@ remaining cost in HIP device initialization. Device-side guard fills avoid 131,1
 two-frame batch. These samples leave a speed advantage unqualified.
 [Installed native read evidence](evidence/installed-native-amd-read-2026-11-22.json) ·
 [Host transfer and lifecycle evidence](evidence/native-amd-read-lifecycle-2026-11-22.json)
+
+The installed read owner now preserves quarantine across replacement bindings
+and checks the specific Windows device before submission. Extend the
+separate verified recovery computation to this read role for a fault on the
+same configuration. Exercise retirement, denied recovery and later authorized
+delivery with the mounted client's exact bytes. A readiness change before
+compute already returns to evidence-gated discovery.
+[Installed read recovery contract](GPU_RECOVERY.md#installed-native-read-bindings)
 
 Compare larger, finite prepared windows against CPU on the same checkpoint
 with the same supervisor limits. Include initialization, device fills,

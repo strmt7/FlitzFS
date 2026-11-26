@@ -61,6 +61,18 @@ GpuRouteDecision GpuRecoveryPolicy::consider_native_lz4_read(bool worthwhile,con
     std::uint64_t device_bytes,std::uint64_t now) noexcept {
   return consider_work(true,worthwhile,evidence,device_bytes!=0,device_bytes,now);
 }
+GpuRouteReason GpuRecoveryPolicy::binding_status(const GpuConfigurationId& configuration,
+    std::uint64_t recovery_generation) const noexcept {
+  if(active_ticket_)return GpuRouteReason::worker_busy;
+  if(!nonzero(configuration))return GpuRouteReason::unqualified;
+  if(quarantine_full_)return GpuRouteReason::exhausted;
+  for(const auto& entry:quarantines_) {
+    if(entry.configuration!=configuration)continue;
+    if(entry.hard)return GpuRouteReason::configuration_blocked;
+    if(recovery_generation<=entry.recovery_floor)return GpuRouteReason::device_quarantined;
+  }
+  return GpuRouteReason::candidate;
+}
 GpuRouteDecision GpuRecoveryPolicy::consider_work(bool consent,bool worthwhile,
     const GpuHealthEvidence& e,bool has_work,std::uint64_t device_bytes,std::uint64_t now) noexcept {
   if(!consent) return {GpuRouteReason::disabled};
@@ -73,12 +85,8 @@ GpuRouteDecision GpuRecoveryPolicy::consider_work(bool consent,bool worthwhile,
     healthy_ = 0;
     return {GpuRouteReason::unqualified};
   }
-  if(quarantine_full_) return {GpuRouteReason::exhausted};
-  for(const auto& q:quarantines_) {
-    if(q.configuration != e.configuration) continue;
-    if(q.hard) return {GpuRouteReason::configuration_blocked};
-    if(e.recovery_generation <= q.recovery_floor) return {GpuRouteReason::device_quarantined};
-  }
+  const auto binding=binding_status(e.configuration,e.recovery_generation);
+  if(binding!=GpuRouteReason::candidate)return {binding};
 
   const bool changed = e.configuration != configuration_;
   if(!changed && (e.memory.luid != luid_ || e.memory.node_mask != node_mask_))

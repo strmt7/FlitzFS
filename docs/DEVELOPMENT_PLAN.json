@@ -4,6 +4,8 @@
   "forward_work_rule": "Use current_release_sequence for integration order, and execution_programme and the implementation plan for package dependencies and exits. Historical checkpoints describe completed or partial evidence.",
   "current_release_sequence": {
     "current_reconciliation": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
+    "latest_installed_read_recovery": "docs/evidence/windows-installed-read-route-recovery-2026-11-26.json",
+    "tested_installed_read_recovery_tree": "cd5acee1be5ff1dcba537657cbc0c514c908ac39",
     "latest_packed_stripe_descriptors": "docs/evidence/windows-packed-stripe-descriptors-2026-11-26.json",
     "tested_packed_stripe_descriptors_tree": "c8ebb42e1f9dda7a0c4fdd5ddc9da80d3af30b03",
     "latest_short_pack_affinity": "docs/evidence/windows-short-pack-affinity-2026-11-26.json",
@@ -32,11 +34,12 @@
     "latest_deferred_write_events": "docs/evidence/windows-deferred-write-events-2026-11-26.json",
     "latest_optional_hip_stream_priority": "docs/evidence/windows-hip-optional-streams-2026-11-26.json",
     "latest_private_seal_credit": "docs/evidence/windows-private-seal-credit-2026-11-26.json",
-    "ordered_implementation": "docs/RELEASE_RECONCILIATION_2026-11-26.md#implement-the-next-three-integrated-results",
+    "ordered_implementation": "docs/architecture/RELEASE_REVIEW_2026-11-26.md#implementation-order",
     "latest_independent_seal_workspace": "docs/evidence/windows-independent-seal-workspace-2026-11-26.json",
     "tested_independent_seal_workspace_tree": "790912f42c849b0a84a62e2c610c97d2a5206b4f",
     "immediate_work": [
-      "Join ordinary mounted Windows demand to admitted, completed and consumed AMD work. Include grouped reads across unrelated commits and collective search. Measure cold setup, demand lead, verified bytes, occupied size and retirement against the CPU controls.",
+      "Bind the populated Win32 witness to a portable signed helper and a read-only compatibility survey. Stage missing user-mode components privately and verify ownership, activation, rollback, and removal across existing Windows compositions.",
+      "Join ordinary mounted Windows demand to admitted, completed and consumed AMD work. Include grouped reads across unrelated commits, readiness transitions and collective search. Qualify same-configuration read recovery with a separate checked computation. Measure cold setup, demand lead, verified bytes, occupied size and retirement against the CPU controls.",
       "Freeze a wider held-out named tree and compare complete size with the packed descriptor seal in the memory provider. Admit codec or grouping changes only on settled savings after dependency retirement. Establish persistent-provider failure isolation and repair cost before adopting packed descriptor writes there.",
       "Compare a generation-bound ownership proof to the full CPU audit and fence checks after named-tree churn. Verify provider authority, changed records, pinned readers and interrupted recovery in shadow mode. Validate the scale curve against an unseen tier and distribution.",
       "Qualify the signed Windows lifecycle and compatibility range, then run plain and native-compressed NTFS controls and soak on the frozen candidate."
@@ -44,7 +47,7 @@
     "latest_subset_reference_refinement": "docs/evidence/windows-subset-reference-refinement-2026-11-26.json",
     "latest_foreground_query_reuse": "docs/evidence/windows-foreground-query-reuse-2026-11-25.json",
     "latest_owned_range_packing": "docs/evidence/windows-owned-packed-reclaim-2026-11-25.json",
-    "latest_reviewed_parent": "225c3a3b6fe8d712abe32875bc5c767dcfcdcae0",
+    "latest_reviewed_parent": "eed13ab39fceaf2ee7ef92b9a163bec1797d18dd",
     "tested_owned_range_packing_tree": "7c64361419c436a15baf98592133d63beb8b1527",
     "remaining_engineering_person_weeks": [59, 127],
     "effort_confidence": "low",

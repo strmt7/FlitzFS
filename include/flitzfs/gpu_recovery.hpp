@@ -73,6 +73,9 @@ class GpuRecoveryPolicy final {
   bool abandon(std::uint64_t ticket,bool supervisor_confirmed_quiescent) noexcept;
   // Separate supervisor confirmation after a previously reported outcome.
   bool confirm_quiescent(std::uint64_t ticket) noexcept;
+  // Checks whether a proposed binding is fenced. An unfenced binding
+  // still needs the full per-request admission.
+  GpuRouteReason binding_status(const GpuConfigurationId&,std::uint64_t recovery_generation=0) const noexcept;
   unsigned consecutive_failures() const noexcept { return failures_; }
   unsigned required_healthy_observations() const noexcept;
 

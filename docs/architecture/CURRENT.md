@@ -848,6 +848,13 @@ flowchart TD
 
 ### Prepared grouped read-ahead
 
+The installed read controller retains its evidence sequence and quarantine
+when it releases a failed route. It checks the bound Windows device before
+launch or prepared submission. A terminal result releases the old pins
+only after confirmed retirement. Later relevant evidence can qualify another
+binding without interrupting independent CPU reads.
+[Installed read recovery](../GPU_RECOVERY.md#installed-native-read-bindings)
+
 The controller can prepare a demanded read when pending group work has
 deferred for duty. The read uses the remaining measured host window and
 its own backing and memory admission. An active anchor acquisition

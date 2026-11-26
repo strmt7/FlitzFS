@@ -1,4 +1,5 @@
 #include "native_lz4_read_worker.hpp"
+#include "hip_route_binding.hpp"
 #include "gpu_budget.hpp"
 #include "gpu_engine_activity.hpp"
 #include "hip_module_verification.hpp"
@@ -121,15 +122,14 @@ struct NativeLz4ReadWorker::Impl {
   const WindowsGpuEngineSampler* const engines;
   const std::shared_ptr<const PinnedReadPackage> package;
   const GpuConfigurationId configuration;
-  GpuRecoveryPolicy policy;
-  NativeLz4ReadWorkerStats status;
+  detail::NativeLz4ReadSession& session;
+  NativeLz4ReadWorkerStats& status;
   std::optional<Flight> flight;
-  std::uint64_t sequence=0;
   detail::NativeGroupReadTiming group_timing;
 
-  explicit Impl(NativeLz4ReadWorkerProfile config,const WindowsGpuEngineSampler* sampler)
+  Impl(NativeLz4ReadWorkerProfile config,detail::NativeLz4ReadSession& owner,const WindowsGpuEngineSampler* sampler)
       :profile(std::move(config)),engines(sampler),package(std::make_shared<PinnedReadPackage>(profile)),
-       configuration(configuration_id(profile)) {}
+       configuration(configuration_id(profile)),session(owner),status(owner.status) {}
 
   std::optional<bool> engine_available(std::uint64_t now) const noexcept {
     if(!engines)return true;
@@ -145,6 +145,13 @@ struct NativeLz4ReadWorker::Impl {
   static bool current(const WinFspReadAheadWork& work,const std::atomic<bool>& stopped) noexcept {
     return work.owner && !stopped.load(std::memory_order_acquire) && !work.owner->foreground_pending() &&
         work.owner->foreground_activity()==work.foreground_epoch;
+  }
+  bool device_ready() noexcept {
+    if(!profile.installed_route || profile.installed_route->device_ready())return true;
+    status.device_unavailable=true;
+    status.configuration_refused=true;
+    cancel();
+    return false;
   }
   struct BudgetObservation {
     WindowsGpuBudgetResult gpu;
@@ -178,7 +185,7 @@ struct NativeLz4ReadWorker::Impl {
 
   std::optional<StartedChild> launch(const WinFspReadAheadWork& work,const NativeMaintenanceObservation& observed,
       const std::atomic<bool>& stopped,const LaunchPlan& plan,std::uint64_t required_lead) {
-    if(!engine_available(GetTickCount64()).value_or(false))return {};
+    if(!engine_available(GetTickCount64()).value_or(false) || !device_ready())return {};
     const auto budget=observe_budget(observed,plan.capacity);
     if(!budget || !current(work,stopped)) {
       ++status.declined;
@@ -193,8 +200,8 @@ struct NativeLz4ReadWorker::Impl {
       std::to_wstring(plan.argument)};
     const auto now=GetTickCount64();
     if(!engine_available(now).value_or(false) || !has_lead(work,required_lead,now))return {};
-    const auto decision=policy.consider_native_lz4_read(true,
-        {configuration,++sequence,0,sample.status==WindowsGpuBudgetStatus::success,true,memory},plan.slab,now);
+    const auto decision=session.recovery.consider_native_lz4_read(true,
+        {configuration,++session.sequence,0,sample.status==WindowsGpuBudgetStatus::success,true,memory},plan.slab,now);
     if(!decision.try_gpu()) {++status.declined;return {};}
     try {
       auto child=plan.request?WorkerExchangeSession::start_sized(profile.helper,args,plan.request,plan.capacity,budget->process,package):
@@ -202,7 +209,7 @@ struct NativeLz4ReadWorker::Impl {
       return StartedChild{std::move(child),decision.ticket,now};
     }catch(...) {
       status.retirement_confirmed=WorkerExchangeSession::available();
-      (void)policy.finish(decision.ticket,GpuRecoveryOutcome::temporary_pressure,status.retirement_confirmed);
+      (void)session.recovery.finish(decision.ticket,GpuRecoveryOutcome::temporary_pressure,status.retirement_confirmed);
       ++status.failures;
       return {};
     }
@@ -221,24 +228,29 @@ struct NativeLz4ReadWorker::Impl {
     }
     if(flight->superseded) {
       ++status.superseded;
-      (void)policy.abandon(flight->worker.ticket,exact);
+      (void)session.recovery.abandon(flight->worker.ticket,exact);
     }else {
       ++status.failures;
       const auto outcome=refusal(result);
       status.configuration_refused=outcome!=GpuRecoveryOutcome::temporary_pressure;
-      (void)policy.finish(flight->worker.ticket,outcome,exact);
+      (void)session.recovery.finish(flight->worker.ticket,outcome,exact);
     }
     status.retirement_confirmed=exact;
     flight.reset();
   }
 };
 
-NativeLz4ReadWorker::NativeLz4ReadWorker(NativeLz4ReadWorkerProfile p,const WindowsGpuEngineSampler* engines) {
+NativeLz4ReadWorker::NativeLz4ReadWorker(NativeLz4ReadWorkerProfile p,detail::NativeLz4ReadSession& session,
+    const WindowsGpuEngineSampler* engines) {
   p.helper.make_preferred();
   if(!valid_profile(p))throw std::invalid_argument("Invalid qualified native LZ4 read worker profile");
-  impl_=std::make_unique<Impl>(std::move(p),engines);
+  impl_=std::make_unique<Impl>(std::move(p),session,engines);
 }
 NativeLz4ReadWorker::~NativeLz4ReadWorker(){(void)stop();}
+
+bool NativeLz4ReadWorker::bind_installed_route() noexcept {
+  return !impl_->flight && impl_->session.bind(impl_->configuration);
+}
 
 WinFspGroupReadWindow NativeLz4ReadWorker::group_read_window() const noexcept {
   const auto& s=*impl_;
@@ -312,7 +324,7 @@ bool NativeLz4ReadWorker::start(WinFspReadAheadWork& work,const NativeMaintenanc
     if(!original && !retarget)return false;
     const auto now=GetTickCount64();
     const auto lead=s.preparation_lead(f,now,f.worker.child.wait_prepared());
-    if(!lead || !s.has_lead(work,lead,now))return false;
+    if(!lead || !s.has_lead(work,lead,now) || !s.device_ready())return false;
     try {
       if(retarget) {
         const auto resources=detail::maintenance_resources(observed,now,work.owner->group_maintenance_policy());
@@ -497,15 +509,15 @@ bool NativeLz4ReadWorker::verify_and_publish(WinFspNativeWritable& adapter,
       if(f.work.groups)s.group_timing.observe_accepted(turnaround,after_submit,f.ready_at_submit);
       else s.status.last_turnaround_ms=turnaround;
       if(f.preparation.maximum_members)s.status.last_prepared_submit_ms=after_submit;
-      (void)s.policy.finish(f.worker.ticket,GpuRecoveryOutcome::accepted,true);
+      (void)s.session.recovery.finish(f.worker.ticket,GpuRecoveryOutcome::accepted,true);
     }else {
       ++s.status.superseded;
-      (void)s.policy.abandon(f.worker.ticket,true);
+      (void)s.session.recovery.abandon(f.worker.ticket,true);
     }
   }catch(...) {
     ++s.status.failures;
     s.status.configuration_refused=true;
-    (void)s.policy.finish(f.worker.ticket,GpuRecoveryOutcome::integrity_failure,true);
+    (void)s.session.recovery.finish(f.worker.ticket,GpuRecoveryOutcome::integrity_failure,true);
   }
   s.status.last_worker_exit_code=result->process.exit_code;
   s.status.last_worker_elapsed_ms=result->process.elapsed_ms;

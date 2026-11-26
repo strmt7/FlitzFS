@@ -33,6 +33,12 @@ or qualification work.
 - Preserve all existing user files and changes. Never format, repartition,
   initialize or clean drives, write raw devices, change boot/security policy,
   or run destructive drive/volume commands.
+- Treat pre-existing packages, runtimes, drivers, and service configuration
+  as read-only inputs. Discover compatibility through live observations.
+  Provision missing user-mode dependencies in a FlitzFS-owned location with
+  a verified manifest and an owned rollback path. Use the existing compatible
+  kernel component where available. A new component installation must meet
+  the signed-artifact stability requirement and preserve existing components.
 - Filesystem test-volume/image backing on this host remains in memory. Source,
   build, dependency, cache, corpus and report files are ordinary development
   artifacts and may use a scoped development directory with verified free space.

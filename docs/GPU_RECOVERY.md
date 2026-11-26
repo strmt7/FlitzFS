@@ -121,6 +121,33 @@ in one AMD exchange. It published one additional group and declined the other.
 All twelve files passed CPU readback. The worker and controller retired.
 [Source-bound recovery evidence](evidence/amd-installed-recovery-2026-11-18.json)
 
+### Installed native read bindings
+
+The Windows controller retains one recovery policy and one evidence sequence
+for its installed read route. A configuration, integrity or device fault
+fences the exact configuration. The owner releases its package pins after
+confirmed retirement
+and retains the input witness. Independent CPU read service continues while
+the owner waits for another qualified read opportunity.
+
+A fresh opportunity can trigger discovery after relevant package, runtime,
+device readiness or topology evidence changes. An elapsed interval only
+limits the frequency of those observations. A newly authenticated binding
+must pass the existing quarantine before it can own work. Alternating
+configurations preserves previous failures, and an unconfirmed worker
+blocks replacement. A same-configuration device fault still needs separate
+verified recovery computation.
+
+Before starting or submitting a prepared read, the installed route also checks
+the bound Windows device instances. A device that becomes unavailable before
+launch can return through discovery after a known ready observation, with
+fresh resource checks on the next request. This preflight updates no compute
+failure history. All requests retain the independent CPU read path and exact
+reply verification. The recovery checks run on the controller, off the
+Windows read callback.
+[Device status](https://learn.microsoft.com/en-us/windows/win32/api/cfgmgr32/nf-cfgmgr32-cm_get_devnode_status) ·
+[DXGI adapter enumeration](https://learn.microsoft.com/en-us/windows/win32/api/dxgi/nf-dxgi-idxgifactory1-iscurrent)
+
 ### Fresh observations before worker startup
 
 A live prepared compression worker previously reported a stale memory

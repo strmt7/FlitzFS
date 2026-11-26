@@ -473,6 +473,7 @@ void group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={},Group
     admitted=h.clock.next();
   }
   const auto epoch=h.adapter->foreground_activity();
+  detail::NativeLz4ReadSession read_session;
   std::unique_ptr<NativeLz4ReadWorker> worker;
   std::uint32_t timeout=0;
   const auto observe_memory=[&] {
@@ -485,7 +486,7 @@ void group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={},Group
   if(profile) {
     observe_memory();
     timeout=profile->worker.timeout_ms;
-    worker=std::make_unique<NativeLz4ReadWorker>(std::move(*profile));
+    worker=std::make_unique<NativeLz4ReadWorker>(std::move(*profile),read_session);
   }
   auto allowance=WinFspGroupReadWindow{};
   if(small_requests)allowance=worker?worker->group_read_window():WinFspGroupReadWindow{members,100,2};
@@ -1655,7 +1656,9 @@ int wmain(int argc,wchar_t** argv){try {
     profile.minimum_lead_ms=100;
     profile.prepared_group_submit_lead_ms=20;
     WindowsGpuEngineSampler unobserved;
-    NativeLz4ReadWorker control(profile),retained(std::move(profile),&unobserved);
+    detail::NativeLz4ReadSession control_session,retained_session;
+    NativeLz4ReadWorker control(profile,control_session);
+    NativeLz4ReadWorker retained(std::move(profile),retained_session,&unobserved);
     require(control.group_read_window().maximum_frames!=0 && retained.group_read_window().maximum_frames==0,
         "A retained route requested expanded device read-ahead without a fresh adapter observation");
     std::cout<<"retained_group_read_ahead=refused explicit_control_window=available hip_loaded=0\n";
