@@ -12,16 +12,26 @@ the gates.
 [Implementation packages](IMPLEMENTATION_PLAN.md#3-execution-order-and-dependencies) ·
 [Release gates](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
 
-The current checkpoint builds on `a53e1f64bd2630b7edc2069c211bd7672496c652`.
+The current checkpoint builds on `b880771eedfe083c38fda01ffe9187e7e59e041a`.
+Source tree `6aa9c3e9345db7d455147f12c32121d57e963b7e` binds Attach to the
+verified WinFsp runtime in the registered side-by-side deployment.
+It checks the deployment identity and driver version before preflight.
+On the owner Windows host, the relocated WinFsp 2.1 bundle passed the
+read-only mount support check. The WinFsp 2.2 bundle passed its private
+loader check and returned a controlled refusal against that registration.
+The driver remained stopped. Both attachment tests and the helper model
+passed. Signed deployment and mounted AMD performance remain open.
+[Explorer attachment requirements](WINDOWS_VOLUME_APP.md#explorer-attachment) ·
+[Registered pairing evidence](evidence/windows-winfsp-side-by-side-binding-2026-11-26.json)
+
+The preceding private bundle checkpoint builds on `a53e1f64bd2630b7edc2069c211bd7672496c652`.
 Source tree `065471ac5cee6bfba2d5624536f8effef9d2d79f` stages a private Windows
 volume helper with system-only normal imports, its exact WinFsp user-mode
 DLL and the configured approved AMD files. The relocated helper passed
 its loader check on Windows with a System32-only PATH and a different
 working directory. A missing or modified DLL returned a controlled
 status. Two attachment tests and the helper model checks passed.
-The registered WinFsp kernel component remained stopped. The next
-installation work is signed deployment, compatible kernel discovery
-and owned upgrade and rollback.
+The registered WinFsp kernel component remained stopped.
 [Private Windows bundle](WINDOWS_VOLUME_APP.md#private-development-bundle) ·
 [Source-bound loader and attachment evidence](evidence/windows-private-volume-bundle-2026-11-26.json)
 

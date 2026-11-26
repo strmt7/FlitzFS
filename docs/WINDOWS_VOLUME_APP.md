@@ -31,8 +31,8 @@ Run `flitzfs_volume_app.exe --check-installation` for an unattended
 loader check. The Explorer executable checks the packaged WinFsp
 identity and resolves its imports. The command exits with status 0
 on success and 5 if the runtime check fails. A normal Attach still
-goes through the volume controller and requires compatible Windows
-kernel support.
+goes through the volume controller and requires a matching registered
+WinFsp driver.
 
 The staged development bundle supplies the required user-mode helper
 dependency privately. Signed deployment, dependency notices, kernel
@@ -46,11 +46,26 @@ work.
 
 Configure `FLITZFS_BUILD_EXPLORER_APP=ON` and provide the reviewed
 `FLITZFS_WINFSP_SDK` directory when building the attachment variant. This
-build stages the matching user-mode DLL beside the executable. It resolves
-the DLL on Attach, verifies its build-bound size and SHA-256, and resolves
-its dependencies from System32. A missing or altered DLL produces an inline
-status message while the temporary editor stays available.
-[Microsoft delay-load API](https://learn.microsoft.com/en-us/cpp/build/reference/understanding-the-helper-function?view=msvc-170)
+build stages the matching user-mode DLL beside the executable. Attach
+checks its build-bound size and SHA-256, then looks up WinFsp through
+its Windows installation registration. It loads the matching DLL from
+WinFsp's resolved side-by-side deployment and resolves its dependencies
+from System32. The runtime's deployment identity and the registered
+driver's version must agree before Attach enters WinFsp preflight.
+A missing, altered or incompatible runtime produces an inline status
+message while the temporary editor stays available.
+[Microsoft delay-load API](https://learn.microsoft.com/en-us/cpp/build/reference/understanding-the-helper-function?view=msvc-170) ·
+[WinFsp registration](https://github.com/winfsp/winfsp/blob/master/doc/WinFsp-Registry-Settings.md) ·
+[WinFsp side-by-side service selection](https://github.com/winfsp/winfsp/blob/ada6de157df4fa99f5a866b6ac7af66918d6d838/src/dll/fsctl.c#L353-L430)
+
+Use `flitzfs_volume_app.exe --check-mount-support` to check the same
+runtime and driver prerequisites without starting the driver or
+creating a mount. It returns 0 when they match and 8 when a prerequisite
+fails. The supported registration for this build uses the exact SDK
+DLL in a WinFsp side-by-side deployment. This check establishes the
+installed pairing. Mount and recovery qualification still require
+separate tests.
+[Installed pairing evidence](evidence/windows-winfsp-side-by-side-binding-2026-11-26.json)
 
 Attach opens a new indexed volume or reopens the retained volume. It chooses
 a fresh child name in the Windows temporary directory and holds its local

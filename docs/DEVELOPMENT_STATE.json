@@ -8,6 +8,16 @@
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
   "current_release_review": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
   "source_and_portability_review": "docs/architecture/RELEASE_REVIEW_2026-11-26.md",
+  "windows_registered_mount_support": {
+    "source_parent": "b880771eedfe083c38fda01ffe9187e7e59e041a",
+    "tested_source_tree": "6aa9c3e9345db7d455147f12c32121d57e963b7e",
+    "evidence": "docs/evidence/windows-winfsp-side-by-side-binding-2026-11-26.json",
+    "compatibility_sdk_mount_support_status": 0,
+    "distinct_sdk_mount_support_status": 8,
+    "installed_driver_state": "Stopped before and after",
+    "attachment_tests_passed": 2,
+    "release_qualified": false
+  },
   "portable_volume_bundle": {
     "source_parent": "a53e1f64bd2630b7edc2069c211bd7672496c652",
     "tested_source_tree": "065471ac5cee6bfba2d5624536f8effef9d2d79f",

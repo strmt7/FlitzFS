@@ -1,0 +1,165 @@
+{
+  "schema": 1,
+  "date_utc": "2026-11-26",
+  "source": {
+    "parent": "b880771eedfe083c38fda01ffe9187e7e59e041a",
+    "base_tree": "98d8d030c5ed7d6c8c3d7135beffe82c3ec0e9c6",
+    "tree": "6aa9c3e9345db7d455147f12c32121d57e963b7e",
+    "elements": [
+      {
+        "path": "src/windows/volume_app.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "98ccab78499b561a24bd0fd1867ffda22a1ce48a",
+        "bytes": 22027
+      },
+      {
+        "path": "src/windows/volume_app_winfsp.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "de02449b9ba82e740c7265108f98cdda3e32aa17",
+        "bytes": 10255
+      },
+      {
+        "path": "src/windows/volume_app_winfsp.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "26f13c5a64511e8555a1d40bd867ffd910bf9e62",
+        "bytes": 589
+      }
+    ]
+  },
+  "platform": {
+    "windows_version": "10.0.26300.0",
+    "architecture": "AMD64",
+    "environment": "Owner Windows host"
+  },
+  "navigation": {
+    "provider_version": "0.2.43",
+    "source_files": 9,
+    "actual_searches": 1,
+    "receipt_sha256": "5cc521c940abffc5e0e6e1a6296ef198cf642015e68fde8574e0c1ae5925fba4"
+  },
+  "references": {
+    "winfsp_sources": {
+      "sxs.c": {
+        "commit": "ada6de157df4fa99f5a866b6ac7af66918d6d838",
+        "git_blob": "412a34fbf9370a113f812d3d8db93ad8cfffb974",
+        "sha256": "811811885e897032f3f6eadb95e81f4b03aaca6e37f63d2d7eaaf3f89bb123e7",
+        "bytes": 5565
+      },
+      "fs.c": {
+        "commit": "ada6de157df4fa99f5a866b6ac7af66918d6d838",
+        "git_blob": "8dfd46f82b57978689cd6f50ddbbe151bcc838d8",
+        "sha256": "17df7498863300861292b82cbdfe718206ced33d835a1f95f965fa93dbdbffe9",
+        "bytes": 19225
+      },
+      "fsctl.c": {
+        "commit": "ada6de157df4fa99f5a866b6ac7af66918d6d838",
+        "git_blob": "7621e69c7ca6992f7b9c19bbb1cdeb41a9034802",
+        "sha256": "2d9679ad149c12a112923058c44c201bf3ae0f851a128bffe2deb14137015bad",
+        "bytes": 30977
+      }
+    },
+    "windows_doc_provider": "0.9.5+flitzzip.portable2",
+    "windows_doc_receipt_sha256": "131a374df7d67fb39ccf3362e10841b3844957c63d639baa33cfb5458c17dc6f",
+    "windows_doc_pages": [
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfinalpathnamebyhandlew",
+        "http_status": 200,
+        "success": true,
+        "markdown_bytes": 39739,
+        "markdown_sha256": "307b10b762924204a8834d1585ee5e7f22dde1ed6dc776185da1c524cfbef972",
+        "capture_sha256": "31983a9c175edab38c0da9860d64a627ea2d8f5421705f477b366dd02f15fc90"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winsvc/nf-winsvc-queryserviceconfigw",
+        "http_status": 200,
+        "success": true,
+        "markdown_bytes": 37467,
+        "markdown_sha256": "fa26fcd3e3e3c6f3aa8b263844004a3a3103433e1c54a49f093da96944282ae2",
+        "capture_sha256": "a0f61111059487a8d35b089a5562fb491c9c5489dd620bc4e88652cc19d8d81a"
+      }
+    ]
+  },
+  "verification": {
+    "matching_build": {
+      "winfsp": "2.1.25156",
+      "installation": 0,
+      "application_sha256": "644afa96133b64b12c03b5ad314acd01b22791f2114be52b94c06f1639944df7",
+      "mount_support": 0,
+      "sdk_sha256": "08d7389b8d030770a4de108a60a86047d5cdd00b9ecafc6dd66e957bc51c2437"
+    },
+    "different_build": {
+      "winfsp": "2.2.26323",
+      "installation": 0,
+      "application_sha256": "1348d8f70c80bd4d7ea080926edbd9e0450025e3c4790be1a8dc804eaa9e4452",
+      "mount_support": 8,
+      "sdk_sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+    },
+    "installed_runtime_version": "2.1.25156.ddca7bd",
+    "registered_service": {
+      "side_by_side": true,
+      "state_before": "Stopped",
+      "state_after": "Stopped",
+      "start_mode": "Manual",
+      "configuration_observation_unchanged": true,
+      "user_mode_dll_bytes_unchanged": true
+    },
+    "relocated_system32_only_path": true,
+    "control_script_sha256": "83e26ecc47d04abdb6fbf8105f51d273093942aa83160702cd8a12752545cfb7",
+    "control_stdout_sha256": "33b16395f3e1d92e5166743cc137c075089e84e020c117215f71bdbd89f0425f",
+    "loader_regression_exit_codes": {
+      "intact": 0,
+      "missing": 5,
+      "modified": 5
+    },
+    "attachment_ctest_groups_passed": 2,
+    "helper_model_checks_passed": 841,
+    "bounded_runs": {
+      "current_stable_build": {
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 403566592,
+        "elapsed_seconds": 13.391
+      },
+      "compatibility_build": {
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 721383424,
+        "elapsed_seconds": 142.219
+      },
+      "registered_pair": {
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 40759296,
+        "elapsed_seconds": 1.797
+      },
+      "private_bundle_regression": {
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 44122112,
+        "elapsed_seconds": 1.844
+      },
+      "attachment_ctest": {
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 11673600,
+        "elapsed_seconds": 1.094
+      },
+      "helper_model": {
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 11612160,
+        "elapsed_seconds": 1.078
+      }
+    }
+  },
+  "release_scope": {
+    "observed": "Read-only registration discovery, pinned DLL loading, version pairing and mismatch refusal",
+    "actual_mount_exercised": false,
+    "driver_installed_or_started": false,
+    "qualified_physical_recovery": false,
+    "qualified_amd_performance": false
+  }
+}

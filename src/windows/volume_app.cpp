@@ -374,6 +374,13 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE,PWSTR command_line,int) {
 #endif
     return 0;
   }
+#ifdef FLITZFS_BUILD_EXPLORER_APP
+  if(command_line && std::wstring_view(command_line)==L"--check-mount-support") {
+    try { (void)load_volume_app_mount_winfsp(); }
+    catch(...) { return 8; }
+    return 0;
+  }
+#endif
 #ifdef FLITZFS_EXPLORER_FILE_BACKING
   std::optional<VolumeFileRequest> startup_file;
   if(command_line && *command_line) {
