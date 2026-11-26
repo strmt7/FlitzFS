@@ -1,17 +1,16 @@
 # FlitzFS repository overview
 
-The 26 November review follows the current writable Windows path from
-callback to checked CPU recovery, prices parity staging, and ranks
-ordinary AMD compatibility, settled allocation, writable attach and
-collective compression. In a matched near-full fixture, separate private
-scratch let the image settle at 4.25 MiB from 6 MiB with exact CPU
-readback. The same slot size passed the locked-workspace SDK callback
-test. The HIP worker now negotiates optional priority separately, and
-the foreground owner wakes when its worker exits. Comparative mounted
-AMD service, writable attach at scale and supported-media recovery
-remain open.
+The 26 November review follows the writable Windows path from callbacks to
+CPU recovery and ranks the next work by measured impact. The latest
+mixed-group change packed 24 retained short files while preserving the
+unrelated extent. It saved 8 KiB in the matched compacted images. A public
+CPython control tied across the two binaries. The latest bounded Radeon
+write fixture stored independently verified bytes, with CPU taking over
+under engine pressure. Comparative mounted AMD service, writable attach
+at scale and supported-media recovery remain open.
 [Current review and implementation order](RELEASE_RECONCILIATION_2026-11-26.md) ·
-[Latest source and test evidence](evidence/windows-deferred-write-events-2026-11-26.json)
+[Subset packing](evidence/windows-packed-shared-subsets-2026-11-26.json) ·
+[Live Radeon write](evidence/windows-amd-write-grant-growth-2026-11-26.json)
 
 FlitzFS is in development qualification. The writable Windows helper uses
 WinFsp, a protected indexed store and an independent CPU reader. Signed

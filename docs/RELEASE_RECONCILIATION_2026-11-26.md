@@ -10,13 +10,15 @@ detailed package contracts and the release execution plan retains the gates.
 [Implementation packages](IMPLEMENTATION_PLAN.md#3-execution-order-and-dependencies) ·
 [Release gates](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
 
-The current review starts from the 1,156 tracked paths at
-`51458d20b4bdcea117cd15dcf58ab29bdc41c586` and the six changed source and
-test files frozen in tree `52ed7824bad94c425f33846dd250c304a35ddb93`.
-It reconciles the new write scheduling with the previous source review,
-the optional HIP priority change and independent sealing credit. The
-evidence records the live Windows checks and the new primary sources.
-[Current evidence](evidence/windows-deferred-write-events-2026-11-26.json) ·
+The current review starts from the 1,160 tracked paths at
+`7cd54c3a21136fff956950fa098dcc260f3430b3` and the mixed-group packing
+change frozen in source tree `baa05298743776f3e110acece5c97b1605dcb3fb`.
+It carries forward the subsystem source review and rechecks the fifteen
+changed implementation and test paths since `51458d2`, covering the
+deferred Windows write owner, AMD selection, budget sampling and burst
+coordination. The status table and release gates reconcile the accumulated
+evidence with the proposed design.
+[Current evidence](evidence/windows-packed-shared-subsets-2026-11-26.json) ·
 [Source review](architecture/REVIEW.md)
 
 The follow-up AMD checkpoint made priority optional in the Windows workers.
@@ -43,8 +45,8 @@ Mounted AMD benefit still needs the external client comparison.
 | Windows and volume ownership | The helper and WinFsp callbacks use exclusive memory and file-backed volume ownership. Signed guest clients covered populated operations, cached and mapped flush interruption, reclaim and writable reopen. | Qualify the ordinary signed helper and driver together on current Windows 11. Verify Explorer behavior, lifecycle, sharing and the advertised file semantics. |
 | Indexed store and scale | Copy-on-write names, inodes, extent maps and payload ownership are queryable in pages. Read callbacks reuse checked metadata. A 32-callback control read 54,672 backing bytes after the change, down from 341,008. Writable reopen verifies the full inventory, including Windows admission checks. | Put a durable bound on normal attach I/O without skipping namespace, allocation or dependency invariants. Measure named-file growth and memory on a held-out scale tier. |
 | Space reuse and recovery | Protected append, paired selectors, staged compaction, reader pins, alternate peer recovery and independently readable sealed parity are implemented. Priced packing and the locked-workspace seal both run through the volume owner. | Qualify continuous settlement under churn and pressure, all relevant publication cuts and each advertised storage medium. Prove the bounds on delay from pinned readers and incomplete work. |
-| Compression | Foreground CPU codecs, verified device candidates, protected small-file packing and shared bases exist. Subset refinement reduced one matched mixed group from 752 to 560 KiB. It reached the same settled bytes on the existing CPython and AITDCC holdouts. | Move useful pages and segments into their smallest verified form. Compare codecs and groups at equal protection and charge model, dependency, repair and allocation costs. |
-| AMD | The current HIP workers can use the basic nonblocking stream when priority is unavailable. Radeon callbacks delivered two verified extents. The native writer stored sixteen verified Radeon extents across a funded eight-window trial. Withdrawing a later window grant selected CPU. The foreground service now wakes on worker exit. | Establish winning workloads on the ordinary mount, by role. Bind retained preparation to measured demand and account for discovery, readiness, validation, committed size, misses and idle residency. |
+| Compression | Foreground CPU codecs, verified device candidates, protected small-file packing and shared bases exist. Assembled-prefix subset refinement reduced one protected mixed group from 752 to 560 KiB. Packing retained short extents saved another allocation pair in a separate matched fixture. The latest CPython control reached the same occupied bytes across the two binaries. | Move useful pages and segments into their smallest verified form. Compare codecs and groups at equal protection and charge model, dependency, repair and allocation costs. |
+| AMD | HIP workers can use a nonblocking stream when stream priority is unavailable. Radeon callbacks delivered verified read and write bytes. The foreground write service wakes on worker exit, adapts burst depth to headroom and can revisit a larger grant. The latest public-source write fixture favored CPU on occupied size, 240 versus 264 KiB. | Establish winning workloads on the ordinary mount, by role. Bind retained preparation to measured demand and account for discovery, readiness, validation, committed size, misses and idle residency. Target predictable grouped reads and collective search before more small uniform-write tuning. |
 | Autonomous policy | Persistent sparse candidates, revision guards, input-funded maintenance and live contention/resource gates already exist. | Test drift, restart, fairness, idle recovery and write cost with ordinary workloads. Qualify the full chain from offline advice to independently verified net savings. |
 | Evolution and deployment | CPU readers, required features, format checks and pinned setup exist. Format and provider evidence is distributed across historical fixtures. | Freeze the supported compatibility window, run interrupted gradual migration, and qualify private dependency setup, the exact signed installer and offline recovery. |
 | Measurement and stabilization | A Win32 operation witness, DiskSpd and named public inputs support repeatable comparisons. | Execute matched current NTFS and FlitzFS runs on live hardware, then close the declared fault, compatibility and soak matrix on one source-bound candidate. |
@@ -54,7 +56,33 @@ Mounted AMD benefit still needs the external client comparison.
 [Read and device evidence](evidence/windows-foreground-query-reuse-2026-11-25.json) ·
 [Shared-base comparison](evidence/windows-subset-reference-refinement-2026-11-26.json)
 
-### What the latest round establishes
+### What changes the next implementation decision
+
+The packed-slice comparison now survives an unrelated extent in a complete
+staged group. One matched 4 KiB protection fixture retained 24 short files
+and left the unrelated extent's object and revision unchanged. The complete
+compacted image moved from **304 to 296 KiB**, or **432 to 424 KiB**
+including the selector.
+The prior 16-member diagnostic tied at 296 KiB. The CPython control's best
+settled arm occupied **440 KiB including its selector** in both binaries.
+Pinned, current and independently copied images returned exact CPU bytes.
+The result supports an additional representation on an existing verified
+path. The largest compression investment still depends on measured
+coverage and closed-loop results on real workloads.
+[Subset packing and CPython control](evidence/windows-packed-shared-subsets-2026-11-26.json)
+
+The latest Radeon write fixture funded eight prepared requests and
+accepted two in the observed opportunity. Three stored extents contributed
+192 KiB of independently CPU-verified input. Engine activity deferred the
+next pass, which still completed through CPU. The image size gap and
+headroom results give two reasons to prioritize grouped reads and
+collective search as the next physical AMD comparisons.
+This round's collective preflight deferred under roughly 99% existing
+device-engine load. The Windows suite, guarded sanitizer run and raw
+controls all passed.
+[Callback data and occupied size](evidence/windows-amd-write-grant-growth-2026-11-26.json)
+
+### Protected placement evidence
 
 The model held the same file bytes, 6 MiB slot, failure unit and available
 sealing credit across arms. The previous planner declined the transition
@@ -93,6 +121,28 @@ flowchart LR
 
 ## Research that changes decisions
 
+- **Cluster by affinity and access together.** FAST 2026 RubikFS reported
+  better compression and fewer unnecessary reads on its read-only
+  workloads by clustering similar chunks and grouping by access
+  temperature. Use that result to test fragment-level candidate recall and
+  read amplification together. FlitzFS needs bounded online updates and
+  immutable published restart units. Start with the existing sparse
+  catalog and a small offline oracle for the alternative orderings.
+  [FAST 2026 RubikFS research](https://www.usenix.org/conference/fast26/presentation/huang)
+- **Charge the full placement.** EROFS's project comparison explicitly
+  identifies fragment packing and deduplication in the compressed images.
+  Compare those mechanisms separately in FlitzFS by holding protection
+  constant and counting metadata, shared dependencies and allocation
+  rounding. The 16-member tie in this round illustrates why a smaller
+  encoded representation alone gives an incomplete answer.
+  [EROFS deduplication and fragment comparison](https://erofs.docs.kernel.org/en/latest/comparison/dedupe.html)
+- **Keep a current public control and a named-file holdout.** The public
+  2026 AITDCC release provides checksums and separate A–H training and
+  I–P testing sets. Use those files for byte-exact codec comparisons.
+  The named Windows trees independently test directory structure,
+  metadata, random reads, edits and collective coverage. Freeze the
+  family-level split and bytes before reranking an encoder.
+  [AITDCC 2026 official dataset](https://aitdcc.github.io/dataset.html)
 - **Support the runtime that is actually present.** AMD published ROCm Core
   SDK 10.2.0 on 18 November with HIP 7.17.0. The release notes disable priority
   streams, although the APIs remain described. The FlitzFS worker now
@@ -241,10 +291,16 @@ qualify.
    worker. The installed write trial now funds the largest complete
    burst within the observed grant. It records funded and completed
    request counts separately and can revisit a geometry when fresh
-   headroom funds a larger burst. Extend demand-lead estimates from
-   actual arrivals, startup distribution and measured reuse, with
-   prompt retirement on stalls,
-   pressure, detach or incompatible I/O. Background admission on a
+   headroom funds a larger burst. The current suppression watermark
+   records funded count for an input-size slot under the selected storage
+   policy. Keep that protection against repeated launches. Drive the next
+   eligibility decision from completed and consumed counts, changed
+   arrival cadence, input class, runtime identity and measured readiness.
+   A grant of eight and consumption of two gives evidence about the
+   opportunity that occurred. Record the cause of unused reservations
+   before allowing this size to recalibrate with unchanged headroom.
+   Retire promptly on stalls, pressure, detach or incompatible I/O.
+   Background admission on a
    runtime without stream priority requires fresh idle evidence and
    finite dispatch. A refused or failed route leaves CPU I/O available
    without waiting for GPU cleanup. Retry only with relevant changed
@@ -510,16 +566,19 @@ exercise grouped behavior across files and directories.
 
 ### Decide the next batch from three integrated results
 
-| Result | Reuse first | Decision and next implementation |
+| Priority and decision | Next deliverable | Acceptance and follow-through |
 | --- | --- | --- |
-| Useful AMD role with independent CPU continuity | Populated Win32 witness, existing ready read-ahead, paired write capture and exact-extent verification | Enroll only the measured winning profile. If small writes remain CPU-preferred, move device investment to predictable reads, match search and larger protected work. |
-| Largest protected byte and write savings | Matched exact named trees, packed inodes, shared-base alternatives and both seal placements | Remove a staging pass only when it dominates avoidable work. Prioritize the next format change by verified settled bytes, restart cost and retained dependency cost. |
-| Writable attach curve after churn | Indexed audit with independent CPU decoder and known allocation/recovery barriers | Implement the incremental attach proof if startup still scales with cold inventory. Preserve the full audit as the comparison and recovery path. |
+| 1. AMD work consumed by an ordinary Windows client | Add one trace record per observed demand and admitted finite opportunity to the populated Win32 witness. Join demand, worker readiness, CPU verification, stored representation and receipt on the same operation. Drive the first comparison with grouped sequential reads and protected collective analysis. Keep current small writes as the CPU control. | Alternate matched lanes and record completed and delivered device bytes, CPU continuity, occupied size, p99, idle residency and retirement. Use an already-qualified installed tuple for host numbers. Use signed guests for correctness and fault experiments. Enroll profiles that improve the measured objective after setup and verification. |
+| 2. Highest complete-size gain on named data | Add a report over the existing indexed maintenance and reencoding witness. For each cohort report eligible and nominated byte share, verified retained members, rejection reason, selected representation, protected bytes after retire, peak and bytes rewritten. Compare the current group path to a strong independent Zstd pass, then replay a small fragment oracle on the high-cost cohorts. | Compare identical bytes, namespace and protection. Publish a held-out size/access frontier with neutral cohorts included. If the oracle finds savings missed by lookup, change the sparse nominations. If lookup recalls the profitable pairs and allocation absorbs their gains, work on packed protected records or parity. Introduce a model or a new codec only after an existing baseline measures the remaining opportunity. |
+| 3. Bounded writable attach and provider recovery | Grow a named churned tree over feasible orders of magnitude. Record allocated pages, live and dirty records, attach I/O and peak private memory. Draft a checkpoint proof with checked incremental summaries and a bounded continuation of changed pages. Exercise each incomplete transaction through the independent CPU audit and current checked reopen first. | Fit against feasible observations and validate on a reserved higher tier before projecting tens of millions of files. Resume or fall back to the full audit on absent, stale or damaged proofs. Confirm each promised flush and recovery condition on the supported backing qualification matrix before changing writable defaults. |
 
 The same client log should support all three decisions. Run a focused test
 for a changed invariant and reuse source-bound unaffected evidence. Require
 the larger cross-product of tuples at candidate freeze, after these results
-can inform what the product will support.
+can inform what the product will support. Provider durability, Windows
+package ownership and historical CPU compatibility remain parallel release
+dependencies. The final NTFS, compression and soak grid runs on the same
+signed artifacts and explicitly declared compatibility window.
 
 ## Remaining effort and repricing
 

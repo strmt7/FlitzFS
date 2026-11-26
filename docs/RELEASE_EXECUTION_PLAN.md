@@ -1,10 +1,11 @@
 # FlitzFS stable release execution plan
 
-Use the populated Windows trace to compare installed AMD service with
-CPU. Attribute settled placement costs and measure writable attach and
-complete protected size across held-out workloads. Persistent-media
+Start with the populated Windows trace for grouped reads and collective
+analysis. Compare installed AMD service with CPU, then use the held-out
+complete-size comparison and fragment oracle to prioritize compression
+work. Measure writable attach on the same named workload. Persistent-media
 recovery retains its own acknowledgement and interruption evidence.
-[Reconciled evidence](evidence/windows-deferred-write-events-2026-11-26.json) ·
+[Reconciled evidence](evidence/windows-packed-shared-subsets-2026-11-26.json) ·
 [Implementation sequence](RELEASE_RECONCILIATION_2026-11-26.md#detailed-implementation-order)
 
 Use the [repository overview](REPOSITORY_OVERVIEW.md) for the product snapshot,

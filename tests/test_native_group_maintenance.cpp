@@ -1408,10 +1408,7 @@ void indexed_pack_distinct_short_extents() {
       <<" stale_selection_rejected=true declined_random_without_writes=true independent_cpu_readback=true\n";
 }
 
-void indexed_packed_short_extents() {
-  if(!store_zstd_available())return;
-  constexpr auto names=16U;
-  constexpr StoreCompressionOptions policy{StoreCompressionMode::automatic,6,true};
+std::vector<Bytes> packed_short_inputs(unsigned names) {
   std::vector<Bytes> pieces,inputs;
   for(unsigned i=0;i<29;++i)pieces.push_back(data(81+i*47%119,78011+i));
   const auto common=data(304,79429);
@@ -1423,6 +1420,84 @@ void indexed_packed_short_extents() {
     }
     member.push_back(static_cast<std::byte>(i+1));
   }
+  return inputs;
+}
+
+void indexed_packed_subset() {
+  if(!store_zstd_available())return;
+  constexpr StoreCompressionOptions policy{StoreCompressionMode::automatic,6,true};
+  constexpr NativeImageStorage storage{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes};
+  const auto files=packed_short_inputs(24);
+  const auto unrelated=data(kNativeExtentBytes,87931);
+  const auto name=[](std::size_t file){return "short-"+std::to_string(file);};
+  const auto compare=[&](bool packing) {
+    Fixture f(4096,0,true,policy);
+    for(std::size_t i=0;i<files.size();++i)put(*f.session,name(i),files[i]);
+    put(*f.session,"unrelated",unrelated);
+    f.session.reset();
+    const auto pinned=NativeFilesystemSnapshot::open_image(f.image,storage);
+    {
+      const auto frozen=PagedObjectStoreSnapshot::open(f.image,{kStoreMaxPhysicalBytes});
+      auto writer=PagedObjectStoreWriter::resume(f.image,id(1),frozen.info().generation,{kStoreMaxPhysicalBytes},policy);
+      const auto source=writer.snapshot();
+      const detail::IndexedVolumeView view(source,source.read(1));
+      auto root=view.root();
+      const NativeExtentSelection outlier_selection{view.resolve("unrelated").inode,0};
+      const auto outlier=view.content_at(outlier_selection);
+      require(outlier.has_value(),"packed subset lost its unrelated extent");
+      std::vector<NativeExtentSelection> members;
+      for(std::size_t i=0;i<files.size();++i) {
+        if(i==files.size()/2)members.push_back(outlier_selection);
+        members.push_back({view.resolve(name(i)).inode,0});
+      }
+      detail::IndexedSharedBasePreparation work(source,root,members.front(),members,{},true,false);
+      work.admit_variants(packing,true,true,true);
+      require(!work.advance({},nullptr),"packed subset did not enter encoding");
+      std::weak_ptr<const void> window;
+      for(std::size_t peer=1;peer<members.size();++peer)
+        require(work.stage_search(members.size()-1,window,NativeSharedBaseSearchPurpose::section_comparison),
+            "packed subset did not stage its checked inputs");
+      bool done=false;
+      for(std::size_t step=0;step<10*members.size() && !done;++step)done=work.advance({},nullptr);
+      require(done,"packed subset did not finish bounded preparation");
+      const auto result=work.finish(writer,source,root);
+      std::cout<<"packed_subset_price packing="<<packing<<" lower_before="<<result.before_compacted_lower_bound
+          <<" upper_after="<<result.after_compacted_upper_bound<<" selected_packing="<<result.packed_reference<<'\n';
+      require(result.applied && result.members==files.size() && result.skipped_objects==std::vector{outlier->object},
+          "packed comparison did not keep the same profitable members");
+      require(!packing || result.packed_reference,"packing did not win for the retained short members");
+      const auto committed=writer.snapshot();
+      const detail::IndexedVolumeView selected(committed,committed.read(1));
+      const auto untouched=selected.content_at(outlier_selection);
+      require(untouched && untouched->object==outlier->object && untouched->revision==outlier->revision &&
+          !untouched->grouped,"packed subset changed the rejected extent");
+    }
+    const auto current=NativeFilesystemSnapshot::open_image(f.image,storage);
+    auto target=ram(4096);
+    (void)NativeFilesystemWriter::compact(current,target,id(3),policy);
+    const auto settled=NativeFilesystemSnapshot::open_image(target,storage);
+    for(const auto* reader:{&pinned,&current,&settled}) {
+      reader->verify_all();
+      require(reader->read("unrelated",0,kNativeExtentBytes)==unrelated,"packed subset changed the outlier bytes");
+      for(std::size_t i=0;i<files.size();++i)
+        require(reader->read(name(i),0,kNativeExtentBytes)==files[i],"packed subset changed acknowledged bytes");
+    }
+    return std::pair{target->extent(),f.head->extent()};
+  };
+  const auto [ordinary,baseline_selector]=compare(false);
+  const auto [packed,packed_selector]=compare(true);
+  require(baseline_selector==packed_selector,"packed comparison changed the selector cost");
+  std::cout<<"packed_subset baseline_image_bytes="<<ordinary<<" packed_image_bytes="<<packed
+      <<" selector_bytes="<<packed_selector
+      <<" retained="<<files.size()<<" unchanged_outliers=1 exact_cpu_reopen=1\n";
+  require(packed<ordinary,"retained packing did not reduce the complete compacted image");
+}
+
+void indexed_packed_short_extents() {
+  if(!store_zstd_available())return;
+  constexpr StoreCompressionOptions policy{StoreCompressionMode::automatic,6,true};
+  const auto inputs=packed_short_inputs(16);
+  const auto names=static_cast<unsigned>(inputs.size());
   Fixture f(4096,0,true,policy);
   const auto path=[](unsigned id){return "short-"+std::to_string(id);};
   for(unsigned i=0;i<names;++i)put(*f.session,path(i),inputs[i]);
@@ -4218,6 +4293,7 @@ int main(int argc,char** argv){try{
     indexed_batched_prefix();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-packed-short-extents") {
     indexed_packed_short_extents();
+    indexed_packed_subset();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-pack-distinct-short-extents") {
     indexed_pack_distinct_short_extents();
     indexed_uneven_short_packs(true);

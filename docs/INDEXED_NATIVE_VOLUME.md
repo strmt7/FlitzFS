@@ -728,16 +728,19 @@ read semantics supply any trailing zeroes. A random read of one member needs
 at most one base. It can reuse that base under the existing verified cache
 rules and verifies the member slice without reconstructing a padded extent.
 
-Idle maintenance can try packing a complete staged new group if the
-canonical payloads fit in one base and live headroom covers the additional
-candidate. A Zstandard-enabled build enables this comparison. Each preparation
-step copies one payload or validates one proposed slice against the original.
+Idle maintenance can try packing the retained members of a complete staged
+new group if at least two canonical payloads fit in one base and live headroom
+covers the additional candidate. A Zstandard-enabled build enables this
+comparison. Rejected extents occupy no space in the base and keep their
+current indexed bindings. Each preparation step copies one retained payload
+or validates one proposed slice against the original.
 The same candidate can compete in a CPU or AMD search window. The writer
 prices the complete compacted layout against ordinary, assembled and prefix
 variants before writing. Publication requires a strict size reduction from
 the selected image and raises the root capability in the same mirrored COW
 transaction as the base and members. The existing dependency lifetime and
 reader-retirement rules apply.
+[Mixed-group comparison](evidence/windows-packed-shared-subsets-2026-11-26.json)
 
 In automatic compression mode, the indexed scanner also tries short
 standalone payloads left in its current window after similarity and catalog

@@ -298,6 +298,28 @@ frontiers make parser strength a useful control for that replay. Use
 with ordinary allocation and identical protection.
 [Prefix trial and held-out controls](../evidence/windows-prefix-parser-reconciliation-2026-11-25.json)
 
+Run that replay in three stages. First hold the existing format and write
+order fixed and compare the candidates already emitted by the paged catalog
+to a small exhaustive fragment and ordering oracle. Record verified retained
+byte share alongside recall. Second compare the exact same retained bytes
+under protected slices, assembled references and independent high-effort
+Zstandard. Record both encoded bytes and actual settled allocation. Third
+change only the measured bottleneck and test the new choice on unseen file
+families. Use the resulting read amplification and rewrite measurements to
+decide how far to widen physical groups.
+
+Background AMD execution can spend a bounded opportunity on a profitable
+shortlist. The route reuses exact staging tokens and reports completed and
+consumed results separately. Consider a worker warm while measured lead time,
+batch coverage and current headroom justify its reservation. Park between
+requests on the existing event and retire on pressure or lost demand. Derive
+prediction and priority from local observations. Persist only the advisory
+statistics and candidate keys needed to improve later choices. Every committed
+restart unit remains independently readable with the CPU compatibility
+registry even when the policy record has to be rebuilt.
+[FAST 2026 chunk and access grouping](https://www.usenix.org/conference/fast26/presentation/huang) ·
+[Evidence-ranked implementation order](../RELEASE_RECONCILIATION_2026-11-26.md#decide-the-next-batch-from-three-integrated-results)
+
 Price each representation after its selected generation settles and old
 reader pins release. The measured store cost includes the selector,
 protected frames, indexes, mandatory references, allocation rounding and

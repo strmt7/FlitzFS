@@ -513,7 +513,28 @@ Admission charges the extra output buffer. Either parser can produce the
 same existing versioned prefix frame. The group can keep other member
 methods and share the selected checked base.
 [Encoder](../../src/store_codec.cpp#L113) ·
-[Publication](../../src/native_indexed_volume.cpp#L2114)
+[Publication](../../src/native_indexed_volume.cpp)
+
+### Packing a verified subset
+
+```mermaid
+flowchart TD
+    W["Complete staged window and fresh grant"] --> E["Check ordinary encodings and retain useful members"]
+    E --> S["Skipped extents keep their exact bindings"]
+    E --> P["Copy retained canonical slices into one checked base when they fit"]
+    P --> V["CPU verifies each slice against the staged extent"]
+    V --> C["Price packed, ordinary, assembled and prefix candidates"]
+    C -->|Strict protected gain and current| T["Publish chosen base and retained members through COW"]
+    C -->|No gain or stale source| K["Keep current image"]
+```
+
+Packing uses the existing slice format and protected transaction. It preserves
+the original extent order for binding checks even when a member contributes
+zero bytes. One checked base serves independently addressed slices. CPU
+verification, source revision checks and the complete-size gate determine
+what the owner can publish.
+[Format](../INDEXED_NATIVE_VOLUME.md#packed-slices) ·
+[Live Windows CPU evidence](../evidence/windows-packed-shared-subsets-2026-11-26.json)
 
 ### Indexed maintenance sample
 

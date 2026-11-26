@@ -1,0 +1,224 @@
+{
+  "schema": 1,
+  "date": "2026-11-26",
+  "source_parent": "7cd54c3a21136fff956950fa098dcc260f3430b3",
+  "base_tree": "711cb5b6f4d375f5352373a00d263f25ca47c0e7",
+  "tested_source_tree": "baa05298743776f3e110acece5c97b1605dcb3fb",
+  "tested_source_blobs": [
+    {
+      "path": "src/native_indexed_volume.cpp",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "60b7e4d6d6fdf4c99b91a5f8d4ab4d741ce98071",
+      "bytes": 157658
+    },
+    {
+      "path": "tests/test_native_group_maintenance.cpp",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ea237d54b5767c84ca59ae47093f7628daf0ee07",
+      "bytes": 254386
+    }
+  ],
+  "scope": "Live Windows CPU qualification of existing packed slices on a retained subset. Mixed fixture, public revision corpus and controlled recovery use owned memory-backed images. AMD preflight ran without a dispatch.",
+  "mixed_fixture": {
+    "protection_failure_unit_bytes": 4096,
+    "protected_source_bytes": 409600,
+    "selector_bytes_each": 131072,
+    "retained_short_members": 24,
+    "unrelated_full_extents": 1,
+    "baseline_compacted_image_bytes": 311296,
+    "candidate_compacted_image_bytes": 303104,
+    "baseline_with_selector_bytes": 442368,
+    "candidate_with_selector_bytes": 434176,
+    "settled_bytes_saved": 8192,
+    "matched_protection_and_namespace": true,
+    "selected_packing": true,
+    "skipped_object_and_revision_preserved": true,
+    "pinned_current_and_independently_compacted_cpu_exact": true,
+    "added_reader_capability": false,
+    "sixteen_member_diagnostic": {
+      "image_bytes_each": 303104,
+      "packed_candidate_selected": true
+    }
+  },
+  "existing_packed_publication_cases": {
+    "injected_cuts": 45,
+    "previous_checkpoint": 37,
+    "complete_checkpoint": 8,
+    "independent_cpu_bytes_verified": true
+  },
+  "public_control": {
+    "project": "CPython",
+    "named_files": 24,
+    "logical_input_bytes": 2510681,
+    "fixture_bytes": 2510781,
+    "fixture_sha256": "d053d6acd0551763909205a2ed670d6bf6bc3e61a13ef0cd13ca93e69c5489f9",
+    "command": "--profile-public-compact-inline",
+    "selector_bytes_each": 8192,
+    "settled_bytes_including_selector_each": {
+      "cold_only": 1228800,
+      "cold_then_group": 499712,
+      "group_only": 499712,
+      "group_then_cold": 450560
+    },
+    "equal_outputs_except_work_time": true,
+    "independent_cpu_bytes_verified": true,
+    "input_provenance": "docs/evidence/windows-subset-reference-refinement-2026-11-26.json"
+  },
+  "checks": {
+    "windows": {
+      "run_receipt_sha256": "c75d15a68f36b1acb9c187aabb3c3334f79f92ad7479b7a5ff079a2b71d6249f",
+      "output_sha256": "7a9dfa4fbc1c8b0c960b1460c1ffbc406d569ae8c7f0ee2e846f7dbd1a010feb",
+      "job_peak_bytes": 679710720,
+      "job_memory_limit_bytes": 897581056,
+      "job_cpu_percent_limit": 22,
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "passed_tests": 238
+    },
+    "asan": {
+      "run_receipt_sha256": "048991d04d077171d9c2bc013707bb1722eab7b925c0a83a85778fb6ca03b271",
+      "output_sha256": "80ede36bf21a6150666ba5ddcbea5d0acc68fe14f74402a79a962c4e5e69c5d3",
+      "job_peak_bytes": 606851072,
+      "job_memory_limit_bytes": 825229312,
+      "job_cpu_percent_limit": 20,
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "passed_tests": 3
+    },
+    "raw": {
+      "run_receipt_sha256": "1e6d454358a7f2980100c530dab6872cdce225e36524db75a90df41cbb7a8773",
+      "output_sha256": "6d3156a3251d869e730cf0aae0c0ec293a3cd25187291ea6ee117beb30a0bed7",
+      "job_peak_bytes": 107667456,
+      "job_memory_limit_bytes": 696254464,
+      "job_cpu_percent_limit": 18,
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "passed_tests": 4
+    },
+    "cpython_parent": {
+      "run_receipt_sha256": "c2496d201adee6a9e49e5c50dba4377a6c3773b663a488457c713b00a52a1dd7",
+      "output_sha256": "5e2fb6b74e874868b88965e14d0bb4641a2c13d76a4e088df0cdcf630f9cc779",
+      "job_peak_bytes": 22552576,
+      "job_memory_limit_bytes": 766509056,
+      "job_cpu_percent_limit": 19,
+      "exit_code": 0,
+      "process_tree_retired": true
+    },
+    "cpython_candidate": {
+      "run_receipt_sha256": "ececf2336ad11dec80896cb907dcfb00c9674bdc9acd2e2bb452133d2a4360e3",
+      "output_sha256": "83c753a1ee07d52eed5b99752c091c02851bd41f20816aeca5112fe2869e7208",
+      "job_peak_bytes": 21602304,
+      "job_memory_limit_bytes": 666894336,
+      "job_cpu_percent_limit": 18,
+      "exit_code": 0,
+      "process_tree_retired": true
+    },
+    "initial_device_admission": {
+      "run_receipt_sha256": "dfece56d15a9f6fc06ea44eaf488bec990950d8ab758b61604691271d7e03938",
+      "output_sha256": "59c6388900f6cd4ead378d8df10ae2a4a8079e8f5507f889d6a216154fd999d6",
+      "job_peak_bytes": 103112704,
+      "job_memory_limit_bytes": 342884352,
+      "job_cpu_percent_limit": 14,
+      "exit_code": 0,
+      "process_tree_retired": true
+    },
+    "device_admission_with_test_owner": {
+      "run_receipt_sha256": "8178d1c8dc50a8600a4c7d341d801d39cc1260d555be293edd3e03df2cfc6a06",
+      "output_sha256": "0087ba231234cf498185a1e343f0253f24613c35fe6df18e9500486c30e3d533",
+      "job_peak_bytes": 41938944,
+      "job_memory_limit_bytes": 309329920,
+      "job_cpu_percent_limit": 14,
+      "exit_code": 0,
+      "process_tree_retired": true
+    },
+    "final_device_admission": {
+      "run_receipt_sha256": "b6d42239a3355cea7be62fdc2dfa929fbaf2a72297b7ce0f3515b8ea64a9e674",
+      "output_sha256": "667ecda1a49b3da63f2811e99d82895fedf61501b05e96e9a20f30e93deb6591",
+      "job_peak_bytes": 93900800,
+      "job_memory_limit_bytes": 324009984,
+      "job_cpu_percent_limit": 14,
+      "exit_code": 0,
+      "process_tree_retired": true
+    },
+    "windows_build": {
+      "run_receipt_sha256": "011f6a065cae4eba2c9d62abafd1812486dbec9ac83a9d8878827ece97b4de53",
+      "output_sha256": "08fdfa0c4c2df7e4dc8f3dba8d767c13766f4a0da1636fd94fddc02756b0c48d",
+      "job_peak_bytes": 429441024,
+      "job_memory_limit_bytes": 919601152,
+      "job_cpu_percent_limit": 22,
+      "exit_code": 0,
+      "process_tree_retired": true
+    }
+  },
+  "artifact": {
+    "baseline_maintenance_executable": {
+      "sha256": "0428efa350c6d78238219f9e70d25c0256408271ed5317eee16fb77d980c9474",
+      "bytes": 2152448
+    },
+    "candidate_maintenance_executable": {
+      "sha256": "65b5643f1fbf30c9df3ea871b76d3e194e7cd3b1c1d84a4f0d1cb31fd1ca733f",
+      "bytes": 2161152
+    },
+    "asan_runtime_preflight_passed": true,
+    "raw_variant_requires_zstd": true
+  },
+  "amd": {
+    "stage_manifest_sha256": "3bf46071d72c4eff669906c25709811d9308c66a242d9af8c408d833be87d6f5",
+    "adapter": "AMD Radeon RX 9070 XT",
+    "first_existing_engine_peak_percent": 99.77118290272516,
+    "intermediate_refusal": "Another fixture was running.",
+    "final_existing_engine_peak_percent": 98.92524736873432,
+    "dispatch_admitted": false,
+    "driver_changed": false,
+    "mounted_amd_qualified": false,
+    "prior_physical_run": "docs/evidence/windows-amd-write-grant-growth-2026-11-26.json"
+  },
+  "navigation": {
+    "provider_version": "0.2.43",
+    "source_commit": "7cd54c3a21136fff956950fa098dcc260f3430b3",
+    "targeted_files": 2,
+    "receipt_sha256": "23f1cc617950b58b06aab113f9b542ee79c1b218f7144026c0ead80336720f81",
+    "native_response_sha256": "fb309616a8a91dc87e2d117e55d294d1b95a02e8ad527345d4afb91486ea5bcc"
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "129ad81ccad58876a9f20fee039e6b78ed0199d18b158109e8fd17d9f35a566e",
+    "robots": true,
+    "external_LLM": false,
+    "pages": [
+      {
+        "name": "rubik",
+        "url": "https://www.usenix.org/conference/fast26/presentation/huang",
+        "success": true,
+        "http_status": 200,
+        "markdown_bytes": 10416,
+        "markdown_sha256": "dbc538fff3a57a4c36ef94c8a47e1737270a83880e2fb6957160b9b46f285256",
+        "capture_sha256": "857c59f3472e18393595e0229e1c501bb482cf96ead4a7db93b64df0516990d7"
+      },
+      {
+        "name": "erofs-fragments",
+        "url": "https://erofs.docs.kernel.org/en/latest/comparison/dedupe.html",
+        "success": true,
+        "http_status": 200,
+        "markdown_bytes": 7190,
+        "markdown_sha256": "863d213ca5fa15c10aebc260a320ae34d471691f70edb8026184a3734a7160ae",
+        "capture_sha256": "e68940534908ef9e73dd9cc661f4f3edba83ce43bf4ce3d3cc884e5ef57c921b"
+      },
+      {
+        "name": "aitdcc",
+        "url": "https://aitdcc.github.io/dataset.html",
+        "success": true,
+        "http_status": 200,
+        "markdown_bytes": 6271,
+        "markdown_sha256": "766801630c0c3f7c80304f41397c0ae265fd0cb79387c2837c920c08b8987676",
+        "capture_sha256": "7203c3fa0cb76fd1f5f426c63168ace355ab72795f28d59cf530e92fd2b79711"
+      }
+    ]
+  },
+  "cleanup": {
+    "active_owned_native_processes_after_run": 0
+  },
+  "release_qualified": false
+}

@@ -7,6 +7,19 @@
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
   "current_release_review": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
+  "packed_shared_subsets": {
+    "source_parent": "7cd54c3a21136fff956950fa098dcc260f3430b3",
+    "tested_source_tree": "baa05298743776f3e110acece5c97b1605dcb3fb",
+    "evidence": "docs/evidence/windows-packed-shared-subsets-2026-11-26.json",
+    "mixed_retained_members": 24,
+    "mixed_unchanged_extents": 1,
+    "mixed_protected_image_baseline_bytes": 311296,
+    "mixed_protected_image_candidate_bytes": 303104,
+    "cpython_best_settled_bytes_each": 450560,
+    "independent_cpu_readback": true,
+    "new_decoder_capability": false,
+    "release_qualified": false
+  },
   "amd_write_grant_growth": {
     "source_parent": "00e10c271222c07f64e357330f8021022429d182",
     "tested_source_tree": "f9d4d6628cdcfd4bd824e2e66ac2a07867078d27",

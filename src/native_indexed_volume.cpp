@@ -2028,17 +2028,24 @@ bool IndexedSharedBasePreparation::stage_packed_reference() {
   try {
     auto& trial=*packed_reference_;
     if(trial.sampled<members_.size()) {
-      const auto position=trial.sampled;
-      const auto& bytes=position==base_index_?search_->bytes->base:search_->bytes->members[search_slot(position)];
-      const auto length=members_[position].payload_bytes;
+      const auto position=trial.sampled++;
+      const auto& member=members_[position];
       if(!position)trial.base.reserve(kNativeExtentBytes);
-      trial.base.insert(trial.base.end(),bytes.begin(),bytes.begin()+static_cast<std::ptrdiff_t>(length));
-      if(++trial.sampled==members_.size())trial.base.resize(kNativeExtentBytes);
+      if(!member.skipped) {
+        const auto& bytes=position==base_index_?search_->bytes->base:search_->bytes->members[search_slot(position)];
+        trial.base.insert(trial.base.end(),bytes.begin(),bytes.begin()+static_cast<std::ptrdiff_t>(member.payload_bytes));
+      }
+      if(trial.sampled==members_.size())trial.base.resize(kNativeExtentBytes);
       return true;
     }
     const auto position=trial.frames.size();
     if(position==members_.size())return false;
     const auto& member=members_[position];
+    if(member.skipped) {
+      // Keep frame slots aligned with the original selection.
+      trial.frames.emplace_back();
+      return true;
+    }
     const auto& bytes=position==base_index_?search_->bytes->base:search_->bytes->members[search_slot(position)];
     if(root_size+base_size+trial.frame_bytes+packed_slice_size>kStoreMaxTransactionBytes) {
       packed_reference_.reset();
@@ -2277,9 +2284,10 @@ bool IndexedSharedBasePreparation::complete_member() {
           std::ranges::any_of(members_,[&](const auto& member){return member.frame.size()>header;});
       staged_reference_comparison_=!reserved && (compare_sections_ || compare_prefix_);
     }
-    if(retained==members_.size() && packing_admitted_ && !reusable_anchor_) {
+    if(retained>=2 && packing_admitted_ && !reusable_anchor_) {
       std::size_t bytes=0;
       for(const auto& member:members_) {
+        if(member.skipped)continue;
         if(!member.payload_bytes || member.payload_bytes>kNativeExtentBytes-bytes) {
           bytes=0;
           break;
