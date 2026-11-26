@@ -1861,6 +1861,7 @@ void dense_tail_retirement() {
 }
 
 unsigned scratch_leases=0;
+std::uint64_t last_scratch_capacity=0;
 class ModelSealScratch final:public detail::NativeSealScratch {
  public:
   ModelSealScratch(std::uint64_t capacity,StoreIoContract storage) {
@@ -1868,6 +1869,7 @@ class ModelSealScratch final:public detail::NativeSealScratch {
     model->capacity=capacity;
     model->failure_unit=storage.write_failure_unit_bytes;
     store_=std::move(model);
+    last_scratch_capacity=capacity;
     ++scratch_leases;
   }
   ~ModelSealScratch() override{--scratch_leases;}
@@ -2002,14 +2004,23 @@ void funded_cold_seal() {
   }
   auto io=std::make_shared<SparseVolumeRam>(unit,2*limits.maximum_physical_bytes+2*1024*1024);
   std::uint64_t before=0;
+  std::uint64_t old_projection=0,admitted_workspace=0;
   {
     auto session=NativeVolumeFile::create(io,volume,first,limits,planes);
     put(session,"payload",payload);
     put(session,"witness",witness_bytes);
     before=io->occupied();
+    const auto space=session.indexed_volume_space();
+    const auto appended=space.total_bytes-space.free_bytes;
+    const auto legacy_projection=appended/2+2*kStoreCommitUnit-unit;
+    old_projection=((legacy_projection+kStoreCommitUnit-1)/kStoreCommitUnit)*kStoreCommitUnit;
     std::optional<NativeFilesystemSnapshot> held(session.snapshot());
     const detail::NativeSealScratchOffer offer{limits.maximum_physical_bytes,model_seal_scratch};
+    last_scratch_capacity=0;
     stage_file_seal(session,next,offer);
+    admitted_workspace=last_scratch_capacity;
+    require(admitted_workspace && admitted_workspace<old_projection,
+        "retired append allocations inflated the funded folded workspace");
     require(session.advance_persistent_reclamation({},true)==Reclaim::published &&
         session.volume_info().selection.sealed_range && session.volume_info().selection.epoch==2 &&
         session.volume_info().selection.image_identity==next,
@@ -2027,6 +2038,7 @@ void funded_cold_seal() {
       reopened.info().selection.sealed_range && io->occupied()<before && !scratch_leases,
       "funded folded compression changed durable contents or retained staging");
   std::cout<<"funded_cold_seal before="<<before<<" after="<<io->occupied()
+      <<" append_based_workspace_bytes="<<old_projection<<" admitted_workspace_bytes="<<admitted_workspace
       <<" direct_selection=1 scratch_retired=1 cpu_exact=1\n";
 }
 

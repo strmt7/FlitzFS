@@ -60,7 +60,7 @@ class NativeHybridBacking final : public StoreByteIo {
       StoreIdentity,std::uint64_t candidate_limit,std::uint64_t staging_limit,StoreCompressionOptions,
       bool owned_file_target);
   static std::uint64_t workspace_capacity(StoreIdentity,StoreIoContract,
-      std::uint64_t source_bytes,std::uint64_t staging_bytes,std::uint64_t private_workspace_bytes);
+      std::uint64_t packed_end_bound,std::uint64_t staging_bytes,std::uint64_t private_workspace_bytes);
   NativePairedSealedRange sealed_range() const noexcept;
   std::array<std::shared_ptr<StoreByteIo>,2> components() const noexcept;
   void verify_prepared_binding() const;

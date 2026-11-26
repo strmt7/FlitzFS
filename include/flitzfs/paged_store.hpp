@@ -288,6 +288,7 @@ class PagedObjectStoreWriter final {
   friend class NativeFilesystemWriter;
   friend class detail::IndexedSharedBasePreparation;
   std::optional<PagedStoreMirroredLayout> mirrored_write_layout() const noexcept;
+  std::uint64_t packed_folded_end_bound(std::uint32_t failure_unit,std::size_t rebound_bytes) const noexcept;
   // The indexed session has already verified the selected native checkpoint and
   // proved retired-owner admission before enabling payload repair.
   static PagedObjectStoreWriter resume_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,

@@ -35,7 +35,7 @@ class NativeVolumeFileReclaimer final {
   }
   std::optional<NativeDenseFileSpace> dense_file_space() const;
   bool seal_preparation_pending(const NativeFileSession&) const noexcept;
-  std::uint64_t projected_seal_writes(const NativeVolumeSelection&,std::uint64_t occupied) const noexcept;
+  std::uint64_t projected_seal_writes(const NativeVolumeSelection&,const NativeFilesystemWriter&) const noexcept;
   bool cold_target_available() const noexcept {return phase_==Phase::idle && spare_.use_count()==1;}
   void bind_wake(const std::shared_ptr<NativeVolumeRangeWake>&) noexcept;
   NativeVolumeReclaimProgress advance(NativeFileSession&,const std::function<StoreIdentity()>&,NativeVolumeReclaimMode,
@@ -56,10 +56,9 @@ class NativeVolumeFileReclaimer final {
   };
   bool image_work_pending(const NativeFileSession&,bool allow_cold,std::uint64_t private_workspace_bytes=0) const;
   bool dense_work_pending(const NativeFileSession&,NativeVolumeReclaimMode) const;
-  std::optional<SealPlan> seal_plan(const NativeVolumeSelection&,std::uint64_t occupied,
+  std::optional<SealPlan> seal_plan(const NativeVolumeSelection&,std::uint64_t packed_end_bound,
       std::uint64_t private_workspace_bytes=0) const noexcept;
-  SealPlans funded_seal_plans(const NativeFileSession&,std::uint64_t occupied,
-      std::uint64_t private_workspace_bytes) const;
+  SealPlans funded_seal_plans(const NativeFileSession&,std::uint64_t private_workspace_bytes) const;
   NativeVolumeReclaimProgress begin_seal(NativeFileSession&,const std::function<StoreIdentity()>&,
       const SealPlans&,NativeSealScratchOffer,StoreCompressionOptions);
   NativeVolumeReclaimProgress advance_seal(NativeFileSession&);

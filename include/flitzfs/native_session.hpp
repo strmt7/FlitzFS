@@ -533,6 +533,8 @@ class NativeFileSession final {
   void bind_memory_idle_compaction() noexcept;
   void bind_persistent_reclamation_wake(const std::shared_ptr<detail::NativeVolumeRangeWake>&) noexcept;
   friend class detail::NativeVolumeFileReclaimer;
+  friend struct MemoryVolumeBacking;
+  std::uint64_t packed_folded_end_bound(std::uint32_t failure_unit) const noexcept;
   std::uint64_t catalog_retirement_selection(std::optional<OptimizationCatalogSelection>&) const noexcept;
   bool begin_idle_compaction_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,bool owned_file_target,PagedRewriteMode);
   bool idle_seal_funded(std::uint64_t bytes) const noexcept;

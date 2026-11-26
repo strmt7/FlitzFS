@@ -311,26 +311,26 @@ bool NativeVolumeFileReclaimer::image_work_pending(const NativeFileSession& sess
   return (obsolete>attempted_obsolete_ && obsolete-attempted_obsolete_>=abandoned_bytes_ &&
       space.reclamation_worthwhile()) ||
       (allow_cold && (session.idle_cold_compaction_pending() || funded_seal_plans(
-          session,space.total_bytes-space.free_bytes,private_workspace_bytes).available()));
+          session,private_workspace_bytes).available()));
 }
 bool NativeVolumeFileReclaimer::seal_preparation_pending(const NativeFileSession& session) const noexcept {
   return seal_ && seal_->source_current(session) && seal_->can_continue_preparation();
 }
 std::uint64_t NativeVolumeFileReclaimer::projected_seal_writes(
-    const NativeVolumeSelection& selected,std::uint64_t occupied) const noexcept {
+    const NativeVolumeSelection& selected,const NativeFilesystemWriter& writer) const noexcept {
   if(!cold_target_available())return 0;
-  const auto plan=seal_plan(selected,occupied);
+  const auto plan=seal_plan(selected,writer.packed_folded_end_bound(spare_->contract().write_failure_unit_bytes));
   return plan?plan->writes:0;
 }
 std::optional<NativeVolumeFileReclaimer::SealPlan> NativeVolumeFileReclaimer::seal_plan(
-    const NativeVolumeSelection& selected,std::uint64_t occupied,std::uint64_t private_workspace_bytes) const noexcept {
+    const NativeVolumeSelection& selected,std::uint64_t packed_end_bound,std::uint64_t private_workspace_bytes) const noexcept {
   try {
     if(selected.sealed_range)return {};
     const auto contract=spare_->contract();
     const auto allowance=private_workspace_bytes/kStoreCommitUnit*kStoreCommitUnit;
     if(private_workspace_bytes && !allowance)return {};
     const auto fitted=NativeHybridBacking::workspace_capacity(
-        selected.volume_identity,contract,occupied,spare_->capacity,allowance);
+        selected.volume_identity,contract,packed_end_bound,spare_->capacity,allowance);
     if(fitted<=kVolumeHeadBytes)return {};
     // Reserve the whole unit that contains the last fitted workspace byte.
     const auto workspace=(1+(fitted-1)/kStoreCommitUnit)*kStoreCommitUnit;
@@ -344,14 +344,15 @@ std::optional<NativeVolumeFileReclaimer::SealPlan> NativeVolumeFileReclaimer::se
   }catch(const std::exception&){return {};}
 }
 NativeVolumeFileReclaimer::SealPlans NativeVolumeFileReclaimer::funded_seal_plans(
-    const NativeFileSession& session,std::uint64_t occupied,std::uint64_t private_workspace_bytes) const {
+    const NativeFileSession& session,std::uint64_t private_workspace_bytes) const {
   SealPlans plans;
   if(!cold_target_available())return plans;
   const auto selection=session.volume_info().selection;
-  plans.file=seal_plan(selection,occupied);
+  const auto bound=session.packed_folded_end_bound(spare_->contract().write_failure_unit_bytes);
+  plans.file=seal_plan(selection,bound);
   if(plans.file && !session.idle_seal_funded(plans.file->writes))plans.file.reset();
   if(private_workspace_bytes) {
-    plans.private_memory=seal_plan(selection,occupied,private_workspace_bytes);
+    plans.private_memory=seal_plan(selection,bound,private_workspace_bytes);
     if(plans.private_memory && (!session.idle_seal_funded(plans.private_memory->writes) ||
         (plans.file && plans.private_memory->workspace<plans.file->workspace)))
       plans.private_memory.reset();
@@ -580,9 +581,7 @@ Progress NativeVolumeFileReclaimer::advance(NativeFileSession& session,const std
         const auto foreground=session.managed_foreground();
         const bool fuse=foreground && foreground->compression.experimental_cold_byte_planes;
         if(fuse || !cold_pending) {
-          const auto space=session.indexed_volume_space();
-          const auto occupied=space.total_bytes-space.free_bytes;
-          const auto plans=funded_seal_plans(session,occupied,workspace);
+          const auto plans=funded_seal_plans(session,workspace);
           const auto sealed=begin_seal(session,identity,plans,scratch,
               fuse?foreground->compression:StoreCompressionOptions{});
           if(sealed!=Progress::idle || !cold_pending)return sealed;

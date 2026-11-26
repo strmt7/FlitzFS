@@ -7,6 +7,19 @@
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
   "current_release_review": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
+  "retained_group_placement": {
+    "source_parent": "df014de23efcf93c0b5e8f72bc0e838a2c914c2d",
+    "tested_source_tree": "47121686f44fd2a72f3ee1c60b51760e461254a9",
+    "evidence": "docs/evidence/windows-retained-group-placement-2026-11-26.json",
+    "cpython_grouped_mirror_bytes": 696320,
+    "mixed_grouped_mirror_bytes": 34234368,
+    "mixed_sealed_bytes": 21925888,
+    "mixed_retained_members": 48,
+    "mixed_retained_bases": 13,
+    "funded_workspace_bytes": 2097152,
+    "independent_cpu_readback": true,
+    "release_qualified": false
+  },
   "folded_cold_placement": {
     "source_parent": "b0e4d6286debfbe5c60e1fa2e73663f71287710c",
     "tested_source_tree": "fa5fb1619f7e144bd672db21c0580460b8fce4b6",

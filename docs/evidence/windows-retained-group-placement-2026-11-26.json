@@ -1,0 +1,500 @@
+{
+  "schema": 1,
+  "date_utc": "2026-11-26",
+  "source": {
+    "parent": "df014de23efcf93c0b5e8f72bc0e838a2c914c2d",
+    "parent_tree": "147a65f7ff360cb7180eba442cfa798ce0ba0b07",
+    "tested_tree": "47121686f44fd2a72f3ee1c60b51760e461254a9",
+    "files": [
+      {
+        "path": "include/flitzfs/native_filesystem.hpp",
+        "blob": "6dbdaef294c6fca19de014f271dfe58f1a566bf2"
+      },
+      {
+        "path": "include/flitzfs/native_hybrid_backing.hpp",
+        "blob": "d164ef3877bfed62ede725fa6f6cc6cd7fbf04e0"
+      },
+      {
+        "path": "include/flitzfs/native_session.hpp",
+        "blob": "c5b02bd0341ca0c19e647153c132dfcc2864c360"
+      },
+      {
+        "path": "include/flitzfs/paged_store.hpp",
+        "blob": "17503d60903686376cb48bd468dfd61153185df3"
+      },
+      {
+        "path": "src/native_filesystem.cpp",
+        "blob": "c9376247da684468eac960f815f7deb8b137e463"
+      },
+      {
+        "path": "src/native_hybrid_backing.cpp",
+        "blob": "4874b496606106dec104c97c5d4fc64f2f7213c1"
+      },
+      {
+        "path": "src/native_session.cpp",
+        "blob": "b930495a159b1ade12d2aac6032bcb88be8a5ba4"
+      },
+      {
+        "path": "src/native_volume_file.cpp",
+        "blob": "d3c91ebae7a6faf85ce8f943138a084f30e865e6"
+      },
+      {
+        "path": "src/native_volume_file_reclaimer.hpp",
+        "blob": "7fba13d6a8c81f60a124403f43cdf3cb42990be8"
+      },
+      {
+        "path": "src/paged_store.cpp",
+        "blob": "8d73f7e6edcaf750afd5da5ff80ebe66f0ed4f4e"
+      },
+      {
+        "path": "src/windows/memory_volume_factory.cpp",
+        "blob": "81460aca8b82d0e6fbe6809b5001fc3792a73dda"
+      },
+      {
+        "path": "tests/test_native_group_maintenance.cpp",
+        "blob": "8233ddcce95bd9d6d59c6045b3d56f9e0de77f20"
+      },
+      {
+        "path": "tests/test_native_volume_file.cpp",
+        "blob": "dcc98b602c9ee33381afbea8ed15a598aa05b1ec"
+      }
+    ]
+  },
+  "scope": "Matched Windows fixtures with independent CPU readback. Occupied sizes include the selector and, where selected, the protected base and writable tail. Sampled ranges measure backing bytes.",
+  "profile_command_mode": "--profile-public-grouped-seal",
+  "input_files": [
+    {
+      "id": "ait-i-p",
+      "sha256": "26204e32bf232e5a40d5cce9d4f63a87c25fcb19f6eceadbff7c76321468c159",
+      "fixture_bytes": 25153047
+    },
+    {
+      "id": "ait-a-h",
+      "sha256": "bb25d5ebcdcdfe0daf4ebc0d78a452d9e8937808fbb2a481d33bafa5e15b1c42",
+      "fixture_bytes": 13136344
+    },
+    {
+      "id": "cpython",
+      "sha256": "d053d6acd0551763909205a2ed670d6bf6bc3e61a13ef0cd13ca93e69c5489f9",
+      "fixture_bytes": 2510781
+    }
+  ],
+  "profiles": [
+    {
+      "id": "ait-i-p",
+      "inputs": [
+        "ait-i-p"
+      ],
+      "files": 8,
+      "logical_bytes": 25153011,
+      "retained_groups": 0,
+      "group_write_bytes": 0,
+      "mirror_sampled_range_read_bytes": 639431,
+      "seal": {
+        "mirror_bytes": 33816576,
+        "settled_bytes": 21659648,
+        "base_bytes": 21266432,
+        "tail_bytes": 262144,
+        "selector_bytes": 131072,
+        "workspace_write_bytes": 16916480,
+        "backing_write_bytes": 21660160,
+        "sampled_range_read_bytes": 724992,
+        "members": 0,
+        "bases": 0,
+        "selected": 1,
+        "cpu_exact": 1
+      },
+      "output_sha256": "3cdefbb9ad4a8a74fa5779c706d5bf74cb2483b554ace4e8c879c47e32064946",
+      "supervisor_sha256": "bd9b6fd9f4b71215a5ecbdc4234f30dc20a863435c397de920e4b248282f3c66"
+    },
+    {
+      "id": "ait-a-h",
+      "inputs": [
+        "ait-a-h"
+      ],
+      "files": 8,
+      "logical_bytes": 13136308,
+      "retained_groups": 0,
+      "group_write_bytes": 0,
+      "mirror_sampled_range_read_bytes": 546416,
+      "seal": {
+        "mirror_bytes": 14925824,
+        "settled_bytes": 9854976,
+        "base_bytes": 9461760,
+        "tail_bytes": 262144,
+        "selector_bytes": 131072,
+        "workspace_write_bytes": 7471104,
+        "backing_write_bytes": 9855488,
+        "sampled_range_read_bytes": 626688,
+        "members": 0,
+        "bases": 0,
+        "selected": 1,
+        "cpu_exact": 1
+      },
+      "output_sha256": "28ad3ae21a17467bdc5ea63ef868862c1c1a08e2a3aae6bece1b160975e6b7b2",
+      "supervisor_sha256": "53707c1dc29d1057885d16cea751d6a88e7d833d16569f987a10c4148140d75f"
+    },
+    {
+      "id": "cpython",
+      "inputs": [
+        "cpython"
+      ],
+      "files": 24,
+      "logical_bytes": 2510681,
+      "retained_groups": 1,
+      "group_write_bytes": 1007616,
+      "mirror_sampled_range_read_bytes": 1006352,
+      "seal": {
+        "mirror_bytes": 696320,
+        "settled_bytes": 696320,
+        "members": 48,
+        "bases": 13,
+        "selected": 0,
+        "declined_before_staging": 1,
+        "cpu_exact": 1
+      },
+      "output_sha256": "f87860d6d5cf83abfc605d4454a75d3aa5d4e59824509ee6a6d6b4f0aa0bd380",
+      "supervisor_sha256": "6d8e99743e475c7ae592098adeb20e52f3ca3ec7c971ae657866f682011437be"
+    },
+    {
+      "id": "mixed",
+      "inputs": [
+        "cpython",
+        "ait-i-p"
+      ],
+      "files": 32,
+      "logical_bytes": 27663692,
+      "retained_groups": 1,
+      "group_write_bytes": 1163264,
+      "mirror_sampled_range_read_bytes": 1747401,
+      "seal": {
+        "mirror_bytes": 34234368,
+        "settled_bytes": 21925888,
+        "base_bytes": 21532672,
+        "tail_bytes": 262144,
+        "selector_bytes": 131072,
+        "workspace_write_bytes": 17125376,
+        "backing_write_bytes": 21926400,
+        "sampled_range_read_bytes": 2527232,
+        "members": 48,
+        "bases": 13,
+        "selected": 1,
+        "cpu_exact": 1
+      },
+      "output_sha256": "8a5933751d94d30acec6433884b6c956db6e1912c12b43864239f762d8cfd353",
+      "supervisor_sha256": "7fc151ad66da9c91d846de6fb5631e3d39041feae082153b36b6dbf33a6ab0cf"
+    }
+  ],
+  "placement_budget": {
+    "strategy": "Use the checked live object count and stored byte summary with a rebound namespace-root allowance in both backing owners.",
+    "funded_file_fixture": {
+      "before": 4390912,
+      "after": 2686976,
+      "append_based_workspace_bytes": 2228224,
+      "admitted_workspace_bytes": 2097152,
+      "direct_selection": 1,
+      "scratch_retired": 1,
+      "cpu_exact": 1
+    }
+  },
+  "compact_control_projection": {
+    "paired_failure_unit": 4096,
+    "assumed_packed_mirror_extent": 565248,
+    "legacy_geometry_total_bytes": 962560,
+    "compact_geometry_total_bytes": 593920,
+    "selector_bytes_included": 131072,
+    "implemented_or_executed": false
+  },
+  "validation": {
+    "windows_tests": [
+      "bounded_native_hybrid_backing",
+      "bounded_native_indexed_cold_copy",
+      "bounded_native_indexed_group_maintenance",
+      "bounded_native_volume_file",
+      "bounded_native_volume_file_catalog_ranges",
+      "bounded_native_volume_file_dense_allocation",
+      "bounded_native_volume_file_dense_cross_group",
+      "bounded_native_volume_file_dense_session",
+      "bounded_native_volume_file_dense_session_cuts",
+      "bounded_native_volume_file_dense_tail",
+      "bounded_native_volume_file_near_full_seal",
+      "bounded_native_volume_file_overwrite_rename_cuts",
+      "bounded_native_volume_file_packed_range",
+      "bounded_native_volume_file_private_seal_credit",
+      "bounded_native_volume_file_sealed_ranges",
+      "bounded_winfsp_memory_volume"
+    ],
+    "raw_tests": [
+      "bounded_native_hybrid_backing",
+      "bounded_native_volume_file_private_seal_credit",
+      "bounded_protected_indexed_image"
+    ],
+    "asan_tests": [
+      "bounded_native_hybrid_backing",
+      "bounded_native_volume_file_private_seal_credit",
+      "bounded_protected_indexed_image",
+      "windows_asan_runtime_preflight"
+    ],
+    "lanes": [
+      {
+        "lane": "Windows targeted",
+        "exit_code": 8,
+        "tree_retired": true,
+        "memory_limit_bytes": 503316480,
+        "peak_job_bytes": 502620160,
+        "passed_tests": [
+          "bounded_native_hybrid_backing",
+          "bounded_native_indexed_group_maintenance",
+          "bounded_native_indexed_cold_copy",
+          "bounded_native_volume_file",
+          "bounded_native_volume_file_packed_range",
+          "bounded_native_volume_file_dense_allocation",
+          "bounded_native_volume_file_dense_session",
+          "bounded_native_volume_file_dense_session_cuts",
+          "bounded_native_volume_file_dense_tail",
+          "bounded_native_volume_file_dense_cross_group",
+          "bounded_native_volume_file_catalog_ranges",
+          "bounded_native_volume_file_near_full_seal",
+          "bounded_native_volume_file_private_seal_credit",
+          "bounded_native_volume_file_overwrite_rename_cuts",
+          "bounded_winfsp_memory_volume"
+        ],
+        "first_diagnostic": "after 6755 checks: bad allocation",
+        "output_sha256": "cd44ce1acb665f99df11613d086fe1a06259f6bb53e24f7079131810711b80dc",
+        "supervisor_sha256": "be2b1345386c6d6c2f39253734c5987ba4cda392b7d74db780c0b4cdd20a24cb"
+      },
+      {
+        "lane": "Windows isolated sealed ranges",
+        "exit_code": 0,
+        "tree_retired": true,
+        "memory_limit_bytes": 813694976,
+        "peak_job_bytes": 686792704,
+        "passed_tests": [
+          "bounded_native_volume_file_sealed_ranges"
+        ],
+        "first_diagnostic": null,
+        "output_sha256": "58957a08e6f458d56af43ddccd982f6d7d4ef4240356c532f4726fd2ce02ec79",
+        "supervisor_sha256": "de5525e1afad0c223dc8682afeba0f32f1aabe02ea221bbca32bb851da30e852"
+      },
+      {
+        "lane": "Windows repeat",
+        "exit_code": 8,
+        "tree_retired": true,
+        "memory_limit_bytes": 913309696,
+        "peak_job_bytes": 686923776,
+        "passed_tests": [
+          "bounded_native_hybrid_backing",
+          "bounded_native_indexed_group_maintenance",
+          "bounded_native_indexed_cold_copy",
+          "bounded_native_volume_file",
+          "bounded_native_volume_file_packed_range",
+          "bounded_native_volume_file_dense_allocation",
+          "bounded_native_volume_file_dense_session",
+          "bounded_native_volume_file_dense_session_cuts",
+          "bounded_native_volume_file_dense_tail",
+          "bounded_native_volume_file_dense_cross_group",
+          "bounded_native_volume_file_catalog_ranges",
+          "bounded_native_volume_file_near_full_seal",
+          "bounded_native_volume_file_private_seal_credit",
+          "bounded_native_volume_file_sealed_ranges",
+          "bounded_native_volume_file_overwrite_rename_cuts"
+        ],
+        "first_diagnostic": "after 0 checks: Application test memory reserve unavailable",
+        "output_sha256": "7050a2558275cf715f34eac1b1b013f04fe317982125561448abc9e4d63e8145",
+        "supervisor_sha256": "6bf5ebb0f83a80c5fc95e09cab63e09f7337a40292d1f9b1d8951332dacd8191"
+      },
+      {
+        "lane": "Initial raw build",
+        "exit_code": 1,
+        "tree_retired": true,
+        "memory_limit_bytes": 456130560,
+        "peak_job_bytes": 457175040,
+        "passed_tests": [],
+        "first_diagnostic": "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\VC\\Tools\\MSVC\\14.52.37025\\include\\xsmf_control.h(91,5): error C1060: compiler is out of heap space [E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\current-mounted-client-f8a628508e464558b8ff7f50f1e3a0e5\\raw\\flitzfs_core.vcxproj]",
+        "output_sha256": "0087ebee427af80380a562e8a2ec1ca46731fb3ced1644b78a42b304b52b463a",
+        "supervisor_sha256": "c0f9b64cbab8571f25f4eefe6c7b8ef10bfe3358846b1ce0506c289bb5789412"
+      },
+      {
+        "lane": "Initial ASan build",
+        "exit_code": 1,
+        "tree_retired": true,
+        "memory_limit_bytes": 444596224,
+        "peak_job_bytes": 447569920,
+        "passed_tests": [],
+        "first_diagnostic": "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\VC\\Tools\\MSVC\\14.52.37025\\include\\vector(2107,5): error C1060: compiler is out of heap space [E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\packed-small-files-47f2959709854c5aba12ee78a73c7bfb\\asan\\flitzfs_core.vcxproj]",
+        "output_sha256": "0981c27b4e7436afc98b091ffbd312683e0260f389aa70198c0f14563cfde967",
+        "supervisor_sha256": "b6fbfa98b962fe8bc4d921003567b8803a4efcef2f57304d9f6d236e1bbe1de4"
+      },
+      {
+        "lane": "Windows raw-only",
+        "exit_code": 0,
+        "tree_retired": true,
+        "memory_limit_bytes": 664797184,
+        "peak_job_bytes": 84996096,
+        "passed_tests": [
+          "bounded_protected_indexed_image",
+          "bounded_native_hybrid_backing",
+          "bounded_native_volume_file_private_seal_credit"
+        ],
+        "first_diagnostic": null,
+        "output_sha256": "fd41bd7174e8482051282bc8829ee1e4bd7bb73dba478e815ad11e8e6db9f817",
+        "supervisor_sha256": "1c52f3cfc4705885fbdb1c8a11fb37ce30c993170cbafd64718880a7e9d31f81"
+      },
+      {
+        "lane": "Windows ASan",
+        "exit_code": 8,
+        "tree_retired": true,
+        "memory_limit_bytes": 633339904,
+        "peak_job_bytes": 634490880,
+        "passed_tests": [
+          "windows_asan_runtime_preflight",
+          "bounded_protected_indexed_image",
+          "bounded_native_volume_file_private_seal_credit"
+        ],
+        "first_diagnostic": "==61516==Failed to commit shadow memory at '0x029bd028f000'. VirtualAlloc failed with 0x5af",
+        "output_sha256": "1cb76c41f7267f6fdf3fe245da2f648195816a00c9d101e7a4e68403543725ae",
+        "supervisor_sha256": "2901afd343c18b7d375399a088ae6eeefd7651c11045ea75f75c4e356a00d0ef"
+      },
+      {
+        "lane": "Windows ASan isolated hybrid backing",
+        "exit_code": 0,
+        "tree_retired": true,
+        "memory_limit_bytes": 4672454656,
+        "peak_job_bytes": 737423360,
+        "passed_tests": [
+          "windows_asan_runtime_preflight",
+          "bounded_native_hybrid_backing"
+        ],
+        "first_diagnostic": null,
+        "output_sha256": "dfe6599a2bc1e3f6285b49d1c2c61d9efbfcd0dc7b7102d1f3589b15f9c37a24",
+        "supervisor_sha256": "3b2bbd0a84eaf69e4be0da77e1b028bc6f5c520d117e44256de051270154f597"
+      },
+      {
+        "lane": "First AMD admission",
+        "exit_code": 0,
+        "tree_retired": true,
+        "memory_limit_bytes": 503316480,
+        "peak_job_bytes": 95703040,
+        "passed_tests": [],
+        "first_diagnostic": null,
+        "output_sha256": "eb55863b4f5f131c12dfd2775ea6606a068db0383a07a12698e6cbd7ca039d1b",
+        "supervisor_sha256": "2ebd0e43bd3c2c55bd56fcbc4b26e51eea1e5a48d68ca9b7891f53f1d60255c1"
+      },
+      {
+        "lane": "Later AMD admission",
+        "exit_code": 0,
+        "tree_retired": true,
+        "memory_limit_bytes": 243269632,
+        "peak_job_bytes": 97071104,
+        "passed_tests": [],
+        "first_diagnostic": null,
+        "output_sha256": "a08d4465f0c0334face56e04a9ed78b3d2626677983ba789a1a54b1db4903639",
+        "supervisor_sha256": "105600ad1f469b0ee6ee765deb64c54480eeb9cdc6bad78952dacc71dbd15741"
+      }
+    ],
+    "memory_volume_repeat": {
+      "reason": "The last repetition declined at its existing live reserve check. The same controller binary passed in the first run.",
+      "later_available_physical_bytes": 7763251200,
+      "application_fixture_reserve_bytes": 8538173440
+    }
+  },
+  "amd": {
+    "early": {
+      "admitted": false,
+      "reason": "Existing host load above the fixture envelope",
+      "utc": "2026-11-26T03:55:42.7419632Z",
+      "driver": "32.0.32029.2010",
+      "build": "26300",
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "luid": "9d75010000000000",
+      "available_bytes": 15279775744,
+      "reserved_bytes": 4294967296,
+      "gpu_peak": 100.6339716417007,
+      "cpu_peak": 12.169400488229275,
+      "target_samples": 816
+    },
+    "late": {
+      "admitted": false,
+      "reason": "Existing host load above the fixture envelope",
+      "utc": "2026-11-26T04:10:26.8891200Z",
+      "driver": "32.0.32029.2010",
+      "build": "26300",
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "luid": "9d75010000000000",
+      "available_bytes": 8721657856,
+      "reserved_bytes": 4294967296,
+      "gpu_peak": 99.68075506603668,
+      "cpu_peak": 16.577420611510753,
+      "target_samples": 816
+    },
+    "worker_started": false,
+    "mounted_speed_qualified": false
+  },
+  "research_and_navigation": {
+    "research": [
+      {
+        "provider": "0.9.5+flitzzip.portable2",
+        "robots": true,
+        "timeout_seconds": 45,
+        "external_llm": false,
+        "sha256": "b42e024492561d2de2419534fa77129bfa700d7056afadb733b35409f5bcfe45",
+        "pages": [
+          {
+            "name": "rubikfs-affinity",
+            "url": "https://www.usenix.org/conference/fast26/presentation/huang",
+            "success": true,
+            "expected_content": true,
+            "final_http_status": 200,
+            "markdown_bytes": 10416,
+            "markdown_sha256": "dbc538fff3a57a4c36ef94c8a47e1737270a83880e2fb6957160b9b46f285256",
+            "capture_sha256": "55a363955e39737c2b9c3c49f5e38f2c9edfea024978f6d065aa758234d4bafa",
+            "failure_category": ""
+          },
+          {
+            "name": "erofs-placement",
+            "url": "https://erofs.docs.kernel.org/en/latest/comparison/dedupe.html",
+            "success": false,
+            "expected_content": false,
+            "final_http_status": 200,
+            "markdown_bytes": 7190,
+            "markdown_sha256": "863d213ca5fa15c10aebc260a320ae34d471691f70edb8026184a3734a7160ae",
+            "capture_sha256": "75cb37279e845c814a6a6b2e7b664d7cc8fdc5938c624a4c4f219417c159344f",
+            "failure_category": "unexpected_content"
+          }
+        ]
+      },
+      {
+        "provider": "0.9.5+flitzzip.portable2",
+        "robots": true,
+        "timeout_seconds": 45,
+        "external_llm": false,
+        "sha256": "4b48b154e080df23357c8950c40d56015970b3ece253b9894b5966589871d2e1",
+        "pages": [
+          {
+            "name": "erofs-placement",
+            "url": "https://erofs.docs.kernel.org/en/latest/comparison/dedupe.html",
+            "success": true,
+            "expected_content": true,
+            "final_http_status": 200,
+            "markdown_bytes": 7190,
+            "markdown_sha256": "863d213ca5fa15c10aebc260a320ae34d471691f70edb8026184a3734a7160ae",
+            "capture_sha256": "f1a98a3661567f3c52b889f232a8e75ac2b8c438fc147042556ea0c816895fb4",
+            "failure_category": ""
+          }
+        ]
+      }
+    ],
+    "lookup": {
+      "commit": "df014de23efcf93c0b5e8f72bc0e838a2c914c2d",
+      "dirty_patch_sha256": "e593cb853416b71a87a143c66bbb4aa111eb712f14994f7664870b7803a15063",
+      "source_files": 2,
+      "inventory_sha256": "6e5a569796b843a40d278a4483cfecf1963ae7b5b81f355bacd58d208511a8d0",
+      "provider_version": "0.2.43",
+      "native_response_sha256": "7458ea27e3be295788a7fa9b2a54eae40f69209855c66827be854bf81ae9eb4c",
+      "actual_searches": 1
+    },
+    "lookup_sha256": "82c00e4dcb821ecbb9a52f0891d21ad5ab1a075145a313f42cb829bbd74cd3dc"
+  },
+  "navigation_recovery": "The first private index timed out. A reduced index hit its memory allowance. The same reduced index returned current live-source matches after a renewed bounded grant.",
+  "release_qualified": false
+}

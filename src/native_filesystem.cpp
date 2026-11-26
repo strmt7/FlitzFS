@@ -2796,6 +2796,10 @@ std::uint64_t NativeFilesystemWriter::indexed_append_floor() const noexcept {
   if(poisoned() || !impl_->indexed)return 0;
   return impl_->objects.paged_append_floor_for_staging();
 }
+std::uint64_t NativeFilesystemWriter::packed_folded_end_bound(std::uint32_t failure_unit) const noexcept {
+  if(poisoned() || !impl_->indexed)return 0;
+  return impl_->objects.paged_if()->packed_folded_end_bound(failure_unit,detail::kIndexedVolumeRootMaximumBytes);
+}
 bool NativeFilesystemWriter::supports_file_contexts() const noexcept {
   return !poisoned() && (!impl_->indexed || impl_->indexed->format>=2);
 }

@@ -1,4 +1,5 @@
 #include "flitzfs/indexed_coherence.hpp"
+#include "flitzfs/native_hybrid_backing.hpp"
 #include "flitzfs/native_maintenance.hpp"
 #include "flitzfs/native_session.hpp"
 #include "flitzfs/read_only_file.hpp"
@@ -13,6 +14,7 @@
 #include "native_corpus_fixture.hpp"
 #include <cstring>
 #include <iostream>
+#include <iterator>
 #include <map>
 #include <set>
 namespace {
@@ -942,7 +944,8 @@ void profile_protected_layout(const std::shared_ptr<Ram>& backing,
 void profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expected_members=0,
     bool compare_reencoding=false,NativeIndexedDataLayout layout=NativeIndexedDataLayout::extents,
     NativeVolumeHeadLayout head_layout=NativeVolumeHeadLayout::legacy,
-    PagedStoreBankLayout image_layout=PagedStoreBankLayout::shared,bool byte_planes=false) {
+    PagedStoreBankLayout image_layout=PagedStoreBankLayout::shared,bool byte_planes=false,
+    bool compare_sealing=false) {
   if(!store_zstd_available())return;
   const StoreCompressionOptions policy{StoreCompressionMode::automatic,3,true,byte_planes};
   constexpr NativeImageStorage storage{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes};
@@ -1076,6 +1079,61 @@ void profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expect
     f.session.emplace(NativeFileSession::resume_closed_indexed_volume(f.head,id(90),1,resolve,policy));
     cold_copy(f,"group_then_cold");
   }
+  if(compare_sealing) {
+    auto workspace=ram(4096),base=ram(4096),tail=ram(4096);
+    const auto retained=f.session->snapshot();
+    const auto group=retained.shared_base_info();
+    const auto selected=f.session->volume_info().selection;
+    const auto mirror=f.image->extent()+f.head->extent();
+    auto stage=NativeHybridBacking::prepare(*f.session,workspace,base,tail,id(8),
+        kStoreMaxPhysicalBytes,kStoreMaxPhysicalBytes,{StoreCompressionMode::automatic,3,true});
+    try {
+      for(std::uint64_t turn=0;stage.phase()!=NativeHybridBacking::BuildPhase::ready;++turn) {
+        require(turn<1024+f.image->extent()/32,"grouped seal exceeded the declared profile work");
+        (void)stage.advance(*f.session);
+      }
+    }catch(const std::runtime_error& error) {
+      if(std::string_view(error.what())!="hybrid base and tail do not reduce the protected footprint")throw;
+    }
+    if(stage.phase()!=NativeHybridBacking::BuildPhase::ready) {
+      require(!workspace->write_bytes && !base->write_bytes && !tail->write_bytes &&
+          f.session->volume_info().selection==selected,"declined grouped seal touched staging or selection");
+      verify(retained);
+      std::cout<<"grouped_seal mirror_bytes="<<mirror<<" settled_bytes="<<mirror
+          <<" members="<<group.members<<" bases="<<group.bases<<" selected=0 declined_before_staging=1 cpu_exact=1\n";
+    }else {
+      std::shared_ptr<NativeHybridBacking> sealed;
+      const auto before=f.head->write_bytes;
+      require(stage.publish(*f.session,sealed) && sealed,"admitted grouped seal did not win its comparison");
+      require(f.session->volume_info().selection.parent_identity==selected.image_identity,
+          "grouped seal lost its selected source provenance");
+      auto copied_base=image(base->stable,4096),copied_tail=image(tail->stable,4096);
+      const auto reopened=NativeHybridBacking::open(copied_base,copied_tail,id(8),
+          kStoreMaxPhysicalBytes,kStoreMaxPhysicalBytes);
+      const auto view=NativeVolumeHeadView::open(image(f.head->stable,4096),id(90),
+          [&](const auto& identity)->std::shared_ptr<StoreByteIo>{return identity==id(8)?reopened:nullptr;});
+      const auto& recovered=view.filesystem();
+      require(recovered.shared_base_info().members==group.members && recovered.shared_base_info().bases==group.bases,
+          "sealed placement changed a retained group");
+      const auto initial_reads=copied_base->read_bytes+copied_tail->read_bytes;
+      for(std::size_t i=0;i<inputs.size();++i) {
+        const auto length=(std::min)(std::size_t{128},inputs[i].size());
+        const auto offset=(inputs[i].size()-length)/2;
+        require(recovered.read(name(i),offset,length)==Bytes(inputs[i].begin()+offset,inputs[i].begin()+offset+length),
+            "grouped seal changed a range");
+      }
+      const auto sampled_reads=copied_base->read_bytes+copied_tail->read_bytes-initial_reads;
+      verify(recovered);
+      verify(retained);
+      require(reopened->occupied()==base->extent()+tail->extent(),"missing grouped seal occupancy");
+      std::cout<<"grouped_seal mirror_bytes="<<mirror<<" settled_bytes="<<reopened->occupied()+f.head->extent()
+          <<" base_bytes="<<base->extent()<<" tail_bytes="<<tail->extent()<<" selector_bytes="<<f.head->extent()
+          <<" workspace_write_bytes="<<workspace->write_bytes
+          <<" backing_write_bytes="<<base->write_bytes+tail->write_bytes+f.head->write_bytes-before
+          <<" sampled_range_read_bytes="<<sampled_reads<<" members="<<group.members<<" bases="<<group.bases
+          <<" selected=1 cpu_exact=1\n";
+    }
+  }
   if(expected_members) {
     require(after.first<before.first && members==expected_members && outcome.packed_reference_groups,
         "similarity ranking missed the fitting short-file families");
@@ -1132,13 +1190,18 @@ void profile_retained_short_peer() {
 void profile_public_packs(const std::filesystem::path& filename,bool complete_files,bool compare_reencoding=false,
     NativeIndexedDataLayout layout=NativeIndexedDataLayout::extents,
     NativeVolumeHeadLayout head_layout=NativeVolumeHeadLayout::legacy,
-    PagedStoreBankLayout image_layout=PagedStoreBankLayout::shared,bool byte_planes=false) {
+    PagedStoreBankLayout image_layout=PagedStoreBankLayout::shared,bool byte_planes=false,bool compare_sealing=false,
+    const std::filesystem::path& second_corpus={}) {
   if(!store_zstd_available()) {
     require(!complete_files,"complete-file packing profile requires Zstandard");
     return;
   }
-  const auto inputs=read_packed_corpus(filename,complete_files);
-  profile_similarity_packing(inputs,0,compare_reencoding,layout,head_layout,image_layout,byte_planes);
+  auto inputs=read_packed_corpus(filename,complete_files);
+  if(!second_corpus.empty()) {
+    auto extra=read_packed_corpus(second_corpus,complete_files);
+    inputs.insert(inputs.end(),std::make_move_iterator(extra.begin()),std::make_move_iterator(extra.end()));
+  }
+  profile_similarity_packing(inputs,0,compare_reencoding,layout,head_layout,image_layout,byte_planes,compare_sealing);
 }
 
 void profile_indexed_pair_oracle(const std::filesystem::path& filename,bool tails=false) {
@@ -4422,6 +4485,10 @@ int main(int argc,char** argv){try{
   } else if(argc==3 && std::string_view(argv[1])=="--profile-public-byte-planes") {
     profile_public_packs(argv[2],true,true,NativeIndexedDataLayout::extents,
         NativeVolumeHeadLayout::legacy,PagedStoreBankLayout::shared,true);
+  } else if((argc==3 || argc==4) && std::string_view(argv[1])=="--profile-public-grouped-seal") {
+    profile_public_packs(argv[2],true,true,NativeIndexedDataLayout::extents,
+        NativeVolumeHeadLayout::legacy,PagedStoreBankLayout::shared,true,true,
+        argc==4?std::filesystem::path(argv[3]):std::filesystem::path{});
   } else if(argc==3 && std::string_view(argv[1])=="--profile-indexed-tail-oracle") {
     profile_indexed_pair_oracle(argv[2],true);
   } else if(argc==3 && std::string_view(argv[1])=="--profile-indexed-pair-oracle") {

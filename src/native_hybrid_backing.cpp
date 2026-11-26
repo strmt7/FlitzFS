@@ -229,19 +229,15 @@ NativeHybridBacking::NativeHybridBacking(std::unique_ptr<Impl> state) noexcept:i
 NativeHybridBacking::~NativeHybridBacking()=default;
 
 std::uint64_t NativeHybridBacking::workspace_capacity(StoreIdentity identity,StoreIoContract storage,
-    std::uint64_t source_bytes,std::uint64_t staging_bytes,std::uint64_t private_workspace_bytes) {
-  if(!valid_store_io_contract(storage) || source_bytes<=roots || source_bytes>maximum_io ||
+    std::uint64_t packed_end_bound,std::uint64_t staging_bytes,std::uint64_t private_workspace_bytes) {
+  if(!valid_store_io_contract(storage) || packed_end_bound<=roots || packed_end_bound>maximum_io ||
       staging_bytes<=tail_start || staging_bytes>maximum_io)return 0;
   const auto alignment=(std::max<std::uint64_t>)(root_size,storage.write_failure_unit_bytes);
-  // Folded workspaces retain the legacy root offsets. Include the maximum
-  // prefix growth for any writable source on this provider before folding.
-  const auto prefix_growth=roots-2*alignment;
-  const auto mirrored_limit=source_bytes+(std::min)(prefix_growth,maximum_io-source_bytes);
   const auto budget=staging_bytes-tail_start;
   // A file workspace overlaps its candidate's allocation budget. A
   // separately owned workspace can use its own admitted capacity.
   const auto workspace_limit=private_workspace_bytes?private_workspace_bytes:budget/2;
-  std::uint64_t low=0,high=(std::min)(detail::folded_mirror_extent(mirrored_limit),workspace_limit)/alignment;
+  std::uint64_t low=0,high=(std::min)(detail::folded_mirror_extent(packed_end_bound),workspace_limit)/alignment;
   const auto base_bytes=[&](std::uint64_t workspace) {
     return ProtectedStripeImage::projected_occupied(identity,workspace,storage.write_failure_unit_bytes,maximum_io);
   };
@@ -252,9 +248,14 @@ std::uint64_t NativeHybridBacking::workspace_capacity(StoreIdentity identity,Sto
     if(base_bytes(workspace)<=available)low=middle;
     else high=middle-1;
   }
-  const auto workspace=low*alignment;
-  if(workspace<=roots || base_bytes(workspace)+tail_start>=roots+2*(workspace-roots))return 0;
-  return workspace;
+  const auto profitable=[&](std::uint64_t workspace) {
+    return workspace>roots && base_bytes(workspace)+tail_start<roots+2*(workspace-roots);
+  };
+  if(profitable(low*alignment))return low*alignment;
+  if(!low)return 0;
+  // A partial stripe can price worse than the preceding complete stripe.
+  const auto complete=((low-1)/detail::kProtectedStripeDataUnits)*detail::kProtectedStripeDataUnits*alignment;
+  return profitable(complete)?complete:0;
 }
 
 std::array<std::shared_ptr<StoreByteIo>,2> NativeHybridBacking::components() const noexcept {

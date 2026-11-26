@@ -368,7 +368,10 @@ A fresh bulk write can leave insufficient credit for preparation,
 especially for weakly compressible data.
 
 The file workspace starts at the high end of the inactive range and the
-base starts at its beginning. The file planner rounds the fitted folded
+base starts at its beginning. The planner bounds the packed candidate
+from the checked live object count and stored bytes and allows for the
+rebound namespace root. The same bound governs workspace reservation
+and write credit. The planner rounds the fitted
 workspace up to the commit-unit boundary and prices that aligned region
 with the projected parity base and writable tail. The full staging plan
 must fit the inactive range before any optional write charge. The owner
@@ -385,6 +388,11 @@ the acknowledged image selected.
 [Windows storage geometry](https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_storage_info) ·
 [Windows range retirement](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_zero_data) ·
 [Paired layout and write comparison](evidence/windows-folded-cold-placement-2026-11-26.json)
+
+The Windows memory and file-backed owners derive their bounds from the
+same paged inventory. The final builder still checks the exact workspace,
+sealed footprint, source checkpoint and provider contract before selection.
+[Live inventory and retained groups](evidence/windows-retained-group-placement-2026-11-26.json)
 
 The Windows controller can place the workspace in locked memory when it
 fits the current idle memory allowance after reserving ordinary

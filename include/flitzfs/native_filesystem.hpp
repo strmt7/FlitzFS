@@ -34,7 +34,7 @@ struct NativeImageStorage {
   std::uint64_t maximum_physical_bytes=0; // Required only for paged images.
   bool operator==(const NativeImageStorage&) const=default;
 };
-namespace detail {class NativeObjectSnapshot;class NativeObjectWriter;class IndexedSharedBasePreparation;class NativeLz4CaptureLease;class NativeWriteCaptureLease;struct NativeGroupReadRoute;enum class NativeInodeAction;}
+namespace detail {class NativeObjectSnapshot;class NativeObjectWriter;class IndexedSharedBasePreparation;class NativeLz4CaptureLease;class NativeWriteCaptureLease;class NativeVolumeFileReclaimer;struct NativeGroupReadRoute;enum class NativeInodeAction;}
 // Native file/extent layer, experimental and CPU-only. Explicit Windows
 // read-only projection is available; mounted writes and live GPU remain absent.
 inline constexpr std::uint32_t kNativeExtentBytes=65536;
@@ -666,6 +666,7 @@ class NativeFilesystemWriter final {
   friend class NativeGroupMaintenance;
   friend class NativeHybridBacking;
   friend class NativeVolumeHeadWriter;
+  friend class detail::NativeVolumeFileReclaimer;
   bool supports_leased_lz4_capture() const noexcept;
   std::unique_ptr<detail::NativeLz4CaptureLease> lease_native_lz4_capture(
       std::uint64_t inode,std::uint64_t offset,std::size_t maximum_encoded) const;
@@ -729,6 +730,7 @@ class NativeFilesystemWriter final {
   bool supports_file_contexts() const noexcept;
   std::optional<NativeManagedForeground> indexed_foreground(StoreCompressionOptions) const noexcept;
   std::uint64_t indexed_append_floor() const noexcept;
+  std::uint64_t packed_folded_end_bound(std::uint32_t failure_unit) const noexcept;
   std::uint64_t indexed_obsolete_bytes() const noexcept;
   bool indexed_payload_repair_pending() const noexcept;
   std::uint64_t indexed_capacity_repair_generation() const noexcept;

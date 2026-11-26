@@ -189,8 +189,7 @@ struct NativeFileSession::Impl {
     if(cost && input-floor>=cost)return input-cost;
     if(paired && volume && volume->head && !volume->pending && !recompression &&
         NativeFileSession::handoff_contexts_resolved(*this) && !writer.indexed_capacity_repair_generation()) {
-      const auto writes=persistent_reclaimer->projected_seal_writes(volume->head->info().selection,
-          writer.indexed_append_floor());
+      const auto writes=persistent_reclaimer->projected_seal_writes(volume->head->info().selection,writer);
       const auto seal_cost=cold_compaction_input_cost(writes,volume->head->occupied_bytes());
       if(writes && input-floor>=seal_cost)return input-seal_cost;
     }
@@ -832,6 +831,9 @@ NativeVolumeSpace NativeFileSession::indexed_volume_space() const {
       self.writer.indexed_obsolete_bytes(),
       self.maintenance?self.maintenance->group_append_shortfall(
           self.writer.maintenance_identity(),self.writer.recompression_generation()):0};
+}
+std::uint64_t NativeFileSession::packed_folded_end_bound(std::uint32_t failure_unit) const noexcept {
+  return poisoned()?0:impl_->writer.packed_folded_end_bound(failure_unit);
 }
 std::optional<NativeDenseFileSpace> NativeFileSession::dense_file_space() const {
   const auto& self=ready();

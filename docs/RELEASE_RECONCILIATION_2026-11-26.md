@@ -10,13 +10,12 @@ detailed package contracts and the release execution plan retains the gates.
 [Implementation packages](IMPLEMENTATION_PLAN.md#3-execution-order-and-dependencies) ·
 [Release gates](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
 
-This checkpoint builds on `b0e4d6286debfbe5c60e1fa2e73663f71287710c`.
-The additional source review follows the folded read view, the cold
-encoder, storage admission, the active selector, and the independent CPU
-reopen. It compares the four codec and protection combinations from the
-same input, then tests a combined copy in source tree
-`fa5fb1619f7e144bd672db21c0580460b8fce4b6`.
-[Current evidence](evidence/windows-folded-cold-placement-2026-11-26.json) ·
+This checkpoint builds on `df014de23efcf93c0b5e8f72bc0e838a2c914c2d`.
+Source tree `47121686f44fd2a72f3ee1c60b51760e461254a9` prices sealed
+placement from checked live inventory. The comparison follows retained
+groups from the ordinary maintenance controller through compacted
+mirroring, seal admission and independent CPU reopen.
+[Current evidence](evidence/windows-retained-group-placement-2026-11-26.json) ·
 [Source review](architecture/REVIEW.md)
 
 The follow-up AMD checkpoint made priority optional in the Windows workers.
@@ -425,6 +424,40 @@ motivate measuring write, range-read and repair costs independently.
 [Microsoft mirror-accelerated parity](https://learn.microsoft.com/en-us/windows-server/storage/refs/mirror-accelerated-parity) ·
 [FAST 2026 repair study](https://www.usenix.org/conference/fast26/presentation/cheng)
 
+The retained-group comparison reproduced 696,320 bytes for CPython with
+48 referenced extents and 13 shared bases. Sealing declined before
+writing the workspace, base or tail. For the AITDCC splits, the full
+group scan kept the independent records. The selected sealed totals were
+still 21,659,648 bytes for I–P and 9,854,976 bytes for A–H. The planner
+now prices a seal from checked live records in both Windows backing
+owners. The funded file fixture's workspace fell from the 2,228,224-byte
+append-based estimate to the 2,097,152-byte reservation.
+
+The mixed CPython and AITDCC I–P fixture kept the same 48 references and
+13 shared bases through selection and standalone CPU reopen. Its
+grouped mirror occupied 34,234,368 bytes and its seal occupied 21,925,888
+bytes, both including the selector. The same sampled ranges read
+1,747,401 and 2,527,232 backing bytes respectively. This combined result
+gives the next comparison a baseline for both occupied size and
+read amplification. The names and decoded bytes matched in both arms.
+[Retained group comparison and workspace funding](evidence/windows-retained-group-placement-2026-11-26.json)
+
+The small grouped image makes the next placement decision concrete.
+Repricing the CPython packed mirror in the current sealed geometry
+gives a projected 962,560 bytes. Sizing the two outer roots and four tail
+control slots to the same qualified 4 KiB failure unit projects 593,920
+bytes. This is a layout
+calculation before implementation or timing. Test both old and compact
+descriptors and their independent CPU readers, including individual
+control-unit loss and interrupted tail publication. Select the smaller
+verified layout on the blind corpus. Inform range order with measured
+access patterns, as illustrated by RubikFS's affinity and hotness
+comparison. Account for the complete dependencies and redundancy in the
+same way as the published EROFS deduplication comparison reports image
+occupation.
+[RubikFS](https://www.usenix.org/conference/fast26/presentation/huang) ·
+[EROFS image comparisons](https://erofs.docs.kernel.org/en/latest/comparison/dedupe.html)
+
 1. Reuse the current two-placement seal projection and confirm both
    admission paths on the same named workload. Record private scratch
    peak, backing capacity, writes and selector publication separately.
@@ -674,7 +707,7 @@ exercise grouped behavior across files and directories.
 
 | Priority and decision | Next deliverable | Acceptance and follow-through |
 | --- | --- | --- |
-| 1. Minimize complete protected size | Compare grouped states against the verified independent and folded arms. Add the existing group path to the placement witness before ranking a fresh named holdout. | Prove the selected group and placement on exact names and bytes. Charge dependency, access, repair and retirement work. Keep the strongest arm for each measured cohort, including small files. |
+| 1. Minimize complete protected size | Use the retained-group and mixed comparison to check compact seal metadata before ranking a fresh named holdout. | Prove the selected group and placement on exact names and bytes. Charge dependency, access, repair and retirement work. Keep the strongest arm for each measured cohort, including small files. |
 | 2. Consume automatic AMD work through Windows | Join actual client demand, worker readiness, verified results and consumption in the populated Win32 witness. Start with grouped sequential reads and collective candidate search. Use short writes as the matched CPU reference and add larger recurring cohorts. | Alternate matched lanes. Report verified and consumed bytes, CPU continuity, occupied size, p99, idle residency and retirement on the observed installation. A device result earns a policy only when the useful path gains after all overhead. |
 | 3. Bound writable attach and recovery | Build a source-bound checked-attach comparison against the existing CPU inventory. Add named churn at geometric tiers, including one reserved larger tier. | Show identical admission and reference ownership on healthy, stale and interrupted images. Record lookup I/O, memory, touched and live pages, fallback and repair debt. Qualify each promised provider boundary before changing writable attach. |
 
@@ -687,12 +720,12 @@ exercise grouped behavior across files and directories.
    temporary peak. Reconcile the categories to observed backing length
    or physical allocation. Hold each comparison to one input generation
    and a deliberate placement geometry.
-2. Extend the completed independent four-arm comparison to retained
-   groups. Compare a grouped mirror and its sealed form with the
-   established byte-plane and ordinary controls. Include the live tail
-   and selector. Verify single-unit fault cases, partial reads, restart
-   and retirement. Keep the better verified representation for each
-   cohort and provider.
+2. Test compact sealed control slots against the completed group and
+   independent controls. Use provider-qualified spacing, an explicit
+   checked layout and independently readable historical and compact
+   images. Compare the exact footprint and range, restart, repair and
+   retirement work. Retain the grouped mirror whenever it earns the
+   better outcome.
 3. Freeze a new named revision-family tree before training. Include
    structured samples, source and ordinary document trees, unrelated
    binaries and already-compressed media. Preserve AITDCC and CPython

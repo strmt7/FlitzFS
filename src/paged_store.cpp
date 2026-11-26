@@ -3363,5 +3363,19 @@ std::optional<PagedStoreMirroredLayout> PagedObjectStoreWriter::mirrored_write_l
   const auto& state=impl_->state;
   return PagedStoreMirroredLayout{state.unit,state.shared_banks,state.compact_roots};
 }
+std::uint64_t PagedObjectStoreWriter::packed_folded_end_bound(std::uint32_t failure_unit,
+    std::size_t rebound_bytes) const noexcept {
+  if(poisoned() || !impl_->state.mirrored || !impl_->state.root.count ||
+      !std::has_single_bit(failure_unit) || failure_unit>kStoreCommitUnit)return 0;
+  const auto& current=impl_->state;
+  auto target=current;
+  target.compact_roots=false;
+  target.unit=(std::max)(static_cast<std::uint32_t>(page_bytes),failure_unit);
+  try {
+    // The new identity can enlarge only the namespace root. Its entire
+    // decoded length is an upper bound even with a different encoder.
+    return packed_rebuild_size(target,current.root.count,add(current.root.stored,rebound_bytes));
+  }catch(const std::exception&) {return 0;}
+}
 bool PagedObjectStoreWriter::poisoned() const noexcept {return !impl_ || impl_->poisoned;}
 } // namespace flitzfs
