@@ -181,9 +181,14 @@ void indexed_byte_plane_recovery() {
   for(std::size_t file=0;file<files.size();++file) {
     auto& bytes=files[file];
     bytes=data(kNativeExtentBytes-1,52000+static_cast<unsigned>(file));
-    for(std::size_t at=0;at+3<bytes.size();at+=4) {
-      bytes[at+2]=std::byte{4};
-      bytes[at+3]=std::byte{7};
+    for(std::size_t row=0;row<bytes.size()/4;++row) {
+      if(file==files.size()-1) {
+        for(std::size_t plane=0;plane<4;++plane)
+          bytes[4*row+plane]=static_cast<std::byte>((row*(17+plane*32)+plane*7)&255U);
+      }else {
+        bytes[4*row+2]=std::byte{4};
+        bytes[4*row+3]=std::byte{7};
+      }
     }
     put(*live.session,name(file),bytes);
   }
@@ -216,8 +221,9 @@ void indexed_byte_plane_recovery() {
   const auto pinned=live.session->snapshot();
   const auto target=stage(live);
   constexpr std::size_t feature_at=176;
+  const auto features=std::to_integer<unsigned>(target->live[feature_at]);
   require(live.image->live[feature_at]==std::byte{0} && ordinary->live[feature_at]==std::byte{0} &&
-      target->live[feature_at]==std::byte{1} && target->live[unit+feature_at]==std::byte{1},
+      (features&3U)==3U && target->live[unit+feature_at]==target->live[feature_at],
       "byte-plane required feature did not match the encoded output");
   require(target->extent()<ordinary->extent() && live.head->extent()==control.head->extent(),
       "byte-plane copy did not reduce settled protected bytes");
@@ -259,8 +265,10 @@ void indexed_byte_plane_recovery() {
     }
     return changed;
   };
-  rejects([&]{(void)NativeFilesystemSnapshot::open_image(altered(std::byte{3}),storage);},
+  rejects([&]{(void)NativeFilesystemSnapshot::open_image(altered(std::byte{4}),storage);},
       "unknown required bit did not reject the image on open");
+  rejects([&]{NativeFilesystemSnapshot::open_image(altered(std::byte{1}),storage).verify_all();},
+      "a delta frame decoded when the image only declared plain byte planes");
   rejects([&]{NativeFilesystemSnapshot::open_image(altered(std::byte{0}),storage).verify_all();},
       "a byte-plane frame decoded when the image had no required feature");
   auto exported=ram(unit);
@@ -270,7 +278,7 @@ void indexed_byte_plane_recovery() {
   verify(NativeFilesystemSnapshot::open_image(exported,storage));
   std::cout<<"indexed_byte_planes before="<<ordinary->extent()+control.head->extent()
       <<" after="<<target->extent()+live.head->extent()<<" cuts_old="<<old_selected<<" cuts_new="<<new_selected
-      <<" exact_cpu=1 independent_reencode=1\n";
+      <<" features="<<features<<" exact_cpu=1 independent_reencode=1\n";
 }
 
 void indexed_candidate_yield_order() {

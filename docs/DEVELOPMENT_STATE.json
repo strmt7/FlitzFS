@@ -8,6 +8,17 @@
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
   "current_release_review": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
   "source_and_portability_review": "docs/architecture/RELEASE_REVIEW_2026-11-26.md",
+  "native_cold_delta_planes": {
+    "source_parent": "c5d2dbc4047be3985da2d046a14a2aac74f00c9a",
+    "tested_source_tree": "d22993fad1969f56614ca9a24c529709cace690e",
+    "evidence": "docs/evidence/windows-cold-delta-planes-2026-11-26.json",
+    "compact_saved_bytes": [69632, 12288, 40960, 0],
+    "named_packed_saved_bytes": [0, 0],
+    "mixed_feature_selection_cuts": 12,
+    "windows_release_checks_passed": 8,
+    "windows_asan_checks_passed": 4,
+    "release_qualified": false
+  },
   "read_ahead_during_payload_scrub": {
     "source_parent": "ba9770cdd11078a20eb3d63f3db0f0049f461f4e",
     "tested_source_tree": "92aa4331d7f6e78600091863a7243aa1f09ab531",

@@ -159,24 +159,43 @@ void cold_byte_planes() {
   StoreCodecDecoder decoder;
   const auto logical=static_cast<std::uint32_t>(plain.size());
   const auto& payload=result.smaller->payload;
-  require(decoder.decode(kStoreZstdBytePlanes,payload,logical,true)==plain,
+  require(decoder.decode(kStoreZstdBytePlanes,payload,logical,kStoreBytePlaneFeature)==plain,
       "byte-plane decoding changed the prefix or incomplete final word");
   rejects([&]{(void)decoder.decode(kStoreZstdBytePlanes,payload,logical);},
       "byte planes decoded without required-feature admission");
   for(std::size_t field=0;field<4;++field) {
     auto changed=payload;
     changed[field]^=std::byte{1};
-    rejects([&]{(void)decoder.decode(kStoreZstdBytePlanes,changed,logical,true);},
+    rejects([&]{(void)decoder.decode(kStoreZstdBytePlanes,changed,logical,kStoreBytePlaneFeature);},
         "byte planes accepted an unrecognized envelope");
   }
   auto trailing=payload;
   trailing.push_back(std::byte{0});
-  rejects([&]{(void)decoder.decode(kStoreZstdBytePlanes,trailing,logical,true);},
+  rejects([&]{(void)decoder.decode(kStoreZstdBytePlanes,trailing,logical,kStoreBytePlaneFeature);},
       "byte planes accepted trailing frame data");
   plain.front()=std::byte{0};
   const auto opaque=encoder.try_cold_encoding(plain,plain.size());
-  require(!opaque.smaller || opaque.smaller->codec!=kStoreZstdBytePlanes,
+  require(!opaque.smaller || !store_codec_features(opaque.smaller->codec),
       "byte planes transformed a non-extent record");
+
+  plain.front()=std::byte{'F'};
+  for(std::size_t row=0;row<body/4;++row)
+    for(std::size_t plane=0;plane<4;++plane)
+      plain[prefix+4*row+plane]=static_cast<std::byte>((row*(17+plane*32)+plane*7)&255U);
+  const auto delta=encoder.try_cold_encoding(plain,1024);
+  require(delta.evaluated && delta.smaller && delta.smaller->codec==kStoreZstdDeltaPlanes &&
+      delta.smaller->payload.size()<128,"plane prediction did not encode the stepped extent compactly");
+  const auto& frame=delta.smaller->payload;
+  require(decoder.decode(kStoreZstdDeltaPlanes,frame,logical,kStoreDeltaPlaneFeature)==plain,
+      "delta planes changed the prediction anchor, header or partial word");
+  rejects([&]{(void)decoder.decode(kStoreZstdDeltaPlanes,frame,logical,kStoreBytePlaneFeature);},
+      "delta planes decoded with only the older transform capability");
+  auto wrong_transform=frame;
+  wrong_transform[3]=std::byte{0};
+  rejects([&]{(void)decoder.decode(kStoreZstdDeltaPlanes,wrong_transform,logical,kStoreDeltaPlaneFeature);},
+      "delta planes accepted the ordinary byte-plane envelope");
+  rejects([&]{(void)decoder.decode(kStoreZstdBytePlanes,frame,logical,kStoreSupportedFeatures);},
+      "ordinary byte planes accepted a delta envelope");
 }
 void malformed_and_budget() {
   StoreCodecDecoder decoder;

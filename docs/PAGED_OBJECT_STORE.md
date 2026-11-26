@@ -137,7 +137,7 @@ is `FLTXPG01`. This table also defines the fields of the compact roots.
 | 40 | 16 | Image identity |
 | 56, 60 | 4 each | Metadata isolation unit, index page size |
 | 64 | 112 | Root-page reference |
-| 176 | 4 | Required features. Bit 0 is the experimental byte-plane codec. Other bits are zero. |
+| 176 | 4 | Required features. Bit 0 allows codec 5 and bit 1 allows codec 6. Other bits are zero. |
 | 180 | 3,884 | Zero |
 | 4,064 | 32 | Digest of preceding root bytes |
 
@@ -156,29 +156,33 @@ header and independent CPU raw/zero/pattern/optional Zstd/LZ4 codec contracts.
 
 ### Experimental cold byte planes
 
-Bit 0 permits codec 5 in a mirrored image with CPU Zstandard available.
-Both intact roots must agree on the required features. The previous reader
-requires bytes 176 through 4,063 to be zero, so a flagged image requires the
-new reader at attach. Unflagged images keep their existing encoding.
+These codecs require mirrored image records and CPU Zstandard. Both
+intact roots must agree on the required features. Readers that implement
+only codec 5 reject images that declare bit 1. The current reader accepts
+older images, including ones that declare only bit 0.
 
-The stored payload consists of the four bytes `01 04 18 00` followed by
-one canonical checksummed, dictionary-free Zstandard frame. The decoded
-frame begins with the unchanged 24-byte `FLTXPE01` native extent prefix.
-Its remaining 4 to 65,536 bytes hold four byte planes of equal length,
-followed by any incomplete final word. The CPU decoder interleaves the
-planes, copies the trailing bytes in their original order and checks the
-decoded record digest. A range read needs at most one such extent per
-reference. The published group and reference codecs retain their existing
-rules.
+Codec 5 begins with `01 04 18 00` and codec 6 begins with `01 04 18 01`.
+Each envelope contains one canonical checksummed, dictionary-free
+Zstandard frame. The decoded frame begins with the 24-byte `FLTXPE01`
+native extent prefix. Its remaining 4 to 65,536 bytes hold four equal
+byte planes followed by any incomplete final word.
 
-An explicit cold-compaction option compares this encoding with the
+Codec 6 stores each plane byte as its difference from the preceding
+byte modulo 256. The first byte of each plane uses a zero predictor.
+The CPU decoder reconstructs each plane by cumulative addition modulo
+256, interleaves the planes and copies the trailing bytes in their
+original order. Both codecs check the reconstructed record digest.
+A range read needs at most one such extent per reference.
+
+An explicit cold-compaction option compares both transforms with the
 ordinary funded Zstandard presets. The selected bytes must independently
 decode to the original record. Staged rebuild binds the feature before
 writing its checked roots. Publication requires a smaller verified
 image, with the prior generation preserved through the selector barriers.
 Ordinary writes retain their current encoders. A full CPU reencode with
 the ordinary policy can export the same file bytes in an unflagged image.
-[Windows cut and size evidence](evidence/windows-native-byte-plane-2026-11-26.json)
+[Windows cut and size evidence](evidence/windows-native-byte-plane-2026-11-26.json) ·
+[Delta-plane Windows verification](evidence/windows-cold-delta-planes-2026-11-26.json)
 
 ### Compact mirrored roots
 

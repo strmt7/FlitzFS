@@ -1,6 +1,7 @@
 #pragma once
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <span>
 
 namespace flitzfs::detail {
@@ -21,5 +22,30 @@ inline void restore_byte_planes(std::span<const std::byte> input,std::span<std::
     for(std::size_t plane=0;plane<width;++plane)
       output[row*width+plane]=input[plane*rows+row];
   std::ranges::copy(input.subspan(rows*width),output.subspan(rows*width).begin());
+}
+
+// Each plane starts with a zero predictor. The incomplete word is outside
+// all planes and is never part of the prediction.
+inline void encode_plane_deltas(std::span<std::byte> planes,std::size_t width) noexcept {
+  const auto rows=planes.size()/width;
+  for(std::size_t plane=0;plane<width;++plane) {
+    std::uint8_t previous=0;
+    for(auto& byte:planes.subspan(plane*rows,rows)) {
+      const auto current=std::to_integer<std::uint8_t>(byte);
+      byte=static_cast<std::byte>(static_cast<std::uint8_t>(current-previous));
+      previous=current;
+    }
+  }
+}
+
+inline void restore_plane_deltas(std::span<std::byte> planes,std::size_t width) noexcept {
+  const auto rows=planes.size()/width;
+  for(std::size_t plane=0;plane<width;++plane) {
+    std::uint8_t previous=0;
+    for(auto& byte:planes.subspan(plane*rows,rows)) {
+      previous=static_cast<std::uint8_t>(previous+std::to_integer<std::uint8_t>(byte));
+      byte=static_cast<std::byte>(previous);
+    }
+  }
 }
 }

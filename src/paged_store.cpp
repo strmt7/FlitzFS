@@ -26,7 +26,6 @@ constexpr std::uint64_t legacy_data_start=2*kStoreCommitUnit;
 constexpr std::size_t page_bytes=detail::kPagedStoreCheckpointWriteBytes/2,
     header_bytes=64,ref_bytes=112,record_header_bytes=128;
 constexpr std::uint32_t compact_metadata_bytes=1024;
-constexpr std::uint32_t zstd_byte_plane_feature=1U;
 constexpr std::size_t required_features_at=176;
 constexpr std::size_t inline_record_read_bytes=1024;
 constexpr std::size_t compact_ref_bytes=88;
@@ -435,7 +434,7 @@ void verify_record_header(const State& s,const Entry& e,std::span<const std::byt
   const auto codec=get32(h,12);
   if(!magic(h,data_magic) || get32(h,8)!=1 || get64(h,16)!=e.id || get64(h,24)!=e.generation ||
       get32(h,32)!=e.logical || get32(h,36)!=e.stored || field<16>(h,40)!=s.id ||
-      !detail::store_codec_framing(codec,e.logical,e.stored,(s.required_features&zstd_byte_plane_feature)!=0) ||
+      !detail::store_codec_framing(codec,e.logical,e.stored,s.required_features) ||
       !zero(std::span<const std::byte>(h).subspan(codec==detail::kStoreRaw?56:88,codec==detail::kStoreRaw?40:8)) ||
       field<32>(h,96)!=e.digest)fail("object identity/codec/framing");
 }
@@ -495,7 +494,7 @@ Bytes decode_record(const State& s,std::uint32_t logical,std::span<const std::by
     std::span<const std::byte> payload) {
   const auto codec=get32(h,12);
   if(codec==detail::kStoreRaw)return Bytes(payload.begin(),payload.end());
-  auto decoded=s.decoder->decode(codec,payload,logical,(s.required_features&zstd_byte_plane_feature)!=0);
+  auto decoded=s.decoder->decode(codec,payload,logical,s.required_features);
   if(detail::record_digest(decoded)!=field<32>(h,56))fail("object decoded digest");
   return decoded;
 }
@@ -749,7 +748,7 @@ State load(std::shared_ptr<StoreByteIo> image,PagedStoreLimits limits,LookupPage
         (s.metadata_bytes!=page_bytes && (s.mirrored || s.metadata_bytes!=compact_metadata_bytes)) ||
         s.end>extent || s.end>limits.maximum_physical_bytes ||
         s.end<s.data_start()+2*s.unit || s.end%(s.shared_banks?2ULL*s.unit:s.unit) ||
-        (s.required_features&~zstd_byte_plane_feature) ||
+        (s.required_features&~detail::kStoreSupportedFeatures) ||
         (s.required_features && (!s.mirrored || !store_zstd_available())) ||
         !zero(std::span<const std::byte>(b).subspan(required_features_at+4,digest_at-required_features_at-4)))
       fail("unsupported/intact root semantics");
@@ -1454,9 +1453,9 @@ PreparedObject prepare_rebuilt_object(State& target,const Entry& source_entry,Ob
     return detail::EncodedStoreObject{get32(source_record.header,12),std::move(source_record.payload),
         field<32>(source_record.header,56)};
   }();
-  if(encoded.codec==detail::kStoreZstdBytePlanes) {
+  if(const auto feature=detail::store_codec_features(encoded.codec)) {
     if(!target.mirrored)fail("byte-plane records need mirrored storage");
-    target.required_features|=zstd_byte_plane_feature;
+    target.required_features|=feature;
   }
   PreparedObject record;
   auto& entry=record.entry;

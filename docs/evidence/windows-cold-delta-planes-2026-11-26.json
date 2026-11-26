@@ -1,0 +1,409 @@
+{
+  "schema": 1,
+  "date_utc": "2026-11-26",
+  "source": {
+    "parent": "c5d2dbc4047be3985da2d046a14a2aac74f00c9a",
+    "base_tree": "e4ff747e7b484b3bce30b3a255e4a7f3edad363b",
+    "tree": "d22993fad1969f56614ca9a24c529709cace690e",
+    "elements": [
+      {
+        "path": "src/byte_planes.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "c5c8ba0a1e7bc50ad1e4b5c2bef0142bd2c6b950",
+        "bytes": 2012
+      },
+      {
+        "path": "src/paged_store.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "e696b2f5d0afcb058aecbfdb1155b8a933869d71",
+        "bytes": 172501
+      },
+      {
+        "path": "src/store_codec.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "75df6b9d13b1b6b3d3487e36ddfd58de984fe378",
+        "bytes": 28406
+      },
+      {
+        "path": "src/store_codec.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "cc23a0861a7a8a9bd9326953c9c1b32bf7d61b68",
+        "bytes": 4804
+      },
+      {
+        "path": "tests/test_native_group_maintenance.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "f8602b7226160264eb65d2be82cafe5d1b2711f9",
+        "bytes": 274108
+      },
+      {
+        "path": "tests/test_store_codec.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "db835b793c4edd97f099f42281d5765180fafd98",
+        "bytes": 15272
+      }
+    ]
+  },
+  "platform": "Windows 11 x64 owner host, CPU fixtures with modeled in-memory storage",
+  "navigation": {
+    "receipt_sha256": "a67242e2e910159f9ba2e454715dca0967f9164a46f4e29037a98cae8de51677",
+    "actual_searches": 1
+  },
+  "research": {
+    "receipt_sha256": "cce5dc424684717f727da3e8ae64ab47954ed5c75ee2f9c56e8370f5ab745245",
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "pages": [
+      {
+        "url": "https://blosc.org/python-blosc2/reference/autofiles/low_level/blosc2.Filter.html",
+        "success": true,
+        "http_status": 200,
+        "markdown_sha256": "00585179d3d612a8e0812e8721b2631f9139f90b4a513b2b8dcb316f736ecb86",
+        "capture_sha256": "6f12ffc1663b14d41a2c2c800601b3484690faed352c744144e02a23d2701f08"
+      },
+      {
+        "url": "https://www.usenix.org/conference/fast26/presentation/huang",
+        "success": true,
+        "http_status": 200,
+        "markdown_sha256": "dbc538fff3a57a4c36ef94c8a47e1737270a83880e2fb6957160b9b46f285256",
+        "capture_sha256": "a7df17b0790208e0765eb6e966c7f5758c577ccff0195dd2161820d887067de3"
+      }
+    ]
+  },
+  "selection": "Additional delta-plane encoding inside the experimental native cold rewrite. Competition includes untransformed Zstandard and plain byte planes. The CPU verifies each selected encoding. The committed method requires its own root feature bit.",
+  "accounting": "Every settled count includes encoded data, protection, index/layout overhead, the selected writable tail and selector. Named packed tests preserve the original paths and use the production parity descriptor layout.",
+  "comparison": [
+    {
+      "corpus": "AITDCC 2026 I–P",
+      "input_sha256": "26204e32bf232e5a40d5cce9d4f63a87c25fcb19f6eceadbff7c76321468c159",
+      "seal_layout": "compact controls",
+      "previous": {
+        "mirror_bytes": 33816576,
+        "settled_bytes": 21291008,
+        "base_bytes": 21143552,
+        "tail_bytes": 16384,
+        "selector_bytes": 131072,
+        "workspace_write_bytes": 16916480,
+        "backing_write_bytes": 21291520,
+        "sampled_range_read_bytes": 724992,
+        "members": 0,
+        "bases": 0,
+        "selected": 1,
+        "exit_code": 0,
+        "retired": true,
+        "peak_job_bytes": 315940864,
+        "fixture_cpu_ns": 16328125000,
+        "fixture_elapsed_seconds": 16.563,
+        "stdout_sha256": "6ddc94e6ac6f35d1f747efc56e22f9035672d44963b16fd144f28f85b2543339"
+      },
+      "candidate": {
+        "mirror_bytes": 33693696,
+        "settled_bytes": 21221376,
+        "base_bytes": 21073920,
+        "tail_bytes": 16384,
+        "selector_bytes": 131072,
+        "workspace_write_bytes": 16855040,
+        "backing_write_bytes": 21221888,
+        "sampled_range_read_bytes": 741376,
+        "members": 0,
+        "bases": 0,
+        "selected": 1,
+        "exit_code": 0,
+        "retired": true,
+        "peak_job_bytes": 316125184,
+        "fixture_cpu_ns": 21031250000,
+        "fixture_elapsed_seconds": 21.219,
+        "stdout_sha256": "598065db988734e04a2a63155ce802a43c92626eef0c97768e00cc83153236a8"
+      }
+    },
+    {
+      "corpus": "AITDCC 2026 A–H",
+      "input_sha256": "bb25d5ebcdcdfe0daf4ebc0d78a452d9e8937808fbb2a481d33bafa5e15b1c42",
+      "seal_layout": "compact controls",
+      "previous": {
+        "mirror_bytes": 14925824,
+        "settled_bytes": 9486336,
+        "base_bytes": 9338880,
+        "tail_bytes": 16384,
+        "selector_bytes": 131072,
+        "workspace_write_bytes": 7471104,
+        "backing_write_bytes": 9486848,
+        "sampled_range_read_bytes": 626688,
+        "members": 0,
+        "bases": 0,
+        "selected": 1,
+        "exit_code": 0,
+        "retired": true,
+        "peak_job_bytes": 149540864,
+        "fixture_cpu_ns": 11140625000,
+        "fixture_elapsed_seconds": 11.235,
+        "stdout_sha256": "76e5af881cdfca4bd525c0e4692578e7355959b08fee450cadcb7eac3c7dd778"
+      },
+      "candidate": {
+        "mirror_bytes": 14901248,
+        "settled_bytes": 9474048,
+        "base_bytes": 9326592,
+        "tail_bytes": 16384,
+        "selector_bytes": 131072,
+        "workspace_write_bytes": 7458816,
+        "backing_write_bytes": 9474560,
+        "sampled_range_read_bytes": 626688,
+        "members": 0,
+        "bases": 0,
+        "selected": 1,
+        "exit_code": 0,
+        "retired": true,
+        "peak_job_bytes": 149880832,
+        "fixture_cpu_ns": 15625000000,
+        "fixture_elapsed_seconds": 16.141,
+        "stdout_sha256": "5c6fc9a871036881a09e31e9fdbeb8514753302b9a11c665b227d4cd015c6118"
+      }
+    },
+    {
+      "corpus": "Khronos assets, frozen family holdout",
+      "input_sha256": "4fd8ca308d9478138fe67021d81cbcf59cd2b39c09dde904e357826bb259cfaa",
+      "seal_layout": "compact controls",
+      "previous": {
+        "mirror_bytes": 1220608,
+        "settled_bytes": 921600,
+        "base_bytes": 774144,
+        "tail_bytes": 16384,
+        "selector_bytes": 131072,
+        "workspace_write_bytes": 618496,
+        "backing_write_bytes": 922112,
+        "sampled_range_read_bytes": 798720,
+        "members": 23,
+        "bases": 9,
+        "selected": 1,
+        "exit_code": 0,
+        "retired": true,
+        "peak_job_bytes": 25976832,
+        "fixture_cpu_ns": 1734375000,
+        "fixture_elapsed_seconds": 1.75,
+        "stdout_sha256": "1c550942ace79afced37c6cb996dd4bf54eac2101a63e3a50f4db2022b07d9ab"
+      },
+      "candidate": {
+        "mirror_bytes": 1155072,
+        "settled_bytes": 880640,
+        "base_bytes": 733184,
+        "tail_bytes": 16384,
+        "selector_bytes": 131072,
+        "workspace_write_bytes": 585728,
+        "backing_write_bytes": 881152,
+        "sampled_range_read_bytes": 745472,
+        "members": 23,
+        "bases": 9,
+        "selected": 1,
+        "exit_code": 0,
+        "retired": true,
+        "peak_job_bytes": 25874432,
+        "fixture_cpu_ns": 2015625000,
+        "fixture_elapsed_seconds": 2.094,
+        "stdout_sha256": "9afdc82784142921140edd78f661389a1c2ebcde80d86a7bae9dd60fe820cd24"
+      }
+    },
+    {
+      "corpus": "CPython revision cohort",
+      "input_sha256": "d053d6acd0551763909205a2ed670d6bf6bc3e61a13ef0cd13ca93e69c5489f9",
+      "seal_layout": "compact controls",
+      "previous": {
+        "mirror_bytes": 696320,
+        "settled_bytes": 593920,
+        "base_bytes": 446464,
+        "tail_bytes": 16384,
+        "selector_bytes": 131072,
+        "workspace_write_bytes": 356352,
+        "backing_write_bytes": 594432,
+        "sampled_range_read_bytes": 1110016,
+        "members": 48,
+        "bases": 13,
+        "selected": 1,
+        "exit_code": 0,
+        "retired": true,
+        "peak_job_bytes": 24072192,
+        "fixture_cpu_ns": 2234375000,
+        "fixture_elapsed_seconds": 2.281,
+        "stdout_sha256": "8c813de021f0ee5d5816ac77cb217541da5f054f6133f9b8d2d5e78636acbb75"
+      },
+      "candidate": {
+        "mirror_bytes": 696320,
+        "settled_bytes": 593920,
+        "base_bytes": 446464,
+        "tail_bytes": 16384,
+        "selector_bytes": 131072,
+        "workspace_write_bytes": 356352,
+        "backing_write_bytes": 594432,
+        "sampled_range_read_bytes": 1110016,
+        "members": 48,
+        "bases": 13,
+        "selected": 1,
+        "exit_code": 0,
+        "retired": true,
+        "peak_job_bytes": 24072192,
+        "fixture_cpu_ns": 2687500000,
+        "fixture_elapsed_seconds": 2.75,
+        "stdout_sha256": "d7b98cad7c6b9fab7b386ceac153a0121975a005e289a9d85840b01e99c183eb"
+      }
+    },
+    {
+      "corpus": "Khronos assets, frozen family holdout",
+      "input_sha256": "ccc693c69e142cbd28c98575cb1c1c61d1bcd52a450fe1e681cfa5b196f98f10",
+      "seal_layout": "packed descriptors, original paths",
+      "previous": {
+        "mirror_bytes": 1122304,
+        "settled_bytes": 798720,
+        "base_bytes": 651264,
+        "tail_bytes": 16384,
+        "selector_bytes": 131072,
+        "workspace_write_bytes": 569344,
+        "backing_write_bytes": 799232,
+        "sampled_range_read_bytes": 739424,
+        "members": 33,
+        "bases": 13,
+        "selected": 1,
+        "exit_code": 0,
+        "retired": true,
+        "peak_job_bytes": 25030656,
+        "fixture_cpu_ns": 1343750000,
+        "fixture_elapsed_seconds": 1.375,
+        "stdout_sha256": "f64c9f4ef6fc14807714e85adb5c6cfe8533ae0078a26cf75ea06f29d06fa912"
+      },
+      "candidate": {
+        "mirror_bytes": 1122304,
+        "settled_bytes": 798720,
+        "base_bytes": 651264,
+        "tail_bytes": 16384,
+        "selector_bytes": 131072,
+        "workspace_write_bytes": 569344,
+        "backing_write_bytes": 799232,
+        "sampled_range_read_bytes": 739424,
+        "members": 33,
+        "bases": 13,
+        "selected": 1,
+        "exit_code": 0,
+        "retired": true,
+        "peak_job_bytes": 24936448,
+        "fixture_cpu_ns": 1796875000,
+        "fixture_elapsed_seconds": 1.828,
+        "stdout_sha256": "bd449d2686c88483f7f7453891aaface463619ba9953b9243b4ac5d1c9317bbc"
+      }
+    },
+    {
+      "corpus": "CPython revision cohort",
+      "input_sha256": "8053fa5990a11060eb3e9cec6d80cd6432bd132ac99df9f0c3689e3c2bc89c39",
+      "seal_layout": "packed descriptors, original paths",
+      "previous": {
+        "mirror_bytes": 704512,
+        "settled_bytes": 557056,
+        "base_bytes": 409600,
+        "tail_bytes": 16384,
+        "selector_bytes": 131072,
+        "workspace_write_bytes": 360448,
+        "backing_write_bytes": 557568,
+        "sampled_range_read_bytes": 1116704,
+        "members": 48,
+        "bases": 13,
+        "selected": 1,
+        "exit_code": 0,
+        "retired": true,
+        "peak_job_bytes": 25288704,
+        "fixture_cpu_ns": 2062500000,
+        "fixture_elapsed_seconds": 2.078,
+        "stdout_sha256": "754e79fb8c18202bffb35240ad52826ffbca9b09444fe3d35d4b746046ee7373"
+      },
+      "candidate": {
+        "mirror_bytes": 704512,
+        "settled_bytes": 557056,
+        "base_bytes": 409600,
+        "tail_bytes": 16384,
+        "selector_bytes": 131072,
+        "workspace_write_bytes": 360448,
+        "backing_write_bytes": 557568,
+        "sampled_range_read_bytes": 1116704,
+        "members": 48,
+        "bases": 13,
+        "selected": 1,
+        "exit_code": 0,
+        "retired": true,
+        "peak_job_bytes": 25812992,
+        "fixture_cpu_ns": 2390625000,
+        "fixture_elapsed_seconds": 2.422,
+        "stdout_sha256": "67d076bd021f92911925ebb8d065f45be2069350afb3ba429eec6b707c7f9dae"
+      }
+    }
+  ],
+  "validation": {
+    "windows_release": {
+      "passed": 8,
+      "exit_code": 0,
+      "retired": true,
+      "peak_job_bytes": 117886976,
+      "fixture_cpu_ns": 14375000000,
+      "fixture_elapsed_seconds": 14.594,
+      "stdout_sha256": "0f8f8e0435a489cb2bf359a351c26a20e8c881ffa66df5f40af5ca32c807578b",
+      "notes": [
+        "100% tests passed out of 8"
+      ]
+    },
+    "windows_raw_only": {
+      "passed": 2,
+      "exit_code": 0,
+      "retired": true,
+      "peak_job_bytes": 106848256,
+      "fixture_cpu_ns": 1218750000,
+      "fixture_elapsed_seconds": 1.375,
+      "stdout_sha256": "7a173a99ba1f50859d3988ad04434c263ced1def363705720d460e5333333d70",
+      "notes": [
+        "100% tests passed out of 2"
+      ]
+    },
+    "windows_asan": {
+      "passed": 4,
+      "exit_code": 0,
+      "retired": true,
+      "peak_job_bytes": 950820864,
+      "fixture_cpu_ns": 10671875000,
+      "fixture_elapsed_seconds": 11.031,
+      "stdout_sha256": "788e840f5210d3a320945968744488e0fdc960d92bf3d223ead9e567a4b93125",
+      "notes": [
+        "1/4 Test #239: windows_asan_runtime_preflight .............   Passed    0.03 sec",
+        "100% tests passed out of 4"
+      ]
+    },
+    "mixed_feature_recovery": {
+      "exit_code": 0,
+      "retired": true,
+      "peak_job_bytes": 112660480,
+      "fixture_cpu_ns": 921875000,
+      "fixture_elapsed_seconds": 0.938,
+      "stdout_sha256": "ca62e035237c486030651827125d19c3e118c5e769ab3154a276ebb5f9487263",
+      "notes": [
+        "indexed_byte_planes before=294912 after=229376 cuts_old=4 cuts_new=8 features=3 exact_cpu=1 independent_reencode=1",
+        "PASS: 948 automatic group maintenance checks; 13 injected publication cases; model resource observations; memory CPU only"
+      ]
+    },
+    "codec": {
+      "exit_code": 0,
+      "retired": true,
+      "peak_job_bytes": 8273920,
+      "fixture_cpu_ns": 78125000,
+      "fixture_elapsed_seconds": 0.125,
+      "stdout_sha256": "e86c8930a2237bfc84d8989b3e3153c7d6282b1e92a6bd917374c02bce383100",
+      "notes": [
+        "PASS: 623530 native store compression checks; exact patterns, raw fallback, CPU frames and allocator caps."
+      ]
+    }
+  },
+  "conclusion": "Compact protected size fell on both AITDCC splits and the compact Khronos control. The two named packed-descriptor comparisons and the compact CPython comparison tied. Sampled backing traffic increased for I–P and fell for the compact Khronos arm. These ordered fixture runs are not throughput or latency benchmarks.",
+  "release_scope": {
+    "opt_in_cold_policy": true,
+    "mounted_amd_exercised": false,
+    "device_acceleration_for_this_codec": false,
+    "real_power_loss_exercised": false
+  }
+}

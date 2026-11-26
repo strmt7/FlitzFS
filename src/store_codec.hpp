@@ -7,7 +7,16 @@
 #include <vector>
 namespace flitzfs::detail {
 inline constexpr std::uint32_t kStoreRaw=0,kStoreZstd=1,kStoreZero=2,kStorePattern=3,kStoreLz4=4,
-    kStoreZstdBytePlanes=5;
+    kStoreZstdBytePlanes=5,kStoreZstdDeltaPlanes=6;
+inline constexpr std::uint32_t kStoreBytePlaneFeature=1,kStoreDeltaPlaneFeature=2;
+inline constexpr std::uint32_t kStoreSupportedFeatures=kStoreBytePlaneFeature|kStoreDeltaPlaneFeature;
+inline constexpr std::uint32_t store_codec_features(std::uint32_t codec) noexcept {
+  switch(codec) {
+    case kStoreZstdBytePlanes:return kStoreBytePlaneFeature;
+    case kStoreZstdDeltaPlanes:return kStoreDeltaPlaneFeature;
+    default:return 0;
+  }
+}
 inline constexpr std::size_t kStoreMaxPatternBytes=4096;
 inline constexpr std::size_t kStoreMaxMatchInputBytes=64U*1024U;
 inline constexpr std::size_t kStoreMaxMatchProposals=4096;
@@ -18,7 +27,7 @@ inline constexpr std::size_t kStorePrefixEncoderMemoryCap=2U*1024U*1024U;
 // Advance when indexed cold eligibility, trials or their resource envelope change.
 inline constexpr std::uint32_t kIndexedColdEncodingRevision=2;
 inline constexpr std::uint32_t indexed_cold_encoding_revision(StoreCompressionOptions options) noexcept {
-  return options.experimental_cold_byte_planes?3U:kIndexedColdEncodingRevision;
+  return options.experimental_cold_byte_planes?4U:kIndexedColdEncodingRevision;
 }
 bool store_prefix_frame(std::span<const std::byte>,std::size_t expected) noexcept;
 std::optional<std::vector<std::byte>> encode_store_prefix(std::span<const std::byte> input,
@@ -27,7 +36,7 @@ std::vector<std::byte> decode_store_prefix(std::span<const std::byte> input,
     std::span<const std::byte> prefix);
 void validate_store_compression(StoreCompressionOptions options);
 bool store_codec_framing(std::uint32_t codec,std::uint32_t logical,std::uint32_t stored,
-    bool byte_planes=false) noexcept;
+    std::uint32_t features=0) noexcept;
 // Prefix a standalone LZ4 block whose entire decoded suffix was checked.
 // Literal insertion shifts both ends of each back-reference equally.
 std::vector<std::byte> prepend_lz4_literals(std::span<const std::byte> prefix,
@@ -51,7 +60,7 @@ class StoreCodecDecoder final {
   StoreCodecDecoder(const StoreCodecDecoder&)=delete;
   StoreCodecDecoder& operator=(const StoreCodecDecoder&)=delete;
   std::vector<std::byte> decode(std::uint32_t codec,std::span<const std::byte> payload,
-                               std::uint32_t logical,bool byte_planes=false);
+                               std::uint32_t logical,std::uint32_t features=0);
   std::size_t peak_bytes() const noexcept;
  private:
   struct Impl;

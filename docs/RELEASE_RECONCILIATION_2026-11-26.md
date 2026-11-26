@@ -12,7 +12,30 @@ the gates.
 [Implementation packages](IMPLEMENTATION_PLAN.md#3-execution-order-and-dependencies) ·
 [Release gates](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
 
-The current checkpoint builds on `ba9770cdd11078a20eb3d63f3db0f0049f461f4e`.
+The current checkpoint builds on `c5d2dbc4047be3985da2d046a14a2aac74f00c9a`.
+Source tree `d22993fad1969f56614ca9a24c529709cace690e` adds delta coding
+within the experimental cold byte-plane policy. Each transformed extent
+has its own reset and CPU verification. The staged roots declare the exact
+decoding capability before selection. CPU recovery and export verified a
+mixed image using both byte-plane encodings across 12 selector failure cases.
+
+| Corpus and layout | Prior protected bytes | Candidate protected bytes |
+| --- | ---: | ---: |
+| AITDCC I–P, compact | 21,291,008 | 21,221,376 |
+| AITDCC A–H, compact | 9,486,336 | 9,474,048 |
+| Khronos holdout, compact | 921,600 | 880,640 |
+| Khronos holdout, named and packed | 798,720 | 798,720 |
+| CPython revisions, named and packed | 557,056 | 557,056 |
+
+The compact CPython arm also tied. Sampled I–P reads fetched 16 KiB more
+from backing. Sampled reads for the compact Khronos arm fetched 52 KiB
+less. The strongest named grouped layouts continued to select their
+previous sizes. Keep these as separate controls when evaluating broader
+automatic admission and grouped residual encoders.
+[Byte-plane format](PAGED_OBJECT_STORE.md#experimental-cold-byte-planes) ·
+[Source, footprint and recovery evidence](evidence/windows-cold-delta-planes-2026-11-26.json)
+
+The preceding read-scheduling checkpoint builds on `ba9770cdd11078a20eb3d63f3db0f0049f461f4e`.
 Source tree `92aa4331d7f6e78600091863a7243aa1f09ab531` admits a forecast
 after a completed payload scrub step if there is time and memory left in
 the paid opportunity. The prior scheduler left the forecast pending in
