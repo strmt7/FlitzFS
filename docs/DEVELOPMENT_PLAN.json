@@ -4,6 +4,8 @@
   "forward_work_rule": "Use current_release_sequence for integration order, and execution_programme and the implementation plan for package dependencies and exits. Historical checkpoints describe completed or partial evidence.",
   "current_release_sequence": {
     "current_reconciliation": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
+    "latest_short_pack_affinity": "docs/evidence/windows-short-pack-affinity-2026-11-26.json",
+    "tested_short_pack_affinity_tree": "85016044749749cd459396653115eb8ea611c164",
     "latest_fenced_indexed_reopen": "docs/evidence/windows-fenced-indexed-reopen-audit-2026-11-26.json",
     "tested_fenced_indexed_reopen_tree": "6bdb480233d5be5d2f56ab4bf8a65d8ad8c88785",
     "latest_group_checkpoint_reuse": "docs/evidence/windows-prepared-group-checkpoints-2026-11-26.json",
@@ -32,7 +34,7 @@
     "latest_independent_seal_workspace": "docs/evidence/windows-independent-seal-workspace-2026-11-26.json",
     "tested_independent_seal_workspace_tree": "790912f42c849b0a84a62e2c610c97d2a5206b4f",
     "immediate_work": [
-      "Compare attainable protected savings against the shifted-fragment shortlist on the fixed Khronos splits and a new disjoint workload. Measure the trade-off between reference and packed placement for the same pair, cost fine persistent keys, and retain the compact-layout controls.",
+      "Price the remaining complete-group merge signal against the mirror and seal frontiers. Reuse the fixed Khronos splits and separate CPython control, then freeze a wider held-out family. Admit a merge only after its retired dependencies and final layout reconcile.",
       "Join ordinary mounted Windows demand to admitted, completed and consumed AMD work. Include grouped reads across unrelated commits and collective search. Measure cold setup, demand lead, verified bytes, occupied size and retirement against the CPU controls.",
       "Compare a generation-bound ownership proof to the full CPU audit and fence checks after named-tree churn. Verify provider authority, changed records, pinned readers and interrupted recovery in shadow mode. Validate the scale curve against an unseen tier and distribution.",
       "Qualify the signed Windows lifecycle and compatibility range, then run plain and native-compressed NTFS controls and soak on the frozen candidate."
@@ -40,7 +42,7 @@
     "latest_subset_reference_refinement": "docs/evidence/windows-subset-reference-refinement-2026-11-26.json",
     "latest_foreground_query_reuse": "docs/evidence/windows-foreground-query-reuse-2026-11-25.json",
     "latest_owned_range_packing": "docs/evidence/windows-owned-packed-reclaim-2026-11-25.json",
-    "latest_reviewed_parent": "5af12cb463a451d261be7b63d25db12cca7daaf6",
+    "latest_reviewed_parent": "4608e8f505730b5ecb279f7fafa3bb8c96b046d9",
     "tested_owned_range_packing_tree": "7c64361419c436a15baf98592133d63beb8b1527",
     "remaining_engineering_person_weeks": [59, 127],
     "effort_confidence": "low",
@@ -90,7 +92,7 @@
     "package_contract": "docs/IMPLEMENTATION_PLAN.md",
     "gate_ledger": "docs/RELEASE_EXECUTION_PLAN.md#current-gate-ledger",
     "next_implementation_tickets": "docs/RELEASE_RECONCILIATION_2026-11-26.md#implement-the-next-three-integrated-results",
-    "evidence": "docs/evidence/windows-fenced-indexed-reopen-audit-2026-11-26.json",
+    "evidence": "docs/evidence/windows-short-pack-affinity-2026-11-26.json",
     "active_layout_checkpoint": "docs/evidence/windows-foreground-write-layout-2026-11-25.json",
     "previous_compact_root_evidence": "docs/evidence/windows-compact-paged-roots-2026-11-25.json",
     "previous_prefix_evidence": "docs/evidence/windows-prefix-parser-reconciliation-2026-11-25.json",

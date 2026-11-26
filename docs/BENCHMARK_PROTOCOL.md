@@ -203,6 +203,16 @@ the selector. Use the complete-file profile for storage and range
 costs beyond the sampled extents.
 [Executed scope and results](evidence/windows-protected-pair-oracle-2026-11-25.json)
 
+Use `--profile-indexed-named-oracle FILE` for a frozen `FLSTREE1` corpus
+of up to 32 named files and 64 extents. This variant ingests the whole
+tree and prices ordered ungrouped targets, eligible two-extent packs
+and bounded mergers from the same selected checkpoint. Each accepted
+trial settles a compacted mirror including its selector and verifies
+the original paths, all file bytes and a short range from every file.
+Replay `--profile-named-seal` on the same input to measure the production
+controller's selected sealed footprint and rewrite and range-read costs.
+[Matched Khronos and CPython evidence](evidence/windows-short-pack-affinity-2026-11-26.json)
+
 Use `--profile-indexed-subset-reference` on the same Release build to
 price a fixed staged candidate of eight related extents and one rejected
 extent. The fixture verifies the rejected extent's original object and

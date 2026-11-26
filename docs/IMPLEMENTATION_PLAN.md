@@ -5,13 +5,16 @@ reuse checked replicas when its content revision is unchanged across the
 full audit and both fences. The full inventory remains the reference for
 the generation-bound ownership proof. Compare the proof in shadow mode
 across named churn and interrupted publication.
-Measure attainable protected-size savings for the shifted-fragment
-shortlist and join automatic AMD demand to consumed results in the
+The related short-extent trial captured an 8 KiB compacted-mirror gain
+on the named Khronos holdout. Price the remaining complete-group merge
+and its destination seal using the same bounded oracle.
+Join automatic AMD demand to consumed results in the
 populated Windows client. Set release scope from those measurements,
 provider recovery and the signed Windows compatibility matrix.
 The E01–E13 contracts below define the individual release exits.
 [Current assessment](RELEASE_RECONCILIATION_2026-11-26.md) ·
-[Source, tests and research](evidence/windows-fenced-indexed-reopen-audit-2026-11-26.json) ·
+[Short-extent source, tests and research](evidence/windows-short-pack-affinity-2026-11-26.json) ·
+[Writable reopen evidence](evidence/windows-fenced-indexed-reopen-audit-2026-11-26.json) ·
 [Ordered implementation steps](RELEASE_RECONCILIATION_2026-11-26.md#implement-the-next-three-integrated-results)
 
 The [current architecture](architecture/CURRENT.md) shows the implementation.

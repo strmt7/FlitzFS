@@ -507,6 +507,10 @@ flowchart TD
     Decide --> Scan["Advance content cursor and sample extents"]
     Scan --> Postings["Read or update sparse coherence postings"]
     Postings --> Plan["Nominate bases and candidate extents"]
+    Plan --> Short["Try a funded pair of related standalone short extents"]
+    Short --> Compare
+    Short -->|Declined| Fill["Keep both extents eligible for regular packing"]
+    Fill --> Compare
     Decide --> Repair["Scrub, repair and directory backfill"]
     Decide --> Reclaim["Stage alternate image or retire old logical range"]
     Decide --> Tail["Select eligible packed backing release"]
@@ -542,6 +546,14 @@ checks, independent reconstruction and compacted-size admission govern
 the resulting shared-base trial. Declining this scratch grant leaves the
 normal discovery path available. The fine keys are resident advisory data.
 [Shifted-fragment evidence](../evidence/windows-shifted-fragment-discovery-2026-11-26.json)
+
+Before the regular pack fill, the scheduler can use at least two shared minima
+to nominate a pair of short standalone extents in the funded current
+window. The pair must fit one restart extent. A declined candidate
+keeps both inputs available. A separate cursor bounds the new trials
+to one nomination per seed in the current window. Publication uses the
+existing protected-size comparison and exact CPU reconstruction.
+[Short-extent placement evidence](../evidence/windows-short-pack-affinity-2026-11-26.json)
 
 ### Prefix encoding in a staged group
 

@@ -10,7 +10,22 @@ detailed package contracts and the release execution plan retains the gates.
 [Implementation packages](IMPLEMENTATION_PLAN.md#3-execution-order-and-dependencies) ·
 [Release gates](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
 
-The current checkpoint builds on `5af12cb463a451d261be7b63d25db12cca7daaf6`.
+The current checkpoint builds on `4608e8f505730b5ecb279f7fafa3bb8c96b046d9`.
+Source tree `85016044749749cd459396653115eb8ea611c164` gives related standalone
+short extents a packing trial before the regular fill order. Each pair
+comes from one funded window and uses the current encoder and checked
+group transaction. On the 15-file Khronos holdout the complete compacted
+mirror fell from 1,302,528 to 1,294,336 bytes, including the selector.
+The final sealed footprint stayed at 864,256 bytes while sampled range
+reads fell by 12,288 backing bytes. Group maintenance issued 49,152
+more backing write bytes before settlement. The other Khronos
+split and the separate 24-file CPython series tied on occupied size.
+The same source tree delivered 128 KiB of verified Radeon data through
+the sealed callback fixture. CPU fallback, independent reopen and
+shutdown retirement finished successfully.
+[Matched packing, placement and CPU evidence](evidence/windows-short-pack-affinity-2026-11-26.json)
+
+The previous checkpoint builds on `5af12cb463a451d261be7b63d25db12cca7daaf6`.
 Source tree `6bdb480233d5be5d2f56ab4bf8a65d8ad8c88785` lets an owned Windows
 memory backing prove that its readable bytes stayed unchanged across
 the full CPU audit and both write fences. The checked replica reads can
@@ -93,7 +108,7 @@ remains a separate gate.
 | Windows and volume ownership | The helper and WinFsp callbacks use exclusive memory and file-backed volume ownership. Signed guest clients covered populated operations, cached and mapped flush interruption, reclaim and writable reopen. | Qualify the ordinary signed helper and driver together on current Windows 11. Verify Explorer behavior, lifecycle, sharing and the advertised file semantics. |
 | Indexed store and scale | Copy-on-write names, inodes, extent maps and payload ownership are queryable in pages. Read callbacks reuse checked metadata. Owned Windows memory carries the replica audit through both fences when the backing revision is unchanged. | Put a durable bound on normal attach I/O while preserving namespace, allocation and dependency invariants. Measure named-file growth and memory on held-out distributions. |
 | Space reuse and recovery | Protected append, paired selectors, staged compaction, reader pins, alternate peer recovery and independently readable sealed parity are implemented. The paired owner can isolate compact controls using the provider's declared failure unit. | Qualify continuous settlement under churn and pressure, all relevant publication cuts and each advertised storage medium. Prove the bounds on delay from pinned readers and incomplete work. |
-| Compression | Foreground CPU codecs, verified device candidates, protected small-file packing and shared bases exist. Standalone byte planes helped named AITDCC inputs. Compact placement now also reduces fixed overhead while retaining the CPython group. | Compare verified transforms, shared bases and parity at equal failure coverage on unseen file families. Charge model, dependency, allocation and rewrite costs. |
+| Compression | Foreground CPU codecs, verified device candidates, protected small-file packing and shared bases exist. A window-local packing trial captured the held-out compacted-mirror pair gain. Standalone byte planes helped named AITDCC inputs. | Compare group merges and transforms at equal failure coverage on unseen file families. Price mirror and seal separately and charge model, dependency, allocation and rewrite costs. |
 | AMD | HIP workers can use a nonblocking stream when stream priority is unavailable. Radeon callbacks delivered verified read and write bytes. The foreground write service wakes on worker exit, adapts burst depth to headroom and can revisit a larger grant. The latest public-source write fixture favored CPU on occupied size, 240 versus 264 KiB. | Establish winning workloads on the ordinary mount, by role. Bind retained preparation to measured demand and account for discovery, readiness, validation, committed size, misses and idle residency. Target predictable grouped reads and collective search before more small uniform-write tuning. |
 | Autonomous policy | Persistent sparse candidates, revision guards, input-funded maintenance and live contention/resource gates already exist. | Test drift, restart, fairness, idle recovery and write cost with ordinary workloads. Qualify the full chain from offline advice to independently verified net savings. |
 | Evolution and deployment | CPU readers, required features, format checks and pinned setup exist. Format and provider evidence is distributed across historical fixtures. | Freeze the supported compatibility window, run interrupted gradual migration, and qualify private dependency setup, the exact signed installer and offline recovery. |
@@ -177,6 +192,16 @@ flowchart LR
   immutable published restart units. Start with the existing sparse
   catalog and a small offline oracle for the alternative orderings.
   [FAST 2026 RubikFS research](https://www.usenix.org/conference/fast26/presentation/huang)
+- **Measure candidate recall in the native placement.** FAST 2026 ParaSync
+  separates chunk matching from delta reconstruction. NSDI 2026 ZipLLM
+  reports that grouping at tensor boundaries helps specific model
+  families. Keep discovery cheap and compare at the native extent or
+  independent restart unit. The named FlitzFS experiment shows that a
+  profitable shared slice can change mirror occupancy without changing
+  stripe count in the seal. Use measured protected placement to label
+  later offline ranking experiments.
+  [FAST 2026 ParaSync](https://www.usenix.org/conference/fast26/presentation/zhang-zhihao-parasync) ·
+  [NSDI 2026 ZipLLM](https://www.usenix.org/conference/nsdi26/presentation/wang-zirui)
 - **Price learning with the decoder attached.** Tufa Labs reported
   105,388,353 bytes for a billion-byte Wikipedia input with its decoder
   and trained starting weights included. A larger starting model lowered
@@ -869,7 +894,7 @@ be matched on all arms.
 
 | Priority and decision | Next deliverable | Acceptance and follow-through |
 | --- | --- | --- |
-| 1. Minimize complete protected size | Measure which profitable pairs the new fragment path misses. Compare packed, direct and assembled alternatives on the same candidates before adding fine keys to persistent advice. | Prove the selected group and placement on exact names and bytes. Charge dependency, access, repair and retirement work. Keep the strongest arm for each measured cohort, including small files. |
+| 1. Minimize complete protected size | Use the named cohort oracle to price retained group mergers and the destination seal. The measured short-extent pair gain is now captured by the current window. | Show that a proposed merge retires its prior base safely. Require a smaller settled placement and measure access, repair and rewrite costs on a wider held-out family. |
 | 2. Consume automatic AMD work through Windows | Join actual client demand, worker readiness, verified results and consumption in the populated Win32 witness. Start with grouped sequential reads and collective candidate search. Use short writes as the matched CPU reference and add larger recurring cohorts. | Alternate matched lanes. Report verified and consumed bytes, CPU continuity, occupied size, p99, idle residency and retirement on the observed installation. A device result earns a policy only when the useful path gains after all overhead. |
 | 3. Bound writable attach and recovery | Compare a generation-bound ownership summary with the full CPU inventory and fence checks in shadow mode. Replay named churn and reserve a larger scale tier and different distribution. | Agree on namespace admission, encodings, ownership and recovery. Price proof writes, attach reads, background audit debt and failures. Qualify each provider boundary before adopting the proof. |
 
@@ -905,6 +930,13 @@ be matched on all arms.
    and retained ranges. Record access, repair and rewrite costs separately.
    Report the fraction of attainable saved bytes captured at matched
    discovery cost. Measure false work on dissimilar input.
+   The current named oracle priced 216 ordered pairs, four eligible
+   packs and 132 mergers on the fixed holdout. The new packing path
+   captured the 8 KiB single-pair gain on the complete mirror. A
+   complete group merge still saved another 8 KiB on a fresh trial
+   copy. Measure the exact reverse references and both retirement
+   outcomes before using that signal to schedule background work.
+   [Named cohort evidence](evidence/windows-short-pack-affinity-2026-11-26.json)
 5. Admit background rewrites from live host and backing observations
    and use the volume owner's existing staged verification protocol.
    Count committed backing bytes, reclaim delay with readers and

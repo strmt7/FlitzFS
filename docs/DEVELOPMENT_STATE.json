@@ -7,6 +7,20 @@
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
   "current_release_review": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
+  "short_pack_affinity": {
+    "source_parent": "4608e8f505730b5ecb279f7fafa3bb8c96b046d9",
+    "tested_source_tree": "85016044749749cd459396653115eb8ea611c164",
+    "evidence": "docs/evidence/windows-short-pack-affinity-2026-11-26.json",
+    "heldout_complete_compacted_mirror_bytes": [1302528, 1294336],
+    "heldout_final_seal_bytes": [864256, 864256],
+    "heldout_sampled_sealed_range_read_bytes": [905216, 892928],
+    "remaining_bounded_whole_group_merge_bytes": 8192,
+    "sealed_callback_verified_radeon_bytes": 131072,
+    "sealed_callback_exact_cpu_fallback": true,
+    "named_cpu_readback_exact": true,
+    "new_required_image_capability": false,
+    "release_qualified": false
+  },
   "fenced_indexed_reopen": {
     "source_parent": "5af12cb463a451d261be7b63d25db12cca7daaf6",
     "tested_source_tree": "6bdb480233d5be5d2f56ab4bf8a65d8ad8c88785",

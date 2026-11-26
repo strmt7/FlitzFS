@@ -250,7 +250,7 @@ struct NativeGroupMaintenance::Impl {
   std::vector<Candidate> candidate_order;
   std::size_t candidate_index=0,band_offset=0;
   std::uint64_t coherence_after=0,coherence_binding=0;
-  std::uint64_t packing_after=0;
+  std::uint64_t packing_after=0,affinity_pack_after=0;
   struct PackingWindow {
     std::vector<std::pair<Band,std::uint64_t>> postings;
     std::vector<std::pair<std::uint32_t,std::uint64_t>> prior_sizes;
@@ -299,7 +299,7 @@ struct NativeGroupMaintenance::Impl {
     else representatives.clear();
     refresh_base.reset();extent_scan_exhausted=false;
     coherence_after=coherence_binding=0;
-    coherence_query=0;coherence_alternate.reset();packing_after=0;packing_window.reset();
+    coherence_query=0;coherence_alternate.reset();packing_after=affinity_pack_after=0;packing_window.reset();
     checkpoint_loaded=checkpoint_due=false;checkpoint_samples=state.sampled_extents;scan_revisit=false;
     update_count=next_update=0;
     updates_need_sweep=false;
@@ -663,7 +663,8 @@ struct NativeGroupMaintenance::Impl {
     }
     trim_representatives(maximum);
     features.clear();buckets.clear();candidate_order.clear();
-    coherence_after=0;coherence_query=0;coherence_alternate.reset();packing_after=0;packing_window.reset();
+    coherence_after=0;coherence_query=0;coherence_alternate.reset();
+    packing_after=affinity_pack_after=0;packing_window.reset();
   }
   void accept_coherence_candidate(const OptimizationGroupFeature& hit,Band key,
       std::size_t maximum_representatives) {
@@ -992,14 +993,74 @@ struct NativeGroupMaintenance::Impl {
     return nullptr;
   }
 
+  bool packing_candidate(const Feature& feature) const {
+    const auto& token=feature.token;
+    return !feature.packing_assigned && token.standalone_bytes &&
+        token.standalone_bytes<kNativeExtentBytes && !staged_objects.contains(token.object);
+  }
+  bool begin_packed_group(NativeFilesystemWriter& writer,std::span<const NativeContentToken> expected) {
+    std::vector<std::byte> key;
+    key.reserve(8+16*expected.size());
+    append(key,5);
+    for(const auto& token:expected) {
+      append(key,token.object);
+      append(key,token.revision);
+    }
+    work_key=detail::record_digest(key);
+    if(attempted.contains(work_key))return false;
+    std::vector<NativeExtentSelection> selected;
+    selected.reserve(expected.size());
+    work_ids.clear();
+    work_ids.reserve(expected.size());
+    for(const auto& token:expected) {
+      selected.push_back(token.extent);
+      work_ids.push_back(token.object);
+    }
+    work.emplace(writer.prepare_shared_base(selected.front(),selected,expected,!staged_groups.empty(),false,
+        NativeFilesystemWriter::SharedBaseMode::pack));
+    remember(work_key);
+    work_members=selected.size();
+    group_trial={};
+    work_batched=false;
+    work_sampled_retry=false;
+    work_sampled_key.reset();
+    ++state.attempted_groups;
+    phase=Phase::preparing;
+    return true;
+  }
+  bool propose_affinity_pack(NativeFilesystemWriter& writer) {
+    // Compare only the funded current transaction window. A declined trial
+    // leaves both extents eligible for the regular packing pass.
+    for(auto seed=features.upper_bound(affinity_pack_after);seed!=features.end();++seed) {
+      affinity_pack_after=seed->first;
+      const auto& left=seed->second;
+      if(!packing_candidate(left) || deferred_batch_objects.contains(seed->first))continue;
+      const auto capacity=kNativeExtentBytes-left.token.standalone_bytes;
+      const Feature* best=nullptr;
+      unsigned best_matches=1;
+      for(auto next=std::next(seed);next!=features.end();++next) {
+        const auto& right=next->second;
+        if(!packing_candidate(right) || right.token.standalone_bytes>capacity ||
+            deferred_batch_objects.contains(next->first))continue;
+        unsigned matches=0;
+        for(std::size_t lane=0;lane<left.packing.size();++lane)
+          matches+=left.packing[lane] && left.packing[lane]==right.packing[lane];
+        if(matches>best_matches || (best && matches==best_matches &&
+            right.token.stored_payload_bytes>best->token.stored_payload_bytes)) {
+          best=&right;
+          best_matches=matches;
+        }
+      }
+      if(!best)continue;
+      const std::array expected{left.token,best->token};
+      if(begin_packed_group(writer,expected))return true;
+    }
+    return false;
+  }
   bool propose_packed_group(NativeFilesystemWriter& writer,std::size_t maximum_members) {
-    const auto eligible=[this](const Feature& feature) {
-      const auto& token=feature.token;
-      return !feature.packing_assigned && token.standalone_bytes &&
-          token.standalone_bytes<kNativeExtentBytes && !staged_objects.contains(token.object);
-    };
+    if(propose_affinity_pack(writer))return true;
     auto seed=features.upper_bound(packing_after);
-    while(seed!=features.end() && !eligible(seed->second))++seed;
+    while(seed!=features.end() && !packing_candidate(seed->second))++seed;
     if(seed==features.end())return false;
     std::vector<NativeContentToken> expected;
     auto last=seed;
@@ -1007,7 +1068,7 @@ struct NativeGroupMaintenance::Impl {
     for(auto next=seed;next!=features.end() && remaining && expected.size()<maximum_members;++next) {
       auto& feature=next->second;
       const auto bytes=feature.token.standalone_bytes;
-      if(bytes>remaining || !eligible(feature))continue;
+      if(bytes>remaining || !packing_candidate(feature))continue;
       expected.push_back(feature.token);
       feature.packing_assigned=true;
       remaining-=bytes;
@@ -1039,35 +1100,7 @@ struct NativeGroupMaintenance::Impl {
     // Advance only to the seed so a larger skipped extent can start the
     // next group. Current members are tried once in this admitted window.
     packing_after=seed->first;
-    if(expected.size()<2)return true;
-    std::vector<std::byte> key;
-    key.reserve(8+16*expected.size());
-    append(key,5);
-    for(const auto& token:expected) {
-      append(key,token.object);
-      append(key,token.revision);
-    }
-    work_key=detail::record_digest(key);
-    if(attempted.contains(work_key))return true;
-    std::vector<NativeExtentSelection> selected;
-    selected.reserve(expected.size());
-    work_ids.clear();
-    work_ids.reserve(expected.size());
-    for(const auto& token:expected) {
-      selected.push_back(token.extent);
-      work_ids.push_back(token.object);
-    }
-    work.emplace(writer.prepare_shared_base(selected.front(),selected,expected,!staged_groups.empty(),false,
-        NativeFilesystemWriter::SharedBaseMode::pack));
-    remember(work_key);
-    if(similar)++state.packing_similar_partners;
-    work_members=selected.size();
-    group_trial={};
-    work_batched=false;
-    work_sampled_retry=false;
-    work_sampled_key.reset();
-    ++state.attempted_groups;
-    phase=Phase::preparing;
+    if(expected.size()>=2 && begin_packed_group(writer,expected) && similar)++state.packing_similar_partners;
     return true;
   }
   std::optional<detail::IndexedContentSample> next_indexed_sample(NativeFilesystemWriter& writer,
