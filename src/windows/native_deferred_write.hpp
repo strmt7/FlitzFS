@@ -56,6 +56,7 @@ struct NativeDeferredWriteStats {
   bool native_pending=false,worker_busy=false,stopping=false,thread_exited=false;
   bool retirement_confirmed=true,disabled=false;
   std::uint64_t preparations_started=0,prepared_writes_submitted=0,unused_preparations_retired=0;
+  std::uint64_t preparation_recovery_deferrals=0;
   bool preparation_ready=false;
 };
 struct NativeGpuBudgetTask {
@@ -116,8 +117,9 @@ class NativeDeferredWriteService final {
   static std::optional<GpuLz4WindowPlan> measured_write_plan(const NativeDeferredWriteOptions&,
       const GpuHealthEvidence&,std::uint64_t now) noexcept;
   bool preparation_ready_locked(std::uint64_t now) const noexcept;
-  void wait_for_write_locked(std::unique_lock<std::mutex>&);
+  void wait_for_write_locked(std::unique_lock<std::mutex>&,const ControlledNativeUniformWrite&);
   bool retire_unused_preparation_locked(std::unique_lock<std::mutex>&,NativeUniformWritePreparation&);
+  void settle_preparation_locked(std::optional<GpuRecoveryOutcome>,bool retired) noexcept;
   void run() noexcept;
   NativeFileSession& session_;std::mutex& control_;std::atomic<bool>& offline_;
   const NativeDeferredWriteOptions options_;
@@ -132,6 +134,9 @@ class NativeDeferredWriteService final {
   std::condition_variable published_;
   std::unique_ptr<Request> request_;
   std::optional<NativeUniformWritePreparation> preparation_;
+  GpuRecoveryPolicy preparation_recovery_;
+  std::uint64_t preparation_ticket_=0;
+  bool preparation_needs_fresh_budget_=false;
   bool prepare_requested_=false,preparation_starting_=false;
   NativeDeferredWriteStats stats_;
   std::optional<NativeUniformWriteResult> completion_;

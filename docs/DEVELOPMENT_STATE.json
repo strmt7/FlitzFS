@@ -8,6 +8,15 @@
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
   "current_release_review": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
   "source_and_portability_review": "docs/architecture/RELEASE_REVIEW_2026-11-26.md",
+  "prepared_write_recovery": {
+    "source_parent": "c60544afdbbe7987d49ee5c1ce085854eb2eeee3",
+    "tested_source_tree": "6cc3b3ec72515c3b502c6e4c93fe70c4b4c71731",
+    "evidence": "docs/evidence/windows-prepared-write-retry-2026-11-26.json",
+    "verified_warm_radeon_extents": 16,
+    "prepared_recovery_model_groups_passed": 3,
+    "cold_matched_1mib_preference": "cpu",
+    "release_qualified": false
+  },
   "native_cold_delta_planes": {
     "source_parent": "c5d2dbc4047be3985da2d046a14a2aac74f00c9a",
     "tested_source_tree": "d22993fad1969f56614ca9a24c529709cace690e",

@@ -61,6 +61,10 @@ GpuRouteDecision GpuRecoveryPolicy::consider_native_lz4_read(bool worthwhile,con
     std::uint64_t device_bytes,std::uint64_t now) noexcept {
   return consider_work(true,worthwhile,evidence,device_bytes!=0,device_bytes,now);
 }
+GpuRouteDecision GpuRecoveryPolicy::consider_uniform_preparation(bool worthwhile,const GpuHealthEvidence& evidence,
+    std::uint64_t device_bytes,std::uint64_t now) noexcept {
+  return consider_work(true,worthwhile,evidence,device_bytes!=0,device_bytes,now);
+}
 GpuRouteReason GpuRecoveryPolicy::binding_status(const GpuConfigurationId& configuration,
     std::uint64_t recovery_generation) const noexcept {
   if(active_ticket_)return GpuRouteReason::worker_busy;

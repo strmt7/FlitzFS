@@ -121,6 +121,22 @@ in one AMD exchange. It published one additional group and declined the other.
 All twelve files passed CPU readback. The worker and controller retired.
 [Source-bound recovery evidence](evidence/amd-installed-recovery-2026-11-18.json)
 
+### Prepared foreground writes
+
+A matching synchronous CPU write can request a source-free preparation.
+One separate recovery ticket covers that lease from admission through
+confirmed retirement. Its retry policy counts expired, unused preparations
+as unsuccessful opportunities. A later matching CPU write supplies each
+fresh resource observation. Repeated expirations require more independent
+healthy observations before another worker can start.
+
+A cancelled lease can release its ticket after retirement. A committed
+write that stored independently verified prepared output contributes a
+useful result. The preparation gate also checks for a fence from the
+compute route before starting a helper. A refusal leaves the ordinary
+CPU write path available.
+[Windows preparation and Radeon evidence](evidence/windows-prepared-write-retry-2026-11-26.json)
+
 ### Installed native read bindings
 
 The Windows controller retains one recovery policy and one evidence sequence

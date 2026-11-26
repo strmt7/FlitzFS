@@ -53,6 +53,9 @@ class UniformLz4WorkerController final {
   bool awaiting_fresh_observation() const noexcept{return state_==GpuWorkerState::waiting && verified_;}
   GpuGateCode last_gate_code() const noexcept{return last_gate_;}
   UniformLz4WorkerOutcome outcome() const noexcept;
+  GpuRouteReason binding_status(const GpuHealthEvidence& evidence) const noexcept {
+    return policy_.binding_status(evidence.configuration,evidence.recovery_generation);
+  }
   unsigned consecutive_failures() const noexcept{return policy_.consecutive_failures();}
  private:
   friend class ControlledNativeUniformWrite;

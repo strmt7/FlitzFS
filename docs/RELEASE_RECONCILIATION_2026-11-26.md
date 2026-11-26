@@ -12,7 +12,25 @@ the gates.
 [Implementation packages](IMPLEMENTATION_PLAN.md#3-execution-order-and-dependencies) ·
 [Release gates](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
 
-The current checkpoint builds on `c5d2dbc4047be3985da2d046a14a2aac74f00c9a`.
+The current checkpoint builds on `c60544afdbbe7987d49ee5c1ce085854eb2eeee3`.
+Source tree `6cc3b3ec72515c3b502c6e4c93fe70c4b4c71731` applies evidence-based
+retry to unused prepared write workers. Two expired leases required
+two independent healthy observations triggered by matching CPU writes.
+Those writes remained synchronous and passed independent readback.
+
+The revised Windows SDK fixture used a prepared Radeon worker to
+commit 16 compressed extents. An independent CPU reader checked all
+32 mirrored copies, and the worker retired. In the cold control,
+three alternating 1 MiB pairs stored equal occupied bytes. CPU took
+2.27–2.58 ms and the Radeon arm took 1.62–2.74 s. A separate prepared
+trial took about 2.21 s to reach readiness and 389 ms to respond.
+These measurements keep the tested shape on CPU and separate
+hardware correctness from ordinary profitability and mount
+qualification.
+[GPU recovery](GPU_RECOVERY.md#prepared-foreground-writes) ·
+[Source-bound Radeon and fallback evidence](evidence/windows-prepared-write-retry-2026-11-26.json)
+
+The preceding cold-compression checkpoint builds on `c5d2dbc4047be3985da2d046a14a2aac74f00c9a`.
 Source tree `d22993fad1969f56614ca9a24c529709cace690e` adds delta coding
 within the experimental cold byte-plane policy. Each transformed extent
 has its own reset and CPU verification. The staged roots declare the exact

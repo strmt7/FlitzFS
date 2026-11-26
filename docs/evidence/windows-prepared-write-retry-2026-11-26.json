@@ -1,0 +1,267 @@
+{
+  "schema": 1,
+  "date_utc": "2026-11-26",
+  "source": {
+    "parent": "c60544afdbbe7987d49ee5c1ce085854eb2eeee3",
+    "base_tree": "fdee5f5bfd3df611f07612ac84172cc4c75bd723",
+    "tree": "6cc3b3ec72515c3b502c6e4c93fe70c4b4c71731",
+    "elements": [
+      {
+        "path": "include/flitzfs/gpu_recovery.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "49b02b37bde7d6d1177a799a4c51ede9e8469cfe",
+        "bytes": 5316
+      },
+      {
+        "path": "src/gpu_recovery.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "70df62d6ba73af11d9d269f72d457fbf2b3464c3",
+        "bytes": 8931
+      },
+      {
+        "path": "src/windows/native_deferred_write.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "73e432cc1b4e135d972fea6e1cc984f144343591",
+        "bytes": 28205
+      },
+      {
+        "path": "src/windows/native_deferred_write.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "2136bb5e47a3caf74bb29c641ac4de39a59da656",
+        "bytes": 7653
+      },
+      {
+        "path": "src/windows/uniform_lz4_worker_controller.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "82e326231b80135f82596c4b4ad1bd25a08b459e",
+        "bytes": 4723
+      },
+      {
+        "path": "tests/test_native_deferred_write_sdk.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "7f356439404a42c009807e79fcc634742db835e7",
+        "bytes": 127494
+      }
+    ]
+  },
+  "scope": "Owned Windows SDK callbacks with real host telemetry and scoped AMD work",
+  "tools": {
+    "source_routing": {
+      "initial_error": "The broader local index command timed out at 240 seconds. Its supervisor retired.",
+      "initial_run": {
+        "exit_code": 1,
+        "tree_retired": true,
+        "fixture_peak_commit_bytes": 1096802304,
+        "elapsed_seconds": 241.532,
+        "stdout_sha256": "94edf39100486bf5794eb1137c4a78dae4a092427b0187e41b2f8fb7f056fd4d"
+      },
+      "restored_run": {
+        "exit_code": 0,
+        "tree_retired": true,
+        "fixture_peak_commit_bytes": 1025859584,
+        "elapsed_seconds": 17.813,
+        "stdout_sha256": "f60f106100194c494bd2f9929fc62bf87970d0ba93856a5526c1049b3bc07891"
+      },
+      "restored_receipt_sha256": "0305a6d41a16cf375fa960b411265dc4f2bd6a51c9e100bb148c7afdb8896105"
+    },
+    "research": {
+      "provider": "0.9.5+flitzzip.portable2",
+      "receipt_sha256": "a29857f9171cf43fd70075d3f1872a41b838e19505636a31954f169deb376325",
+      "pages": [
+        {
+          "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_runtime_api/asynchronous.html",
+          "success": true,
+          "http_status": 200,
+          "markdown_sha256": "ce51d3986148e51d26654d7223d3814a11e209ebb96929536681d7bf51d30909",
+          "capture_sha256": "2b1aa067614856b0ea5639c3b5d380803ef1ba60687b1d22889819648f6b16b4"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/sysinfo/acquiring-high-resolution-time-stamps",
+          "success": true,
+          "http_status": 200,
+          "markdown_sha256": "b7bb13b0ebe38ff4f4007114b4b3d3a490131be4d5b8dda8ba4af948e27b3f48",
+          "capture_sha256": "12e98aaa66747d79c6b5822f3e29140b2209b6057c4f9b84a643c9e2838fd462"
+        }
+      ]
+    }
+  },
+  "owner_validation": {
+    "run": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "fixture_peak_commit_bytes": 37937152,
+      "elapsed_seconds": 22.407,
+      "stdout_sha256": "c8be4acad89ae7cf962d8138aa5dcad4321a2afc94a34110078a8948f2ac6bd6"
+    },
+    "ctest_groups_passed": 3,
+    "expired_case": "221: deferred_prepared_write prepared=1 submitted=0 pressure=0 refused=0 recovered_after_expiry=1 verified=1 retired=1",
+    "observed_sequence": "Two unused leases retired. One fresh healthy observation deferred preparation. A second healthy observation authorized a new lease, with each triggering write verified on CPU."
+  },
+  "real_device": {
+    "adapter": "AMD Radeon RX 9070 XT",
+    "preparation_before_change": {
+      "run": {
+        "exit_code": 0,
+        "tree_retired": true,
+        "fixture_peak_commit_bytes": 206659584,
+        "elapsed_seconds": 7.079,
+        "stdout_sha256": "a2fad8fc32d45a34fae1904930ce4fbcd20b3be8038fa60ab26586fb7f04b76d"
+      },
+      "headroom": {
+        "admitted": true,
+        "host_cpu_ppm": 76057,
+        "adapter_engine_busy_ppm": 9329,
+        "driver": "32.0.32029.2010",
+        "windows_build": "26300",
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "utc": "2026-11-26T09:24:16.3827990Z"
+      },
+      "timings": {
+        "indexed_amd_preparation_ns": 2157436100
+      },
+      "completion": {
+        "submitted": 1,
+        "advised": 1,
+        "forced": 0,
+        "retired": 1,
+        "candidates": 16,
+        "response_ns": 368722600,
+        "gate": 1,
+        "worker_ms": 2594,
+        "worker_peak_commit": 95096832,
+        "exchange": 0,
+        "worker_exit": 0
+      },
+      "protected_result": {
+        "sweep": 1,
+        "quantum_chunks": 2,
+        "source_bytes": 1048576,
+        "offset": 33554432,
+        "worker_payload_bytes": 135344,
+        "stored_lz4_candidates": 16,
+        "matched_copies": 32,
+        "image_bytes": 1835008,
+        "response_ns": 368722600
+      }
+    },
+    "preparation_after_change": {
+      "run": {
+        "exit_code": 0,
+        "tree_retired": true,
+        "fixture_peak_commit_bytes": 207155200,
+        "elapsed_seconds": 7.343,
+        "stdout_sha256": "46e8d2f37fc701a7ece056f277b80a0dd4fcdde463a1cdcd33121bbe6af07d04"
+      },
+      "headroom": {
+        "admitted": true,
+        "host_cpu_ppm": 77097,
+        "adapter_engine_busy_ppm": 3969,
+        "driver": "32.0.32029.2010",
+        "windows_build": "26300",
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "utc": "2026-11-26T09:33:44.5388867Z"
+      },
+      "timings": {
+        "indexed_amd_preparation_ns": 2206250400
+      },
+      "completion": {
+        "submitted": 1,
+        "advised": 1,
+        "forced": 0,
+        "retired": 1,
+        "candidates": 16,
+        "response_ns": 389432000,
+        "gate": 1,
+        "worker_ms": 2672,
+        "worker_peak_commit": 94707712,
+        "exchange": 0,
+        "worker_exit": 0
+      },
+      "protected_result": {
+        "sweep": 1,
+        "quantum_chunks": 2,
+        "source_bytes": 1048576,
+        "offset": 33554432,
+        "worker_payload_bytes": 135344,
+        "stored_lz4_candidates": 16,
+        "matched_copies": 32,
+        "image_bytes": 1835008,
+        "response_ns": 389432000
+      }
+    },
+    "checked_stage_manifest_sha256": "ef5af216d4f7dd07eacad9b8958bc00a963a3435a2446cba80ea3004b2d711c1",
+    "cold_control": {
+      "run": {
+        "exit_code": 0,
+        "tree_retired": true,
+        "fixture_peak_commit_bytes": 207835136,
+        "elapsed_seconds": 10.781,
+        "stdout_sha256": "a03216bbab9f0818a89b87574a6e5e433f39e9bfdb754904e449aa539be6bc0a"
+      },
+      "headroom": {
+        "admitted": true,
+        "host_cpu_ppm": 135650,
+        "adapter_engine_busy_ppm": 12600,
+        "driver": "32.0.32029.2010",
+        "windows_build": "26300",
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "utc": "2026-11-26T09:25:18.7369897Z"
+      },
+      "layout": "1 MiB of synthetic full aligned writes, original 2-extents-per-quantum fixture",
+      "pairs": [
+        {
+          "indexed_pair": 1,
+          "amd_first": 0,
+          "cpu_ns": 2573200,
+          "amd_ns": 2740396200,
+          "cpu_image_bytes": 1441792,
+          "amd_image_bytes": 1441792,
+          "amd_stored_lz4_candidates": 16
+        },
+        {
+          "indexed_pair": 2,
+          "amd_first": 1,
+          "cpu_ns": 2274000,
+          "amd_ns": 1672043600,
+          "cpu_image_bytes": 1441792,
+          "amd_image_bytes": 1441792,
+          "amd_stored_lz4_candidates": 16
+        },
+        {
+          "indexed_pair": 3,
+          "amd_first": 0,
+          "cpu_ns": 2577700,
+          "amd_ns": 1621456200,
+          "cpu_image_bytes": 1441792,
+          "amd_image_bytes": 1441792,
+          "amd_stored_lz4_candidates": 16
+        }
+      ],
+      "preference": "cpu"
+    },
+    "earlier_read_control": {
+      "run": {
+        "exit_code": 1,
+        "tree_retired": true,
+        "fixture_peak_commit_bytes": 96698368,
+        "elapsed_seconds": 16,
+        "stdout_sha256": "b108bd1702048dd0f3b166f16419b347084e0f4086c68b1a8d9779171d3920c0"
+      },
+      "outcome": "after 16 checks: initial maintenance never returned idle credit",
+      "stopped_before_device_execution": true
+    }
+  },
+  "boundary": {
+    "experimental_prepared_owners": true,
+    "automatic_foreground_performance_qualified": false,
+    "real_mount_exercised": false,
+    "hardware_fault_injected": false,
+    "release_qualified": false
+  }
+}

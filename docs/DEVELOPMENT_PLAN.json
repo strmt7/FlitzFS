@@ -4,6 +4,8 @@
   "forward_work_rule": "Use current_release_sequence for integration order, and execution_programme and the implementation plan for package dependencies and exits. Historical checkpoints describe completed or partial evidence.",
   "current_release_sequence": {
     "current_reconciliation": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
+    "latest_prepared_write_recovery": "docs/evidence/windows-prepared-write-retry-2026-11-26.json",
+    "tested_prepared_write_recovery_tree": "6cc3b3ec72515c3b502c6e4c93fe70c4b4c71731",
     "latest_native_cold_delta_planes": "docs/evidence/windows-cold-delta-planes-2026-11-26.json",
     "tested_native_cold_delta_planes_tree": "d22993fad1969f56614ca9a24c529709cace690e",
     "latest_read_ahead_during_payload_scrub": "docs/evidence/windows-read-ahead-during-scrub-2026-11-26.json",

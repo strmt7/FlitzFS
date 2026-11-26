@@ -8,7 +8,10 @@
 namespace flitzfs {
 namespace {
 void increment(std::uint64_t& n) noexcept{if(n!=(std::numeric_limits<std::uint64_t>::max)())++n;}
-
+bool binding_fenced(GpuRouteReason reason) noexcept {
+  return reason==GpuRouteReason::configuration_blocked || reason==GpuRouteReason::device_quarantined ||
+      reason==GpuRouteReason::exhausted;
+}
 }
 bool NativeDeferredWriteOptions::matches_controller_route() const noexcept {
   if(!controller_health)return false;
@@ -148,7 +151,8 @@ void NativeDeferredWriteService::note_cpu_write_locked(std::size_t bytes,UINT64 
       !session_.matches_managed_foreground(options_.measured_shape->storage))return;
   prepare_requested_=true;
   const auto now=GetTickCount64();
-  if(check_gpu_memory_budget(health_.memory,health_.memory.luid,health_.memory.node_mask,now,0)==GpuGateCode::stale_budget)
+  if(preparation_needs_fresh_budget_ ||
+      check_gpu_memory_budget(health_.memory,health_.memory.luid,health_.memory.node_mask,now,0)==GpuGateCode::stale_budget)
     request_budget_locked(health_.memory.captured_ms);
   notify_worker_locked();
 }
@@ -270,7 +274,17 @@ bool NativeDeferredWriteService::retire_unused_preparation_locked(std::unique_lo
   }
   return retired;
 }
-void NativeDeferredWriteService::wait_for_write_locked(std::unique_lock<std::mutex>& guard) {
+void NativeDeferredWriteService::settle_preparation_locked(std::optional<GpuRecoveryOutcome> outcome,
+    bool retired) noexcept {
+  if(!preparation_ticket_)return;
+  if(outcome) {
+    (void)preparation_recovery_.finish(preparation_ticket_,*outcome,retired);
+    if(*outcome!=GpuRecoveryOutcome::accepted)preparation_needs_fresh_budget_=true;
+  }else (void)preparation_recovery_.abandon(preparation_ticket_,retired);
+  if(retired)preparation_ticket_=0;
+}
+void NativeDeferredWriteService::wait_for_write_locked(std::unique_lock<std::mutex>& guard,
+    const ControlledNativeUniformWrite& operation) {
   while(!stats_.native_pending) {
     const auto now=GetTickCount64();
     if(preparation_) {
@@ -282,20 +296,40 @@ void NativeDeferredWriteService::wait_for_write_locked(std::unique_lock<std::mut
       if(stats_.stopping || changed || result || now>=preparation_->expires_ms) {
         if(result && result->code!=WorkerExchangeCode::timed_out && result->code!=WorkerExchangeCode::cancelled)
           disable_gpu_budget_locked();
+        const bool expired=!stats_.stopping && !changed &&
+            (result?result->code==WorkerExchangeCode::timed_out:now>=preparation_->expires_ms);
         auto retired=std::move(*preparation_);
         preparation_.reset();
-        (void)retire_unused_preparation_locked(guard,retired);
+        const auto quiescent=retire_unused_preparation_locked(guard,retired);
+        // An unused lease is a poor opportunity, even if initialization
+        // succeeded. Cancellation for foreground or resource changes is neutral.
+        settle_preparation_locked(expired?std::optional{GpuRecoveryOutcome::temporary_pressure}:std::nullopt,quiescent);
         continue;
       }
     }
     if(stats_.stopping)return;
     if(!preparation_ && prepare_requested_ && !budget_task_) {
       prepare_requested_=false;
+      if(binding_fenced(operation.controller_.binding_status(health_))) {
+        disable_gpu_budget_locked();
+        continue;
+      }
       const auto plan=measured_write_plan(options_,health_,now);
       if(!plan || budget_disabled_ || offline_.load(std::memory_order_acquire) ||
           !session_.matches_managed_foreground(options_.measured_shape->storage) ||
           !WorkerExchangeSession::available())continue;
       const auto observed=health_;
+      if(preparation_ticket_ && preparation_recovery_.confirm_quiescent(preparation_ticket_))
+        preparation_ticket_=0;
+      const auto admission=preparation_recovery_.consider_uniform_preparation(options_.workload_qualified,
+          observed,plan->quantum.total_bytes,now);
+      if(!admission.try_gpu()) {
+        preparation_needs_fresh_budget_=admission.reason==GpuRouteReason::recovering;
+        increment(stats_.preparation_recovery_deferrals);
+        continue;
+      }
+      preparation_ticket_=admission.ticket;
+      preparation_needs_fresh_budget_=false;
       preparation_starting_=true;
       guard.unlock();
       std::optional<NativeUniformWritePreparation> pending;
@@ -320,7 +354,7 @@ void NativeDeferredWriteService::wait_for_write_locked(std::unique_lock<std::mut
       if(pending) {
         preparation_.emplace(std::move(*pending));
         increment(stats_.preparations_started);
-      }
+      } else settle_preparation_locked(GpuRecoveryOutcome::temporary_pressure,WorkerExchangeSession::available());
       continue;
     }
     if(preparation_)
@@ -336,7 +370,7 @@ void NativeDeferredWriteService::run() noexcept{
     ControlledNativeUniformWrite operation(session_,options_.expected);
     for(;;){
       std::unique_lock guard(control_);
-      wait_for_write_locked(guard);
+      wait_for_write_locked(guard,operation);
       if(!stats_.native_pending)break;
       auto prepared=std::move(preparation_);
       preparation_.reset();
@@ -370,8 +404,7 @@ void NativeDeferredWriteService::run() noexcept{
         if(admission.used_preparation)increment(stats_.prepared_writes_submitted);
       }else if(controller_collects_budget()) {
         const auto reason=admission.worker.decision.route.reason;
-        if(reason==GpuRouteReason::configuration_blocked || reason==GpuRouteReason::device_quarantined ||
-            reason==GpuRouteReason::exhausted)disable_gpu_budget_locked();
+        if(binding_fenced(reason))disable_gpu_budget_locked();
       }
       NativeUniformWriteResult result{};bool completed=false;
       if(!NT_SUCCESS(admission.admission.status)){
@@ -451,6 +484,9 @@ void NativeDeferredWriteService::run() noexcept{
         }
       }
       guard.lock();stats_.retirement_confirmed=retired;stats_.worker_busy=false;
+      const bool useful=admission.used_preparation && result.stored_lz4_candidates &&
+          NT_SUCCESS(result.outcome.status);
+      settle_preparation_locked(useful?std::optional{GpuRecoveryOutcome::accepted}:std::nullopt,retired);
       request_.reset();
       signal_activity_locked();
       if(!retired){stats_.disabled=true;break;} // no retry, restart or discovery

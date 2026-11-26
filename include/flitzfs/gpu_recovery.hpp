@@ -65,6 +65,8 @@ class GpuRecoveryPolicy final {
       std::uint64_t device_bytes,std::uint64_t now_ms) noexcept;
   GpuRouteDecision consider_native_lz4_read(bool workload_qualified,const GpuHealthEvidence&,
       std::uint64_t device_bytes,std::uint64_t now_ms) noexcept;
+  GpuRouteDecision consider_uniform_preparation(bool workload_qualified,const GpuHealthEvidence&,
+      std::uint64_t device_bytes,std::uint64_t now_ms) noexcept;
   // Report once. A failure can be recorded before teardown; an unconfirmed
   // worker continues to block EVERY new GPU attempt, including changed configs.
   bool finish(std::uint64_t ticket, GpuRecoveryOutcome outcome,
