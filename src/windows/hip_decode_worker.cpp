@@ -93,8 +93,7 @@ GpuBatchReply run_hip_decode_in_worker(HMODULE runtime,
   if(observation){observation->snapshots[1]=before;observation->captured|=2;}
   require_hip_memory(before,luid,node_mask,GetTickCount64(),allocation,
       HipMemoryPoint::initialized,&before_init);
-  hip_detail::check_hip(api.create_stream(&resources.stream, hipStreamNonBlocking, least),
-      "create stream", HipWorkerStage::stream_create);
+  hip_detail::create_worker_stream(api,resources.stream,least,"create decode stream");
 
   GpuBatchReply reply;
   reply.generation = request.request_id;
@@ -168,8 +167,7 @@ std::vector<match_detail::Match> run_hip_match_in_worker(HMODULE runtime,
   const auto before=query_windows_gpu_budget(luid,node_mask).snapshot;
   require_hip_memory(before,luid,node_mask,GetTickCount64(),allocation,
       HipMemoryPoint::initialized,&before_init);
-  hip_detail::check_hip(api.create_stream(&resources.stream,hipStreamNonBlocking,least),
-      "create match stream",HipWorkerStage::stream_create);
+  hip_detail::create_worker_stream(api,resources.stream,least,"create match stream");
   // Every unwritten lane is invalid at CPU admission.
   const match_detail::Match pending{65535,65535,65535,65535};
   std::vector<match_detail::Match> matches(request.search.lanes(),pending);
@@ -379,8 +377,7 @@ AnchorReadback run_hip_anchor_groups(HMODULE runtime,
   profile.begin(HipPhase::stream_allocate);
   DeviceResources resources(api);
   const auto stream_started=setup?hip_phase_detail::clock_ns():0;
-  hip_detail::check_hip(api.create_stream(&resources.stream,hipStreamNonBlocking,least),
-      "create anchor match stream",HipWorkerStage::stream_create);
+  hip_detail::create_worker_stream(api,resources.stream,least,"create anchor match stream");
   const auto allocation_started=setup?hip_phase_detail::clock_ns():0;
   check_hip(api.allocate(&resources.buffers[0],allocation),"allocate anchor match slab");
   if(setup)*setup={allocation_started-stream_started,hip_phase_detail::clock_ns()-allocation_started,0,

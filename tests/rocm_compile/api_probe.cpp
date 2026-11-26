@@ -1,7 +1,7 @@
 #ifdef FLITZFS_PREVIOUS_HIP_API
 #include "previous_hip_api.hpp"
 #else
-#include "hip_api.hpp"
+#include "hip_device_resources.hpp"
 #endif
 #include <algorithm>
 #include <array>
@@ -20,6 +20,11 @@ struct State {
   hipError_t second_priority_status = hipSuccess;
   unsigned priority_outputs=3;
   bool changing_priorities=false;
+#ifndef FLITZFS_PREVIOUS_HIP_API
+  unsigned streams=0,priority_streams=0,destroyed=0;
+  hipError_t stream_status=hipSuccess,priority_stream_status=hipSuccess;
+  bool null_stream=false,handle_on_error=false;
+#endif
   std::array<std::byte,8> luid{std::byte{7}};
   unsigned mask = 2;
   int least = 2, greatest = -1;
@@ -46,6 +51,28 @@ hipError_t fake_priorities(int* least, int* greatest) {
   if(state.priority_outputs&2U)*greatest=state.greatest;
   return state.priorities==1 ? state.priority_status : state.second_priority_status;
 }
+#ifndef FLITZFS_PREVIOUS_HIP_API
+hipError_t fake_open(hipStream_t* out,unsigned flags,hipError_t status) {
+  require(flags==hipStreamNonBlocking && !*out,"stream must be new and nonblocking");
+  if ((status==hipSuccess && !state.null_stream) || state.handle_on_error)
+    *out=reinterpret_cast<hipStream_t>(&state);
+  return status;
+}
+hipError_t fake_stream(hipStream_t* out,unsigned flags) {
+  ++state.streams;
+  return fake_open(out,flags,state.stream_status);
+}
+hipError_t fake_priority_stream(hipStream_t* out,unsigned flags,int priority) {
+  require(priority==state.least,"wrong priority stream selection");
+  ++state.priority_streams;
+  return fake_open(out,flags,state.priority_stream_status);
+}
+hipError_t fake_destroy(hipStream_t stream) {
+  require(stream==reinterpret_cast<hipStream_t>(&state),"foreign stream retired");
+  ++state.destroyed;
+  return hipSuccess;
+}
+#endif
 void never_called() { throw std::runtime_error("unexpected fake runtime function call"); }
 FARPROC lookup(std::string_view name) {
   if (name == "hipInit") return std::bit_cast<FARPROC>(&fake_init);
@@ -56,6 +83,11 @@ FARPROC lookup(std::string_view name) {
 #endif
   if (name == "hipSetDevice") return std::bit_cast<FARPROC>(&fake_select);
   if (name == "hipDeviceGetStreamPriorityRange") return std::bit_cast<FARPROC>(&fake_priorities);
+#ifndef FLITZFS_PREVIOUS_HIP_API
+  if (name == "hipStreamCreateWithPriority") return std::bit_cast<FARPROC>(&fake_priority_stream);
+  if (name == "hipStreamCreateWithFlags") return std::bit_cast<FARPROC>(&fake_stream);
+  if (name == "hipStreamDestroy") return std::bit_cast<FARPROC>(&fake_destroy);
+#endif
   require(std::find(hip_detail::runtime_symbols.begin(), hip_detail::runtime_symbols.end(), name) !=
       hip_detail::runtime_symbols.end(), "unexpected runtime lookup");
   return std::bit_cast<FARPROC>(&never_called);
@@ -68,6 +100,7 @@ void failure(Function&& call, HipWorkerExit expected, HipWorkerStage stage) {
 }
 int priority_regression(const hip_detail::HipApi& api) {
   state={};state.priority_outputs=0;
+#ifdef FLITZFS_PREVIOUS_HIP_API
   try {(void)hip_detail::initialize_device(api,7,std::array<std::byte,8>{std::byte{7}},2);}
   catch(const HipWorkerFailure& error) {
     require(!GetModuleHandleA(FLITZFS_REQUIRED_HIP_RUNTIME_DLL_NAME),"regression loaded HIP");
@@ -79,17 +112,65 @@ int priority_regression(const hip_detail::HipApi& api) {
     return complete?0:1;
   }
   throw std::runtime_error("unreported priority range admitted");
+#else
+  const auto priority=hip_detail::initialize_device(api,7,std::array<std::byte,8>{std::byte{7}},2);
+  require(!priority && state.priorities==2,"unreported priority used as a stream priority");
+  {
+    hip_detail::DeviceResources resources(api);
+    hip_detail::create_worker_stream(api,resources.stream,priority,"create ordinary worker stream");
+  }
+  require(state.streams==1 && !state.priority_streams && state.destroyed==1,"ordinary stream did not retire");
+  require(!GetModuleHandleA(FLITZFS_REQUIRED_HIP_RUNTIME_DLL_NAME),"regression loaded HIP");
+  std::cout<<"HIP priority regression: {\"category\":0,\"stage\":\"stream_create\",\"priority_queries\":"
+      <<state.priorities<<",\"nonblocking_created\":true,\"hip_runtime_loaded\":false,\"gpu_executed\":false,\"complete\":true}\n";
+  return 0;
+#endif
 }
+#ifndef FLITZFS_PREVIOUS_HIP_API
+void stream_creation(const hip_detail::HipApi& api) {
+  const auto create=[&](std::optional<int> priority) {
+    hip_detail::DeviceResources resources(api);
+    hip_detail::create_worker_stream(api,resources.stream,priority,"create worker stream");
+  };
+  state={};
+  create(state.least);
+  require(state.priority_streams==1 && !state.streams && state.destroyed==1,"priority stream did not retire");
+  state={};state.priority_stream_status=hipErrorNotSupported;
+  create(state.least);
+  require(state.priority_streams==1 && state.streams==1 && state.destroyed==1,"priority refusal did not use a plain stream");
+  state={};state.priority_stream_status=hipErrorNotSupported;state.handle_on_error=true;
+  failure([&]{create(state.least);},HipWorkerExit::unsupported_configuration,HipWorkerStage::stream_create);
+  require(state.priority_streams==1 && !state.streams && state.destroyed==1,"failed priority handle was overwritten");
+  for(const auto status:{hipErrorOutOfMemory,hipErrorUnknown,hipErrorInsufficientDriver}) {
+    state={};state.priority_stream_status=status;
+    const auto code=status==hipErrorOutOfMemory?HipWorkerExit::temporary_pressure:
+        status==hipErrorInsufficientDriver?HipWorkerExit::runtime_unavailable:HipWorkerExit::device_fault;
+    failure([&]{create(state.least);},code,HipWorkerStage::stream_create);
+    require(state.priority_streams==1 && !state.streams && !state.destroyed,"failed stream continued");
+  }
+  for(const auto priority:{std::optional<int>{},std::optional<int>{2}}) {
+    state={};state.null_stream=true;
+    failure([&]{create(priority);},HipWorkerExit::device_fault,HipWorkerStage::stream_create);
+    require(state.streams+state.priority_streams==1 && !state.destroyed,"null stream retried");
+  }
+  state={};state.stream_status=hipErrorNotSupported;
+  failure([&]{create(std::nullopt);},HipWorkerExit::unsupported_configuration,HipWorkerStage::stream_create);
+  require(state.streams==1 && !state.priority_streams,"unavailable ordinary stream retried");
+}
+#endif
 }
 int main(int argc,char** argv) {
   try {
     require(!GetModuleHandleA(FLITZFS_REQUIRED_HIP_RUNTIME_DLL_NAME), "HIP runtime already loaded");
     if(argc==2 && std::string_view(argv[1])=="--priority-capability-regression")
       return priority_regression(hip_detail::bind_api([](const char* name){return lookup(name);}));
+#ifdef FLITZFS_PREVIOUS_HIP_API
+    throw std::runtime_error("the historical probe runs only the priority regression");
+#else
     require(argc==1,"unexpected CPU API probe arguments");
     const std::array<std::byte,8> expected{std::byte{7}};
     unsigned priority_cases=0;
-    require(hip_detail::runtime_symbols.size() == 11, "binding inventory changed without qualification");
+    require(hip_detail::runtime_symbols.size() == 10, "binding inventory changed without qualification");
     require(hip_detail::runtime_symbols[1] == "hipGetDevicePropertiesR0600",
         "selected SDK properties ABI changed without qualification");
     for (const auto missing : hip_detail::runtime_symbols) {
@@ -184,15 +265,16 @@ int main(int argc,char** argv) {
         HipWorkerExit::unsupported_configuration, HipWorkerStage::device_select);
     require(state.priorities == 0, "failed selection queried stream priorities");
     state = {}; state.priority_status = hipErrorNotSupported;
-    failure([&] { (void)hip_detail::initialize_device(api, 7, expected, 2); },
-        HipWorkerExit::unsupported_configuration, HipWorkerStage::stream_priorities);
+    require(!hip_detail::initialize_device(api,7,expected,2) && state.priorities==1,
+        "explicitly unsupported priority did not select ordinary streams");
     state = {}; state.least = -2; state.greatest = 1;
     failure([&] { (void)hip_detail::initialize_device(api, 7, expected, 2); },
         HipWorkerExit::device_fault, HipWorkerStage::stream_priorities);
     for(const unsigned outputs:{0U,1U,2U}) {
       state={};state.priority_outputs=outputs;
-      failure([&]{(void)hip_detail::initialize_device(api,7,expected,2);},
+      if(outputs)failure([&]{(void)hip_detail::initialize_device(api,7,expected,2);},
           HipWorkerExit::unsupported_configuration,HipWorkerStage::stream_priorities);
+      else require(!hip_detail::initialize_device(api,7,expected,2),"unreported priorities were used");
       require(state.initialized==1 && state.queried==1 && state.selected==1 &&
           state.priorities==2,"capability corroboration repeated discovery or omitted its bounded query");
       ++priority_cases;
@@ -202,7 +284,9 @@ int main(int argc,char** argv) {
         {(std::numeric_limits<int>::max)(),(std::numeric_limits<int>::max)()},
         {(std::numeric_limits<int>::min)(),(std::numeric_limits<int>::min)()}}}) {
       state={};state.least=range[0];state.greatest=range[1];
-      require(hip_detail::initialize_device(api,7,expected,2)==range[0],"valid priority range refused");
+      const auto priority=hip_detail::initialize_device(api,7,expected,2);
+      require(priority==(range[0]==range[1]?std::nullopt:std::optional<int>{range[0]}),
+          "incorrect stream priority for the reported range");
       require(state.priorities==2,"valid range was not corroborated");
       ++priority_cases;
     }
@@ -221,11 +305,28 @@ int main(int argc,char** argv) {
       ++priority_cases;
     }
     require(priority_cases==12,"priority capability cases incomplete");
+    for(const std::string_view missing:{"hipDeviceGetStreamPriorityRange","hipStreamCreateWithPriority"}) {
+      state={};
+      const auto plain=hip_detail::bind_api([&](std::string_view name) {
+        return name==missing?FARPROC{}:lookup(name);
+      });
+      const auto priority=hip_detail::initialize_device(plain,7,expected,2);
+      require(!priority && state.selected==1 && !state.priorities,"incomplete priority API queried");
+      {
+        hip_detail::DeviceResources resources(plain);
+        hip_detail::create_worker_stream(plain,resources.stream,priority,"create ordinary stream");
+      }
+      require(state.streams==1 && !state.priority_streams && state.destroyed==1,"ordinary stream was not used");
+    }
+    stream_creation(api);
     require(!GetModuleHandleA(FLITZFS_REQUIRED_HIP_RUNTIME_DLL_NAME), "fake test loaded HIP");
     std::cout << "HIP API CPU qualification: {\"checks\":" << checks <<
         ",\"priority_cases\":"<<priority_cases<<",\"priority_query_limit\":2"<<
-        ",\"unversioned_properties_refused\":true,\"identity_before_selection\":true,\"missing_exports_refused\":11,\"hip_runtime_loaded\":false,\"gpu_executed\":false,\"complete\":true}\n";
+        ",\"unversioned_properties_refused\":true,\"identity_before_selection\":true,\"missing_exports_refused\":10"
+        ",\"optional_priority_exports_verified\":true,\"nonblocking_stream_verified\":true"
+        ",\"hip_runtime_loaded\":false,\"gpu_executed\":false,\"complete\":true}\n";
     return 0;
+#endif
   } catch (const std::exception& error) {
     std::cerr << "HIP API CPU qualification failed: " << error.what() << '\n'; return 1;
   }

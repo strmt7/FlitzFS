@@ -20,7 +20,7 @@ struct UniformLz4ComputeGrant {
   std::uint32_t chunk_bytes=0;
 };
 inline Lz4DeviceInfo uniform_lz4_device_info(const hipDeviceProp_t& p,
-    Lz4KernelCoverage coverage,std::uint32_t chunks,int priority){
+    Lz4KernelCoverage coverage,std::uint32_t chunks,std::optional<int> priority){
   const auto end=std::find(std::begin(p.gcnArchName),std::end(p.gcnArchName),'\0');
   const auto wave=p.warpSize;const auto mask=wave==32?1U:wave==64?2U:0U;
   lz4_require(end!=std::end(p.gcnArchName) &&
@@ -52,7 +52,7 @@ inline void uniform_lz4_runtime_preflight(const HipApi& api,
       std::all_of(coverage.architecture.begin(),coverage.architecture.end(),[](char c){
         return (c>='a'&&c<='z')||(c>='0'&&c<='9');}),
       HipWorkerExit::invalid_request,"invalid uniform compression coverage");
-  lz4_require(api.init && api.properties && api.set_device && api.priority_range &&
+  lz4_require(api.init && api.properties && api.set_device &&
       api.create_stream && api.destroy_stream && api.synchronize && api.allocate &&
       api.release && api.copy && api.launch,HipWorkerExit::runtime_unavailable,
       "uniform compression runtime table incomplete",HipWorkerStage::runtime_api);
@@ -83,8 +83,7 @@ UniformLz4Candidates execute_uniform_lz4_compute(const HipApi& api,Lz4Attributes
   DeviceResources resources(api);
   try{
     if(profile)profile->begin(HipPhase::stream_allocate);
-    check_hip(api.create_stream(&resources.stream,hipStreamNonBlocking,device.priority),
-        "create uniform compression stream",HipWorkerStage::stream_create);
+    create_worker_stream(api,resources.stream,device.priority,"create uniform compression stream");
     memory(HipMemoryPoint::initialized);
     auto upload=uniform_lz4_upload(request.batch);
     std::vector<std::byte> readback(static_cast<std::size_t>(plan.total_bytes));

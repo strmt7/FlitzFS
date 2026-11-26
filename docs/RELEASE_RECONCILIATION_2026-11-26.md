@@ -17,6 +17,12 @@ Windows build, matched controls, source navigation and primary-source
 captures. Earlier receipts retain their original source and test scope.
 [Current evidence](evidence/windows-independent-seal-workspace-2026-11-26.json)
 
+The follow-up AMD checkpoint made priority optional in the Windows workers
+and passed an installed Radeon read through the callbacks. Live write
+dispatch awaits measured headroom. The matched mounted comparison remains
+the next AMD release decision.
+[Stream capability qualification](HIP_PRIORITY_CAPABILITY.md#26-november-windows-qualification)
+
 ## Repository and release evidence
 
 | Subsystem | Implemented and observed | Remaining release proof |

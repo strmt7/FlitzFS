@@ -454,9 +454,11 @@ def main():
         binding_prefix="HIP runtime bindings: "
         binding_rows=[json.loads(line[len(binding_prefix):]) for line in observed["stdout"].splitlines()
             if line.startswith(binding_prefix)]
-        require(len(binding_rows)==1 and isinstance(binding_rows[0],list) and len(binding_rows[0])==11 and
+        require(len(binding_rows)==1 and isinstance(binding_rows[0],list) and len(binding_rows[0])==10 and
             all(isinstance(name,str) and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]{0,127}",name)
-                for name in binding_rows[0]) and len(set(binding_rows[0]))==11,
+                for name in binding_rows[0]) and len(set(binding_rows[0]))==10 and
+            "hipStreamCreateWithFlags" in binding_rows[0] and
+            not {"hipDeviceGetStreamPriorityRange","hipStreamCreateWithPriority"}.intersection(binding_rows[0]),
             "SDK-derived runtime binding inventory is missing or malformed")
         runtime_name=re.search(r" required_runtime=([^\s]+)",observed["stdout"])
         require(runtime_name is not None and re.fullmatch(r"amdhip64[a-z0-9_]*\.dll",runtime_name.group(1)),
@@ -525,7 +527,9 @@ def main():
             api_rows[0]["priority_cases"]==12 and api_rows[0]["priority_query_limit"]==2 and
             api_rows[0]["identity_before_selection"] is True and
             api_rows[0]["unversioned_properties_refused"] is True and
-            api_rows[0]["missing_exports_refused"]==11 and api_rows[0]["hip_runtime_loaded"] is False and
+            api_rows[0]["missing_exports_refused"]==10 and
+            api_rows[0]["optional_priority_exports_verified"] is True and
+            api_rows[0]["nonblocking_stream_verified"] is True and api_rows[0]["hip_runtime_loaded"] is False and
             api_rows[0]["gpu_executed"] is False and api_rows[0]["complete"] is True,
             "typed identity API evidence mismatch")
         report["api_probe"]["qualification"]=api_rows[0]
@@ -541,12 +545,14 @@ def main():
             report,"current-priority-capability-regression",30)
         priority_prefix="HIP priority regression: "
         observed=[]
-        for result,category,queries,complete in (
-            (old_priority,0x46530005,1,False),(new_priority,0x46530003,2,True)):
+        for result,category,stage,queries,complete in (
+            (old_priority,0x46530005,"stream_priorities",1,False),
+            (new_priority,0,"stream_create",2,True)):
             records=[json.loads(line[len(priority_prefix):]) for line in result["stdout"].splitlines()
                 if line.startswith(priority_prefix)]
             require(len(records)==1 and records[0]["category"]==category and
-                records[0]["stage"]=="stream_priorities" and records[0]["priority_queries"]==queries and
+                records[0]["stage"]==stage and records[0]["priority_queries"]==queries and
+                records[0].get("nonblocking_created",False) is complete and
                 records[0]["hip_runtime_loaded"] is False and records[0]["gpu_executed"] is False and
                 records[0]["complete"] is complete,"priority capability regression evidence")
             observed.append(records[0])
@@ -780,11 +786,12 @@ def main():
             require(len(rows)==1,"missing uniform compute CPU receipt")
             row=rows[0]
             require(row["decoder_available"] is available and row["complete"] is True and
+                row["nonblocking_sweep_verified"] is available and
                 row["guarded_exit_confirmed"] is True and row["hip_runtime_loaded"] is False and
                 row["gpu_executed"] is False and type(row["checks"]) is int and row["checks"]>0 and
                 row["scenarios"]==row["successes"]+row["refusals"],
                 "uniform compute CPU qualification contract")
-            require((available and row["successes"]==10 and row["refusals"]>=73) or
+            require((available and row["successes"]>=17 and row["refusals"]>=98) or
                 (not available and row["successes"]==0 and row["refusals"]==2),
                 "uniform compute CPU positive/failure coverage mismatch")
             return dict(bytes=executable.stat().st_size,sha256=digest(executable),

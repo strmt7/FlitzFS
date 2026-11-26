@@ -7,6 +7,18 @@
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
   "current_release_review": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
+  "optional_hip_stream_priority": {
+    "source_parent": "7db0c1e6ef1508922af368a53e1df390335a222f",
+    "tested_source_tree": "94416050defde40b7a4bf40ecbd8b4266833f807",
+    "evidence": "docs/evidence/windows-hip-optional-streams-2026-11-26.json",
+    "required_runtime_exports": 10,
+    "cpu_sdk_api_checks": 285,
+    "confirmed_radeon_callback_extents": 2,
+    "confirmed_radeon_callback_bytes": 131072,
+    "write_device_launch_refused_under_load": true,
+    "ordinary_mounted_speed_qualified": false,
+    "release_qualified": false
+  },
   "independent_seal_workspace": {
     "source_parent": "d9b20094a3ecaeaf351f0794e201160ad8b7e9c1",
     "tested_source_tree": "790912f42c849b0a84a62e2c610c97d2a5206b4f",

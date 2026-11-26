@@ -7,7 +7,7 @@
 using Init=decltype(&hipInit);
 using Properties=decltype(&hipGetDevicePropertiesR0600);
 using Launch=decltype(&hipModuleLaunchKernel);
-using Stream=decltype(&hipStreamCreateWithPriority);
+using Stream=decltype(&hipStreamCreateWithFlags);
 static_assert(sizeof(void*)==8 && sizeof(hipError_t)==4);
 static_assert(std::is_pointer_v<Init> && std::is_pointer_v<Properties> &&
     std::is_pointer_v<Launch> && std::is_pointer_v<Stream>);

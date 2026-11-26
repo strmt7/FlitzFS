@@ -152,8 +152,7 @@ std::vector<detail::NativeLz4DecodedFrame> execute_native_lz4_decode(HMODULE run
         begin(HipPhase::stream_allocate);
         DeviceResources resources(api);
         try {
-          check_hip(api.create_stream(&resources.stream,hipStreamNonBlocking,device.priority),
-              "create native LZ4 decode stream",HipWorkerStage::stream_create);
+          create_worker_stream(api,resources.stream,device.priority,"create native LZ4 decode stream");
           memory(HipMemoryPoint::initialized);
           check_hip(api.allocate(&resources.buffers[0],device_bytes),
               "allocate native LZ4 decode slab",HipWorkerStage::execution);
@@ -266,8 +265,7 @@ std::vector<std::byte> run_hip_native_group_read_in_worker(HMODULE runtime,
         check_group_kernel_attributes(attributes,kernels,device);
         DeviceResources resources(api);
         try {
-          check_hip(api.create_stream(&resources.stream,hipStreamNonBlocking,device.priority),
-              "create packed group stream",HipWorkerStage::stream_create);
+          create_worker_stream(api,resources.stream,device.priority,"create packed group stream");
           memory(HipMemoryPoint::initialized);
           check_hip(api.allocate(&resources.buffers[0],static_cast<std::size_t>(device_bytes)),
               "allocate packed group slab",HipWorkerStage::execution);

@@ -72,9 +72,10 @@ exit observation proves retirement only, never hardware recovery.
 
 Known native out-of-memory/resource errors count as pressure, not driver repair.
 Unknown errors remain conservative. The explicit supervised worker's typed
-HIP categories feed worker_transport_failure after confirmed exit. The next
-[priority capability guard](HIP_PRIORITY_CAPABILITY.md) refines unreported-output
-classification; its new-source CPU/SDK qualification is pending. The policy keeps its fixed eight-entry quarantine table and
+HIP categories feed worker_transport_failure after confirmed exit. The
+[stream capability contract](HIP_PRIORITY_CAPABILITY.md) allows a nonblocking
+stream with absent priority capability and preserves terminal device errors.
+The policy keeps its fixed eight-entry quarantine table and
 1/2/4/8/16/32 observation hysteresis. One success does not erase flapping history;
 two accepted attempts can clear the transient failure count.
 

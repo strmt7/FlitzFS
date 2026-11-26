@@ -4,11 +4,12 @@
   "forward_work_rule": "Use current_release_sequence for integration order, and execution_programme and the implementation plan for package dependencies and exits. Historical checkpoints describe completed or partial evidence.",
   "current_release_sequence": {
     "current_reconciliation": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
+    "latest_optional_hip_stream_priority": "docs/evidence/windows-hip-optional-streams-2026-11-26.json",
     "ordered_implementation": "docs/RELEASE_RECONCILIATION_2026-11-26.md#detailed-implementation-order",
     "latest_independent_seal_workspace": "docs/evidence/windows-independent-seal-workspace-2026-11-26.json",
     "tested_independent_seal_workspace_tree": "790912f42c849b0a84a62e2c610c97d2a5206b4f",
     "immediate_work": [
-      "Qualify nonblocking HIP stream creation independently of optional stream priority",
+      "Verify live native compression with the rebuilt nonblocking-stream worker when fresh device headroom permits",
       "Measure ordinary Windows AMD work and CPU continuity with the populated client witness",
       "Measure parity publication phases and unify workspace allowance and backing write admission",
       "Preserve writable admission invariants while bounding normal attach work",

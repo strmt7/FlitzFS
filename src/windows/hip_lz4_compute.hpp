@@ -19,7 +19,7 @@ namespace flitzfs::hip_detail {
 // Private, borrowed metadata from a separately authenticated module/object
 // inventory. This is not a launch grant, wire record or device assumption.
 struct Lz4KernelCoverage {std::string_view architecture;std::uint32_t wave_mask=0;};
-struct Lz4DeviceInfo {int priority=0;std::uint32_t wave=0;std::size_t shared_capacity=0;};
+struct Lz4DeviceInfo {std::optional<int> priority;std::uint32_t wave=0;std::size_t shared_capacity=0;};
 using Lz4Attributes=decltype(&hipFuncGetAttributes);
 #define FLITZFS_LZ4_API_NAME_INNER(value) #value
 #define FLITZFS_LZ4_API_NAME(value) FLITZFS_LZ4_API_NAME_INNER(value)
@@ -58,7 +58,7 @@ inline candidate_lz4::Layout lz4_launch_layout(const GpuLz4DeviceLayout& source)
   return result;
 }
 inline Lz4DeviceInfo lz4_device_info(const hipDeviceProp_t& properties,
-    Lz4KernelCoverage coverage,std::uint32_t chunks,int priority) {
+    Lz4KernelCoverage coverage,std::uint32_t chunks,std::optional<int> priority) {
   const auto end=std::find(std::begin(properties.gcnArchName),std::end(properties.gcnArchName),'\0');
   const auto wave=properties.warpSize;
   const auto mask=wave==32?1U:wave==64?2U:0U;
@@ -129,7 +129,7 @@ std::vector<std::vector<std::byte>> execute_lz4_compute(const HipApi& api,
     const Lz4WorkerRequest& request,Lz4KernelCoverage coverage,
     Initialize&& initialize,MemoryPolicy&& memory) {
   admit_lz4_compute(kernel,request,coverage);
-  lz4_require(api.init && api.properties && api.set_device && api.priority_range &&
+  lz4_require(api.init && api.properties && api.set_device &&
       api.create_stream && api.destroy_stream && api.synchronize && api.allocate &&
       api.release && api.copy && api.launch,HipWorkerExit::runtime_unavailable,
       "compression runtime function table incomplete",HipWorkerStage::runtime_api);
@@ -144,8 +144,7 @@ std::vector<std::vector<std::byte>> execute_lz4_compute(const HipApi& api,
   check_lz4_attributes(attributes,selected,device);
   DeviceResources resources(api);
   try {
-    check_hip(api.create_stream(&resources.stream,hipStreamNonBlocking,device.priority),
-        "create compression stream",HipWorkerStage::stream_create);
+    create_worker_stream(api,resources.stream,device.priority,"create compression stream");
     memory(HipMemoryPoint::initialized); // Includes context/stream metadata costs.
     check_hip(api.allocate(&resources.buffers[0],plan.total_bytes),
         "allocate compression slab",HipWorkerStage::execution);

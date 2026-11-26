@@ -77,11 +77,15 @@ hipError_t priorities(int* least,int* greatest){
   const auto status=active->step("priority-"+std::to_string(active->priority_queries));
   if(status==hipSuccess){*least=0;*greatest=-1;}return status;
 }
-hipError_t create_stream(hipStream_t* out,unsigned flags,int priority){
-  require(flags==hipStreamNonBlocking && priority==0,"Lowest-priority stream admission");
+hipError_t create_stream(hipStream_t* out,unsigned flags){
+  require(flags==hipStreamNonBlocking,"Nonblocking stream admission");
   const auto status=active->step("stream-create");
   if(status==hipSuccess){require(!active->stream_live,"Duplicate stream");active->stream_live=true;*out=active->stream();}
   return status;
+}
+hipError_t create_priority_stream(hipStream_t* out,unsigned flags,int priority){
+  require(priority==0,"Lowest-priority stream admission");
+  return create_stream(out,flags);
 }
 hipError_t destroy_stream(hipStream_t stream){
   require(stream==active->stream() && active->stream_live,"Foreign/duplicate stream retirement");
@@ -172,8 +176,8 @@ hipError_t attributes(hipFuncAttributes* out,const void* entry){
   out->maxThreadsPerBlock=active->inconsistent_attributes && active->attribute_queries==2?64:1024;
   out->sharedSizeBytes=128;return hipSuccess;
 }
-HipApi functions(){return {&init,&properties,&select,&priorities,&create_stream,&destroy_stream,
-    &synchronize,&allocate,&release,&copy,&launch};}
+HipApi functions(){return {&init,&properties,&select,&create_stream,&destroy_stream,
+    &synchronize,&allocate,&release,&copy,&launch,&priorities,&create_priority_stream};}
 std::vector<Bytes> compute(State& state,Lz4KernelCoverage covered=coverage){
   Activate owner(state);const auto api=functions();
   const auto initialize=[&] {

@@ -166,8 +166,9 @@ host supplies an approved ceiling and live memory grant.
 [Wide copy protocol](WORKER_CHANNEL.md#wider-amd-copy-dispatches) ·
 [Wide copy evidence](evidence/amd-wide-copy-dispatch-2026-11-20.json)
 
-Shared-base transfers use the same least-priority HIP stream as clears and
-kernels. The immutable request owns queued upload bytes through completion.
+Shared-base transfers use the same nonblocking HIP stream as clears and
+kernels. The worker uses the least priority when the runtime provides it.
+The immutable request owns queued upload bytes through completion.
 The synchronous stream readback completes the window before the worker
 decodes results, releases pageable host buffers or reuses the GPU slab.
 [AMD HIP memory management](https://rocm.docs.amd.com/projects/HIP/en/latest/reference/hip_runtime_api/modules/memory_management.html) ·

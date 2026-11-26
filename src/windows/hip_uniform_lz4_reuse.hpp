@@ -117,8 +117,7 @@ UniformLz4Candidates execute_uniform_lz4_sweep_plan(const HipApi& api,Lz4Attribu
     const auto selected=device.wave==32?kernel.wave32:kernel.wave64;
     check_lz4_attributes(attributes,selected,device);
     memory(HipMemoryPoint::initialized);
-    check_hip(api.create_stream(&resources.stream,hipStreamNonBlocking,device.priority),
-        "create reusable uniform stream",HipWorkerStage::stream_create);
+    create_worker_stream(api,resources.stream,device.priority,"create reusable uniform stream");
     lz4_require(resources.stream!=nullptr,HipWorkerExit::device_fault,"null reusable uniform stream",HipWorkerStage::stream_create);
     upload.resize(peak);readback.resize(peak);
     memory(HipMemoryPoint::initialized);

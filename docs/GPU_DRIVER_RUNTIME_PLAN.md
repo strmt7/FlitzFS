@@ -37,8 +37,9 @@ confirmed retirement. Do not import a process-lifetime parent runtime.
 - Clear child LLVM_PATH before loading. Restrict native loader search, compare
   the actual loaded module path and use the selected SDK's versioned properties
   ABI to match both LUID and node before selection or compute.
-- Keep the existing explicit allocation, low-priority stream, immutable source,
-  independent CPU checks, terminal selection and process retirement rules.
+- Use a nonblocking stream with the least priority when the runtime provides
+  it. Keep the explicit allocation, immutable source, independent CPU checks,
+  terminal selection and process retirement rules.
   Runtime identity changes belong in the recovery configuration identity.
 - First qualify metadata/refusal and fake-runtime paths on disposable hosted
   VMs. A metadata-only mode must never load the AMD DLL or initialize a device.

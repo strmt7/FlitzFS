@@ -54,7 +54,7 @@ struct State {
   std::array<int,2> event_tags{};
   std::array<bool,2> event_live{};
   unsigned event_creates=0,event_records=0,event_reads=0;
-  bool reuse=false,null_stream=false;
+  bool reuse=false,null_stream=false,priority_supported=true;
   std::uint64_t allocation_bytes=0,source_offset=0;
   std::size_t allocated_size=0;
   unsigned waits=0,completion_samples=0,prefix_uploads=0;
@@ -96,12 +96,20 @@ hipError_t priorities(int* least,int* greatest){
   const auto status=active->step("priority-"+std::to_string(active->priority_queries));
   if(status==hipSuccess){*least=0;*greatest=-1;}return status;
 }
-hipError_t create_stream(hipStream_t* out,unsigned flags,int priority){
-  require(flags==hipStreamNonBlocking && priority==0,"Lowest-priority stream admission");
+hipError_t open_stream(hipStream_t* out,unsigned flags){
+  require(flags==hipStreamNonBlocking,"Nonblocking stream admission");
   const auto status=active->step("stream-create");
   if(status==hipSuccess && active->null_stream){*out=nullptr;return status;}
   if(status==hipSuccess){require(!active->stream_live,"Duplicate stream");active->stream_live=true;*out=active->stream();}
   return status;
+}
+hipError_t create_stream(hipStream_t* out,unsigned flags){
+  require(!active->priority_supported,"Negotiated priority was not used");
+  return open_stream(out,flags);
+}
+hipError_t create_priority_stream(hipStream_t* out,unsigned flags,int priority){
+  require(active->priority_supported && priority==0,"Lowest-priority stream admission");
+  return open_stream(out,flags);
 }
 hipError_t destroy_stream(hipStream_t stream){
   require(stream==active->stream() && active->stream_live,"Foreign/duplicate stream retirement");
@@ -280,8 +288,9 @@ void group_attributes(const UniformLz4Request& request) {
     require(state.attribute_queries==4,"Distinct group decoder metadata was not corroborated");
   }
 }
-HipApi functions(){return {&init,&properties,&select,&priorities,&create_stream,&destroy_stream,
-    &synchronize,&allocate,&release,&copy,&launch};}
+HipApi functions(bool prioritized=true){return {&init,&properties,&select,&create_stream,&destroy_stream,
+    &synchronize,&allocate,&release,&copy,&launch,
+    prioritized?&priorities:nullptr,prioritized?&create_priority_stream:nullptr};}
 UniformLz4Candidates compute(State& state,Lz4KernelCoverage covered=coverage,UniformLz4ComputeGrant grant={},HipPhaseTrace* trace=nullptr){
   Activate owner(state);const auto api=functions();
   const auto initialize=[&] {
@@ -324,7 +333,7 @@ UniformLz4Candidates reused_compute(State& state,UniformLz4ComputeGrant grant={}
   if(!grant.maximum_chunks && !grant.maximum_device_bytes)grant={2,quantum.total_bytes,65536};
   const auto admitted=plan_uniform_lz4_sweep(state.source.batch,2,quantum.total_bytes);
   state.allocation_bytes=admitted.device_peak_bytes;
-  const auto api=functions();
+  const auto api=functions(state.priority_supported);
   const auto initialize=[&]{
     const auto priority=initialize_device(api,0,identity,1);
     hipDeviceProp_t actual{};check_hip(api.properties(&actual,0),"reused compute properties",HipWorkerStage::device_properties);
@@ -370,8 +379,10 @@ UniformLz4Candidates reused_compute(State& state,UniformLz4ComputeGrant grant={}
   return execute_uniform_lz4_reused_sweep(api,&attributes,kernels,state.source,coverage,grant,initialize,memory,
       trace,hip_phase_detail::clock_ns,events,transfer);
 }
-void reused_success(const UniformLz4Request& source,unsigned wave,bool delayed_completion=false){
+void reused_success(const UniformLz4Request& source,unsigned wave,bool delayed_completion=false,
+    bool priority_supported=true){
   ++scenarios;++successes;State state(source,wave);state.properties.maxGridSize[0]=2;
+  state.priority_supported=priority_supported;
   if(delayed_completion)state.fault="reuse-completion-refresh";
   const auto c=reused_compute(state);verify_uniform_lz4_candidates(source.batch,c);
   const auto count=[&](const char* name){return std::count(state.calls.begin(),state.calls.end(),name);};
@@ -381,7 +392,8 @@ void reused_success(const UniformLz4Request& source,unsigned wave,bool delayed_c
       "reused sweep repeated setup or resource lifetime");
   require(count("launch")==windows && count("wait")==windows && count("upload")==windows &&
       count("readback")==windows && count("reuse-complete")==windows && state.property_queries==2 &&
-      state.priority_queries==2 && state.source_offset==source.batch.plaintext().size() &&
+      state.priority_queries==(priority_supported?2U:0U) &&
+      state.source_offset==source.batch.plaintext().size() &&
       !state.allocated && !state.stream_live,"reused sweep incomplete coverage/admission/retirement");
   require(state.completion_samples==windows+delayed_completion,"reused completion sampled beyond its evidence");
   uniform_lz4::Layout quantum{};
@@ -503,14 +515,19 @@ int wmain(int argc,wchar_t** argv){try{
     require(refused.phase==WindowsGpuTopologyPhase::retire && !verified_single_gpu_node(refused,identity),
         "retired topology was reopened");
   }
-  if(!gpu_lz4_cpu_verification_available()){
+  const bool decoder_available=gpu_lz4_cpu_verification_available();
+  bool nonblocking_sweep_verified=false;
+  if(!decoder_available){
     State state(source);refused(state,HipWorkerExit::unsupported_configuration);
     require(state.calls.empty(),"raw uniform refusal touched runtime");
     State reused(source);reused_refused(reused,HipWorkerExit::unsupported_configuration);
     require(reused.calls.empty(),"raw reused sweep touched runtime");
   }else{
     success(source,32);success(source,64);success(request(1),32);
-    reused_success(source,32);reused_success(source,64);reused_success(request(16U*65536),32);reused_success(request(1),32);
+    reused_success(source,32);
+    reused_success(source,64,false,false);
+    nonblocking_sweep_verified=true;
+    reused_success(request(16U*65536),32);reused_success(request(1),32);
     reused_success(source,32,true);
     repeated_preparation(source,PreparedFollowup::same_size);
     repeated_preparation(source,PreparedFollowup::decline);
@@ -756,7 +773,8 @@ int wmain(int argc,wchar_t** argv){try{
       child.exit_code==0 && child.peak_committed_bytes<=128ULL*1024*1024,"uniform guarded child retirement");
   std::cout<<"HIP uniform LZ4 CPU qualification: {\"checks\":"<<checks<<",\"scenarios\":"<<scenarios
       <<",\"successes\":"<<successes<<",\"refusals\":"<<refusals
-      <<",\"decoder_available\":"<<(gpu_lz4_cpu_verification_available()?"true":"false")
+      <<",\"decoder_available\":"<<(decoder_available?"true":"false")
+      <<",\"nonblocking_sweep_verified\":"<<(nonblocking_sweep_verified?"true":"false")
       <<",\"guarded_exit_confirmed\":true,\"hip_runtime_loaded\":false,\"gpu_executed\":false,\"complete\":true}\n";
   return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}
