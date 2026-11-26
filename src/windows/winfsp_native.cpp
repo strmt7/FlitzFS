@@ -53,6 +53,16 @@ std::unique_ptr<detail::NativeSealScratch> try_locked_seal_scratch(std::uint64_t
     return std::make_unique<LockedSealScratch>(bytes,storage);
   }catch(const std::exception&){return {};}
 }
+std::uint64_t paired_seal_memory_allowance(const NativeMaintenanceObservation& observed) noexcept {
+  if(!MemoryVolumeDomain::lease_available())return 0;
+  const auto allowance=detail::maintenance_memory_allowance(observed,NativeMaintenancePolicy{});
+  if(!allowance || *allowance<=indexed_transaction_scratch)return 0;
+  try {
+    const auto usable=usable_memory_volume_headroom({observed.physical_total,
+        observed.physical_available,observed.commit_limit,observed.commit_available});
+    return (std::min)(*allowance-indexed_transaction_scratch,usable);
+  }catch(const std::exception&){return 0;}
+}
 NativeFileInfoAllocation file_info_policy(NativeImageKind kind) noexcept {
   return kind==NativeImageKind::indexed_paged?indexed_file_info:legacy_file_info;
 }
@@ -352,6 +362,7 @@ struct WinFspNativeWritable::Impl {
   std::optional<detail::VolumeFileProfile> file_profile;
   std::uint64_t last_indexed_observation=0,last_indexed_capture=0;
   std::uint64_t range_retirement_capture=0,packed_tail_retirement_capture=0;
+  std::optional<std::uint64_t> refused_private_seal_input;
   bool maintenance_cancelled=false,scrub_yield=false,directory_backfill_yield=false,paired_seal_memory=false;
   std::atomic<bool> callbacks_bound{false};
   StoreIdentity identity{};UINT64 created=0;UINT32 serial=0;
@@ -447,6 +458,24 @@ struct WinFspNativeWritable::Impl {
   }
   static NativeVolumeReclaimMode file_reclaim_mode(bool allow_cold) noexcept {
     return allow_cold?NativeVolumeReclaimMode::include_cold:NativeVolumeReclaimMode::release_backing;
+  }
+  std::optional<std::uint64_t> private_seal_candidate(NativeVolumeReclaimMode mode) const {
+    if(!paired_seal_memory || mode!=NativeVolumeReclaimMode::include_cold ||
+        !MemoryVolumeDomain::lease_available())return {};
+    const auto input=session.workload_info().committed_input_bytes;
+    if(!input || refused_private_seal_input==input)return {};
+    return input;
+  }
+  bool private_seal_pending(NativeVolumeReclaimMode mode) const {
+    if(!private_seal_candidate(mode))return false;
+    try {
+      const auto available=observe_memory_volume_headroom();
+      const NativeMaintenanceObservation observed{.physical_total=available.physical_total,
+          .physical_available=available.physical_available,.commit_limit=available.commit_total,
+          .commit_available=available.commit_available};
+      const auto memory=paired_seal_memory_allowance(observed);
+      return memory && session.persistent_reclamation_pending(mode,memory);
+    }catch(const std::exception&){return false;}
   }
   struct IndexedAdmission {
     NativeMaintenanceDeferral deferral;
@@ -544,8 +573,12 @@ struct WinFspNativeWritable::Impl {
     }
     const auto file_mode=shortening?shorten:file_reclaim_mode(allow_cold);
     const bool persistent=shortening || session.persistent_reclamation_pending(file_mode);
+    const auto allowance=paired_seal_memory && file_mode==NativeVolumeReclaimMode::include_cold?
+        paired_seal_memory_allowance(observed):0;
+    const auto private_input=!persistent && allowance && session.persistent_reclamation_pending(file_mode,allowance)?
+        private_seal_candidate(file_mode):std::nullopt;
     const bool memory=memory_backing && memory_backing->compaction_pending(session,allow_cold);
-    if(!repair && !reap && !discard_catalog && !persistent && !memory)return {State::unchanged};
+    if(!repair && !reap && !discard_catalog && !persistent && !private_input && !memory)return {State::unchanged};
     const auto admission=admit_indexed_opportunity(observed,now);
     if(persistent && paired_seal_memory && admission.memory && !observed.foreground_pending) {
       const auto retained=*admission.memory>=indexed_transaction_scratch?*admission.memory:0;
@@ -590,11 +623,14 @@ struct WinFspNativeWritable::Impl {
         return {State::unchanged};
       };
       if(repair_rotation && groups)groups->release_staged_groups();
-      if(persistent) {
-        detail::NativeSealScratchOffer scratch;
-        if(paired_seal_memory)scratch={*admission.memory-indexed_transaction_scratch,try_locked_seal_scratch};
+      if(persistent || private_input) {
+        const detail::NativeSealScratchOffer scratch{allowance,allowance?try_locked_seal_scratch:nullptr};
         const auto rebuild=session.idle_compaction_progress();
         const auto step=session.advance_persistent_reclamation(fresh_volume_identity,file_mode,scratch);
+        // A lock refusal with an otherwise funded quote must not keep the
+        // controller awake. New input can fund another attempt.
+        if(private_input && step==NativeVolumeReclaimProgress::idle && MemoryVolumeDomain::lease_available())
+          refused_private_seal_input=private_input;
         auto result=progress(step);
         result.file_reclamation=step;
         result.file_rebuild_entry=rebuild;
@@ -1380,15 +1416,17 @@ void WinFspNativeWritable::enable_paired_seal_memory() noexcept {
 }
 bool WinFspNativeWritable::background_maintenance_pending(bool scrub_due) const {
   std::unique_lock guard(impl_->control,std::try_to_lock);
-  // A busy control is not proof of quiescence. This cached query performs no
-  // storage I/O and also sees publications by the deferred service thread.
+  // A busy control is not proof of quiescence. This query performs no storage
+  // I/O and also sees publications by the deferred service thread.
   if(!guard)return true;
   if(impl_->maintenance_cancelled || requires_offline() || dispatcher_stopped() || impl_->session.poisoned())
     return false;
   const bool allow_cold=impl_->cold_compaction_allowed(scrub_due && impl_->session.indexed_payload_scrub_eligible());
+  const auto file_mode=Impl::file_reclaim_mode(allow_cold);
   return impl_->read_ahead_pending() || impl_->session.indexed_payload_repair_pending() ||
       (scrub_due && impl_->session.indexed_payload_scrub_eligible()) ||
-      impl_->session.retirement_pending() || impl_->session.persistent_reclamation_pending(Impl::file_reclaim_mode(allow_cold)) ||
+      impl_->session.retirement_pending() || impl_->session.persistent_reclamation_pending(file_mode) ||
+      impl_->private_seal_pending(file_mode) ||
       impl_->session.directory_backfill_pending() ||
       (impl_->memory_backing && (impl_->memory_backing->coherence_retirement_pending() ||
       impl_->memory_backing->compaction_pending(impl_->session,allow_cold))) ||

@@ -142,18 +142,24 @@ void append(std::vector<std::byte>& bytes,std::uint64_t value) {
   for(unsigned i=0;i<8;++i)bytes.push_back(static_cast<std::byte>(value>>(8*i)));
 }
 }
-std::optional<detail::MaintenanceResources> detail::maintenance_resources(
-    const NativeMaintenanceObservation& observed,std::uint64_t now_ms,const NativeMaintenancePolicy& policy) noexcept {
-  if(!observed.valid || observed.captured_ms>now_ms || now_ms-observed.captured_ms>policy.maximum_age_ms ||
-      !observed.physical_total || observed.physical_available>observed.physical_total ||
-      !observed.commit_limit || observed.commit_available>observed.commit_limit || !observed.cpu_total_ticks ||
-      observed.cpu_busy_ticks>observed.cpu_total_ticks || !observed.cpu_window_ms ||
-      observed.cpu_window_ms>policy.maximum_cpu_window_ms || observed.cpu_window_ms>observed.captured_ms ||
+std::optional<std::uint64_t> detail::maintenance_memory_allowance(
+    const NativeMaintenanceObservation& observed,const NativeMaintenancePolicy& policy) noexcept {
+  if(!observed.physical_total || observed.physical_available>observed.physical_total ||
+      !observed.commit_limit || observed.commit_available>observed.commit_limit ||
       !policy.memory_share_divisor)return {};
   const auto physical_reserve=observed.physical_total/16,commit_reserve=observed.commit_limit/16;
   const auto physical=observed.physical_available>physical_reserve?observed.physical_available-physical_reserve:0;
   const auto commit=observed.commit_available>commit_reserve?observed.commit_available-commit_reserve:0;
-  return MaintenanceResources{(std::min)(physical,commit)/policy.memory_share_divisor,
+  return (std::min)(physical,commit)/policy.memory_share_divisor;
+}
+std::optional<detail::MaintenanceResources> detail::maintenance_resources(
+    const NativeMaintenanceObservation& observed,std::uint64_t now_ms,const NativeMaintenancePolicy& policy) noexcept {
+  if(!observed.valid || observed.captured_ms>now_ms || now_ms-observed.captured_ms>policy.maximum_age_ms ||
+      !observed.cpu_total_ticks || observed.cpu_busy_ticks>observed.cpu_total_ticks || !observed.cpu_window_ms ||
+      observed.cpu_window_ms>policy.maximum_cpu_window_ms || observed.cpu_window_ms>observed.captured_ms)return {};
+  const auto memory=maintenance_memory_allowance(observed,policy);
+  if(!memory)return {};
+  return MaintenanceResources{*memory,
       observed.cpu_busy_ticks>fraction(observed.cpu_total_ticks,policy.maximum_cpu_busy_ppm)};
 }
 std::size_t detail::maintenance_group_member_limit(const MaintenanceResources& resources,bool indexed) noexcept {

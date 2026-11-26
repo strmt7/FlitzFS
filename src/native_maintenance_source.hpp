@@ -8,6 +8,8 @@ struct MaintenanceResources {
   std::uint64_t memory_allowance=0;
   bool cpu_busy=false;
 };
+std::optional<std::uint64_t> maintenance_memory_allowance(const NativeMaintenanceObservation&,
+    const NativeMaintenancePolicy&) noexcept;
 // Sequence/capture ordering belongs to the serialized opportunity consumer.
 std::optional<MaintenanceResources> maintenance_resources(const NativeMaintenanceObservation&,
     std::uint64_t now_ms,const NativeMaintenancePolicy&) noexcept;

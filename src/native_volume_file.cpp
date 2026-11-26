@@ -274,9 +274,11 @@ NativeVolumeFileReclaimer::NativeVolumeFileReclaimer(std::shared_ptr<StoreByteIo
     head_(std::move(head)),active_(std::move(active)),spare_(std::move(spare)),catalog_(std::move(catalog)),
     phase_(recover_spare?Phase::retiring:Phase::idle) {}
 
-bool NativeVolumeFileReclaimer::pending(const NativeFileSession& session,NativeVolumeReclaimMode mode) const {
+bool NativeVolumeFileReclaimer::pending(const NativeFileSession& session,NativeVolumeReclaimMode mode,
+    std::uint64_t private_workspace_bytes) const {
   if(mode==NativeVolumeReclaimMode::shorten_packed_tail)return dense_work_pending(session,mode);
-  if(image_work_pending(session,mode==NativeVolumeReclaimMode::include_cold) || dense_work_pending(session,mode))return true;
+  if(image_work_pending(session,mode==NativeVolumeReclaimMode::include_cold,private_workspace_bytes) ||
+      dense_work_pending(session,mode))return true;
   if(!catalog_)return false;
   std::optional<OptimizationCatalogSelection> selected;
   const auto sequence=session.catalog_retirement_selection(selected);
@@ -294,7 +296,8 @@ bool NativeVolumeFileReclaimer::dense_work_pending(const NativeFileSession& sess
     return dense->tail_shorten_pending(retirement_quantum) && !image_work_pending(session,false);
   return dense->tail_work_pending(retirement_quantum);
 }
-bool NativeVolumeFileReclaimer::image_work_pending(const NativeFileSession& session,bool allow_cold) const {
+bool NativeVolumeFileReclaimer::image_work_pending(const NativeFileSession& session,bool allow_cold,
+    std::uint64_t private_workspace_bytes) const {
   if(phase_==Phase::retiring)
     return scratch_ || spare_.use_count()==1 ||
         active_->owner->reclamation_wake.load(std::memory_order_acquire).expired();
@@ -307,8 +310,8 @@ bool NativeVolumeFileReclaimer::image_work_pending(const NativeFileSession& sess
   const auto obsolete=space.obsolete_bytes;
   return (obsolete>attempted_obsolete_ && obsolete-attempted_obsolete_>=abandoned_bytes_ &&
       space.reclamation_worthwhile()) ||
-      (allow_cold && (session.idle_cold_compaction_pending() || session.idle_seal_funded(
-          projected_seal_writes(session.volume_info().selection,space.total_bytes-space.free_bytes))));
+      (allow_cold && (session.idle_cold_compaction_pending() || funded_seal_plans(
+          session,space.total_bytes-space.free_bytes,private_workspace_bytes).available()));
 }
 bool NativeVolumeFileReclaimer::seal_preparation_pending(const NativeFileSession& session) const noexcept {
   return seal_ && seal_->source_current(session) && seal_->can_continue_preparation();
@@ -316,31 +319,44 @@ bool NativeVolumeFileReclaimer::seal_preparation_pending(const NativeFileSession
 std::uint64_t NativeVolumeFileReclaimer::projected_seal_writes(
     const NativeVolumeSelection& selected,std::uint64_t occupied) const noexcept {
   if(!cold_target_available())return 0;
-  try {
-    const auto plan=seal_plan(selected,occupied);
-    return plan?plan->writes:0;
-  }catch(const std::exception&){return 0;}
+  const auto plan=seal_plan(selected,occupied);
+  return plan?plan->writes:0;
 }
 std::optional<NativeVolumeFileReclaimer::SealPlan> NativeVolumeFileReclaimer::seal_plan(
-    const NativeVolumeSelection& selected,std::uint64_t occupied,std::uint64_t private_workspace_bytes) const {
-  if(selected.sealed_range)return std::nullopt;
-  const auto contract=spare_->contract();
-  const auto workspace_allowance=private_workspace_bytes/kStoreCommitUnit*kStoreCommitUnit;
-  const auto fitted=NativeHybridBacking::workspace_capacity(
-      selected.volume_identity,contract,occupied,spare_->capacity,workspace_allowance);
-  if(fitted<=kVolumeHeadBytes)return std::nullopt;
-  // The workspace region consumes whole commit units. Reserve the unit
-  // containing the last fitted byte, then price the aligned allocation.
-  const auto workspace=(1+(fitted-1)/kStoreCommitUnit)*kStoreCommitUnit;
-  const auto base=ProtectedStripeImage::projected_occupied(selected.volume_identity,workspace,
-      contract.write_failure_unit_bytes,spare_->capacity);
-  const auto staging=workspace+base+kNativeHybridTailPrefixBytes;
-  // Include overwritten roots and binding records as well as final staging
-  // allocation. Charge before writing any candidate bytes.
-  const auto writes=staging+kVolumeHeadBytes;
-  const auto backing_bytes=workspace_allowance?base+kNativeHybridTailPrefixBytes:staging;
-  if(backing_bytes>spare_->capacity)return std::nullopt;
-  return SealPlan{workspace,staging,writes};
+    const NativeVolumeSelection& selected,std::uint64_t occupied,std::uint64_t private_workspace_bytes) const noexcept {
+  try {
+    if(selected.sealed_range)return {};
+    const auto contract=spare_->contract();
+    const auto allowance=private_workspace_bytes/kStoreCommitUnit*kStoreCommitUnit;
+    if(private_workspace_bytes && !allowance)return {};
+    const auto fitted=NativeHybridBacking::workspace_capacity(
+        selected.volume_identity,contract,occupied,spare_->capacity,allowance);
+    if(fitted<=kVolumeHeadBytes)return {};
+    // Reserve the whole unit that contains the last fitted workspace byte.
+    const auto workspace=(1+(fitted-1)/kStoreCommitUnit)*kStoreCommitUnit;
+    const auto base=ProtectedStripeImage::projected_occupied(selected.volume_identity,workspace,
+        contract.write_failure_unit_bytes,spare_->capacity);
+    const auto staging=workspace+base+kNativeHybridTailPrefixBytes;
+    const auto backing=allowance?base+kNativeHybridTailPrefixBytes:staging;
+    if(backing>spare_->capacity)return {};
+    // Include overwritten roots and binding records in the selected charge.
+    return SealPlan{workspace,staging,backing,backing+kVolumeHeadBytes};
+  }catch(const std::exception&){return {};}
+}
+NativeVolumeFileReclaimer::SealPlans NativeVolumeFileReclaimer::funded_seal_plans(
+    const NativeFileSession& session,std::uint64_t occupied,std::uint64_t private_workspace_bytes) const {
+  SealPlans plans;
+  if(!cold_target_available())return plans;
+  const auto selection=session.volume_info().selection;
+  plans.file=seal_plan(selection,occupied);
+  if(plans.file && !session.idle_seal_funded(plans.file->writes))plans.file.reset();
+  if(private_workspace_bytes) {
+    plans.private_memory=seal_plan(selection,occupied,private_workspace_bytes);
+    if(plans.private_memory && (!session.idle_seal_funded(plans.private_memory->writes) ||
+        (plans.file && plans.private_memory->workspace<plans.file->workspace)))
+      plans.private_memory.reset();
+  }
+  return plans;
 }
 void NativeVolumeFileReclaimer::bind_wake(const std::shared_ptr<NativeVolumeRangeWake>& wake) noexcept {
   active_->owner->reclamation_wake.store(wake,std::memory_order_release);
@@ -435,37 +451,33 @@ bool NativeVolumeFileReclaimer::shed_scratch(std::uint64_t retained_bytes) noexc
   }
   return true;
 }
-Progress NativeVolumeFileReclaimer::begin_seal(NativeFileSession& session,StoreIdentity identity,
-    SealPlan plan,std::uint64_t occupied,NativeSealScratchOffer offer) {
+Progress NativeVolumeFileReclaimer::begin_seal(NativeFileSession& session,const std::function<StoreIdentity()>& next_identity,
+    const SealPlans& plans,NativeSealScratchOffer offer) {
   const auto current=session.volume_info();
   check_inactive(current);
   const auto destination=spare_->contract();
-  const auto private_plan=offer.create && plan.workspace<=offer.bytes?
-      seal_plan(current.selection,occupied,offer.bytes):std::nullopt;
-  auto scratch=private_plan && private_plan->workspace>=plan.workspace &&
-      session.idle_seal_funded(private_plan->writes-private_plan->workspace)?
-      offer.create(private_plan->workspace,destination):nullptr;
+  auto scratch=plans.private_memory?offer.create(plans.private_memory->workspace,destination):nullptr;
   if(scratch) {
     constexpr auto root_unit=static_cast<std::uint32_t>(detail::kPagedStoreCheckpointWriteBytes/2);
     const auto& store=scratch->store();
     const auto contract=store?store->contract():StoreIoContract{};
     if(!valid_store_io_contract(contract) || (std::max)(root_unit,contract.write_failure_unit_bytes)!=
         (std::max)(root_unit,destination.write_failure_unit_bytes))scratch.reset();
-    else plan=*private_plan;
   }
-  const auto private_bytes=scratch?plan.workspace:0;
+  const auto& plan=scratch?plans.private_memory:plans.file;
+  if(!plan)return Progress::idle;
+  const auto identity=next_identity();
   const auto& file=*spare_->owner;
-  const auto staging=plan.staging-private_bytes;
-  const auto end=scratch?staging:spare_->capacity;
-  file.ranges->admit_range_write((std::max)(file.backing->extent(),spare_->offset+end),staging);
-  if(!session.reserve_idle_seal(plan.writes-private_bytes))return Progress::idle;
+  const auto end=scratch?plan->backing:spare_->capacity;
+  file.ranges->admit_range_write((std::max)(file.backing->extent(),spare_->offset+end),plan->backing);
+  if(!session.reserve_idle_seal(plan->writes))return Progress::idle;
   phase_=Phase::copying;
   if(scratch) {
     scratch_=std::move(scratch);
-    scratch_bytes_=private_bytes;
-  }else workspace_=NativeVolumeFile::Region::slice(spare_,spare_->capacity-plan.workspace,plan.workspace,0);
+    scratch_bytes_=plan->workspace;
+  }else workspace_=NativeVolumeFile::Region::slice(spare_,spare_->capacity-plan->workspace,plan->workspace,0);
   seal_.emplace(NativeHybridBacking::prepare_impl(session,scratch_?scratch_->store():workspace_,destination,identity,
-      spare_->capacity,plan.staging,{},true));
+      spare_->capacity,plan->staging,{},true));
   return Progress::copying;
 }
 Progress NativeVolumeFileReclaimer::advance_seal(NativeFileSession& session) {
@@ -530,7 +542,8 @@ Progress NativeVolumeFileReclaimer::advance(NativeFileSession& session,const std
   if(mode==NativeVolumeReclaimMode::shorten_packed_tail)
     return dense_work_pending(session,mode)?advance_dense(session.volume_info()):Progress::idle;
   const auto allow_cold=mode==NativeVolumeReclaimMode::include_cold;
-  const bool image_pending=image_work_pending(session,allow_cold);
+  const auto workspace=scratch.create?scratch.bytes:0;
+  const bool image_pending=image_work_pending(session,allow_cold,workspace);
   if(catalog_ && (!image_pending || (phase_==Phase::idle && !identity) ||
       (phase_==Phase::retiring && spare_.use_count()!=1))) {
     std::optional<OptimizationCatalogSelection> selected;
@@ -565,8 +578,7 @@ Progress NativeVolumeFileReclaimer::advance(NativeFileSession& session,const std
       if(!reclaim && allow_cold && !session.idle_cold_compaction_pending()) {
         const auto space=session.indexed_volume_space();
         const auto occupied=space.total_bytes-space.free_bytes;
-        const auto plan=seal_plan(session.volume_info().selection,occupied);
-        return plan?begin_seal(session,identity(),*plan,occupied,scratch):Progress::idle;
+        return begin_seal(session,identity,funded_seal_plans(session,occupied,workspace),scratch);
       }
       auto rewrite=reclaim?PagedRewriteMode::reconcile_foreground:PagedRewriteMode::cold_compression;
       if(reclaim && mode==NativeVolumeReclaimMode::pack_short_inodes && !packed_copy_attempted_ &&

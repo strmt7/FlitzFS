@@ -693,6 +693,9 @@ if(FLITZFS_BUILD_TESTS)
   add_test(NAME bounded_native_volume_file_near_full_seal
     COMMAND flitzfs_native_volume_file_tests --near-full-seal)
   set_tests_properties(bounded_native_volume_file_near_full_seal PROPERTIES TIMEOUT 60)
+  add_test(NAME bounded_native_volume_file_private_seal_credit
+    COMMAND flitzfs_native_volume_file_tests --private-seal-credit)
+  set_tests_properties(bounded_native_volume_file_private_seal_credit PROPERTIES TIMEOUT 60)
   add_test(NAME bounded_native_volume_file_sealed_ranges
     COMMAND flitzfs_native_volume_file_tests --sealed-ranges)
   set_tests_properties(bounded_native_volume_file_sealed_ranges PROPERTIES TIMEOUT 145)

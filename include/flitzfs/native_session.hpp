@@ -274,7 +274,7 @@ class NativeFileSession final {
   // One admitted idle opportunity. The identity source is invoked only when
   // starting a new image. These operations use the session's control thread.
   bool persistent_reclamation_pending(bool allow_cold=false) const;
-  bool persistent_reclamation_pending(NativeVolumeReclaimMode) const;
+  bool persistent_reclamation_pending(NativeVolumeReclaimMode,std::uint64_t private_workspace_bytes=0) const;
   // A subsequent bounded release can only operate on the unpinned inactive image.
   bool inactive_image_retirement_ready() const noexcept;
   NativeVolumeReclaimProgress advance_persistent_reclamation(const std::function<StoreIdentity()>&,

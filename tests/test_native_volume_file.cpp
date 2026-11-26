@@ -1909,7 +1909,7 @@ void stage_file_seal(NativeFileSession& session,StoreIdentity next,detail::Nativ
   throw std::runtime_error("paired sealing exceeded the fixture's advance limit");
 }
 
-void near_full_volatile_seal(bool expect_success) {
+void near_full_volatile_seal(bool expect_success,bool private_credit=false) {
   constexpr auto unit=4096U;
   constexpr PagedStoreLimits limits{6ULL*1024*1024};
   constexpr auto slot=limits.maximum_physical_bytes;
@@ -1917,15 +1917,16 @@ void near_full_volatile_seal(bool expect_success) {
   constexpr auto spare=active+slot;
   const auto volume=id(78),first=id(79),second=id(80);
   const auto payload=data(2'861'348,167);
-  const Bytes sparse(2*1024*1024);
+  const Bytes sparse(private_credit?256*1024:2*1024*1024);
   auto seed=std::make_shared<SparseVolumeRam>(unit,2*slot+2*1024*1024);
   {
     auto session=NativeVolumeFile::create(seed,volume,first,limits,raw);
     put(session,"payload",payload);
     put(session,"witness",witness_bytes);
     put(session,"sparse",sparse);
-    require(!session.persistent_reclamation_pending() && session.persistent_reclamation_pending(true),
-        "bounded near-full fixture did not fund parity sealing");
+    require(!session.persistent_reclamation_pending() &&
+        session.persistent_reclamation_pending(true)==!private_credit,
+        "near-full fixture did not isolate the intended seal credit");
   }
   const auto verify=[&](const NativeFilesystemSnapshot& snapshot) {
     snapshot.verify_all();
@@ -1941,6 +1942,20 @@ void near_full_volatile_seal(bool expect_success) {
       auto session=NativeVolumeFile::resume(io,volume,raw);
       std::optional<NativeFilesystemSnapshot> pinned(session.snapshot());
       const auto offer=offered?detail::NativeSealScratchOffer{slot,model_seal_scratch}:detail::NativeSealScratchOffer{};
+      if(private_credit && offered && expect_success) {
+        constexpr auto cold=NativeVolumeReclaimMode::include_cold;
+        const auto writes=io->io.write_bytes;
+        const auto settled=session.optimization_info().settled_input_bytes;
+        unsigned identities=0;
+        const detail::NativeSealScratchOffer declined{slot,
+            [](std::uint64_t,StoreIoContract) noexcept -> std::unique_ptr<detail::NativeSealScratch> {return {};}};
+        require(session.persistent_reclamation_pending(cold,slot) &&
+            !session.persistent_reclamation_pending(cold,kStoreCommitUnit-1),
+            "only a fitting private allocation should make sealing due");
+        require(session.advance_persistent_reclamation([&]{++identities;return second;},cold,declined)==Reclaim::idle &&
+            !identities && io->io.write_bytes==writes && session.optimization_info().settled_input_bytes==settled &&
+            session.persistent_reclamation_pending(cold,slot),"refused scratch charged or wrote persistent state");
+      }
       auto step=session.advance_persistent_reclamation([&]{return second;},true,offer);
       for(unsigned i=0;step==Reclaim::copying;++i) {
         require(i<4096,"near-full sealing exceeded its step budget");
@@ -1967,7 +1982,8 @@ void near_full_volatile_seal(bool expect_success) {
     require(bool(reopened.info().selection.sealed_range)==sealed,"CPU reopen disagreed with settled selection");
     if(!offered)require(!sealed && io->occupied()==original,"file workspace unexpectedly fit the near-full range");
     if(offered && expect_success)require(sealed && io->occupied()<original,"admitted memory workspace did not seal");
-    std::cout<<"near_full_seal offered="<<offered<<" sealed="<<sealed<<" slot_bytes="<<slot
+    std::cout<<"near_full_seal offered="<<offered<<" private_credit="<<private_credit
+        <<" sealed="<<sealed<<" slot_bytes="<<slot
         <<" source_bytes="<<original<<" settled_bytes="<<io->occupied()
         <<" released_scratch="<<!scratch_leases<<" cpu_exact=1\n";
   }
@@ -3029,6 +3045,12 @@ int main(int argc,char** argv){
         std::string_view(argv[1])=="--profile-near-full-seal")) {
       near_full_volatile_seal(std::string_view(argv[1])=="--near-full-seal");
       std::cout<<"PASS: "<<checks<<" near-full seal checks\n";
+      return 0;
+    }
+    if(argc==2 && (std::string_view(argv[1])=="--private-seal-credit" ||
+        std::string_view(argv[1])=="--profile-private-seal-credit")) {
+      near_full_volatile_seal(std::string_view(argv[1])=="--private-seal-credit",true);
+      std::cout<<"PASS: "<<checks<<" private seal credit checks\n";
       return 0;
     }
     if(argc==2 && std::string_view(argv[1])=="--sealed-ranges") {

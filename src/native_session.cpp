@@ -920,8 +920,10 @@ bool NativeFileSession::persistent_reclamation_pending(bool allow_cold) const {
   return persistent_reclamation_pending(
       allow_cold?NativeVolumeReclaimMode::include_cold:NativeVolumeReclaimMode::logical_only);
 }
-bool NativeFileSession::persistent_reclamation_pending(NativeVolumeReclaimMode mode) const {
-  return !poisoned() && impl_->persistent_reclaimer && impl_->persistent_reclaimer->pending(*this,mode);
+bool NativeFileSession::persistent_reclamation_pending(
+    NativeVolumeReclaimMode mode,std::uint64_t private_workspace_bytes) const {
+  return !poisoned() && impl_->persistent_reclaimer &&
+      impl_->persistent_reclaimer->pending(*this,mode,private_workspace_bytes);
 }
 bool NativeFileSession::inactive_image_retirement_ready() const noexcept {
   return !poisoned() && impl_->persistent_reclaimer && impl_->persistent_reclaimer->inactive_image_retirement_ready();

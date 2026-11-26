@@ -38,6 +38,7 @@ class MemoryVolumeDomain final {
   // Success permanently denies writes and new stores across every alias.
   void seal_read_only();
   static bool cleanup_healthy() noexcept;
+  static bool lease_available() noexcept;
   ~MemoryVolumeDomain();
   MemoryVolumeDomain(MemoryVolumeDomain&&) noexcept;
   MemoryVolumeDomain(const MemoryVolumeDomain&)=delete;

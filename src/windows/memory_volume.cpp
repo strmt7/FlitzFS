@@ -297,4 +297,5 @@ void MemoryVolumeDomain::seal_read_only(const NativeHybridBacking* active,const 
   state_->read_only.store(true,std::memory_order_release);
 }
 bool MemoryVolumeDomain::cleanup_healthy() noexcept {return cleanup_ok.load();}
+bool MemoryVolumeDomain::lease_available() noexcept {return cleanup_ok.load() && !domain_claimed.load();}
 } // namespace flitzfs

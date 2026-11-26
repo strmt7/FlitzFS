@@ -5,13 +5,13 @@
   "current_release_sequence": {
     "current_reconciliation": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
     "latest_optional_hip_stream_priority": "docs/evidence/windows-hip-optional-streams-2026-11-26.json",
+    "latest_private_seal_credit": "docs/evidence/windows-private-seal-credit-2026-11-26.json",
     "ordered_implementation": "docs/RELEASE_RECONCILIATION_2026-11-26.md#detailed-implementation-order",
     "latest_independent_seal_workspace": "docs/evidence/windows-independent-seal-workspace-2026-11-26.json",
     "tested_independent_seal_workspace_tree": "790912f42c849b0a84a62e2c610c97d2a5206b4f",
     "immediate_work": [
-      "Verify live native compression with the rebuilt nonblocking-stream worker when fresh device headroom permits",
-      "Measure ordinary Windows AMD work and CPU continuity with the populated client witness",
-      "Measure parity publication phases and unify workspace allowance and backing write admission",
+      "Measure ordinary Windows AMD reads and writes with the populated client witness, including retained startup cost and CPU continuity",
+      "Measure parity publication phases and decide where direct sealing can remove workspace I/O",
       "Preserve writable admission invariants while bounding normal attach work",
       "Compare the held-out complete protected size and the real Windows access envelope"
     ],

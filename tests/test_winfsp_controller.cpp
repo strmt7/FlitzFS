@@ -4367,7 +4367,7 @@ struct PairedWorkspaceResult {
   std::uint64_t written=0,allocated=0;
 };
 PairedWorkspaceResult volume_file_sealed_callbacks(PairedWorkspaceFixture workspace=PairedWorkspaceFixture::file,
-    std::uint32_t unit=4096,bool near_full=false) {
+    std::uint32_t unit=4096,bool near_full=false,bool private_credit=false) {
   const PagedStoreLimits limits{(near_full?6ULL:unit==4096?8ULL:16ULL)*1024*1024};
   constexpr StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
   auto backing=std::make_shared<SparseVolumeRam>(unit,2*limits.maximum_physical_bytes+2*1024*1024);
@@ -4376,6 +4376,7 @@ PairedWorkspaceResult volume_file_sealed_callbacks(PairedWorkspaceFixture worksp
     occupied_domain.emplace(MemoryVolumeDomain::create(kStoreCommitUnit));
   auto expected=data(2'861'348,167);
   std::uint64_t attempted_backing_writes=0;
+  unsigned other_steps=0;
   constexpr auto edit_at=kNativeExtentBytes-13;
   Provider provider;Provider::active=&provider;
   {
@@ -4385,7 +4386,7 @@ PairedWorkspaceResult volume_file_sealed_callbacks(PairedWorkspaceFixture worksp
     require(session.start(plan())==STATUS_SUCCESS,"paired seal SDK fixture could not start");
     const auto write_quantum=near_full?kNativeMaxReadBytes:kStoreMaxObjectBytes;
     callback_file(provider,0,expected,write_quantum);
-    callback_file(provider,1,Bytes((unit==4096?2U:3U)*1024*1024),write_quantum);
+    callback_file(provider,1,Bytes(private_credit?kStoreCommitUnit:(unit==4096?2U:3U)*1024*1024),write_quantum);
     if(unit!=4096)callback_file(provider,2,Bytes(3U*1024*1024),kStoreMaxObjectBytes);
     wchar_t name[]=L"\\f0";
     PVOID context=nullptr;FSP_FSCTL_FILE_INFO metadata{};
@@ -4400,6 +4401,35 @@ PairedWorkspaceResult volume_file_sealed_callbacks(PairedWorkspaceFixture worksp
     observed.valid=true;observed.physical_total=16ULL<<30;observed.physical_available=12ULL<<30;
     observed.commit_limit=32ULL<<30;observed.commit_available=24ULL<<30;
     observed.cpu_total_ticks=1000;observed.cpu_window_ms=1000;
+    if(private_credit) {
+      {
+        auto control=NativeVolumeFile::resume(backing->replay(),id(90),raw);
+        require(!control.persistent_reclamation_pending(true) &&
+            control.persistent_reclamation_pending(NativeVolumeReclaimMode::include_cold,limits.maximum_physical_bytes),
+            "callback input did not isolate private seal credit");
+      }
+      if(occupied_domain) {
+        // The callback fixture also owns advisory work. Let it settle while
+        // the scratch lease is held and verify that it cannot start sealing.
+        for(;session.background_maintenance_pending() && other_steps<256;++other_steps) {
+          ++observed.sequence;observed.captured_ms+=observed.cpu_window_ms;
+          const auto pending=session.advance_background_maintenance(observed,observed.captured_ms);
+          require(!pending.sealed_image && !pending.compaction_failed &&
+              pending.file_reclamation==NativeVolumeReclaimProgress::idle,
+              "busy scratch lease admitted a private seal");
+        }
+        require(!session.background_maintenance_pending(),"busy scratch lease kept the settled controller awake");
+        occupied_domain.reset();
+      }
+      require(session.background_maintenance_pending(),"private-only seal did not wake after a lease became available");
+      ++observed.sequence;observed.captured_ms+=observed.cpu_window_ms;
+      auto low=observed;
+      low.physical_available=low.physical_total/16;
+      const auto before_pressure=backing->io.write_bytes;
+      const auto refused=session.advance_background_maintenance(low,low.captured_ms);
+      require(!refused.sealed_image && !refused.compaction_failed &&
+          backing->io.write_bytes==before_pressure,"staging under memory pressure changed the backing");
+    }
     const auto before_writes=backing->io.write_bytes;
     bool selected=false;
     WinFspMaintenanceResult last;
@@ -4413,7 +4443,7 @@ PairedWorkspaceResult volume_file_sealed_callbacks(PairedWorkspaceFixture worksp
     if(!selected)std::cerr<<"paired SDK seal unit="<<unit<<" workspace="<<static_cast<unsigned>(workspace)
         <<" phase="<<static_cast<unsigned>(last.progress.phase)<<" deferral="<<static_cast<unsigned>(last.progress.deferral)<<'\n';
     require(selected,"ordinary SDK maintenance did not select a funded sealed image");
-    require(bool(backing->range_reclaims)==(workspace!=PairedWorkspaceFixture::locked_memory),
+    require(bool(backing->range_reclaims)==(!private_credit && workspace!=PairedWorkspaceFixture::locked_memory),
         "sealed SDK fixture did not place scratch on the admitted provider");
     attempted_backing_writes=backing->io.write_bytes-before_writes;
     auto edit=data(3001,913);
@@ -4437,7 +4467,8 @@ PairedWorkspaceResult volume_file_sealed_callbacks(PairedWorkspaceFixture worksp
   }
   const auto allocated=backing->occupied();
   std::cout<<"paired_sealed_sdk selected=1 held_context=1 stored_tail_edit=1 independent_cpu_reopen=1"
-      <<" workspace="<<static_cast<unsigned>(workspace)<<" unit="<<unit
+      <<" workspace="<<static_cast<unsigned>(workspace)<<" private_credit="<<private_credit<<" unit="<<unit
+      <<" other_steps="<<other_steps
       <<" slot_bytes="<<limits.maximum_physical_bytes<<" attempted_backing_write_bytes="
       <<attempted_backing_writes<<" allocated_bytes="<<allocated<<" memory_lease_retired=1\n";
   return {attempted_backing_writes,allocated};
@@ -5170,6 +5201,11 @@ int main(int argc,char** argv){try {
       profile_automatic_sealed_read || profile_paired_sealed_read);DWORD before=0,after=0;
   if(argc==2 && std::string_view(argv[1])=="--paired-near-full-seal") {
     (void)volume_file_sealed_callbacks(PairedWorkspaceFixture::locked_memory,4096,true);
+    return 0;
+  }
+  if(argc==2 && std::string_view(argv[1])=="--paired-private-seal-credit") {
+    (void)volume_file_sealed_callbacks(PairedWorkspaceFixture::locked_memory,4096,true,true);
+    (void)volume_file_sealed_callbacks(PairedWorkspaceFixture::denied_memory,4096,true,true);
     return 0;
   }
   if(argc==2 && std::string_view(argv[1])=="--paired-seal-workspaces") {

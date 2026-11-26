@@ -29,7 +29,7 @@ class NativeVolumeFileReclaimer final {
       std::shared_ptr<NativeVolumeFile::Region> active,
       std::shared_ptr<NativeVolumeFile::Region> spare,bool recover_spare,
       std::shared_ptr<NativeVolumeFile::CatalogRanges> catalog);
-  bool pending(const NativeFileSession&,NativeVolumeReclaimMode) const;
+  bool pending(const NativeFileSession&,NativeVolumeReclaimMode,std::uint64_t private_workspace_bytes) const;
   bool inactive_image_retirement_ready() const noexcept {
     return phase_==Phase::retiring && !scratch_ && spare_.use_count()==1;
   }
@@ -49,13 +49,19 @@ class NativeVolumeFileReclaimer final {
  private:
   friend struct NativeVolumeFile::Regions;
   enum class Phase {idle,copying,ready,retiring,uncertain,failed};
-  struct SealPlan {std::uint64_t workspace,staging,writes;};
-  bool image_work_pending(const NativeFileSession&,bool allow_cold) const;
+  struct SealPlan {std::uint64_t workspace,staging,backing,writes;};
+  struct SealPlans {
+    std::optional<SealPlan> file,private_memory;
+    bool available() const noexcept {return file || private_memory;}
+  };
+  bool image_work_pending(const NativeFileSession&,bool allow_cold,std::uint64_t private_workspace_bytes=0) const;
   bool dense_work_pending(const NativeFileSession&,NativeVolumeReclaimMode) const;
   std::optional<SealPlan> seal_plan(const NativeVolumeSelection&,std::uint64_t occupied,
-      std::uint64_t private_workspace_bytes=0) const;
-  NativeVolumeReclaimProgress begin_seal(NativeFileSession&,StoreIdentity,SealPlan,std::uint64_t occupied,
-      NativeSealScratchOffer);
+      std::uint64_t private_workspace_bytes=0) const noexcept;
+  SealPlans funded_seal_plans(const NativeFileSession&,std::uint64_t occupied,
+      std::uint64_t private_workspace_bytes) const;
+  NativeVolumeReclaimProgress begin_seal(NativeFileSession&,const std::function<StoreIdentity()>&,
+      const SealPlans&,NativeSealScratchOffer);
   NativeVolumeReclaimProgress advance_seal(NativeFileSession&);
   void check_inactive(const NativeVolumeHeadInfo&) const;
   NativeVolumeReclaimProgress retire(const NativeVolumeHeadInfo&);

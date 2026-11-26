@@ -17,11 +17,20 @@ Windows build, matched controls, source navigation and primary-source
 captures. Earlier receipts retain their original source and test scope.
 [Current evidence](evidence/windows-independent-seal-workspace-2026-11-26.json)
 
-The follow-up AMD checkpoint made priority optional in the Windows workers
-and passed an installed Radeon read through the callbacks. Live write
-dispatch awaits measured headroom. The matched mounted comparison remains
-the next AMD release decision.
-[Stream capability qualification](HIP_PRIORITY_CAPABILITY.md#26-november-windows-qualification)
+The follow-up AMD checkpoint made priority optional in the Windows workers.
+The installed Radeon delivered two verified read extents through callbacks.
+After fresh headroom became available, a separate write fixture stored
+sixteen verified extents and independently reopened the exact bytes.
+Withdrawing a later device grant selected CPU and preserved the exact files.
+The matched mounted comparison remains the next AMD release decision.
+[Stream capability qualification](HIP_PRIORITY_CAPABILITY.md#26-november-windows-qualification) ·
+[Installed write and CPU continuation](evidence/windows-private-seal-credit-2026-11-26.json)
+
+The paired volume owner now evaluates memory and file placements before
+deciding whether the seal is funded. A matched control selected parity
+at the lower memory-workspace charge and reopened on CPU. The earlier
+limits and model scope below describe the preceding checkpoint.
+[Private seal credit evidence](evidence/windows-private-seal-credit-2026-11-26.json)
 
 ## Repository and release evidence
 

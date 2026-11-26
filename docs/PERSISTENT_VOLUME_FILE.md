@@ -382,10 +382,13 @@ The Windows controller can place the workspace in locked memory when it
 fits the current idle memory allowance after reserving ordinary
 transaction scratch. At an eligible seal opportunity the planner prices
 the aligned workspace against that memory offer, and the parity base and
-writable tail against the inactive range. It requires enough write credit
-for the selected backing placement. The memory provider rechecks physical
-and commit headroom and shares its existing process-wide lease. A declined,
-undersized or incompatible reservation keeps the original file plan.
+writable tail against the inactive range. The controller checks each
+placement against its own write charge. A funded private workspace can
+start a seal when the file placement costs too much. The memory provider
+rechecks physical and commit headroom and shares its process-wide lease.
+A declined, undersized or incompatible memory reservation can use an
+independently funded file plan. If there is no such plan, the controller
+keeps the current image and spends no write credit.
 Both paths use the same effective failure-unit geometry. The build
 releases the workspace before tail binding. When the current memory grant
 can no longer retain the workspace,
@@ -418,6 +421,22 @@ the edited file on CPU. These fixtures exercise the existing funded
 opportunity with modeled backing, including real page locking in the SDK
 fixture.
 [Source-bound comparison](evidence/windows-independent-seal-workspace-2026-11-26.json)
+
+The private-credit control limits the committed input so that only the
+memory placement is funded. The old planner declines both offers. The
+updated planner settles at 4.25 MiB from the same 6 MiB starting image.
+The file-only control stays at 6 MiB. A refused memory lease leaves the
+backing and advisory settlement intact. The model also verifies the
+pinned reader and independent CPU reopen.
+
+The Windows callback owner previews available scratch using current
+headroom and the same allowance used for idle admission. A busy lease
+or insufficient memory can be reconsidered on a later ordinary
+maintenance wake. A lock refusal for a funded memory-only quote defers
+another attempt until new committed input. The callback test settled
+existing advice while the lease was held, then sealed after the lease
+was released. A low-memory observation issued no backing writes.
+[Private credit and Windows callback evidence](evidence/windows-private-seal-credit-2026-11-26.json)
 
 The candidate flush precedes the two independently flushed selector peers.
 The CPU opener validates the selected image identity, range bounds,

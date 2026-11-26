@@ -46,8 +46,17 @@ The rebuilt worker delivered two verified Radeon extents totaling
 controller confirmed CPU readback. The retained-route refusal fixture
 kept the CPU path available without opening HIP. Both live compression
 preflights observed a peak around 100% and declined device dispatch.
-Mounted throughput and live compression with this worker remain open.
+Mounted throughput remains open.
 [Source, device observations and executed tests](evidence/windows-hip-optional-streams-2026-11-26.json)
+
+At a subsequent admitted opportunity, this same worker produced sixteen
+stored extents from 1 MiB of input. The independent native CPU reader
+recovered every byte and verified the prior image. In a second fixture,
+withdrawing the next device grant after the first window selected CPU,
+preserved exact readback and released the worker and locked pages. Initial
+readiness took 3.18 seconds of the 3.26-second successful exchange.
+This fixture supplies a startup observation for the mounted comparison.
+[Installed-device write and fallback evidence](evidence/windows-private-seal-credit-2026-11-26.json)
 
 ## Executed priority capability checkpoint
 

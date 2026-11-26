@@ -7,6 +7,26 @@
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
   "current_release_review": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
+  "private_seal_credit": {
+    "source_parent": "e9c7be98aec5f40ce986eb1db74421784a4eda57",
+    "tested_source_tree": "2d945c08aa94f2ea45b825b799a9007913d80f7f",
+    "evidence": "docs/evidence/windows-private-seal-credit-2026-11-26.json",
+    "file_credit_available": false,
+    "initial_allocated_bytes": 6291456,
+    "settled_private_workspace_bytes": 4456448,
+    "refused_scratch_spent_credit": false,
+    "sdk_lease_release_and_cpu_reopen": true,
+    "release_qualified": false
+  },
+  "radeon_prepared_write_recheck": {
+    "worker_tested_source_tree": "94416050defde40b7a4bf40ecbd8b4266833f807",
+    "evidence": "docs/evidence/windows-private-seal-credit-2026-11-26.json",
+    "stored_device_extents": 16,
+    "independently_reopened_bytes": 1048576,
+    "cpu_readback_after_withdrawn_grant": true,
+    "ordinary_mounted_speed_qualified": false,
+    "release_qualified": false
+  },
   "optional_hip_stream_priority": {
     "source_parent": "7db0c1e6ef1508922af368a53e1df390335a222f",
     "tested_source_tree": "94416050defde40b7a4bf40ecbd8b4266833f807",
