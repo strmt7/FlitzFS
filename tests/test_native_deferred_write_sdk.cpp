@@ -15,6 +15,7 @@
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
 #include "gpu_budget.hpp"
 #include "hip_route_discovery.hpp"
+#include "hip_worker_exit.hpp"
 #include "native_capture.hpp"
 #include "native_name_index.hpp"
 #include "winfsp_volume_attachment.hpp"
@@ -718,7 +719,7 @@ void prepared_only_write(const std::filesystem::path& worker,PreparedWriteCase a
   const auto length=static_cast<ULONG>(bytes.size());
   settings.binding.cpu_fixture_arguments={refused?L"uniform-refuse-preparation":L"uniform-native2"};
   if(refused)settings.budget.timeout_ms=12000;
-  settings.cost.sweep_timing=GpuLz4SweepTiming{10'000'000,5'000'000};
+  settings.cost.sweep_timing=GpuLz4SweepTiming{10'000'000,5'000'000,2};
   settings.deadline_ms=1200;
   if(expired) {
     settings.budget.timeout_ms=400;
@@ -727,6 +728,12 @@ void prepared_only_write(const std::filesystem::path& worker,PreparedWriteCase a
   settings.prepared_only=true;
   settings.measured_shape=NativeAmdWriteShape{length,{fixture_compression,{65536,true}}};
   settings.controller_health=health();
+  const auto now=settings.controller_health->memory.captured_ms;
+  auto unmeasured=settings;
+  unmeasured.binding.sweep->maximum_chunks=1;
+  check(NativeDeferredWriteService::measured_write_funded(settings,*settings.controller_health,now) &&
+      !NativeDeferredWriteService::measured_write_funded(unmeasured,*settings.controller_health,now),
+      "changed launch width retained the prepared write's timing qualification");
   settings.controller_health->memory.captured_ms-=kGpuMaxBudgetAgeMs+1;
   Harness h(settings,true);
   check(h.adapter->managed_foreground()==settings.measured_shape->storage,"Prepared write fixture layout");
@@ -1187,8 +1194,8 @@ NativeAmdWriteSample indexed_trial(const HipDiscoveredRoute* route,bool sweep,
       check(!NativeDeferredWriteService::measured_write_funded(options,observed,observed.memory.captured_ms),
           "measured sweep was funded with kernel costs alone");
       // The live fixture exercises route activation independently of performance qualification.
-      options.cost.sweep_timing=use_prepared?GpuLz4SweepTiming{150'000'000,30'000'000}:
-          GpuLz4SweepTiming{3'000'000'000,250'000'000};
+      options.cost.sweep_timing=use_prepared?GpuLz4SweepTiming{150'000'000,30'000'000,quantum_chunks}:
+          GpuLz4SweepTiming{3'000'000'000,250'000'000,quantum_chunks};
       auto mismatch=options;
       mismatch.measured_shape->storage.layout.shared_banks=!storage->layout.shared_banks;
       check(h.controller->offer_qualified_foreground_route(std::move(mismatch)),
@@ -1459,6 +1466,7 @@ auto measure_installed_sweep(const HipDiscoveredRoute& route,const PreparedUnifo
   if(worker.code!=WorkerExchangeCode::completed || !worker.process.exit_confirmed || !retired)
     std::cerr<<"sweep_profile_worker_failure request="<<request_id<<" quantum="<<quantum_chunks
         <<" code="<<static_cast<unsigned>(worker.code)<<" worker_exit="<<worker.process.exit_code
+        <<" worker_stage="<<hip_worker_stage_name(hip_worker_exit_stage(worker.process.exit_code))
         <<" worker_ms="<<worker.process.elapsed_ms<<" exit_confirmed="<<worker.process.exit_confirmed
         <<" retired="<<retired<<'\n';
   check(worker.code==WorkerExchangeCode::completed && worker.process.exit_confirmed && retired,
@@ -1529,7 +1537,8 @@ int profile_indexed_cpu_sizes() {
   std::cout<<"indexed_cpu_memory_done peak_commit="<<controller_budget.peak_commit()<<'\n';
   return 0;
 }
-int compare_profiled_sweep_quanta(std::span<const std::byte> input,UniformLz4SweepProfileMode mode) {
+int compare_profiled_sweep_quanta(std::span<const std::byte> input,UniformLz4SweepProfileMode mode,
+    std::uint32_t narrow_chunks=2,std::uint32_t wide_chunks=4) {
   gpu_probe_fixture::Budget controller_budget;
   check(input.size()==fixture_sweep_chunks*kNativeExtentBytes,"profile requires the complete matched input");
   uniform_lz4::Layout layout{};
@@ -1542,12 +1551,13 @@ int compare_profiled_sweep_quanta(std::span<const std::byte> input,UniformLz4Swe
   for(unsigned pair=0;pair<3;++pair) {
     RecordedSweepProfile narrow,wide;
     const bool wide_first=pair%2!=0;
-    if(wide_first)wide=profile_installed_sweep(route,batch,4,++sequence,mode);
-    narrow=profile_installed_sweep(route,batch,2,++sequence,mode);
-    if(!wide_first)wide=profile_installed_sweep(route,batch,4,++sequence,mode);
+    if(wide_first)wide=profile_installed_sweep(route,batch,wide_chunks,++sequence,mode);
+    narrow=profile_installed_sweep(route,batch,narrow_chunks,++sequence,mode);
+    if(!wide_first)wide=profile_installed_sweep(route,batch,wide_chunks,++sequence,mode);
     check(narrow.reply.candidates.sizes==wide.reply.candidates.sizes &&
         narrow.reply.candidates.payload==wide.reply.candidates.payload,"launch size changed the verified GPU result");
     std::cout<<"sweep_profile_pair pair="<<pair+1<<" wide_first="<<wide_first
+        <<" narrow_chunks="<<narrow_chunks<<" wide_chunks="<<wide_chunks
         <<" narrow_ns="<<narrow.total_ns<<" wide_ns="<<wide.total_ns
         <<" narrow_fixed_ns="<<narrow.fixed_ns<<" wide_fixed_ns="<<wide.fixed_ns
         <<" identical_payload=1\n";
@@ -1995,6 +2005,9 @@ int wmain(int argc,wchar_t** argv){try{
   if(argc==3 && std::wstring_view(argv[1])==L"--profile-installed-amd-sweep-corpus")
     return compare_profiled_sweep_quanta(read_indexed_write_corpus(argv[2],fixture_sweep_chunks*kNativeExtentBytes),
         UniformLz4SweepProfileMode::aggregate);
+  if(argc==3 && std::wstring_view(argv[1])==L"--profile-installed-amd-wide-sweep-corpus")
+    return compare_profiled_sweep_quanta(read_indexed_write_corpus(argv[2],fixture_sweep_chunks*kNativeExtentBytes),
+        UniformLz4SweepProfileMode::aggregate,4,8);
   if(argc==3 && std::wstring_view(argv[1])==L"--profile-installed-amd-sweep-timeline-corpus")
     return compare_profiled_sweep_quanta(read_indexed_write_corpus(argv[2],fixture_sweep_chunks*kNativeExtentBytes),
         UniformLz4SweepProfileMode::timeline);

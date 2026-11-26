@@ -8,6 +8,16 @@
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
   "current_release_review": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
   "source_and_portability_review": "docs/architecture/RELEASE_REVIEW_2026-11-26.md",
+  "amd_measured_launch_width": {
+    "source_parent": "9d1c08d4c4a0b51ecef5040f3688878f6a54b193",
+    "tested_source_tree": "5015613e5a854599c4e0f732f948e6a647a257e3",
+    "evidence": "docs/evidence/windows-amd-measured-launch-width-2026-11-26.json",
+    "windows_release_groups_passed": 7,
+    "windows_raw_groups_passed": 3,
+    "windows_asan_groups_passed": 4,
+    "prepared_radeon_extents": 16,
+    "release_qualified": false
+  },
   "prepared_write_recovery": {
     "source_parent": "c60544afdbbe7987d49ee5c1ce085854eb2eeee3",
     "tested_source_tree": "6cc3b3ec72515c3b502c6e4c93fe70c4b4c71731",

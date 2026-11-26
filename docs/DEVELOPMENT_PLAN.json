@@ -4,6 +4,8 @@
   "forward_work_rule": "Use current_release_sequence for integration order, and execution_programme and the implementation plan for package dependencies and exits. Historical checkpoints describe completed or partial evidence.",
   "current_release_sequence": {
     "current_reconciliation": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
+    "latest_amd_measured_launch_width": "docs/evidence/windows-amd-measured-launch-width-2026-11-26.json",
+    "tested_amd_measured_launch_width_tree": "5015613e5a854599c4e0f732f948e6a647a257e3",
     "latest_prepared_write_recovery": "docs/evidence/windows-prepared-write-retry-2026-11-26.json",
     "tested_prepared_write_recovery_tree": "6cc3b3ec72515c3b502c6e4c93fe70c4b4c71731",
     "latest_native_cold_delta_planes": "docs/evidence/windows-cold-delta-planes-2026-11-26.json",
@@ -49,7 +51,7 @@
     "tested_independent_seal_workspace_tree": "790912f42c849b0a84a62e2c610c97d2a5206b4f",
     "immediate_work": [
       "Carry the private helper bundle into signed deployment. Discover compatible kernel support read-only and run the populated Win32 witness through activation, rollback, and removal across clean and existing Windows compositions.",
-      "Join ordinary mounted Windows demand to admitted, completed and consumed AMD work. Include grouped reads across unrelated commits, readiness transitions and collective search. Qualify same-configuration read recovery with a separate checked computation. Measure cold setup, demand lead, verified bytes, occupied size and retirement against the CPU controls.",
+      "Join ordinary mounted Windows demand to admitted, completed and consumed AMD work. Prioritize predictable grouped reads and long or recurring write bursts that can amortize observed setup. Bind timing to the actual launch width and record host scheduling, completion and unused preparation. Qualify same-configuration read recovery with a separate checked computation. Compare verified bytes, occupied size and retirement with the CPU controls.",
       "Freeze a wider held-out named tree and compare complete size with the packed descriptor seal in the memory provider. Admit codec or grouping changes only on settled savings after dependency retirement. Establish persistent-provider failure isolation and repair cost before adopting packed descriptor writes there.",
       "Compare a generation-bound ownership proof to the full CPU audit and fence checks after named-tree churn. Verify provider authority, changed records, pinned readers and interrupted recovery in shadow mode. Validate the scale curve against an unseen tier and distribution.",
       "Qualify the signed Windows lifecycle and compatibility range, then run plain and native-compressed NTFS controls and soak on the frozen candidate."

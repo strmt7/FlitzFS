@@ -23,7 +23,7 @@ GpuLz4WindowPlan plan_window(std::uint64_t requested,std::uint32_t chunk_bytes,
       !cost.maximum_grid_x || !cost.kernel_ns_per_chunk || !policy.kernel_quantum_ns ||
       policy.kernel_quantum_ns>cost.qualified_kernel_quantum_ns ||
       (sweep && (!sweep->maximum_chunks || !sweep->maximum_device_bytes || !deadline_ms)) ||
-      (timing && (!timing->fixed_ns || !timing->per_window_ns)))return result;
+      (timing && (!timing->fixed_ns || !timing->per_window_ns || !timing->quantum_chunks)))return result;
   if(sweep) {
     uniform_lz4::Layout minimum{};
     if(!uniform_lz4::make_layout((std::min)(requested,std::uint64_t(chunk_bytes)),chunk_bytes,minimum) ||
@@ -41,10 +41,19 @@ GpuLz4WindowPlan plan_window(std::uint64_t requested,std::uint32_t chunk_bytes,
   const auto requested_chunks=requested/chunk_bytes+(requested%chunk_bytes!=0);
   const auto launch_chunks=(std::min)(std::uint64_t(cost.maximum_grid_x),
       policy.kernel_quantum_ns/cost.kernel_ns_per_chunk);
+  const std::uint64_t step=timing?timing->quantum_chunks:1;
   auto low=std::uint64_t{1};
   auto high=(std::min)(requested_chunks,launch_chunks);
   std::uint64_t quantum_input=0;
   if(sweep) {
+    auto maximum_chunks=(std::min)(launch_chunks,std::uint64_t(sweep->maximum_chunks));
+    if(timing) {
+      if(step>maximum_chunks || step>requested/chunk_bytes) {
+        result.code=GpuGateCode::invalid_budget;
+        return result;
+      }
+      maximum_chunks=step;
+    }
     const auto deadline_ns=std::uint64_t(deadline_ms)*1000000;
     const auto fixed_ns=timing?timing->fixed_ns:0;
     if(fixed_ns>=deadline_ns || (timing && timing->per_window_ns>deadline_ns-fixed_ns)) {
@@ -54,6 +63,12 @@ GpuLz4WindowPlan plan_window(std::uint64_t requested,std::uint32_t chunk_bytes,
     const auto available_ns=deadline_ns-fixed_ns;
     high=(std::min)({requested_chunks,available_ns/cost.kernel_ns_per_chunk,
         std::uint64_t((std::numeric_limits<std::uint32_t>::max)())});
+    if(timing) {
+      // Only complete measured launches have an elapsed cost. Search over
+      // whole windows so a smaller deadline or host grant cannot add a tail.
+      const auto windows=(std::min)({high/step,requested/chunk_bytes/step,available_ns/timing->per_window_ns});
+      high=windows*step;
+    }
     if(!high) {
       if(timing)result.code=GpuGateCode::expired;
       return result;
@@ -61,20 +76,16 @@ GpuLz4WindowPlan plan_window(std::uint64_t requested,std::uint32_t chunk_bytes,
     uniform_lz4::Layout largest{};
     if(!uniform_lz4::make_layout((std::min)(requested,high*chunk_bytes),chunk_bytes,largest))
       return result;
-    const auto quantum=uniform_lz4_sweep_quantum(largest,
-        static_cast<std::uint32_t>((std::min)(launch_chunks,std::uint64_t(sweep->maximum_chunks))),
+    const auto quantum=uniform_lz4_sweep_quantum(largest,static_cast<std::uint32_t>(maximum_chunks),
         (std::min)(device_allowance,sweep->maximum_device_bytes));
-    if(!quantum.chunks)return result;
+    if(!quantum.chunks || (timing && quantum.chunks!=step))return result;
     quantum_input=quantum.input_bytes;
-    if(timing) {
-      const auto windows=available_ns/timing->per_window_ns;
-      // Multiply only when the resulting chunk count is smaller than high.
-      if(windows<1+(high-1)/quantum.chunks)high=windows*quantum.chunks;
-    }
   }
+  high/=step;
   // At most 32 trials; no allocation, polling, timers, scans or runtime calls.
   while(low<=high){
-    const auto count=low+(high-low)/2;
+    const auto units=low+(high-low)/2;
+    const auto count=units*step;
     const auto bytes=count>requested/chunk_bytes?requested:count*chunk_bytes;
     uniform_lz4::Layout layout{},quantum{};
     std::uint64_t peak=cost.fixed_bytes,part=0;
@@ -101,8 +112,8 @@ GpuLz4WindowPlan plan_window(std::uint64_t requested,std::uint32_t chunk_bytes,
       const auto total_ns=timing?timing->fixed_ns+(std::max)(kernel_ns,
           (1+(count-1)/quantum.chunks)*timing->per_window_ns):0;
       result={GpuGateCode::admitted,layout,peak,requested-bytes,kernel_ns,quantum,total_ns};
-      low=count+1;
-    }else high=count-1;
+      low=units+1;
+    }else high=units-1;
   }
   return result;
 }

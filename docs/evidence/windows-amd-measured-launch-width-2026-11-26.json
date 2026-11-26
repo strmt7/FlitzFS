@@ -1,0 +1,813 @@
+{
+  "schema": 1,
+  "date_utc": "2026-11-26",
+  "source": {
+    "parent": "9d1c08d4c4a0b51ecef5040f3688878f6a54b193",
+    "base_tree": "7e80b84f1cb4e7eeb7bdf9d04638007d2f42ae5a",
+    "tree": "5015613e5a854599c4e0f732f948e6a647a257e3",
+    "elements": [
+      {
+        "path": "include/flitzfs/gpu_lz4_window.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "bb38eb5351ce75bd8f60b052a266c3db799a57a7",
+        "bytes": 2963
+      },
+      {
+        "path": "src/gpu_lz4_window.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "7fffc83f15a627cf12e862172bea268090789e87",
+        "bytes": 7076
+      },
+      {
+        "path": "src/windows/native_deferred_write.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "1515f3a0ab23cbafe48db995377b81d56e3996f5",
+        "bytes": 28226
+      },
+      {
+        "path": "tests/test_gpu_lz4_window.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "d7eb76ff509d632015860d82ac139e02f0565a57",
+        "bytes": 16788
+      },
+      {
+        "path": "tests/test_native_deferred_write_sdk.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "d8995f405caffc9c85228cc09c0c6c4812ce175b",
+        "bytes": 128509
+      }
+    ]
+  },
+  "scope": "Measured-width admission and bounded native callback and HIP observations on Windows. Performance measures are host wall time.",
+  "research": {
+    "routing": {
+      "status": 0,
+      "retired": true,
+      "source_commit": "9d1c08d4c4a0b51ecef5040f3688878f6a54b193",
+      "receipt_sha256": "4e1f7bebed674ab48ac8ec13f645edf9c1dc5f60e4ce993ef62634f90f137f58"
+    },
+    "captures": [
+      {
+        "provider": "0.9.5+flitzzip.portable2",
+        "timeout_seconds": 45,
+        "robots": true,
+        "external_llm": false,
+        "receipt_sha256": "bddd2862bfc90c7a4b75852bf5d0d9f8d29ce6ca8c3fda59bbccfa8b06db815e",
+        "sources": [
+          {
+            "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/reference/hip_runtime_api/modules/event_management.html",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_bytes": 40456,
+            "markdown_sha256": "b4e5c8eec8212133030722be7b4e24003ae04fa1cc1fe39b3843fc002e1aa879",
+            "capture_sha256": "3649b3a31706c79e612514c9270a1b9f090c7aae6866447902a85264befd9c74"
+          },
+          {
+            "url": "https://github.com/ROCm/rocm-systems/issues/12925",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_bytes": 37199,
+            "markdown_sha256": "076bab195733b5902d1916ece3f26739ae95ec6e0f6f28437ae96c1520a1c979",
+            "capture_sha256": "5c96e343c526aa98c945f76fb4c729cf0adef763a07bf4c41faa1bcb502db799"
+          },
+          {
+            "url": "https://rocm.docs.amd.com/projects/install-on-windows/en/develop/conceptual/deployment-guidelines.html",
+            "success": false,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": false,
+            "markdown_bytes": 7977,
+            "markdown_sha256": "9042eb651c90ab27a2843ee04cf76dcdb2129ed813506a2e6f4d8b160efeff12",
+            "capture_sha256": "0c10f1bb8533c7c63156f44497948e3c07905c65492d42465629edae3fb7c2b8",
+            "failure": "unexpected_content"
+          },
+          {
+            "url": "https://learn.microsoft.com/en-us/cpp/windows/choosing-a-deployment-method?view=msvc-170",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_bytes": 25099,
+            "markdown_sha256": "fd3c3f5e5e6075c6c19b7eebeffd1730508debf935545d2dfb5bd2a44a700c11",
+            "capture_sha256": "8b6a49430fa7cb902a3234a9619ff1140f8df2a7aae27d8a01e76b5bf4211012"
+          },
+          {
+            "url": "https://winfsp.dev/rel/",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_bytes": 4165,
+            "markdown_sha256": "d04c4dd89bf166c90f10057d51ebc2157b96cd3046e63f31c0aac5c2694a7220",
+            "capture_sha256": "2fc72f41719ca63a1461c99d03c3c86c83c546a05b5331239d8a211c1763795b"
+          }
+        ]
+      },
+      {
+        "provider": "0.9.5+flitzzip.portable2",
+        "timeout_seconds": 45,
+        "robots": true,
+        "external_llm": false,
+        "receipt_sha256": "9e9f6bc53cbf76a8eef1892998a19fafea3c46eb731092acc592fa680d48b80f",
+        "sources": [
+          {
+            "url": "https://devblogs.microsoft.com/directx/directstorage-1-4-release-adds-support-for-zstandard/",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_bytes": 29867,
+            "markdown_sha256": "40e2464434e8bc86f1159ad2334bf17d5ccc312bb4191e55c107efebe8fad5e2",
+            "capture_sha256": "ce6bfe756e49e5b650b84a585ce48d96d2601743547657b6dcfcaa7ba4490598"
+          },
+          {
+            "url": "https://www.usenix.org/conference/atc25/presentation/yang-jingyuan",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_bytes": 9413,
+            "markdown_sha256": "5d14b6ffa62393b576c1883fa2e3812cd204f19c4f0712cc659b2b6262ef574f",
+            "capture_sha256": "70b3858f6819cb05932a8c1991a281a8f7652d96e3876aa7cc9c5e8b8ae6d61a"
+          },
+          {
+            "url": "https://arxiv.org/abs/2608.00168",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_bytes": 8716,
+            "markdown_sha256": "d86e09dcf1f0390fbdc765fe2994aea003a9e60f89214b3d586bf881077590e8",
+            "capture_sha256": "bc2727eef35c97cc1e7956b72e83c11d4f68106106db2a7ee7905c7a5fb2e21a"
+          },
+          {
+            "url": "https://arxiv.org/abs/2611.22847",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_bytes": 8462,
+            "markdown_sha256": "6b3dcaa92b38f6b1ed2544bedb81ab695a43567bb10eb88edcec791bd7d1eac2",
+            "capture_sha256": "4df75c2eebf519f138c14fa719fb7bd581ae1f86a3a16ef9c94b03d3cf7fe178"
+          },
+          {
+            "url": "https://github.com/ROCm/hipCOMP-core/",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_bytes": 17878,
+            "markdown_sha256": "337ac03394e53673fa0ac1b5a3c55ba8b84d25b93a663f766a718def67f8c6ae",
+            "capture_sha256": "8a2e05ef4f696a3b81aeb405e6c4560c2b63f10956afa91f9e95e16efcdbb8ea"
+          }
+        ]
+      },
+      {
+        "provider": "0.9.5+flitzzip.portable2",
+        "timeout_seconds": 45,
+        "robots": true,
+        "external_llm": false,
+        "receipt_sha256": "3e2bfc7bef8c5969ea620bbbc023c010d2e1b9ba06542617fe507ef4a409d611",
+        "sources": [
+          {
+            "url": "https://rocm.docs.amd.com/en/docs-10.2.0/about/release-notes.html",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_bytes": 308596,
+            "markdown_sha256": "65dc225b07c55d48d922e0ed3c5a7f692b8de4bc523b4b33a2733cf2c2ff34ea",
+            "capture_sha256": "e4dae85799fc414d3dece5dabbce618390db2d3e14a28b2fffab5d07a4e325eb"
+          },
+          {
+            "url": "https://rocm.docs.amd.com/projects/install-on-windows/en/latest/about/releasenotes.html",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_bytes": 8475,
+            "markdown_sha256": "d024e28cf80b387e10361fecf1c1ca965c94b4788fab2ba6864922352f949f06",
+            "capture_sha256": "24b61dc3ba2ebef9b12ecfbd3d1299890c090716b91c2337f70cca47f71256af"
+          },
+          {
+            "url": "https://github.com/ROCm/TheRock/issues/9383",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_bytes": 26738,
+            "markdown_sha256": "ccfca95b78b8816ed225de8c23460f54b2f91f88fe60186b667a44d73bc75e21",
+            "capture_sha256": "8913e9a4a184bb83db05c9e92bdf37d9f05b6bc5449e50816c008e3de7ff0fae"
+          },
+          {
+            "url": "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/using-gpuview",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_bytes": 22445,
+            "markdown_sha256": "4dad5fc822b9c26118438be555658e66375482edc9e891a7a17650acbc5156db",
+            "capture_sha256": "ea32392dcfd505063f46e75ff4cda04ee5881c4c733479b486fd3f98cbbaa9a1"
+          },
+          {
+            "url": "https://gpuopen.com/learn/occupancy-explained/",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_bytes": 59449,
+            "markdown_sha256": "574bd157801f44a458fe9683f849d5d8ced071634fdede9eea01babff6ed4e82",
+            "capture_sha256": "12ed4e7bb0cca6bff01daa2c0bdb4ac4c6619658ed1af2234ea785e8e2ccdc9e"
+          }
+        ]
+      },
+      {
+        "provider": "0.9.5+flitzzip.portable2",
+        "timeout_seconds": 45,
+        "robots": true,
+        "external_llm": false,
+        "receipt_sha256": "a3b14140b493ebf23bbada9f151d8a09607b28590488942c4f2f0efd1a72457d",
+        "sources": [
+          {
+            "url": "https://ftp.spec.org/storage2020/",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_bytes": 12248,
+            "markdown_sha256": "ce4a7d24bd64e3452ba69c4628e6693697263648ca793ddce4536b3b4b78cd33",
+            "capture_sha256": "1fb2c377ce898345d51e9923b6f3b127b2cdbe341eb80ee9200bf6a9bad74c08"
+          },
+          {
+            "url": "https://learn.microsoft.com/en-us/windows/desktop/api/winioctl/ni-winioctl-fsctl_set_compression",
+            "success": false,
+            "http_status": 301,
+            "final_http_status": 200,
+            "expected_content": false,
+            "markdown_bytes": 63183,
+            "markdown_sha256": "48b0bd005d9276173ea26d9d5ddfd0f6019586ea3a1cd33cb8e74730a01f060a",
+            "capture_sha256": "2746931a8b3d3e60806dd878d24a29b3fc25dc998ed34c1ed53a3797fbfb409b",
+            "failure": "unexpected_content"
+          },
+          {
+            "url": "https://github.com/microsoft/diskspd/releases",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_bytes": 20962,
+            "markdown_sha256": "f14fd0238788c301d60382649f066a04f0540ade1aa7ead603e4fb5fdbfdae04",
+            "capture_sha256": "8f1f8fac02d80d51c9c1d6d53a928b7f137dd4d0b62055442b1d1882816eb28e"
+          },
+          {
+            "url": "https://www.usenix.org/conference/fast26/presentation/song",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_bytes": 10243,
+            "markdown_sha256": "146438c403fd9c03a2e072dd58bdc7d1c1633e7690a200010b81771fc0f7fb90",
+            "capture_sha256": "02eda155f82a817ecb643f33e1d14dde96232eaa89aff27241535f648c56e744"
+          },
+          {
+            "url": "https://www.usenix.org/conference/fast26/presentation/gupta",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_bytes": 10682,
+            "markdown_sha256": "e552afe00eba9b35491780a661aa5d5395ceae186d269e37c8f456320bb03883",
+            "capture_sha256": "6c1f242202120907f6b3cde60ba3ca9e979b029f2de86551499d15b3ece2167e"
+          }
+        ]
+      },
+      {
+        "provider": "0.9.5+flitzzip.portable2",
+        "timeout_seconds": 45,
+        "robots": true,
+        "external_llm": false,
+        "receipt_sha256": "0fb772cb1fefbda3549c8d3f1b1afbf08a4cc44eefa32d573fa6072eea1c0e03",
+        "sources": [
+          {
+            "url": "https://rocm.docs.amd.com/projects/install-on-windows/en/develop/conceptual/deployment-guidelines.html",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_bytes": 7977,
+            "markdown_sha256": "9042eb651c90ab27a2843ee04cf76dcdb2129ed813506a2e6f4d8b160efeff12",
+            "capture_sha256": "7efbfa9dce3d3a87c02bd0cb88d520c82ac707bf01a1a771732bfdc440c277e2"
+          },
+          {
+            "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_compression",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_bytes": 63183,
+            "markdown_sha256": "48b0bd005d9276173ea26d9d5ddfd0f6019586ea3a1cd33cb8e74730a01f060a",
+            "capture_sha256": "22792ce48accbf9ee2931f31f0ac2dfd829f8cc7ace7874a0575dbf3f9e4604b"
+          },
+          {
+            "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/compact",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_bytes": 45765,
+            "markdown_sha256": "e467e58dda0165da314be4e28c476e21eec3c6b71df18ed989bf01a444e99ac5",
+            "capture_sha256": "84bceefecada0860dc37b94f04be97c5e908782193a12632a2c1bd130c34e81a"
+          },
+          {
+            "url": "https://github.com/microsoft/diskspd/releases/tag/v2.3",
+            "success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "expected_content": true,
+            "markdown_bytes": 10898,
+            "markdown_sha256": "0365773817f65cbec629c1f9fd781de5dbf2021326e806d424ff0a827f6d0720",
+            "capture_sha256": "c45d571295d6d31be1f440f94e893b722445123884431680e0c6a0a0ce5fff78"
+          }
+        ]
+      }
+    ]
+  },
+  "tests": {
+    "windows_release": {
+      "groups_passed": 7,
+      "run": {
+        "exit_code": 0,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "elapsed_seconds": 3.453,
+        "peak_job_bytes": 37597184,
+        "fixture_memory_limit_bytes": 2237661184,
+        "fixture_cpu_percent": 24,
+        "log_sha256": "095f54052c0bfc4c791333521a610ba9f3af1c97a6ce42364622781b6a851965"
+      }
+    },
+    "windows_raw_only": {
+      "groups_passed": 3,
+      "run": {
+        "exit_code": 0,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "elapsed_seconds": 0.453,
+        "peak_job_bytes": 21008384,
+        "fixture_memory_limit_bytes": 2506096640,
+        "fixture_cpu_percent": 18,
+        "log_sha256": "82c0b1449736be22d364982b0b8f5f3ab7c300de9aae829772642f250f650dd1"
+      }
+    },
+    "windows_address_sanitizer": {
+      "groups_passed": 4,
+      "run": {
+        "exit_code": 0,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "elapsed_seconds": 0.469,
+        "peak_job_bytes": 178696192,
+        "fixture_memory_limit_bytes": 2444230656,
+        "fixture_cpu_percent": 18,
+        "log_sha256": "47fd275c1fd8cead7014696f43a2d2538853ad71a9b6bfea61d92379a18a2fc3"
+      },
+      "configuration": "RelWithDebInfo",
+      "includes_loader_preflight": true,
+      "app_local_runtime_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed"
+    }
+  },
+  "real_device": {
+    "adapter": "AMD Radeon RX 9070 XT",
+    "compression_input": {
+      "bytes": 1048576,
+      "sha256": "92f0b38132fe03f5339c613bbe0469f958851fa8ded52a6192c8232efa8454bc",
+      "parent_corpus_sha256": "94b4fda579071d14a70c7f06a2626849eabfb9ae5d2a90d6dd3782cecd8f80ab"
+    },
+    "worker_sha256": "5488521657d0be8e91ff497bda27e8ee0c35c1847ec2fd11c5f7def714d97544",
+    "module_sha256": "179797e791a8aac3e43c1277aca4a88edfe4650122af535d08c8b199d32b89c4",
+    "timeline_attempt": {
+      "run": {
+        "exit_code": 1,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "elapsed_seconds": 7.828,
+        "peak_job_bytes": 184647680,
+        "fixture_memory_limit_bytes": 2338324480,
+        "fixture_cpu_percent": 22,
+        "log_sha256": "50ba9454edd8407df12c04021ce8063dfc1acd98db302c17fdabb1a96b22c6af"
+      },
+      "headroom": {
+        "utc": "2026-11-26T09:41:56.1569772Z",
+        "admitted": true,
+        "windows_build": 26300,
+        "amd_driver": "32.0.32029.2010",
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "engine_peak_ppm": 21790,
+        "cpu_peak_ppm": 117368,
+        "physical_available_bytes": 30021263360
+      },
+      "worker_exit": 1179855621,
+      "stage": "sweep_event_invalid_sample",
+      "valid_profile": false,
+      "process_exit_confirmed": true
+    },
+    "aggregate_two_and_four": {
+      "fixture_source_tree": "7e80b84f1cb4e7eeb7bdf9d04638007d2f42ae5a",
+      "fixture_manifest_sha256": "ef5af216d4f7dd07eacad9b8958bc00a963a3435a2446cba80ea3004b2d711c1",
+      "run": {
+        "exit_code": 0,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "elapsed_seconds": 13.031,
+        "peak_job_bytes": 183054336,
+        "fixture_memory_limit_bytes": 1912602624,
+        "fixture_cpu_percent": 22,
+        "log_sha256": "f15f2fb24424dacde7a631fcafe485019b5695e7baf4f1f3bd05aabe74fd56b6"
+      },
+      "headroom": {
+        "utc": "2026-11-26T09:44:50.4838792Z",
+        "admitted": true,
+        "windows_build": 26300,
+        "amd_driver": "32.0.32029.2010",
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "engine_peak_ppm": 6135,
+        "cpu_peak_ppm": 96881,
+        "physical_available_bytes": 30934994944
+      },
+      "dispatches": [
+        {
+          "request": 1,
+          "quantum": 2,
+          "windows": 8,
+          "parent_ns": 2089104600,
+          "fixed_ns": 1492471900,
+          "setup_ns": 1358452900,
+          "upload_ns": 9502400,
+          "kernel_wait_ns": 583068900,
+          "download_ns": 3506000,
+          "retirement_ns": 2717300,
+          "maximum_window_ns": 414531000,
+          "maximum_kernel_wait_ns": 413692500,
+          "encoded_bytes": 487605,
+          "verified": 1,
+          "retired": 1
+        },
+        {
+          "request": 2,
+          "quantum": 4,
+          "windows": 4,
+          "parent_ns": 1147513900,
+          "fixed_ns": 1039735800,
+          "setup_ns": 911492100,
+          "upload_ns": 8382500,
+          "kernel_wait_ns": 96366000,
+          "download_ns": 2558200,
+          "retirement_ns": 3126500,
+          "maximum_window_ns": 32125600,
+          "maximum_kernel_wait_ns": 26277700,
+          "encoded_bytes": 487605,
+          "verified": 1,
+          "retired": 1
+        },
+        {
+          "request": 3,
+          "quantum": 4,
+          "windows": 4,
+          "parent_ns": 1193450200,
+          "fixed_ns": 1085985500,
+          "setup_ns": 953818800,
+          "upload_ns": 7819900,
+          "kernel_wait_ns": 96574200,
+          "download_ns": 2539000,
+          "retirement_ns": 3112100,
+          "maximum_window_ns": 31457600,
+          "maximum_kernel_wait_ns": 26417900,
+          "encoded_bytes": 487605,
+          "verified": 1,
+          "retired": 1
+        },
+        {
+          "request": 4,
+          "quantum": 2,
+          "windows": 8,
+          "parent_ns": 1712177400,
+          "fixed_ns": 1080738100,
+          "setup_ns": 946644000,
+          "upload_ns": 9450100,
+          "kernel_wait_ns": 617015300,
+          "download_ns": 4328000,
+          "retirement_ns": 3586000,
+          "maximum_window_ns": 439886600,
+          "maximum_kernel_wait_ns": 438762300,
+          "encoded_bytes": 487605,
+          "verified": 1,
+          "retired": 1
+        },
+        {
+          "request": 5,
+          "quantum": 2,
+          "windows": 8,
+          "parent_ns": 1775516300,
+          "fixed_ns": 1168597600,
+          "setup_ns": 1037729000,
+          "upload_ns": 8909400,
+          "kernel_wait_ns": 594089100,
+          "download_ns": 3415600,
+          "retirement_ns": 3520500,
+          "maximum_window_ns": 414904700,
+          "maximum_kernel_wait_ns": 414315400,
+          "encoded_bytes": 487605,
+          "verified": 1,
+          "retired": 1
+        },
+        {
+          "request": 6,
+          "quantum": 4,
+          "windows": 4,
+          "parent_ns": 1262262500,
+          "fixed_ns": 1153824000,
+          "setup_ns": 1027485800,
+          "upload_ns": 8208000,
+          "kernel_wait_ns": 96487500,
+          "download_ns": 3062100,
+          "retirement_ns": 3407500,
+          "maximum_window_ns": 31945600,
+          "maximum_kernel_wait_ns": 26479100,
+          "encoded_bytes": 487605,
+          "verified": 1,
+          "retired": 1
+        }
+      ],
+      "pairs": [
+        {
+          "pair": 1,
+          "wide_first": 0,
+          "narrow_ns": 2089104600,
+          "wide_ns": 1147513900,
+          "narrow_fixed_ns": 1492471900,
+          "wide_fixed_ns": 1039735800,
+          "identical_payload": 1
+        },
+        {
+          "pair": 2,
+          "wide_first": 1,
+          "narrow_ns": 1712177400,
+          "wide_ns": 1193450200,
+          "narrow_fixed_ns": 1080738100,
+          "wide_fixed_ns": 1085985500,
+          "identical_payload": 1
+        },
+        {
+          "pair": 3,
+          "wide_first": 0,
+          "narrow_ns": 1775516300,
+          "wide_ns": 1262262500,
+          "narrow_fixed_ns": 1168597600,
+          "wide_fixed_ns": 1153824000,
+          "identical_payload": 1
+        }
+      ]
+    },
+    "aggregate_four_and_eight": {
+      "fixture_source_tree": "0968eb83282e2870138d8d0f0a333363ab130c62",
+      "fixture_source_blob": "ea6af931e657ec52ae326d61b59927f325fc98ae",
+      "fixture_manifest_sha256": "f422ff17f451a7d31271ff241125048724c5d416a1cafd6bcc79d00e0fb579fc",
+      "run": {
+        "exit_code": 0,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "elapsed_seconds": 13.5,
+        "peak_job_bytes": 207642624,
+        "fixture_memory_limit_bytes": 1882193920,
+        "fixture_cpu_percent": 22,
+        "log_sha256": "ffc1069be448e574916540b49cb9047013ed00cae0ffff3a6fae69513828aff5"
+      },
+      "headroom": {
+        "utc": "2026-11-26T09:48:55.3297497Z",
+        "admitted": true,
+        "windows_build": 26300,
+        "amd_driver": "32.0.32029.2010",
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "engine_peak_ppm": 7220,
+        "cpu_peak_ppm": 179516,
+        "physical_available_bytes": 30591418368
+      },
+      "dispatches": [
+        {
+          "request": 1,
+          "quantum": 4,
+          "windows": 4,
+          "parent_ns": 2200791600,
+          "fixed_ns": 1694838100,
+          "setup_ns": 1549439800,
+          "upload_ns": 8493200,
+          "kernel_wait_ns": 494254500,
+          "download_ns": 2538500,
+          "retirement_ns": 2824000,
+          "maximum_window_ns": 425845000,
+          "maximum_kernel_wait_ns": 424747900,
+          "encoded_bytes": 487605,
+          "verified": 1,
+          "retired": 1
+        },
+        {
+          "request": 2,
+          "quantum": 8,
+          "windows": 2,
+          "parent_ns": 1255601400,
+          "fixed_ns": 1198125900,
+          "setup_ns": 1066399000,
+          "upload_ns": 7166500,
+          "kernel_wait_ns": 47890600,
+          "download_ns": 1960100,
+          "retirement_ns": 2808000,
+          "maximum_window_ns": 30958100,
+          "maximum_kernel_wait_ns": 25408300,
+          "encoded_bytes": 487605,
+          "verified": 1,
+          "retired": 1
+        },
+        {
+          "request": 3,
+          "quantum": 8,
+          "windows": 2,
+          "parent_ns": 1190891900,
+          "fixed_ns": 1132532900,
+          "setup_ns": 1005853300,
+          "upload_ns": 7523500,
+          "kernel_wait_ns": 48492200,
+          "download_ns": 1909200,
+          "retirement_ns": 2399800,
+          "maximum_window_ns": 31842000,
+          "maximum_kernel_wait_ns": 25571800,
+          "encoded_bytes": 487605,
+          "verified": 1,
+          "retired": 1
+        },
+        {
+          "request": 4,
+          "quantum": 4,
+          "windows": 4,
+          "parent_ns": 1229654000,
+          "fixed_ns": 1122900000,
+          "setup_ns": 992635200,
+          "upload_ns": 8931700,
+          "kernel_wait_ns": 95294700,
+          "download_ns": 2109800,
+          "retirement_ns": 2631300,
+          "maximum_window_ns": 32498800,
+          "maximum_kernel_wait_ns": 25928400,
+          "encoded_bytes": 487605,
+          "verified": 1,
+          "retired": 1
+        },
+        {
+          "request": 5,
+          "quantum": 4,
+          "windows": 4,
+          "parent_ns": 1807698100,
+          "fixed_ns": 1697068400,
+          "setup_ns": 1553642100,
+          "upload_ns": 9868800,
+          "kernel_wait_ns": 97057200,
+          "download_ns": 3018000,
+          "retirement_ns": 4176400,
+          "maximum_window_ns": 34287100,
+          "maximum_kernel_wait_ns": 26442100,
+          "encoded_bytes": 487605,
+          "verified": 1,
+          "retired": 1
+        },
+        {
+          "request": 6,
+          "quantum": 8,
+          "windows": 2,
+          "parent_ns": 1711031800,
+          "fixed_ns": 1259994400,
+          "setup_ns": 1085515200,
+          "upload_ns": 396561500,
+          "kernel_wait_ns": 51661600,
+          "download_ns": 2241300,
+          "retirement_ns": 3545400,
+          "maximum_window_ns": 422785800,
+          "maximum_kernel_wait_ns": 27175100,
+          "encoded_bytes": 487605,
+          "verified": 1,
+          "retired": 1
+        }
+      ],
+      "pairs": [
+        {
+          "pair": 1,
+          "wide_first": 0,
+          "narrow_chunks": 4,
+          "wide_chunks": 8,
+          "narrow_ns": 2200791600,
+          "wide_ns": 1255601400,
+          "narrow_fixed_ns": 1694838100,
+          "wide_fixed_ns": 1198125900,
+          "identical_payload": 1
+        },
+        {
+          "pair": 2,
+          "wide_first": 1,
+          "narrow_chunks": 4,
+          "wide_chunks": 8,
+          "narrow_ns": 1229654000,
+          "wide_ns": 1190891900,
+          "narrow_fixed_ns": 1122900000,
+          "wide_fixed_ns": 1132532900,
+          "identical_payload": 1
+        },
+        {
+          "pair": 3,
+          "wide_first": 0,
+          "narrow_chunks": 4,
+          "wide_chunks": 8,
+          "narrow_ns": 1807698100,
+          "wide_ns": 1711031800,
+          "narrow_fixed_ns": 1697068400,
+          "wide_fixed_ns": 1259994400,
+          "identical_payload": 1
+        }
+      ]
+    },
+    "prepared_callback_after_change": {
+      "timing_is_fixture_admission": true,
+      "fixture_manifest_sha256": "1a2f63fd919dc18c36fb12a6a0175395c1165aaca439b940ff3dbfbe2a65ef51",
+      "fixture_binary_sha256": "22ed4b384ce8b3751388618653a734888a09e552eccb82d9dbf5c46ecc224ed6",
+      "run": {
+        "exit_code": 0,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "elapsed_seconds": 7.484,
+        "peak_job_bytes": 229908480,
+        "fixture_memory_limit_bytes": 1780482048,
+        "fixture_cpu_percent": 22,
+        "log_sha256": "8c01e8b5a06865644aa45f1c50531b4b9bda4ee477c53e8d4b8e973d7bc81d84"
+      },
+      "headroom": {
+        "utc": "2026-11-26T09:56:13.4838878Z",
+        "admitted": true,
+        "windows_build": 26300,
+        "amd_driver": "32.0.32029.2010",
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "engine_peak_ppm": 8400,
+        "cpu_peak_ppm": 149849,
+        "physical_available_bytes": 29142888448
+      },
+      "plan": {
+        "gate": 0,
+        "input_bytes": 1048576,
+        "single_launch_bytes": 131072,
+        "device_peak_bytes": 328288,
+        "host_peak": 278807184
+      },
+      "preparation_ns": 2234363900,
+      "outcome": {
+        "submitted": 1,
+        "advised": 1,
+        "forced": 0,
+        "retired": 1,
+        "candidates": 16,
+        "response_ns": 409956600,
+        "gate": 1,
+        "worker_ms": 2704,
+        "worker_peak_commit": 95481856,
+        "exchange": 0,
+        "worker_exit": 0
+      },
+      "stored": {
+        "sweep": 1,
+        "quantum_chunks": 2,
+        "source_bytes": 1048576,
+        "offset": 33554432,
+        "worker_payload_bytes": 135344,
+        "stored_lz4_candidates": 16,
+        "matched_copies": 32,
+        "image_bytes": 1835008,
+        "response_ns": 409956600
+      },
+      "cpu_before_activation_exact": true,
+      "cpu_readback_verified": true,
+      "processes_retired": true
+    }
+  },
+  "conclusions": {
+    "timing_scope": "A timed sweep admits whole launches of its measured width. A distinct narrower or wider geometry requires its own observation.",
+    "latency": "Eight extents reduced accumulated synchronized wait on this input. Blocking upload took 396,561,500 ns in one arm, and setup dominated the median parent interval.",
+    "release_qualified": false,
+    "ordinary_mounted_amd_qualified": false,
+    "ntfs_comparison_executed": false,
+    "deployment_scope": "The experiment used a privately staged controller and the existing driver-provided AMD runtime."
+  }
+}

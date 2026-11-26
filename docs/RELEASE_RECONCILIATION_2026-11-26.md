@@ -531,6 +531,16 @@ Learning state can lose its progress and rebuild from a checked snapshot.
 
 ### Make ordinary AMD execution portable and useful
 
+The paired width trials on the installed Radeon kept all 487,605 encoded
+bytes identical. Eight extents per launch reduced median synchronized
+kernel time from 97.1 to 48.5 ms in the four-versus-eight comparison.
+Setup still exceeded one second. A long host upload call also appeared
+in an eight-extent arm. FlitzFS now requires timed writes to use complete
+windows of the measured width. Select a different width after collecting
+evidence for that geometry. Preserve the CPU response when preparation
+misses the workload's deadline.
+[Launch comparison and admission](UNIFORM_LZ4_SWEEP_PROFILE.md#measured-launch-width)
+
 **E03, E08 and S4.** Treat optional priority, verified device output and
 event-driven foreground waits as implemented. Retained preparation still
 has a high measured first-use cost. In the latest eight-window native
@@ -551,6 +561,19 @@ numbers alone give no Windows package or driver guarantee.
 [Windows HIP SDK release notes](https://rocm.docs.amd.com/projects/install-on-windows/en/latest/about/releasenotes.html) ·
 [AMD platform versioning](https://rocm.docs.amd.com/projects/install-on-windows/en/latest/about/release-versioning.html)
 
+AMD's Windows deployment guidance assigns the HIP runtime to the
+installed Radeon driver. Stage FlitzFS executables, codecs and approved
+user-mode dependencies privately. Locate the vendor runtime and matching
+registered WinFsp deployment at runtime. An unavailable or incompatible
+HIP runtime leaves the CPU path usable. A mounted Windows volume requires
+compatible kernel support. Qualify its signed setup, additive installation
+and owned removal on independent Windows images, including images with
+existing driver or tool versions. Exercise relocated private installs and
+offline CPU recovery with a minimal process environment.
+[AMD application deployment](https://rocm.docs.amd.com/projects/install-on-windows/en/develop/conceptual/deployment-guidelines.html) ·
+[Microsoft application-local deployment](https://learn.microsoft.com/en-us/cpp/windows/choosing-a-deployment-method?view=msvc-170) ·
+[WinFsp distribution](https://winfsp.dev/rel/)
+
 1. Bind the populated client witness to the exact signed helper, runtime,
    modules, adapter, CPU decoder and owned backing. First collect a cold
    CPU run and a CPU replay under concurrent but refused device demand.
@@ -567,7 +590,11 @@ numbers alone give no Windows package or driver guarantee.
    [NSDI 2026 delayed-cache-hit measurements](https://www.usenix.org/conference/nsdi26/presentation/keren)
 2. Prioritize grouped reads with predictable lead and large or recurring
    write cohorts. Feed only a bounded eligible range into the retained
-   worker. The installed write trial now funds the largest complete
+   worker. Time verified bytes consumed per funded exchange, including
+   unused preparation, and report host submission, synchronization and
+   copy costs separately. Use repeatable host timing for decisions and
+   corroborate kernel attribution with a graphics queue trace. The
+   installed write trial now funds the largest complete
    burst within the observed grant. It records funded and completed
    request counts separately and can revisit a geometry when fresh
    headroom funds a larger burst. The current suppression watermark
@@ -586,6 +613,8 @@ numbers alone give no Windows package or driver guarantee.
    evidence and confirmed retirement.
    [Funded burst and CPU verification](evidence/windows-adaptive-amd-write-bursts-2026-11-26.json)
    · [Grant growth and engine deferral](evidence/windows-amd-write-grant-growth-2026-11-26.json)
+   · [Radeon event timing evidence](https://github.com/ROCm/TheRock/issues/9383)
+   · [Windows graphics queue traces](https://learn.microsoft.com/en-us/windows-hardware/drivers/display/using-gpuview)
 3. The foreground writer now binds the fresh completion observation to the
    exact request and records counter order after CPU validation. The SDK
    verifies acceptance within a coarse tick and CPU fallback on ambiguous
@@ -608,6 +637,11 @@ numbers alone give no Windows package or driver guarantee.
    recompression. Begin by using the existing native format and shared
    reference selection. Check source freshness again before applying the
    batch. Prioritize savings over tuning an already-losing small shape.
+   Compare the Windows DirectStorage Zstandard compute shader as an
+   experimental read-side baseline on frames and hosts it supports. Confirm
+   dictionary compatibility, output delivery cost and exact CPU readback
+   before integrating a new decoder backend.
+   [Microsoft DirectStorage 1.4 preview](https://devblogs.microsoft.com/directx/directstorage-1-4-release-adds-support-for-zstandard/)
 5. Run the winning role on the ordinary supported mount with matched
    baseline and refusal runs. Require current enough evidence to cover
    runtime and workload drift. Bind learned eligibility to device role
@@ -883,6 +917,21 @@ the new fine keys belongs in FlitzFS's persistent advisory index.
 [RubikFS](https://www.usenix.org/conference/fast26/presentation/huang) ·
 [LoopDelta](https://mingzhe-zhang.github.io/publications/tos2025)
 
+The November SkyFS preprint reports compression gains from choosing
+layouts on bounded samples with a local read map. ShieldReduce measures
+the interaction between delta choice and base locality in backup
+workloads. The PETRA III study reports large compression variation by
+data type. FlitzFS can use those ideas by comparing placement, base and
+codec choices on the same checked samples. Advance a choice when it
+reduces settled allocation on a held-out cohort and stays inside the
+measured read and write budget. Keep the advisory index rebuildable and
+the chosen representation independently CPU-readable. Evaluate a
+learned policy against these simpler choices on the same byte and work
+budget before adding a model runtime.
+[SkyFS preprint](https://arxiv.org/abs/2611.22847) ·
+[ShieldReduce](https://www.usenix.org/conference/atc25/presentation/yang-jingyuan) ·
+[PETRA III study](https://arxiv.org/abs/2608.00168)
+
 The current pair control found no improving pair or merge in the 24
 CPython samples. In the eight AITDCC first extents, four directed pairs
 saved space, with no shared nonconstant 16-byte fragment between files.
@@ -1051,6 +1100,11 @@ be matched on all arms.
   Keep affinity, data and cache modes fixed within a pair. Use repeated
   pairs within observed host headroom. Classify guest runs as correctness
   evidence.
+- Use SPECstorage Solution 2020 v1.0.1 for a separate file-server
+  qualification when the licensed suite and its server test environment
+  are available. DiskSpd and the named-tree workload cover local Windows
+  I/O and complete occupied size in the current plan.
+  [SPECstorage Solution 2020](https://ftp.spec.org/storage2020/)
 - Reuse a successful narrow proof while inputs remain identical. Run the
   full comparative grid once the candidate can change the release
   decision. Close each advertised tuple on the frozen artifacts and

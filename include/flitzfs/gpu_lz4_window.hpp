@@ -6,6 +6,7 @@ namespace flitzfs {
 struct GpuLz4SweepTiming {
   std::uint64_t fixed_ns=0; // Setup, final verification and retirement outside the windows.
   std::uint64_t per_window_ns=0; // Complete window including copies, checks and synchronization.
+  std::uint32_t quantum_chunks=0; // Measured launch width, with complete chunks.
 };
 // A measured/configuration-qualified bound for fixed runtime costs plus the
 // actual resident buffers of the selected implementation. These are demand
@@ -49,8 +50,8 @@ GpuLz4WindowPlan plan_gpu_lz4_window(std::uint64_t input_bytes,std::uint32_t chu
 
 // Admit one finite exchange with a reusable device slab. Host accounting
 // covers the whole exchange. Grid, device memory and kernel quantum bounds
-// apply to the largest launch. When timing evidence is present, charge the
-// fixed overhead and every reused window against the elapsed deadline.
+// apply to the largest launch. A timed sweep charges fixed overhead and
+// complete windows of its measured width against the elapsed deadline.
 GpuLz4WindowPlan plan_gpu_lz4_sweep_window(std::uint64_t input_bytes,std::uint32_t chunk_bytes,
     const GpuHealthEvidence&,std::uint64_t now_ms,const GpuLz4ResidentCost&,GpuLz4WindowPolicy,
     GpuLz4SweepGrant,std::uint32_t deadline_ms) noexcept;

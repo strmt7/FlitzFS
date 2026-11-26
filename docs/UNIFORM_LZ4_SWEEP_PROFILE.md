@@ -169,6 +169,52 @@ the existing failure categories, budget decisions and CPU fallback. The
 CPU semantic fixture verifies no reply on a failed operation or cleanup.
 [Exact source, resource receipts and trial results](evidence/windows-amd-stream-copy-2026-11-23.json)
 
+## Measured launch width
+
+The timed planner binds a profile to its complete launch width. Greater
+headroom can fund more windows of that width. A smaller grant can use an
+independently measured width. For a native write, the measured offer must
+cover the complete request, including its actual launch mode. A remainder
+or an unfunded measured width leaves the write on CPU.
+[Window planner](../src/gpu_lz4_window.cpp) ·
+[Native write admission](../src/windows/native_deferred_write.cpp)
+
+The installed AMD comparison fixture can run three alternating four- and
+eight-extent pairs over one frozen 1 MiB input with
+`--profile-installed-amd-wide-sweep-corpus FILE`. The same pinned worker
+and module served every pair. Each arm independently verified plaintext
+on CPU and confirmed retirement. Every arm produced the same 487,605-byte
+encoded payload.
+
+| Paired widths | Median parent time, smaller / larger | Median total launch and synchronization time, smaller / larger |
+| --- | --- | --- |
+| 2 and 4 | 1.776 s / 1.193 s | 594.1 ms / 96.5 ms |
+| 4 and 8 | 1.808 s / 1.256 s | 97.1 ms / 48.5 ms |
+
+Setup in the eight-extent arms took 1.006–1.086 s. The third eight-extent
+arm spent 396.6 ms in the host upload call. The aggregate timings locate
+that delay at the API boundary. They leave command scheduling, data
+movement and device execution time unresolved.
+
+A separate event-timed arm returned `sweep_event_invalid_sample` and
+retired without a profile. AMD's tracker documents event timestamps on
+gfx1201 and gfx1200 that can be invalid even after successful event
+synchronization. Use monotonic host wall time to compare complete verified
+work. Keep the stricter device-event diagnostic for runtimes where the
+timestamps can be corroborated. Diagnose long waits with an independently
+correlated queue trace before making a kernel-level optimization claim.
+[AMD HIP event contract](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/reference/hip_runtime_api/modules/event_management.html) ·
+[AMD gfx12 timing report](https://github.com/ROCm/TheRock/issues/9383) ·
+[Microsoft GPUView](https://learn.microsoft.com/en-us/windows-hardware/drivers/display/using-gpuview) ·
+[Source-bound results](evidence/windows-amd-measured-launch-width-2026-11-26.json)
+
+The updated planner also passed the live prepared callback fixture with
+its two-extent timing grant. The fixture stored 16 GPU-produced extents
+and compared both protected copies of every extent with independent CPU
+readback. Preparation took 2.234 s, and the subsequent callback response
+took 410.0 ms. This checks controlled activation and exact write
+completion. Automatic mounted routing still needs its own qualification.
+
 ## Encoding independence
 
 CPU fallback need not reproduce GPU compressed bytes, ratio, algorithm or format.
