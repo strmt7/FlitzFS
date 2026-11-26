@@ -133,16 +133,21 @@ its resources on completion, cancellation, or an unused forecast. Capture
 and submission still yield when foreground activity changes.
 
 Once submitted, the request belongs to one open context, its sequential
-read run and the exact image checkpoint. An unrelated read or metadata query
-can finish while the worker owns the request. The CPU also serves early
+read run and an owned capture from the selected image. Unrelated callbacks
+and commits on that image can finish while the worker owns the request.
+The CPU also serves early
 target demand immediately. If that read advances along the same stream
 and leaves part of the grouped capture unread, the worker may finish
 within its original deadline. Verification checks every reply extent
 against its committed digest after confirmed child exit. Publication then
 discards the fully served prefix. A seek, full consumption, context
-retirement or changed checkpoint supersedes the capture. Demand checks
-the protected record bindings again before using a ready extent.
+retirement or image replacement supersedes the capture. Demand checks
+the protected member and base, current logical extent bounds and supported
+encoding before using the buffer. A later checkpoint also requires the
+current indexed reference to the same base and the original backing
+owner. Changed or suspect records use the independent CPU path.
 [Interleaved callback evidence](evidence/windows-group-read-stream-binding-2026-11-25.json)
+· [Read delivery across commits](evidence/windows-prepared-group-checkpoints-2026-11-26.json)
 
 An admitted physical Radeon trial exercised a four-extent prepared mixed
 capture. The first callback read one extent on CPU while the request was
@@ -349,7 +354,7 @@ the final totals after joining the dispatcher and releasing readiness.
 A published group can retain part of an extent whose prefix was already
 served by CPU. Unused logical bytes are the published total less delivered
 and currently retained bytes. This allows the same trace to identify work
-discarded due to a seek, checkpoint change, close or replacement. These
+discarded due to a seek, changed extent, close or image replacement. These
 totals measure the WinFsp callback boundary. A mounted comparison also
 records the successful bytes and status observed by the Win32 client.
 [WinFsp read interface](https://github.com/winfsp/winfsp/blob/ada6de157df4fa99f5a866b6ac7af66918d6d838/inc/winfsp/winfsp.h) ·
@@ -367,9 +372,9 @@ window. Keep software admission independent of HIP stream-priority support.
 ### Feedback when demand passes a grouped request
 
 A sequential handle can finish the captured range before the device
-exchange delivers it. The checked stream revision and unchanged
-checkpoint identify this outcome. A seek, close or checkpoint change
-still invalidates the request independently. Each terminal outcome
+exchange delivers it. The checked stream revision, selected image and
+service of the captured range identify this outcome. A seek, close or
+image replacement still invalidates the request independently. Each terminal outcome
 keeps the CPU-served bytes and cancels work owned by that request.
 
 When the supervisor's completion handle is still unsignaled at a
@@ -675,9 +680,10 @@ so it can submit immediately. [Windows job lifetime](https://learn.microsoft.com
 Foreground demand continues through the independent reader. Foreground
 activity can supersede the captured epoch. The controller then signals
 cancellation and rejects the late result. A returned batch needs confirmed
-child and supervisor retirement, current resource admission and a matching
-callback epoch. The foreground store verifies its checkpoint, typed extent
-and decoded digest before using the frame. The mount owner also checks
+child and supervisor retirement, current resource admission and
+uninterrupted verification at the observed callback epoch. The foreground
+store validates the typed extent and protected records against the
+current authority before using the frame. The mount owner also checks
 worker retirement when it stops. A refused device configuration uses CPU
 for the remainder of that attachment. Temporary pressure uses the shared
 GPU recovery policy and requires fresh observations.

@@ -240,13 +240,70 @@ void prepared_packed_group_reads() {
   auto late=NativeGroupReadyReads::decode_captured(*prior);
   detail::NativeGroupReadRoute late_route{late.get()};
   require(late && session.read(file,3*extent,1,nullptr,&late_route)==Bytes{input[3*extent]} &&
-      late->consumed()==0,"An unchanged member bypassed checkpoint revocation");
+      late->consumed()==0,"A later checkpoint reused the suspect base");
   auto current=session.snapshot();
   input[2*extent]=changed;
   require(current.read("joined",0,count*extent)==input,"Independent CPU reread changed committed bytes");
   current.verify_all();
   std::cout<<"prepared_packed_groups bases=1 members=3 cpu_fallback=1 wrong_reply_rejected=1"
-      <<" changed_checkpoint_rejected=1 different_backing_rejected=1 observed_repair_rejected=1\n";
+      <<" changed_member_rejected=1 different_backing_rejected=1 observed_repair_rejected=1\n";
+}
+void prepared_group_later_checkpoint() {
+  using detail::NativeGroupReadyReads;
+  constexpr auto extent=kNativeExtentBytes;
+  constexpr auto grant=9U*extent;
+  constexpr StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
+  auto ram=std::make_shared<Ram>();
+  ram->failure_unit=4096;
+  auto backing=std::make_shared<ConcurrentRam>(ram);
+  auto writer=NativeFilesystemWriter::initialize_indexed(
+      PagedObjectStoreWriter::create_mirrored(backing,identity(),limits,raw));
+  Bytes input;
+  for(unsigned i=0;i<3;++i) {
+    const auto bytes=xor_family(i);
+    input.insert(input.end(),bytes.begin(),bytes.end());
+  }
+  writer.apply(std::array{file_create("joined"),file_write("joined",0,input),file_create("side")});
+  const auto inode=writer.snapshot().stat("joined").inode;
+  const std::array<NativeExtentSelection,3> extents{{{inode,0},{inode,1},{inode,2}}};
+  require(writer.compress_shared_base(extents.front(),extents).applied,"Later checkpoint fixture did not group");
+  auto session=NativeFileSession::create(std::move(writer));
+  const auto file=session.open("joined",{true,true,true});
+  const auto side=session.open("side",{true,true,true});
+  auto lease=session.lease_native_group_capture(file,extent);
+  require(lease!=nullptr,"Later checkpoint fixture did not lease capture");
+  auto capture=lease->capture(2*extent,grant);
+  require(capture && capture->members().size()==2,"Later checkpoint fixture did not capture two members");
+  const auto checkpoint=PagedObjectStoreSnapshot::open(backing,limits).info().generation;
+  const auto changed=input[extent]^std::byte{19};
+  (void)session.write(side,0,{&changed,1});
+  (void)session.write(file,extent,{&changed,1});
+  const auto active=PagedObjectStoreSnapshot::open(backing,limits).info().generation;
+  require(active>checkpoint,"Later checkpoint was not published");
+  auto ready=NativeGroupReadyReads::decode_captured(*capture);
+  detail::NativeGroupReadRoute route{ready.get()};
+  require(ready && session.read(file,extent,1,nullptr,&route)==Bytes{changed} &&
+      route.ready_bytes==0 && ready->consumed()==0,"A changed member accepted stale bytes");
+  const auto start=ram->read_bytes;
+  require(session.read(file,2*extent,extent,nullptr,&route)==xor_family(2) &&
+      route.ready_bytes==extent && ready->consumed()==1,"An unchanged member lost its checked prepared bytes");
+  const auto prepared_reads=ram->read_bytes-start;
+  auto control_backing=image(ram->stable,ram->failure_unit);
+  auto control=NativeFileSession::create(NativeFilesystemWriter::resume(
+      PagedObjectStoreWriter::resume(control_backing,identity(),active,limits,raw)));
+  const auto control_file=control.open("joined",{true,false,true});
+  require(control.read(control_file,extent,1)==Bytes{changed},"Cold control lost the intervening write");
+  const auto control_start=control_backing->read_bytes;
+  require(control.read(control_file,2*extent,extent)==xor_family(2),"Cold control lost the stable member");
+  const auto cpu_reads=control_backing->read_bytes-control_start;
+  auto current=session.snapshot();
+  current.verify_all();
+  input[extent]=changed;
+  require(current.read("joined",0,3*extent)==input && current.read("side",0,1)==Bytes{changed},
+      "Later prepared delivery changed CPU readback");
+  std::cout<<"prepared_group_later_checkpoint reused_bytes="<<extent
+      <<" prepared_backing_read_bytes="<<prepared_reads<<" cpu_backing_read_bytes="<<cpu_reads
+      <<" changed_member_cpu=1 cpu_exact=1\n";
 }
 void prepared_mixed_group_reads() {
   using detail::NativeGroupMethod;
@@ -1357,6 +1414,7 @@ void layouts(std::uint32_t unit) {
 int main(int argc,char** argv){try {
   if(argc==2 && std::string_view(argv[1])=="--prepared-packed-reads") {
     prepared_packed_group_reads();
+    prepared_group_later_checkpoint();
     return 0;
   }
   if(argc==2 && std::string_view(argv[1])=="--prepared-mixed-reads") {

@@ -213,11 +213,14 @@ struct CheckpointKey {
       unit(s.unit),metadata_bytes(s.metadata_bytes),required_features(s.required_features),
       mirrored(s.mirrored),shared_banks(s.shared_banks),
       compact_roots(s.compact_roots) {}
-  bool matches(const State& s) const noexcept {
+  bool same_image(const State& s) const noexcept {
     return identity==s.id && mirrored==s.mirrored && shared_banks==s.shared_banks &&
-        compact_roots==s.compact_roots && generation==s.generation && checkpoint==s.checkpoint &&
-        end==s.end && unit==s.unit && metadata_bytes==s.metadata_bytes &&
-        required_features==s.required_features && root==s.root;
+        compact_roots==s.compact_roots && unit==s.unit && metadata_bytes==s.metadata_bytes &&
+        required_features==s.required_features;
+  }
+  bool matches(const State& s) const noexcept {
+    return same_image(s) && generation==s.generation && checkpoint==s.checkpoint &&
+        end==s.end && root==s.root;
   }
 };
 bool can_reuse_query(const State& s) noexcept {
@@ -1489,9 +1492,12 @@ class detail::PagedReadMetadata final {
  public:
   explicit PagedReadMetadata(const State& state) noexcept:backing_(state.image),key_(state) {}
   bool matches(const State& state) const noexcept {
-    const auto backing=backing_.lock();
-    return backing && backing==state.image && !backing.owner_before(state.image) &&
-        !state.image.owner_before(backing) && key_.matches(state) && can_reuse_query(state);
+    return owns_backing(state) && key_.matches(state) && can_reuse_query(state);
+  }
+  bool matches_group_source(const State& state) const noexcept {
+    return owns_backing(state) && can_reuse_query(state) &&
+        (key_.matches(state) || (key_.same_image(state) && key_.generation<state.generation &&
+         key_.checkpoint<=state.checkpoint));
   }
   void discard() noexcept {
     pages.reset();
@@ -1501,6 +1507,11 @@ class detail::PagedReadMetadata final {
   std::optional<QueryMetadata> records;
 
  private:
+  bool owns_backing(const State& state) const noexcept {
+    const auto backing=backing_.lock();
+    return backing && backing==state.image && !backing.owner_before(state.image) &&
+        !state.image.owner_before(backing);
+  }
   std::weak_ptr<StoreByteIo> backing_;
   CheckpointKey key_;
 };
@@ -2422,17 +2433,21 @@ bool PagedObjectStoreSnapshot::capture_group_read_record(std::uint64_t object,st
   return true;
 }
 bool PagedObjectStoreSnapshot::matches_group_read(const detail::PagedGroupReadRecord& member,
-    const detail::PagedGroupReadRecord& base,const detail::PagedReadMetadata& capture) const noexcept {
+    const detail::PagedGroupReadRecord& base,const detail::PagedReadMetadata& capture,
+    const std::function<bool()>& verify_current_reference) const noexcept {
   const auto& state=impl_->state;
-  if(!state.mirrored || !capture.matches(state))return false;
+  if(!state.mirrored || !capture.matches_group_source(state))return false;
   try {
+    // A later checkpoint can keep both protected records unchanged. Look up
+    // their bindings in the current root without using capture's cached pages.
     for(const auto* binding:{&member,&base}) {
       const auto entry=lookup(state,binding->object,impl_->lookup_pages?&*impl_->lookup_pages:nullptr,
           impl_->retained_root?&*impl_->retained_root:nullptr);
       if(!entry || group_read_record(*entry)!=*binding ||
           (state.payload_repairs && state.payload_repairs->suspect(*entry)))return false;
     }
-    return capture.matches(state);
+    if(!capture.matches(state) && !verify_current_reference())return false;
+    return capture.matches_group_source(state);
   }catch(const std::exception&){return false;}
 }
 std::optional<std::pair<std::uint64_t,Bytes>> PagedObjectStoreSnapshot::read_first_after(

@@ -10,7 +10,23 @@ detailed package contracts and the release execution plan retains the gates.
 [Implementation packages](IMPLEMENTATION_PLAN.md#3-execution-order-and-dependencies) ·
 [Release gates](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
 
-The current checkpoint builds on `31474b79b77dfd415634689b26fecd6cc79dce16`.
+The current checkpoint builds on `811c160ca4d295b529b3e13bb292348ea8343fa9`.
+Source tree `e2dec721d56f6202ae418fbeecae9487eb5abf19` retains verified grouped read
+work through unrelated commits to the selected image. One matched 64 KiB
+native access used 9,498 backing bytes after preparation, compared with
+75,336 bytes on the CPU control. The changed member read its current
+bytes on CPU. Seven WinFsp callback trials delivered 131,072 ready bytes
+each across intervening writes.
+[Composition and sample accounting](evidence/windows-prepared-group-checkpoints-2026-11-26.json)
+
+The same build consumed two verified Radeon group frames in the owned
+Windows callback fixture. A later request continued on the CPU, and
+shutdown retired the final pending request. The sealed volume reopened
+for a verified write and independent CPU readback. A matched mounted
+comparison remains the next device performance gate.
+[Installed Radeon and fallback](evidence/windows-prepared-group-checkpoints-2026-11-26.json)
+
+The shifted-fragment checkpoint builds on `31474b79b77dfd415634689b26fecd6cc79dce16`.
 Source tree `b23965211dcab367717fc05fd3b93c10922fe809` adds funded discovery of
 shifted fragments in the native maintenance controller. The independently
 reopened Khronos holdout occupies 864,256 bytes, down from 925,696
@@ -351,6 +367,12 @@ numbers alone give no Windows package or driver guarantee.
    residency, input staging, kernel, transfer, supervisor retirement,
    CPU comparison, completion observation and commit. Record the cost of
    abandoned work and the share of device results actually delivered.
+   Include unrelated writes before and after publication. Count prepared
+   bytes that remain verifiable, requests served on CPU and backing bytes
+   required for the new reference checks. Measure capture separately from
+   delivery. Use the existing client traces to define the workload mix.
+   [WinFsp concurrency contract](https://winfsp.dev/doc/WinFsp-API-winfsp.h/) ·
+   [NSDI 2026 delayed-cache-hit measurements](https://www.usenix.org/conference/nsdi26/presentation/keren)
 2. Prioritize grouped reads with predictable lead and large or recurring
    write cohorts. Feed only a bounded eligible range into the retained
    worker. The installed write trial now funds the largest complete

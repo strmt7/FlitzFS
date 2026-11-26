@@ -53,7 +53,7 @@ bool NativeGroupReadyReads::append_checked(const NativeGroupReadBatch& batch,std
   while(!bytes.empty() && bytes.back()==std::byte{})bytes.pop_back();
   if(bytes.empty() || bytes.size()>member.maximum_payload)return false;
   members_.push_back({member.record,batch.bases_[member.base].record,member.block,
-      member.maximum_payload,0,std::move(bytes)});
+      member.method,member.maximum_payload,0,std::move(bytes)});
   pending_bytes_+=member.maximum_payload;
   return true;
 }

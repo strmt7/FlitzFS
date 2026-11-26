@@ -840,20 +840,25 @@ queue a shorter immutable request inside the reserved maximum while the child
 prepares HIP. A foreground operation interrupts capture or submission.
 For a stable aligned stream, the controller can reserve a later request
 window if observed device startup would miss the next request.
-An already submitted request can outlast unrelated read-only callbacks.
+An already submitted grouped request can outlast unrelated callbacks and
+commits on the same image.
 The same sequential handle may also read an early extent on CPU while
 the worker runs. A verified reply can still supply the unread extents
-on the same checkpoint. A seek, checkpoint change or completely served
-range invalidates the capture. The native read path remains independently
-decodable on CPU.
+while their live records still match. A seek, image change or completely
+served range invalidates the capture. The native read path remains
+independently decodable on CPU.
 
 A callback may request only part of a prepared group member. The reader
 copies the requested bytes and retains the rest of the verified buffer
-within the same admitted window. The next adjacent callback rechecks
-the member, base and checkpoint before using that buffer. Passing the
-member's logical end releases its storage. A seek or stale proof uses
-the normal CPU read path.
+within the same admitted window. The next adjacent callback checks the
+current file mapping, logical extent length, supported method and both
+protected records. After an intervening checkpoint the reader also
+verifies the current shared-base reference. Current lookup state supplies
+those checks. Passing a member's logical end releases its storage even
+when the CPU served a changed extent. A seek or stale proof uses the
+normal CPU read path.
 [WinFsp file-system interface](https://winfsp.dev/doc/WinFsp-API-winfsp.h/) ·
+[Grouped reads across commits](../evidence/windows-prepared-group-checkpoints-2026-11-26.json) ·
 [Segmented CPU and Radeon evidence](../evidence/windows-group-segmented-reads-2026-11-25.json)
 
 An adjacent stream can build its forecast from smaller callbacks. Only the
@@ -922,7 +927,7 @@ matched CPU comparison with delivered bytes under real demand.
 [Native LZ4 device evidence](../NATIVE_AMD_LZ4_READ.md) ·
 [Resumed verification](../evidence/windows-resumable-group-replies-2026-11-25.json)
 
-If consecutive reads exhaust the group at the same checkpoint, the
+If consecutive reads exhaust the group on the same image, the
 controller records the missed delivery before retiring the work. It
 raises the applicable cold or ready timing estimate only when the owned
 exchange is still running. An invalidated stream provides no timing

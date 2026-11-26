@@ -788,10 +788,19 @@ void group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={},Group
     auto old_ready=detail::NativeGroupReadyReads::decode_captured(*old->groups);
     unrelated_current.front()^=std::byte{0x4f};
     h.write(other_context,unrelated_current);
-    require(old_ready && h.adapter->read_ahead_state(*old)==WinFspReadAheadState::superseded &&
-        !h.adapter->publish_read_ahead(*old,{},std::move(old_ready),stop),"A changed checkpoint accepted old read work");
+    require(old_ready && h.adapter->read_ahead_state(*old)==WinFspReadAheadState::current &&
+        h.adapter->publish_read_ahead(*old,{},std::move(old_ready),stop),"Unrelated write discarded bound group work");
+    unrelated_current.back()^=std::byte{0x27};
+    h.write(other_context,unrelated_current);
+    const auto retained=h.adapter->group_read_delivery()->cpu;
+    require(retained.pending_bytes>=width*extent,"Unrelated write cleared the ready group window");
+    const auto read_start=h.image->read_bytes;
     read(2*width);
-    require(h.adapter->native_lz4_read_ahead_hits()==ready_members,"Changed checkpoint delivered a speculative result");
+    require(h.adapter->native_lz4_read_ahead_hits()==ready_members+width &&
+        h.adapter->group_read_delivery()->cpu.delivered_bytes==retained.delivered_bytes+width*extent,
+        "Current records did not validate across unrelated writes");
+    std::cout<<"winfsp_group_unrelated_commits delivered_bytes="<<width*extent
+        <<" backing_read_bytes="<<h.image->read_bytes-read_start<<" cpu_exact=1\n";
     if(retarget)require(h.adapter->group_preparation_state(interrupted,GetTickCount64())==
         WinFspReadAheadState::superseded,"A changed checkpoint retained an obsolete preparation");
     const auto before=h.adapter->group_read_delivery()->cpu;
@@ -818,8 +827,8 @@ void group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={},Group
   require(snapshot.read("f47",0,file.size())==file &&
       snapshot.read("f46",0,unrelated_current.size())==unrelated_current,"Independent CPU read changed callback bytes");
   snapshot.verify_all();
-  std::cout<<"winfsp_ready_groups mixed="<<mixed<<" ready_hits="<<ready_members<<" late_refused=1 cpu_readback=1 backing_writes=0"
-      <<" unrelated_callbacks_retained=1 checkpoint_change_refused="<<!worker
+  std::cout<<"winfsp_ready_groups mixed="<<mixed<<" ready_hits="<<ready_members<<" late_refused=1 cpu_readback=1 read_backing_writes=0"
+      <<" unrelated_callbacks_retained=1 checkpoint_change_checked="<<!worker
       <<" expanded="<<expanded<<" callbacks="<<callbacks<<" variable_widths="<<variable_widths
       <<" cpu_prefix="<<cpu_prefix<<'\n';
 }

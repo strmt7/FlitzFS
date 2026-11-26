@@ -78,6 +78,7 @@ class NativeGroupReadyReads final {
   struct Member {
     PagedGroupReadRecord record,base;
     std::uint64_t block;
+    NativeGroupMethod method;
     std::uint32_t logical_bytes,next_offset=0;
     std::vector<std::byte> bytes;
   };

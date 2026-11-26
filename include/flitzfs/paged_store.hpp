@@ -214,7 +214,7 @@ class PagedObjectStoreSnapshot final {
   bool capture_group_read_record(std::uint64_t object,std::size_t maximum_decoded,
       std::optional<std::uint64_t> generation,detail::PagedGroupReadFrame&) const;
   bool matches_group_read(const detail::PagedGroupReadRecord& member,const detail::PagedGroupReadRecord& base,
-      const detail::PagedReadMetadata&) const noexcept;
+      const detail::PagedReadMetadata&,const std::function<bool()>& verify_current_reference) const noexcept;
   std::optional<std::pair<std::uint64_t,std::vector<std::byte>>> read_first_after(std::uint64_t after,
       std::uint64_t last,std::size_t maximum_decoded_bytes) const;
   static PagedObjectStoreSnapshot open_impl(std::shared_ptr<StoreByteIo>,PagedStoreLimits,bool retain_lookup_pages);

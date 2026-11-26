@@ -7,6 +7,16 @@
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
   "current_release_review": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
+  "prepared_group_checkpoint_reuse": {
+    "source_parent": "811c160ca4d295b529b3e13bb292348ea8343fa9",
+    "tested_source_tree": "e2dec721d56f6202ae418fbeecae9487eb5abf19",
+    "evidence": "docs/evidence/windows-prepared-group-checkpoints-2026-11-26.json",
+    "matched_cpu_and_prepared_backing_bytes": [75336, 9498],
+    "verified_amd_frames_delivered": 2,
+    "changed_member_cpu_fallback": true,
+    "new_required_image_capability": false,
+    "release_qualified": false
+  },
   "shifted_fragment_discovery": {
     "source_parent": "31474b79b77dfd415634689b26fecd6cc79dce16",
     "tested_source_tree": "b23965211dcab367717fc05fd3b93c10922fe809",

@@ -2785,7 +2785,12 @@ Bytes IndexedVolumeView::read(const IndexedInodeInput& selected,std::uint64_t of
       auto& pending=*groups->ready;
       const auto within=(std::max)(begin,offset)-begin;
       auto* ready=pending.find(selected.inode,block,entry.value,within);
-      if(ready && store_.matches_group_read(ready->record,ready->base,*pending.metadata_)) {
+      const auto current_bytes=(std::min)(std::uint64_t{kNativeExtentBytes},selected.size-begin);
+      if(ready && ready->logical_bytes==current_bytes && ready->method<=available_group_method(root_.format) &&
+          store_.matches_group_read(ready->record,ready->base,*pending.metadata_,[&]{
+            return (ready->base.object&ordinal_mask)<root_.next_extent &&
+                index_.find(native_group_reference_key(ready->base.object,entry.value))==entry.value;
+          })) {
         validate_payload(owner,block,ready->bytes);
         copy_payload(begin,ready->bytes,true);
         groups->ready_bytes+=pending.delivered(*ready,within,end-begin);

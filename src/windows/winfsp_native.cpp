@@ -753,9 +753,14 @@ struct WinFspNativeWritable::Impl {
         !stopped.load(std::memory_order_acquire) && !foreground.load(std::memory_order_acquire) &&
         (!deferred || (!deferred->publication_pending_locked() && !deferred->stats_locked().worker_busy));
   }
+  bool read_checkpoint_matches(const std::pair<StoreIdentity,std::uint64_t>& captured,bool grouped) const noexcept {
+    const auto active=session.read_ahead_checkpoint();
+    return captured.second && captured.first==active.first &&
+        (active.second==captured.second || (grouped && active.second>captured.second));
+  }
   const Slot* current_read_target(const WinFspReadAheadWork& work,bool* demand_served=nullptr) const noexcept {
-    if(maintenance_cancelled || !work.token || !work.stream_revision || !work.checkpoint.second ||
-        work.checkpoint!=session.read_ahead_checkpoint())return nullptr;
+    if(maintenance_cancelled || !work.token || !work.stream_revision ||
+        !read_checkpoint_matches(work.checkpoint,static_cast<bool>(work.groups)))return nullptr;
     const auto slot=std::ranges::find(slots,work.token,&Slot::token);
     if(slot==slots.end() || slot->provisional || slot->awaiting_overwrite || !slot->last_read.bytes)return nullptr;
     if(slot->read_revision==work.stream_revision)return &*slot;
@@ -801,7 +806,8 @@ struct WinFspNativeWritable::Impl {
     ++slot.read_revision;
     const auto previous=std::exchange(slot.last_read,ReadHistory{});
     if(read_ahead && read_ahead->token==slot.token)read_ahead.reset();
-    if(prepared_read.pending() && prepared_read.checkpoint!=session.read_ahead_checkpoint())prepared_read={};
+    if(prepared_read.pending() &&
+        !read_checkpoint_matches(prepared_read.checkpoint,static_cast<bool>(prepared_read.groups)))prepared_read={};
     auto prepared=prepared_read.target.token==slot.token?std::exchange(prepared_read,PreparedRead{}):PreparedRead{};
     const auto start_ms=GetTickCount64();
     const bool adjacent=previous.bytes && previous.end==offset;
@@ -830,6 +836,7 @@ struct WinFspNativeWritable::Impl {
     const auto maximum=(std::numeric_limits<std::uint64_t>::max)();
     if(!length || bytes.size()!=length || offset>maximum-length)return bytes;
     const auto end=offset+length;
+    if(has_prepared && prepared.groups)prepared.groups->discard_before(end);
     const auto completed_ms=GetTickCount64();
     const bool continues_group=prior_group_bytes && groups.tiled_suffix_bytes==length;
     const auto group_bytes=static_cast<std::uint32_t>((std::min)(std::uint64_t{kNativeMaxReadBytes},
@@ -2013,7 +2020,7 @@ std::optional<WinFspGroupReadDelivery> WinFspNativeWritable::group_read_delivery
     if(!guard || !impl_->read_ahead_enabled)return {};
     auto result=impl_->group_delivery;
     const auto& prepared=impl_->prepared_read;
-    if(prepared.groups && prepared.checkpoint==impl_->session.read_ahead_checkpoint()) {
+    if(prepared.groups && impl_->read_checkpoint_matches(prepared.checkpoint,true)) {
       auto& usage=prepared.device_groups?result.amd:result.cpu;
       usage.pending_bytes=prepared.groups->pending_bytes();
     }
