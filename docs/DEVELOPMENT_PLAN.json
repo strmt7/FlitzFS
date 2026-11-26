@@ -4,6 +4,8 @@
   "forward_work_rule": "Use current_release_sequence for integration order, and execution_programme and the implementation plan for package dependencies and exits. Historical checkpoints describe completed or partial evidence.",
   "current_release_sequence": {
     "current_reconciliation": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
+    "latest_cross_window_pair_comparison": "docs/evidence/windows-cross-window-pair-comparison-2026-11-26.json",
+    "tested_cross_window_pair_comparison_tree": "4d0dd9cac9f4edd02aa1f6efb3ceae9a5b05dee7",
     "latest_amd_initial_write_group": "docs/evidence/windows-amd-initial-write-group-2026-11-26.json",
     "tested_amd_initial_write_group_tree": "06ee5daecc99043caaf764ef7f68b917c6384734",
     "latest_amd_measured_launch_width": "docs/evidence/windows-amd-measured-launch-width-2026-11-26.json",

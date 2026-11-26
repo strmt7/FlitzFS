@@ -37,6 +37,7 @@ struct NativeMaintenanceProgress {
   std::uint64_t append_shortfall_bytes=0;
   std::uint64_t candidate_yield_observations=0;
   std::uint64_t fragment_nominations=0;
+  std::uint64_t packed_pair_comparisons=0;
   bool search_window_ready=false; // Newly staged by this opportunity.
   bool search_batch_ready=false;
 };

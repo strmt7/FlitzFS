@@ -1723,8 +1723,9 @@ void check_group_root(const PagedObjectStoreSnapshot& source,const NativeNameInd
 
 IndexedSharedBasePreparation::IndexedSharedBasePreparation(const PagedObjectStoreSnapshot& source,
     IndexedVolumeRoot root,NativeExtentSelection base,std::span<const NativeExtentSelection> members,
-    std::span<const NativeContentToken> expected,bool allow_subset,bool packed_only)
-    :source_(source),original_(root),allow_subset_(allow_subset),packed_only_(packed_only) {
+    std::span<const NativeContentToken> expected,bool allow_subset,bool packed_only,bool compare_packed_pair)
+    :source_(source),original_(root),allow_subset_(allow_subset),packed_only_(packed_only),
+      compare_packed_pair_(compare_packed_pair) {
   if(members.size()>=kStoreMaxObjects)fail(Code::limit,"indexed shared-base selection budget");
   members_.reserve(members.size()+1);
   members_.push_back(Member{base});
@@ -1803,8 +1804,9 @@ std::vector<std::byte> IndexedSharedBasePreparation::read_member(Member& member,
 NativeSharedBaseProgress IndexedSharedBasePreparation::progress() const noexcept {
   auto result=progress_;
   result.reference_changed=reference_member_!=0;
+  result.packed_pair_comparison=compare_packed_pair_;
   result.section_comparison=section_reference_.has_value() || prefixed_reference_.has_value() ||
-      (search_ && search_->purpose==NativeSharedBaseSearchPurpose::section_comparison);
+      (!compare_packed_pair_ && search_ && search_->purpose==NativeSharedBaseSearchPurpose::section_comparison);
   result.owned_payload_bytes+=nominated_base_.size();
   if(section_reference_)result.owned_payload_bytes+=section_reference_->base.size()+section_reference_->frame_bytes;
   if(prefixed_reference_)result.owned_payload_bytes+=prefixed_reference_->frame_bytes;
@@ -1827,7 +1829,10 @@ bool IndexedSharedBasePreparation::stage_search(std::size_t maximum_members,std:
     const auto available=members_.size()-first-(base_index_>=first);
     const auto count=(std::min)(available,maximum_members);
     if(!count || !owner_window.expired())return false;
-    if(purpose==NativeSharedBaseSearchPurpose::section_comparison &&
+    if(compare_packed_pair_) {
+      if(purpose!=NativeSharedBaseSearchPurpose::section_comparison || !packing_admitted_ ||
+          first || count!=1 || available!=1 || reusable_anchor_)return false;
+    } else if(purpose==NativeSharedBaseSearchPurpose::section_comparison &&
         (first || count!=available || (reusable_anchor_?!store_zstd_available():count<2)))return false;
     try {
       auto bytes=std::make_shared<NativeSharedBaseSearchWindow::Payload>();
@@ -1910,7 +1915,7 @@ void IndexedSharedBasePreparation::admit_variants(bool packing,bool staged_refer
   }
   if(!packing) {
     packed_reference_.reset();
-    if(packed_only_)progress_.phase=NativeSharedBasePhase::declined;
+    if(packed_only_ || compare_packed_pair_)progress_.phase=NativeSharedBasePhase::declined;
   }
   staged_reference_admitted_=staged_reference;
   if(!staged_reference && staged_reference_comparison_) {
@@ -2105,6 +2110,12 @@ bool IndexedSharedBasePreparation::advance(std::span<const NativeSharedBaseCopyR
     progress_.phase=Phase::encoding_members;
     return false;
   }
+  if(compare_packed_pair_ && progress_.completed_members<members_.size() &&
+      (!search_ || search_->bytes->members.size()!=1)) {
+    // Leave this pair eligible for the ordinary packing pass.
+    progress_.phase=Phase::declined;
+    return true;
+  }
 
   if(progress_.completed_members==members_.size()) {
     if(stage_packed_reference())return false;
@@ -2271,7 +2282,7 @@ bool IndexedSharedBasePreparation::complete_member() {
   anchor_index_.reset();
   if(complete_window) {
     const auto retained=members_.size()-static_cast<std::size_t>(std::ranges::count(members_,true,&Member::skipped));
-    const bool reserved=search_->purpose==NativeSharedBaseSearchPurpose::section_comparison;
+    const bool reserved=!compare_packed_pair_ && search_->purpose==NativeSharedBaseSearchPurpose::section_comparison;
     const auto header=extent_header+kNativeGroupMemberHeaderBytes;
     if(retained>=2 && (reserved || staged_reference_admitted_)) {
       // Compare against the members that would actually be published.
@@ -2423,6 +2434,7 @@ NativeSharedBaseCommit IndexedSharedBasePreparation::finish(PagedObjectStoreWrit
   };
   section=alternate_reference(section_reference_,section_root,false);
   if(!direct_pack)packed=alternate_reference(packed_reference_,packed_root,true);
+  if(compare_packed_pair_ && packed.empty())return result;
   std::size_t prefixed_members=0,section_prefixed_members=0,replaced_advice=0;
   const auto prefix_variant=[&](std::span<const StoreMutation> original,std::optional<PrefixedReference>& trial,
       IndexedVolumeRoot& root,std::size_t& count,bool track_advice)->std::vector<StoreMutation> {

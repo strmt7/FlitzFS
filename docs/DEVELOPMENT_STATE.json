@@ -8,6 +8,18 @@
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
   "current_release_review": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
   "source_and_portability_review": "docs/architecture/RELEASE_REVIEW_2026-11-26.md",
+  "cross_window_pair_comparison": {
+    "source_parent": "01009fc243d31b373acb085c292604bec62cf447",
+    "tested_source_tree": "4d0dd9cac9f4edd02aa1f6efb3ceae9a5b05dee7",
+    "evidence": "docs/evidence/windows-cross-window-pair-comparison-2026-11-26.json",
+    "matched_control_protected_bytes_saved": 16384,
+    "stale_partner_publications": 0,
+    "windows_release_test_groups": 9,
+    "windows_raw_test_groups": 8,
+    "windows_raw_skipped_without_zstd": 1,
+    "windows_asan_test_groups": 10,
+    "release_qualified": false
+  },
   "amd_initial_write_group": {
     "source_parent": "9c7deff643b47ee96cb70b700a41352f28a71d35",
     "tested_source_tree": "06ee5daecc99043caaf764ef7f68b917c6384734",

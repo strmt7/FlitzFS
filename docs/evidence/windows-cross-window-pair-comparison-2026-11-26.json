@@ -1,0 +1,295 @@
+{
+  "schema": 1,
+  "date_utc": "2026-11-26",
+  "source": {
+    "parent": "01009fc243d31b373acb085c292604bec62cf447",
+    "base_tree": "bbb010afa9bbad71f952c8fef4b1ef3bf5aadc24",
+    "tree": "4d0dd9cac9f4edd02aa1f6efb3ceae9a5b05dee7",
+    "elements": [
+      {
+        "path": "include/flitzfs/native_filesystem.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "adff8f462939f88021cba14a7f03f8ee84f39ab6",
+        "bytes": 45593
+      },
+      {
+        "path": "include/flitzfs/native_maintenance.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "41c7996512059bb02526b58927146c869cf2db49",
+        "bytes": 4385
+      },
+      {
+        "path": "src/native_filesystem.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "cda8f7967ffbdabe02bc6a9fb008b4d8ec1b8cf2",
+        "bytes": 175814
+      },
+      {
+        "path": "src/native_indexed_volume.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "3df2fc15511f498da67470011954c5f0cea7f49f",
+        "bytes": 158777
+      },
+      {
+        "path": "src/native_indexed_volume.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "7a9afea3793340c35d2c49b453232d1b04f087c9",
+        "bytes": 15790
+      },
+      {
+        "path": "src/native_maintenance.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "3204e7a4f7606e967b4e0c6807ab02f0b92edac1",
+        "bytes": 84967
+      },
+      {
+        "path": "tests/test_native_group_maintenance.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "5a7ceaf6eb81eaeac3ece6eb9472b2296beb1e33",
+        "bytes": 274639
+      }
+    ]
+  },
+  "scope": "Native CPU group maintenance over private Windows memory fixtures with 4 KiB failure units.",
+  "research": {
+    "routing_receipt_sha256": "6d12d09f3082243010892b3520a1ec07c7dafaf772a996b8bfe9d51d3691a530",
+    "source_commit": "01009fc243d31b373acb085c292604bec62cf447",
+    "actual_searches": 1,
+    "provider": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "46b0fa1d0e1a9169c850cd08c4bfd13ee6a62721a301aae32bcfd9fe37f9395e",
+    "robots": true,
+    "external_llm": false,
+    "timeout_seconds_per_page": 45,
+    "sources": [
+      {
+        "url": "https://www.usenix.org/conference/fast26/presentation/huang",
+        "success": true,
+        "http_status": 200,
+        "content_sha256": "dbc538fff3a57a4c36ef94c8a47e1737270a83880e2fb6957160b9b46f285256",
+        "capture_sha256": "3c80e2829e524863a5577709e7b8c147c50fa3f703175462acc86c0707ff2773",
+        "applicable": true
+      },
+      {
+        "url": "https://arxiv.org/abs/2611.22847",
+        "success": true,
+        "http_status": 200,
+        "content_sha256": "6b3dcaa92b38f6b1ed2544bedb81ab695a43567bb10eb88edcec791bd7d1eac2",
+        "capture_sha256": "6bd5b430a330906506cc91ebd59a00b0b6e77074e78a2aebcc98dad5f2c2ec1c",
+        "applicable": true
+      },
+      {
+        "url": "https://www.usenix.org/conference/atc25/presentation/yang-jingyuan",
+        "success": true,
+        "http_status": 200,
+        "content_sha256": "5d14b6ffa62393b576c1883fa2e3812cd204f19c4f0712cc659b2b6262ef574f",
+        "capture_sha256": "137972605025ac0c7653a95868e49ce6c3cfc71a416a942ed99403f1a17d1b4e",
+        "applicable": true
+      },
+      {
+        "url": "https://arxiv.org/abs/2609.36634",
+        "success": true,
+        "http_status": 200,
+        "content_sha256": "b15ba51bcce9141d5ab8fa260ba89ee8b9f65a1b6b154399db6c414eea7f5df4",
+        "capture_sha256": "43c5df920b7666dbc87ad2c37885afd3af1025126a94b4a07f2102815050a322",
+        "applicable": false
+      }
+    ]
+  },
+  "test_binary_sha256": "f48c7900d929f0b752b8b8042aef1c40adae6e5983b60ad0409e9d9129c8cd24",
+  "checks": {
+    "release": {
+      "test_groups": 9,
+      "exit_code": 0,
+      "retired": true,
+      "peak_job_bytes": 117891072,
+      "wall_seconds": 5.391,
+      "stdout_sha256": "1837e30809dec7d25a1e06086783cf344f30d66b194fec0eaddac25970158f29"
+    },
+    "raw_only": {
+      "test_groups": 8,
+      "passed": 7,
+      "skipped_without_zstd": 1,
+      "exit_code": 0,
+      "retired": true,
+      "peak_job_bytes": 39419904,
+      "wall_seconds": 1.609,
+      "stdout_sha256": "dc21b04ec958e2700218a381f08afd3180bf24dbc37318bfe2f17f742acfb1af"
+    },
+    "address_sanitizer": {
+      "test_groups": 10,
+      "exit_code": 0,
+      "retired": true,
+      "peak_job_bytes": 607191040,
+      "wall_seconds": 22.172,
+      "stdout_sha256": "c4895dea6451bd82ebcd4a44035b1eda7ebec1ef998ad165ad570e22b7cec762",
+      "runtime_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed",
+      "configuration": "RelWithDebInfo",
+      "includes_runtime_preflight": true
+    }
+  },
+  "paired_control": {
+    "run": {
+      "exit_code": 0,
+      "retired": true,
+      "peak_job_bytes": 66277376,
+      "wall_seconds": 0.719,
+      "stdout_sha256": "3c86cbf237c3fe89012b2a2c80fdcae32852a5f37de120ea74998811d3a78f9e"
+    },
+    "packing_only": {
+      "files": 64,
+      "stale_partner": 0,
+      "compare": 0,
+      "before_compacted": 8470528,
+      "after_compacted": 8454144,
+      "packed_groups": 1,
+      "attempts": 1,
+      "pair_comparisons": 0,
+      "independent_cpu_readback": 1,
+      "pinned_readback": 1,
+      "idle_io": 0
+    },
+    "comparison": {
+      "files": 64,
+      "stale_partner": 0,
+      "compare": 1,
+      "before_compacted": 8470528,
+      "after_compacted": 8437760,
+      "packed_groups": 0,
+      "attempts": 1,
+      "pair_comparisons": 1,
+      "independent_cpu_readback": 1,
+      "pinned_readback": 1,
+      "idle_io": 0
+    },
+    "stale_retained_partner": {
+      "files": 64,
+      "stale_partner": 1,
+      "compare": 1,
+      "before_compacted": 8470528,
+      "after_compacted": 8519680,
+      "packed_groups": 0,
+      "attempts": 0,
+      "pair_comparisons": 0,
+      "independent_cpu_readback": 1,
+      "pinned_readback": 1,
+      "idle_io": 0
+    },
+    "saved_bytes_over_packing_only": 16384,
+    "final_release_and_asan_ctest_repeated_strict_size_assertion": true,
+    "final_release_ctest_log_sha256": "872edee1497a9ac92eda607b27ecb584e850b51b88ed59f6c113190358be626a"
+  },
+  "public_regression": {
+    "name": "Khronos glTF sample families, 15-file held-out tree",
+    "input_sha256": "ccc693c69e142cbd28c98575cb1c1c61d1bcd52a450fe1e681cfa5b196f98f10",
+    "existing_bands": {
+      "run": {
+        "exit_code": 0,
+        "retired": true,
+        "peak_job_bytes": 24944640,
+        "wall_seconds": 1.735,
+        "stdout_sha256": "82c57334ea0046b82e89b1ae4c6f8393d441877301256de24711a6ab241cb57c"
+      },
+      "grouping": {
+        "files": 15,
+        "before_compacted": 2138112,
+        "after_compacted": 1318912,
+        "input_bytes": 1857848,
+        "selector_bytes": 131072,
+        "ingested_image_bytes": 2834432,
+        "maintained_image_bytes": 3825664,
+        "before_range_read_bytes": 699364,
+        "after_range_read_bytes": 779119,
+        "maintenance_read_bytes": 5299632,
+        "maintenance_read_calls": 1852,
+        "sampled_extents": 46,
+        "reused_features": 0,
+        "maintenance_write_bytes": 1064960,
+        "work_ns": 64874900,
+        "packed_groups": 0,
+        "attempts": 11,
+        "yield_observations": 9,
+        "fragment_nominations": 0,
+        "members": 23,
+        "cpu_exact": 1,
+        "retained_snapshot_exact": 1,
+        "idle_io": 0
+      },
+      "seal": {
+        "mirror_bytes": 1155072,
+        "settled_bytes": 880640,
+        "base_bytes": 733184,
+        "tail_bytes": 16384,
+        "selector_bytes": 131072,
+        "workspace_write_bytes": 585728,
+        "backing_write_bytes": 881152,
+        "sampled_range_read_bytes": 823296,
+        "members": 23,
+        "bases": 9,
+        "selected": 1,
+        "cpu_exact": 1
+      }
+    },
+    "all_fragments": {
+      "run": {
+        "exit_code": 0,
+        "retired": true,
+        "peak_job_bytes": 24961024,
+        "wall_seconds": 1.688,
+        "stdout_sha256": "cebc1acaab64b14ab74fbca4ef07a8acb1713e76d39718cb3a31da6e241bfba0"
+      },
+      "grouping": {
+        "files": 15,
+        "before_compacted": 2138112,
+        "after_compacted": 1163264,
+        "input_bytes": 1857848,
+        "selector_bytes": 131072,
+        "ingested_image_bytes": 2834432,
+        "maintained_image_bytes": 4268032,
+        "before_range_read_bytes": 699364,
+        "after_range_read_bytes": 782211,
+        "maintenance_read_bytes": 6951775,
+        "maintenance_read_calls": 2402,
+        "sampled_extents": 52,
+        "reused_features": 0,
+        "maintenance_write_bytes": 1556480,
+        "work_ns": 84729000,
+        "packed_groups": 1,
+        "attempts": 16,
+        "yield_observations": 14,
+        "fragment_nominations": 102,
+        "members": 33,
+        "cpu_exact": 1,
+        "retained_snapshot_exact": 1,
+        "idle_io": 0
+      },
+      "seal": {
+        "mirror_bytes": 1122304,
+        "settled_bytes": 864256,
+        "base_bytes": 716800,
+        "tail_bytes": 16384,
+        "selector_bytes": 131072,
+        "workspace_write_bytes": 569344,
+        "backing_write_bytes": 864768,
+        "sampled_range_read_bytes": 892928,
+        "members": 33,
+        "bases": 13,
+        "selected": 1,
+        "cpu_exact": 1
+      }
+    },
+    "attribution": "These arms toggle all fragment nominations. Isolate the new short-pair comparison with the matched 64-file control."
+  },
+  "behavior": {
+    "existing_media_encodings": true,
+    "requires_both_variants_for_new_comparison": true,
+    "existing_packing_fallback": true,
+    "general_release_qualified": false
+  }
+}

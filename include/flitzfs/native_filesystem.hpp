@@ -261,7 +261,7 @@ struct NativeSharedBaseProgress {
   std::size_t completed_members=0,total_members=0;
   std::uint64_t owned_payload_bytes=0;
   std::size_t selected_advice_members=0;
-  bool reference_changed=false,section_comparison=false;
+  bool reference_changed=false,section_comparison=false,packed_pair_comparison=false;
 };
 
 struct NativeInodeWriteCommit {
@@ -697,7 +697,7 @@ class NativeFilesystemWriter final {
   std::uint64_t maintenance_physical_end() const noexcept;
   bool maintenance_busy() const noexcept;
   bool maintenance_supported() const noexcept;
-  enum class SharedBaseMode { compare,pack };
+  enum class SharedBaseMode { compare,pack,compare_packed_pair };
   SharedBaseWork prepare_shared_base(NativeExtentSelection,std::span<const NativeExtentSelection>,
       std::span<const NativeContentToken>,bool batch=false,bool allow_subset=false,SharedBaseMode=SharedBaseMode::compare);
   bool stage_shared_base_search(SharedBaseWork&,std::size_t maximum_members,std::size_t retained_extents,

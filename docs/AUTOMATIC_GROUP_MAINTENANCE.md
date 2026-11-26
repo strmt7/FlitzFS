@@ -129,6 +129,16 @@ without a local partner can use a measured standalone candidate retained
 from an earlier window after checking its current binding.
 [Short-file packing](INDEXED_NATIVE_VOLUME.md#packed-slices)
 
+When a scan has one short standalone payload and the fragment index
+finds a compatible short payload in retained history, the writer can
+price a packed slice group and a shared reference for the same pair.
+The comparison uses both checked revisions, independent CPU readback and
+the existing complete protected-size gate. It uses the optional packing
+memory grant. A stale partner, incomplete comparison or withdrawn grant
+leaves the normal packing pass available. Larger local packs continue to
+use their own candidate path.
+[Paired layout evidence](evidence/windows-cross-window-pair-comparison-2026-11-26.json)
+
 The mixed AMD adviser tests sparse XOR and modular delta for each staged
 member in one admitted dispatch. A batch can supply both kinds of advice.
 The writer independently decodes each proposed member and compares the

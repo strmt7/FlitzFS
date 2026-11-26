@@ -1742,15 +1742,17 @@ NativeFilesystemWriter::SharedBaseWork NativeFilesystemWriter::prepare_shared_ba
   if(members.size()>kNativeMaxExtents)fail(Code::limit,"shared-base selection budget");
   auto& owner=*impl_->shared_owner;
   const bool packed_only=mode==SharedBaseMode::pack;
+  const bool compare_packed_pair=mode==SharedBaseMode::compare_packed_pair;
   if(!owner.active.expired() || (!batch && owner.busy()) ||
-      ((batch || packed_only) && (!impl_->indexed || expected.empty())))
+      ((batch || packed_only || compare_packed_pair) && (!impl_->indexed || expected.empty())) ||
+      (compare_packed_pair && (expected.size()!=2 || batch || allow_subset)))
     fail(Code::invalid_operation,"incompatible shared-base work reservation");
   try {
     auto p=std::make_unique<SharedBaseWork::Impl>();p->owner=impl_->shared_owner;p->batched=batch;
     p->source.emplace(impl_->objects.snapshot_for_staging(impl_->indexed.has_value()));
     if(impl_->indexed) {
       p->indexed=std::make_shared<detail::IndexedSharedBasePreparation>(
-          *p->source->paged_if(),*impl_->indexed,base_selection,members,expected,allow_subset,packed_only);
+          *p->source->paged_if(),*impl_->indexed,base_selection,members,expected,allow_subset,packed_only,compare_packed_pair);
       p->state=p->indexed->progress();
     } else {
       p->decode_model.shared_bases=true;

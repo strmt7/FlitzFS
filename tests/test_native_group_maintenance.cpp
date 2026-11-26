@@ -1553,8 +1553,7 @@ void profile_indexed_pair_oracle(const std::filesystem::path& filename,
   }
 }
 
-void indexed_cross_window_pack(bool replace_retained) {
-  if(!store_zstd_available())return;
+std::uint64_t indexed_cross_window_pack(bool replace_retained,bool compare) {
   constexpr auto count=kNativeMaxDirtyExtents+1;
   constexpr StoreCompressionOptions policy{StoreCompressionMode::automatic,3,true};
   constexpr NativeImageStorage storage{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes};
@@ -1592,7 +1591,9 @@ void indexed_cross_window_pack(bool replace_retained) {
   f.session.emplace(NativeFileSession::resume_closed_indexed_volume(f.head,id(90),1,resolve,policy));
   NativeMaintenanceProgress settled;
   {
-    NativeGroupMaintenance groups(*f.session);
+    NativeMaintenancePolicy maintenance_policy;
+    maintenance_policy.fragment_nominations=compare;
+    NativeGroupMaintenance groups(*f.session,maintenance_policy);
     for(unsigned tick=0;tick<600;++tick) {
       settled=f.step(groups);
       require(settled.phase!=Phase::failed && !settled.published_groups,
@@ -1616,15 +1617,18 @@ void indexed_cross_window_pack(bool replace_retained) {
   verify(pinned,false);
   const auto current=NativeFilesystemSnapshot::open_image(f.image,storage);
   const auto after=occupied(current,3,replace_retained);
-  std::cout<<"cross_window_packing files="<<count<<" stale_partner="<<replace_retained
+  std::cout<<"cross_window_packing files="<<count<<" stale_partner="<<replace_retained<<" compare="<<compare
       <<" before_compacted="<<before<<" after_compacted="<<after
       <<" packed_groups="<<settled.packed_reference_groups<<" attempts="<<settled.attempted_groups
+      <<" pair_comparisons="<<settled.packed_pair_comparisons
       <<" independent_cpu_readback=1 pinned_readback=1 idle_io=0\n";
   if(replace_retained)
-    require(!settled.packed_reference_groups,"stale retained length was used to publish a pack");
+    require(!settled.published_groups && !settled.packed_pair_comparisons,"stale retained length supplied a group");
   else
-    require(settled.packed_reference_groups==1 && current.shared_base_info().members==2 && after<before,
-        "short files in separate scan windows did not share a smaller protected base");
+    require(settled.published_groups==1 && current.shared_base_info().members==2 && after<before &&
+        (compare?settled.packed_pair_comparisons!=0:settled.packed_reference_groups==1),
+        "expected size comparison or protected cross-window group was missing");
+  return after;
 }
 
 void indexed_pack_distinct_short_extents() {
@@ -4677,8 +4681,12 @@ int main(int argc,char** argv){try{
     profile_public_packs(argv[2],true,true,NativeIndexedDataLayout::packed_small_file_inodes,
         NativeVolumeHeadLayout::compact,PagedStoreBankLayout::compact);
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-cross-window-pack") {
-    indexed_cross_window_pack(false);
-    indexed_cross_window_pack(true);
+    if(store_zstd_available()) {
+      const auto packed=indexed_cross_window_pack(false,false);
+      const auto selected=indexed_cross_window_pack(false,true);
+      require(selected<packed,"pair comparison did not improve the protected layout");
+      (void)indexed_cross_window_pack(true,true);
+    }
   } else if(argc==2 && std::string_view(argv[1])=="--profile-uneven-short-packs") {
     indexed_uneven_short_packs(false);
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-changes") {

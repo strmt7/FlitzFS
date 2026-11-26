@@ -98,7 +98,7 @@ class IndexedSharedBasePreparation final {
  public:
   IndexedSharedBasePreparation(const PagedObjectStoreSnapshot&,IndexedVolumeRoot,
       NativeExtentSelection,std::span<const NativeExtentSelection>,std::span<const NativeContentToken>,
-      bool allow_subset,bool packed_only);
+      bool allow_subset,bool packed_only,bool compare_packed_pair=false);
   bool watches_extent(std::uint64_t inode,std::uint64_t block) const noexcept;
   bool watches_inode(std::uint64_t inode) const noexcept;
   void invalidate() noexcept{invalidated_=true;}
@@ -173,7 +173,7 @@ class IndexedSharedBasePreparation final {
   bool packing_admitted_=false,staged_reference_admitted_=false,staged_reference_comparison_=false;
   bool compare_sections_=false,compare_prefix_=false,compare_section_prefix_=false;
   bool automatic_compression_=false,assembled_prefix_admitted_=false;
-  bool packed_only_=false;
+  bool packed_only_=false,compare_packed_pair_=false;
 };
 struct IndexedPreparationWatch {
   std::weak_ptr<IndexedSharedBasePreparation> preparation;

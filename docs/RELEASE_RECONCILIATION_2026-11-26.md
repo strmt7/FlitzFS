@@ -906,13 +906,15 @@ long-run write cost require a separate comparison.
 [Source assets and fixity](https://github.com/KhronosGroup/glTF-Sample-Assets/tree/e124e8d8d7330a5372bc2b4d00d39a4a9d7997ea/Models) ·
 [Complete placement and read evidence](evidence/windows-shifted-fragment-discovery-2026-11-26.json)
 
-The wider fragment-first experiment also discovered an overlapping
-short pair that settled 16,384 bytes smaller than the dedicated packing
-arm on that control. The current shortlist reserves fits for the packing
-pass. The next comparison should evaluate both representations against
-the same checked objects before committing a result. Retain the stale
-partner control while changing that decision.
-[Cross-window comparison](evidence/windows-shifted-fragment-discovery-2026-11-26.json)
+The cross-window planner now compares packing and a shared reference for
+one short current payload and a related retained short payload. Both
+representations use the same checked revisions. The 64-file control
+settled at 8,437,760 bytes with comparison and 8,454,144 bytes with
+packing alone. The CPU opened and verified the result and the retained
+snapshot. Replacing the retained source prevented publication.
+Expand the comparison to larger overlapping groups only after measuring
+the protected metadata, background work and read amplification.
+[Cross-window comparison](evidence/windows-cross-window-pair-comparison-2026-11-26.json)
 
 FAST 2026 RubikFS provides a recent comparison of content grouping and
 access locality on immutable images. LoopDelta shows why low-cost

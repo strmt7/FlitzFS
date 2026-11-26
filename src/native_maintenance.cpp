@@ -213,6 +213,7 @@ struct NativeGroupMaintenance::Impl {
   struct Bucket {
     std::vector<std::uint64_t> ids;
     std::uint64_t incumbent_bytes=0;
+    bool compare_packed_pair=false;
   };
   struct Candidate {
     Band band;
@@ -530,6 +531,10 @@ struct NativeGroupMaintenance::Impl {
     };
     std::set<std::pair<std::uint64_t,std::uint64_t>> nominated;
     const bool can_pack=store_zstd_available();
+    const bool lone_short=automatic_compression && can_pack && std::ranges::count_if(features,[](const auto& entry) {
+      const auto& token=entry.second.token;
+      return !token.grouped && token.standalone_bytes && token.standalone_bytes<kNativeExtentBytes;
+    })==1;
     for(const auto& [id,seed]:features) {
       if(!indexed_member_candidate(seed.token))continue;
       struct Score {unsigned matches=0,weight=0;};
@@ -551,21 +556,28 @@ struct NativeGroupMaintenance::Impl {
       }
       std::uint64_t preferred=0;
       unsigned best=0;
+      bool compare_packed_pair=false;
       for(const auto& [peer,score]:peers) {
         if(score.matches<2 || score.weight<=best)continue;
         const auto& match=indexed_feature(peer);
         const auto seed_bytes=seed.token.standalone_bytes,peer_bytes=match.token.standalone_bytes;
-        if(can_pack && seed_bytes && peer_bytes && std::uint64_t{seed_bytes}+peer_bytes<=kNativeExtentBytes)
-          continue; // The packing pass can combine both complete payloads.
+        const bool packs=can_pack && seed_bytes && peer_bytes &&
+            std::uint64_t{seed_bytes}+peer_bytes<=kNativeExtentBytes;
+        // The ordinary packing pass still owns local groups. A lone short
+        // member can price both layouts with its retained short partner.
+        if(packs && (!lone_short || features.contains(peer) || seed.token.grouped ||
+            match.token.grouped || match.token.exact_base))continue;
         if(share_band(seed,match) || share_key(seed.projections,match.projections) ||
             share_key(seed.deltas,match.deltas))continue;
         preferred=peer;
         best=score.weight;
+        compare_packed_pair=packs;
       }
       if(!preferred || !nominated.emplace((std::min)(id,preferred),(std::max)(id,preferred)).second)
         continue;
       auto& bucket=buckets[{fragment_band,id}];
       bucket.ids={id,preferred};
+      bucket.compare_packed_pair=compare_packed_pair;
       const auto& match=indexed_feature(preferred);
       bucket.incumbent_bytes=seed.token.stored_payload_bytes;
       if(features.contains(preferred) && indexed_member_candidate(match.token))
@@ -826,10 +838,13 @@ struct NativeGroupMaintenance::Impl {
     return result;
   }
   void propose_indexed_group(NativeFilesystemWriter& writer,std::size_t maximum_members,
-      std::size_t remaining_extents,bool collect_batch) {
+      std::size_t remaining_extents,bool collect_batch,std::size_t packing_members=0) {
     const auto band=candidate_order[candidate_index++].band;
     if(band.first==fragment_band && !fragments_admitted)return;
-    const auto& ids=buckets.at(band).ids;
+    const auto& bucket=buckets.at(band);
+    const auto& ids=bucket.ids;
+    const bool compare_packed_pair=bucket.compare_packed_pair;
+    if(compare_packed_pair && (packing_members<2 || !staged_groups.empty()))return;
     const auto reusable=std::ranges::find_if(ids,[&](auto id){return indexed_feature(id).token.exact_base;});
     const auto prior=std::ranges::find_if(ids,[&](auto id){return !features.contains(id);});
     auto representative=reusable!=ids.end()?*reusable:prior!=ids.end()?*prior:ids.front();
@@ -887,7 +902,7 @@ struct NativeGroupMaintenance::Impl {
       return detail::record_digest(key);
     };
     const bool compare_references=masked_reference && expected.size()>2;
-    bool allow_subset=!compare_references;
+    bool allow_subset=!compare_references && !compare_packed_pair;
     std::size_t choice=0;
     work_sampled_key.reset();
     work_sampled_retry=false;
@@ -916,9 +931,12 @@ struct NativeGroupMaintenance::Impl {
     for(const auto& token:expected)work_ids.push_back(token.object);
     const auto base=indexed_feature(representative).token.extent;
     remember(work_key);
+    const bool batch=collect_batch && !compare_packed_pair;
+    const auto mode=compare_packed_pair?NativeFilesystemWriter::SharedBaseMode::compare_packed_pair:
+        NativeFilesystemWriter::SharedBaseMode::compare;
     work.emplace(writer.prepare_shared_base(base,selected,expected,
-        collect_batch || !staged_groups.empty(),allow_subset));
-    work_members=expected.size();work_batched=collect_batch;
+        batch || !staged_groups.empty(),allow_subset,mode));
+    work_members=expected.size();work_batched=batch;
     group_trial={0,discovery_family(band.first)};
     if(automatic_compression)for(const auto& token:expected)
       if(indexed_member_candidate(token))group_trial.incumbent_bytes+=token.stored_payload_bytes;
@@ -1172,7 +1190,7 @@ struct NativeGroupMaintenance::Impl {
       return;
     }
     if(candidate_index<candidate_order.size()) {
-      propose_indexed_group(writer,maximum,maximum_members-staged_extents,collect_batch);
+      propose_indexed_group(writer,maximum,maximum_members-staged_extents,collect_batch,maximum_packed_members);
       return;
     }
     if(!deferred_batch_objects.empty()) {
@@ -1202,7 +1220,8 @@ struct NativeGroupMaintenance::Impl {
         (phase==Phase::idle || samples>=checkpoint_window_samples);
   }
   bool refine_reference(NativeFilesystemWriter& writer,std::size_t maximum_members,bool sections) {
-    const bool compare=sections && !work_batched && work_members>=2 && !work_sampled_retry;
+    const bool compare=(sections || work->progress().packed_pair_comparison) &&
+        !work_batched && work_members>=2 && !work_sampled_retry;
     const auto purpose=compare?NativeSharedBaseSearchPurpose::section_comparison:NativeSharedBaseSearchPurpose::advice;
     if((compare || work_sampled_key) && writer.stage_shared_base_search(*work,work_members-1,maximum_members,purpose))
       return true;
@@ -1286,8 +1305,10 @@ struct NativeGroupMaintenance::Impl {
           phase=Phase::publishing;
       } else if(writer.maintenance_indexed()) {
         const auto previous_end=writer.maintenance_physical_end();
-        const auto reselected=work->progress().reference_changed;
+        const auto before=work->progress();
         const auto result=writer.finish_shared_base(*work);
+        if(before.packed_pair_comparison && result.before_compacted_lower_bound)++state.packed_pair_comparisons;
+        const bool reselected=before.reference_changed;
         learn_candidate_yield(result);
         group_trial={};
         if(result.applied) {
