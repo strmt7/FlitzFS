@@ -1,15 +1,17 @@
 # FlitzFS detailed implementation plan
 
-**Reconciled on 26 November 2026.** A bounded shifted-fragment shortlist
-reduced the named Khronos holdout's settled protected size by 6.6%.
-Measure capture of attainable savings against an exact shortlist oracle
-before persisting the finer keys or extending dependency choices.
-Connect the populated Windows client trace to useful grouped AMD reads
-and collective search. Run an evidence-only attach proof beside the CPU
-audit and compare it after named-file churn.
+**Reconciled on 26 November 2026.** The owned Windows memory provider can
+reuse checked replicas when its content revision is unchanged across the
+full audit and both fences. The full inventory remains the reference for
+the generation-bound ownership proof. Compare the proof in shadow mode
+across named churn and interrupted publication.
+Measure attainable protected-size savings for the shifted-fragment
+shortlist and join automatic AMD demand to consumed results in the
+populated Windows client. Set release scope from those measurements,
+provider recovery and the signed Windows compatibility matrix.
 The E01–E13 contracts below define the individual release exits.
 [Current assessment](RELEASE_RECONCILIATION_2026-11-26.md) ·
-[Source, tests and research](evidence/windows-shifted-fragment-discovery-2026-11-26.json) ·
+[Source, tests and research](evidence/windows-fenced-indexed-reopen-audit-2026-11-26.json) ·
 [Ordered implementation steps](RELEASE_RECONCILIATION_2026-11-26.md#implement-the-next-three-integrated-results)
 
 The [current architecture](architecture/CURRENT.md) shows the implementation.

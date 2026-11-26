@@ -1,18 +1,20 @@
 # Source and architecture review
 
-The [current reconciliation](../RELEASE_RECONCILIATION_2026-11-25.md#current-reconciliation-and-release-order)
-binds the 1,130-path parent at `7e093970c5440` and the tested write-layout
-tree. It reviews ordinary attachment, indexed admission, source and
-candidate ownership, device work consumed by callbacks, and settled
-allocation. The guest mounts, live Radeon results and current CPU
-checks each have matched artifact identities.
-[Current inventory and test receipts](../evidence/windows-foreground-write-layout-2026-11-25.json) ·
+The current reconciliation follows ordinary Windows attachment, indexed
+admission, protected placement, device delivery and settled allocation.
+The fenced reopen source is based on `5af12cb463a451d261be7b63d25db12cca7daaf6`.
+It preserves the exact selector and checkpoint across both fences and
+keeps the full early CPU audit. Owned memory may reuse its checked replicas
+through an unchanged content revision. Backings without that continuity
+proof still recheck both replicas after the fences.
+[Current reconciliation](../RELEASE_RECONCILIATION_2026-11-26.md) ·
+[Fenced reopen code and test receipts](../evidence/windows-fenced-indexed-reopen-audit-2026-11-26.json) ·
 [Previous full review](../RELEASE_RECONCILIATION_2026-11-24.md)
 
 | Component checked | Current boundary | Implementation decision |
 | --- | --- | --- |
 | Windows helper and WinFsp callbacks | The controller owns dispatcher lifetime. The native adapter owns namespace and file operation translation. | Use normal client operations from mount through teardown as the integration witness. [Helper](../../src/windows/volume_app_winfsp.cpp) · [Adapter](../../src/windows/winfsp_native.cpp) |
-| Indexed attach and recovery | `verify_inventory` runs a complete checked walk. Reader and writer ownership remain generation-bound. | Compare a shadow admission against full verification at different file counts, with missing and stale coverage cases. [Inventory](../../src/native_indexed_volume.cpp) · [Session](../../src/native_session.cpp) |
+| Indexed attach and recovery | `verify_inventory` runs a complete checked walk. The owned memory path uses its backing revision to reuse that audit's replica checks across both fences. | Compare shadow admission against the full audit at different file counts, with missing and stale coverage cases. [Inventory](../../src/native_indexed_volume.cpp) · [Session](../../src/native_session.cpp) |
 | Rebuild and provider allocation | Private staging coalesces mirror calls while preserving record checks. Selection and backing release have separate authority boundaries. | Attribute actual retained allocation and copy cost before adding a reuse capability. [Paged rebuild](../../src/paged_store.cpp) · [File provider](../../src/native_volume_file.cpp) |
 | AMD input, delivery and setup | The controller owns admission, worker lifecycle and route offers. Ready read results bind to the original range and generation. | Price verified reads, writes and collective work by role and tuple, using immediate CPU continuity. [Controller](../../src/windows/winfsp_controller.cpp) · [Runtime discovery](../../src/windows/hip_route_discovery.cpp) |
 | Protected compression and persistent advice | The coherence catalog nominates extents. The owner verifies candidate savings and bytes before publication. | Measure exhaustive-oracle recall, complete occupied bytes and access cost before changing the codec or stored graph. [Coherence catalog](../../src/indexed_coherence.cpp) · [Maintenance](../../src/native_maintenance.cpp) |

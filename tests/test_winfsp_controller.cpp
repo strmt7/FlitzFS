@@ -1509,6 +1509,77 @@ void indexed_reopen_platform_admission() {
   std::cout<<"paired_reopen_windows_admission before_repair=1 surviving_bytes=1\n";
 }
 
+void indexed_owned_memory_reopen() {
+  using detail::IndexedExtentInput;
+  using detail::IndexedInodeInput;
+  using detail::MaintenanceBackingOperation;
+  constexpr unsigned files=4096,batch=64;
+  constexpr std::uint64_t capacity=32ULL*1024*1024,stamp=133700000000000011ULL;
+  constexpr StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
+  const auto volume=id(90),image_id=id(1);
+  auto domain=MemoryVolumeDomain::create(capacity+kVolumeHeadBytes);
+  auto head=domain.create_store(kVolumeHeadBytes),image=domain.create_store(capacity);
+  const auto security=native_security_fixture::descriptor();
+  const auto filename=[](unsigned i){return "f"+std::to_string(100000+i);};
+  const auto payload=[](unsigned i) {
+    auto bytes=data(71,i+1);
+    bytes.back()=std::byte{0x55};
+    return bytes;
+  };
+  {
+    const auto initial=image->content_revision();
+    detail::IndexedVolumeBuilder builder(PagedObjectStoreWriter::create_mirrored(image,image_id,{capacity},raw),
+        1,files+2,{true,files*71},2);
+    const IndexedInodeInput root{1,0,0,1,1,true,"",
+        NativeBasicMetadata{stamp,stamp,stamp,stamp,FILE_ATTRIBUTE_DIRECTORY},security};
+    builder.append({&root,1});
+    for(unsigned first=0;first<files;first+=batch) {
+      std::array<Bytes,batch> contents;
+      std::vector<IndexedInodeInput> inodes;
+      std::vector<IndexedExtentInput> extents;
+      inodes.reserve(batch);extents.reserve(batch);
+      for(unsigned i=0;i<batch;++i) {
+        const auto key=first+i;
+        contents[i]=payload(key);
+        inodes.push_back({key+2,1,contents[i].size(),1,1,false,filename(key),
+            NativeBasicMetadata{stamp,stamp,stamp,stamp,FILE_ATTRIBUTE_ARCHIVE},security,kNativeAllocationUnit});
+        extents.push_back({key+2,0,contents[i]});
+      }
+      builder.append(inodes,extents);
+    }
+    const auto source=builder.finish();
+    auto selected=NativeVolumeHeadWriter::create(head,volume,source);
+    require(initial && image->content_revision()>initial,"locked image writes did not advance its revision");
+  }
+  const auto revision=image->content_revision();
+  const auto measure=[&](std::shared_ptr<StoreByteIo> backing) {
+    const NativeVolumeImageResolver resolve=[&](const auto& key){return key==image_id?backing:nullptr;};
+    detail::MaintenanceBackingUse use;
+    {
+      detail::MaintenanceBackingScope measure(use);
+      auto writer=WinFspNativeWritable::resume_indexed_retired(head,volume,1,resolve,raw);
+    }
+    require(use[MaintenanceBackingOperation::flush].attempts==2 &&
+        use[MaintenanceBackingOperation::flush].completed==2 &&
+        !use[MaintenanceBackingOperation::write].attempts && image->content_revision()==revision,
+        "locked reopen altered a checked image or missed a completed fence");
+    return use[MaintenanceBackingOperation::read];
+  };
+  // The wrapper exposes identical locked bytes without their revision.
+  const auto ordinary=measure(std::make_shared<DelayedLookaheadBacking>(image));
+  const auto retained=measure(image);
+  require(retained.completed && retained.completed<ordinary.completed &&
+      retained.completed_bytes<ordinary.completed_bytes,"owned reopen did not reuse checked replicas");
+  const auto verified=NativeVolumeHeadView::open_indexed_recovery(head,volume,
+      [&](const auto& key){return key==image_id?image:nullptr;});
+  for(unsigned i=0;i<files;++i)
+    require(verified.filesystem().read(filename(i),0,71)==payload(i),"owned reopen changed a named file");
+  domain.verify_resident();
+  std::cout<<"indexed_owned_reopen files="<<files<<" used_before="<<ordinary.completed_bytes
+      <<" used_after="<<retained.completed_bytes<<" calls_before="<<ordinary.completed
+      <<" calls_after="<<retained.completed<<" image_readback=1 fences=2 writes=0\n";
+}
+
 std::pair<std::uint64_t,std::uint64_t> indexed_windows_reopen_profile() {
   using detail::IndexedExtentInput;
   using detail::IndexedInodeInput;
@@ -5421,6 +5492,7 @@ int main(int argc,char** argv){try {
   }else if(argc==2 && std::string_view(argv[1])=="--read-only-memory") {
     read_only_memory();
   }else if(remount) {
+    indexed_owned_memory_reopen();
     retained_memory_remount(NativeImageKind::paged);
     retained_memory_remount(NativeImageKind::indexed_paged);
     unconfirmed_remount_refusal();

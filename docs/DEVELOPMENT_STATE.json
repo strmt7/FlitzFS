@@ -7,6 +7,19 @@
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
   "current_release_review": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
+  "fenced_indexed_reopen": {
+    "source_parent": "5af12cb463a451d261be7b63d25db12cca7daaf6",
+    "tested_source_tree": "6bdb480233d5be5d2f56ab4bf8a65d8ad8c88785",
+    "evidence": "docs/evidence/windows-fenced-indexed-reopen-audit-2026-11-26.json",
+    "proof_scope": "Owned Windows locked-memory backing with a matching nonzero revision across the audit and the fences.",
+    "matched_4096_file_control_and_candidate_read_bytes": [16713101, 10182151],
+    "matched_4096_file_control_and_candidate_read_calls": [5896, 3578],
+    "healthy_image_and_selector_fences": [1, 1],
+    "healthy_startup_writes": 0,
+    "first_file_selection_retains_early_audit": true,
+    "new_required_image_capability": false,
+    "release_qualified": false
+  },
   "prepared_group_checkpoint_reuse": {
     "source_parent": "811c160ca4d295b529b3e13bb292348ea8343fa9",
     "tested_source_tree": "e2dec721d56f6202ae418fbeecae9487eb5abf19",

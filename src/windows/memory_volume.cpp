@@ -103,6 +103,10 @@ class MemoryVolumeDomain::Store final:public StoreByteIo {
   ~Store() override {release();}
   std::uint64_t extent() const override {return extent_.load(std::memory_order_acquire);}
   bool concurrent_reads_supported() const noexcept override {return true;}
+  std::uint64_t content_revision() const override {
+    std::lock_guard lock(bytes_mutex_);
+    return content_revision_;
+  }
   // Admission is checked before copying, and each copy targets only its
   // supplied byte span. Size the isolation units from the actual Windows
   // pages. A flush preserves bytes for this live, serialized memory provider.
@@ -135,6 +139,7 @@ class MemoryVolumeDomain::Store final:public StoreByteIo {
     // Page admission above only extends the reservation. Serialize the byte
     // copy itself with capture readers of the previously published prefix.
     std::lock_guard lock(bytes_mutex_);
+    if(content_revision_)++content_revision_; // Exhaustion permanently withdraws the evidence.
     std::memcpy(data_+at,in.data(),in.size());
     extent_.store((std::max)(extent_.load(std::memory_order_relaxed),end),std::memory_order_release);
     observed.complete();
@@ -153,6 +158,8 @@ class MemoryVolumeDomain::Store final:public StoreByteIo {
     if(!bytes)return true;
     detail::MaintenanceBackingCall observed(detail::MaintenanceBackingOperation::control);
     auto* const start=data_+committed_-bytes;
+    std::lock_guard lock(bytes_mutex_);
+    if(content_revision_)++content_revision_;
     SecureZeroMemory(start,static_cast<SIZE_T>(bytes));
     if(!VirtualUnlock(start,static_cast<SIZE_T>(bytes)) || !VirtualFree(start,static_cast<SIZE_T>(bytes),MEM_DECOMMIT)) {
       cleanup_ok=false;
@@ -217,6 +224,7 @@ class MemoryVolumeDomain::Store final:public StoreByteIo {
   const std::uint32_t unit_;
   std::atomic<std::uint64_t> extent_{0};
   mutable std::mutex bytes_mutex_;
+  std::uint64_t content_revision_=1;
 };
 MemoryVolumeDomain::MemoryVolumeDomain(std::shared_ptr<State> state) noexcept:state_(std::move(state)) {}
 MemoryVolumeDomain::~MemoryVolumeDomain()=default;

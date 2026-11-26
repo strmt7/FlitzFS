@@ -176,8 +176,9 @@ void write_slot(StoreByteIo& io,const NativeVolumeSelection& s,unsigned slot,std
 struct NativeVolumeHeadView::Impl {
   NativeVolumeHeadInfo info;NativeFilesystemSnapshot filesystem;
   std::size_t slot_bytes;
-  Impl(const Loaded& selected,NativeFilesystemSnapshot f)
-      :info(selected.info),filesystem(std::move(f)),slot_bytes(selected.slot_bytes){}
+  std::uint64_t audited_revision;
+  Impl(const Loaded& selected,NativeFilesystemSnapshot f,std::uint64_t revision)
+      :info(selected.info),filesystem(std::move(f)),slot_bytes(selected.slot_bytes),audited_revision(revision){}
 };
 NativeVolumeHeadView::NativeVolumeHeadView(std::unique_ptr<Impl> p) noexcept:impl_(std::move(p)){}
 NativeVolumeHeadView::NativeVolumeHeadView(NativeVolumeHeadView&&) noexcept=default;
@@ -213,10 +214,11 @@ NativeVolumeHeadView NativeVolumeHeadView::open_impl(std::shared_ptr<StoreByteIo
       if(!hybrid || hybrid->sealed_range()!=*selected.selection.sealed_range)
         fail(Code::corrupt,"selected sealed image differs from the volume head");
     }
+    const auto revision=image->content_revision();
     auto view=NativeFilesystemSnapshot::open_image(std::move(image),selected.selection.storage);
     admit_binding(selected.selection,view,false,indexed_recovery);
     view.verify_all(admission);
-    return NativeVolumeHeadView(std::make_unique<Impl>(loaded,std::move(view)));
+    return NativeVolumeHeadView(std::make_unique<Impl>(loaded,std::move(view),revision));
   }catch(const std::bad_alloc&){fail(Code::limit,"volume head reader allocation");}
   catch(const NativeFsError&){throw;}
   catch(const std::exception&){fail(Code::storage_failure,"volume head/image read failed; no fallback");}
@@ -395,7 +397,11 @@ std::optional<NativeVolumeHeadWriter::IndexedReopen> NativeVolumeHeadWriter::ret
   auto after=NativeFilesystemSnapshot::open_image(backing,selected.storage);
   Impl::exact(verified,after);
   admit_binding(selected,after,true,false);
-  after.recheck_verified_indexed_mirrors(verified);
+  // A provider that binds the bytes across the audit and both fences can
+  // reuse the observed replica checks. Other providers still reread them.
+  const auto revision=audited.impl_->audited_revision;
+  if(!revision || backing->content_revision()!=revision)
+    after.recheck_verified_indexed_mirrors(verified);
   const auto health=after.storage_info();
   if(health.degraded_checkpoint || health.degraded_root)
     fail(Code::invalid_operation,"image scrub discovered degraded protection");

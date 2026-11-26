@@ -1,0 +1,492 @@
+{
+  "schema": 1,
+  "date": "2026-11-26",
+  "parent": "5af12cb463a451d261be7b63d25db12cca7daaf6",
+  "base_tree": "9755897c3ffbec38068a9e10e639342029f108ba",
+  "tree": "6bdb480233d5be5d2f56ab4bf8a65d8ad8c88785",
+  "elements": [
+    {
+      "path": "include/flitzfs/object_store.hpp",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "34575491e9721434f407d639ec35388d53b9ff47",
+      "bytes": 15108
+    },
+    {
+      "path": "include/flitzfs/volume_head.hpp",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "577e95034265ba91e7830b0d52ae4055d4e351e7",
+      "bytes": 5874
+    },
+    {
+      "path": "src/volume_head.cpp",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9166f97008d0322c90f1fab68c2f7ed80edbf4e3",
+      "bytes": 29644
+    },
+    {
+      "path": "src/windows/memory_volume.cpp",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a0b9f9ead8d4e71860eb02023455a2e8b8c9ecef",
+      "bytes": 15455
+    },
+    {
+      "path": "tests/test_winfsp_controller.cpp",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "74221518ff641423e7ca3d8c4d261c5d3d453983",
+      "bytes": 337410
+    }
+  ],
+  "baseline_tracked_paths": 1170,
+  "navigation": {
+    "source_parent": "5af12cb463a451d261be7b63d25db12cca7daaf6",
+    "provider_version": "0.2.43",
+    "paths": [
+      "src/native_session.cpp",
+      "src/native_indexed_volume.cpp"
+    ],
+    "actual_searches": 1,
+    "native_result_sha256": "96cfd8c1169f9eb14e3b5d6d773a44c257c52215317fdd11820c77c50e9724c8",
+    "receipt_sha256": "dddde0ded2b6145f3c25a094a7f822f4644dafdfed63a3cb550785c799f93ed8"
+  },
+  "host": {
+    "platform": "Windows 11 x64",
+    "observed_build": 26300,
+    "qualification": "Native SDK callbacks and owned Windows memory provider",
+    "live_device_execution_new": false,
+    "mounted_product": false,
+    "physical_power_loss": false
+  },
+  "current_authority": {
+    "cpu_inventory_runs_before_either_fence": true,
+    "same_nonzero_backing_revision_brackets_inventory_and_fences": true,
+    "exact_selected_image_checked_after_fences": true,
+    "zero_or_changed_revision_rereads_replicas": true,
+    "early_file_selection_retention": true,
+    "fault_introduced_by_fence_refuses_current_open": true,
+    "invalid_windows_metadata_refuses_before_any_fence": true,
+    "image_format_change": false,
+    "protection_model": "Current in-process software mutation contract. Provider revision is not evidence of persistence or device-media health."
+  },
+  "matched_profile": {
+    "files": 4096,
+    "logical_bytes": 290816,
+    "scope": "One locked Windows memory image through the writable SDK adapter twice. An opaque wrapper withheld its revision for the control. Counts include image and selector reads.",
+    "control_read_bytes": 16713101,
+    "retained_read_bytes": 10182151,
+    "control_read_calls": 5896,
+    "retained_read_calls": 3578,
+    "read_byte_savings_pct": 39.076829608102045,
+    "read_call_savings_pct": 39.31478968792401,
+    "fences_per_lane": 2,
+    "bootstrap_write_bytes": 0,
+    "full_independent_cpu_named_readback": true
+  },
+  "short_file_reference": {
+    "source": "5af12cb463a451d261be7b63d25db12cca7daaf6",
+    "scope": "Separate synthetic parent workload of 17-byte files. Only image bytes included. This short-file extrapolation is not a test at ten million files.",
+    "measured": [
+      {
+        "files": 1024,
+        "image_read_bytes": 3927121,
+        "read_calls": 1602,
+        "zero_startup_writes": true,
+        "run": "local-run-dc7cb1545f3f41669f20536f6b679b30",
+        "output_sha256": "0c3bf8866085a59d1794e36b761cb2806a75d9dd730405bf331ef86c78419838",
+        "result_sha256": "0f05b515870bcdffca8c832921ad48b5eac0aea7d67ff37e0dfad5b936b70e8c"
+      },
+      {
+        "files": 4096,
+        "image_read_bytes": 15375871,
+        "read_calls": 6060,
+        "zero_startup_writes": true,
+        "run": "local-run-682dffdbd0f74b64ae0aeffd45544807",
+        "output_sha256": "eb4bcbd94dec7c08cb17577f8db978560ba3bd28a2d4b821cbfcb11994b27f72",
+        "result_sha256": "9620b22f02a48cec26b22d0e8669bf7e0dfd6c6b9f4dcbe3f14418810ec28132"
+      },
+      {
+        "files": 16384,
+        "image_read_bytes": 61103443,
+        "read_calls": 23919,
+        "zero_startup_writes": true,
+        "run": "local-run-06b2a8138be84fa4a707a193ff60309d",
+        "output_sha256": "87556b7ff7db68e272fba07ce34566063715a118289c885b3c3f014167c2cfb1",
+        "result_sha256": "db3052eefa513fe621da1751abbc280a6e4fadc689d3306b27d16845912e38fb"
+      }
+    ],
+    "linear_read_work_fit_from_first_two_tiers": {
+      "slope": 3726.806640625,
+      "intercept": 110871,
+      "pred": 61170871,
+      "percent": 0.11035057386209808,
+      "linear_at_ten_million": 37268177277.25
+    }
+  },
+  "validation": {
+    "windows_release": {
+      "run": "local-run-946d4a40c61a42a1a7023e5ece4412bb",
+      "result_sha256": "d602db726e8f36b1b2e437dc418b7480ef9ee01418d2704165a94263c06d285d",
+      "output_sha256": "280d051780d7ec07f20f4d27b1d37459faeaa6403e98905eeb029ab78c5c8516",
+      "result": {
+        "exit_code": 0,
+        "tree_retired": true,
+        "exit_confirmed": true,
+        "inherited_error_mode": 32771,
+        "timed_out": false,
+        "stop_reason": null,
+        "creation_time_job": true,
+        "residual_children": 0,
+        "memory_bytes": 2918187008,
+        "peak_job_bytes": 686501888,
+        "physical_available_bytes": 24698347520,
+        "cpu_percent": 24,
+        "elapsed_seconds": 310.8440000000119
+      },
+      "summary": [
+        "100% tests passed out of 240"
+      ]
+    },
+    "focused": {
+      "run": "local-run-7a2c8eedd8cd442e8d389c333c95dae3",
+      "result_sha256": "44642f18d421a5c2a3ee56b6b5089b0a4d624fcf0b6837df01435203fc2c62fa",
+      "output_sha256": "100c7c74d8d00e34ddfda81e14238a4e6e1142947fbd8b16e4c7f0188da01435",
+      "result": {
+        "exit_code": 0,
+        "tree_retired": true,
+        "exit_confirmed": true,
+        "inherited_error_mode": 32771,
+        "timed_out": false,
+        "stop_reason": null,
+        "creation_time_job": true,
+        "residual_children": 0,
+        "memory_bytes": 2531262464,
+        "peak_job_bytes": 232763392,
+        "physical_available_bytes": 24523370496,
+        "cpu_percent": 24,
+        "elapsed_seconds": 13.39100000000326
+      },
+      "observations": [
+        "208: indexed_owned_reopen files=4096 used_before=16713101 used_after=10182151 calls_before=5896 calls_after=3578 image_readback=1 fences=2 writes=0",
+        "209: paired_indexed_reopen logical_bytes=5242880 backing_read_bytes=22472886 backing_write_bytes=0",
+        "209: paired_reopen_windows_admission before_repair=1 surviving_bytes=1",
+        "The following tests passed:",
+        "100% tests passed out of 5"
+      ]
+    },
+    "raw_only": {
+      "run": "local-run-c96fe8784ddb47909bb18b59041eac1a",
+      "result_sha256": "8a465c17d07c3e6c6661c2a744a8b637922d539f372ba453e39184b1f48a0bed",
+      "output_sha256": "4f92f3734c7e7ab33b6daad32bb99bac4947d23d771481c2d03093a3d5d534d6",
+      "result": {
+        "exit_code": 0,
+        "tree_retired": true,
+        "exit_confirmed": true,
+        "inherited_error_mode": 32771,
+        "timed_out": false,
+        "stop_reason": null,
+        "creation_time_job": true,
+        "residual_children": 0,
+        "memory_bytes": 1947205632,
+        "peak_job_bytes": 43462656,
+        "physical_available_bytes": 23745720320,
+        "cpu_percent": 19,
+        "elapsed_seconds": 8.437999999994645
+      },
+      "observations": [
+        "100% tests passed out of 4"
+      ]
+    },
+    "asan": {
+      "run": "local-run-890a85d9442345949465408f20aab052",
+      "result_sha256": "c7c35b7aa4671a9b045e62fdcf1969730815cf5fb1defaff9dca7df49340bcc3",
+      "output_sha256": "ce2e79666c1f90b8af2389fadb472845a097affbbedaba754e61fb77ffebd9d2",
+      "result": {
+        "exit_code": 0,
+        "tree_retired": true,
+        "exit_confirmed": true,
+        "inherited_error_mode": 32771,
+        "timed_out": false,
+        "stop_reason": null,
+        "creation_time_job": true,
+        "residual_children": 0,
+        "memory_bytes": 2385510400,
+        "peak_job_bytes": 812736512,
+        "physical_available_bytes": 23359004672,
+        "cpu_percent": 20,
+        "elapsed_seconds": 28.60899999999674
+      },
+      "observations": [
+        "1/5 Test #241: windows_asan_runtime_preflight ...........   Passed    0.03 sec",
+        "100% tests passed out of 5"
+      ]
+    },
+    "windows_sdk_fixture_sha256": "7e507c1847a0217c2c7768904b44e21079bb1636164a6c9c1534a61ef0a14ed7",
+    "asan_app_local_runtime_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed",
+    "owned_test_process_trees_retired": true
+  },
+  "rejected_prototypes": [
+    {
+      "source_tree": "ab511b29062e7c4b6280f99968324b3a80595b7f",
+      "reason": "Moving the inventory after both fences could try repair after a fence-triggered replica fault and issued fences before refusing invalid Windows metadata. Both failure contracts were retained.",
+      "tests": {
+        "run": "local-run-9cc37f24e67d40c78029a90b499be949",
+        "result_sha256": "7069c311b92ca6b4650b0c9ab30969c34e27656e9be47456e84fc21559f18454",
+        "output_sha256": "21f05f8ea0d0660d8a7d41295e10e25c3140951984945d402c87ed469c2d8f6b",
+        "result": {
+          "exit_code": 8,
+          "tree_retired": true,
+          "exit_confirmed": true,
+          "inherited_error_mode": 32771,
+          "timed_out": false,
+          "stop_reason": null,
+          "creation_time_job": true,
+          "residual_children": 0,
+          "memory_bytes": 1310720000,
+          "peak_job_bytes": 686604288,
+          "physical_available_bytes": 13446287360,
+          "cpu_percent": 24,
+          "elapsed_seconds": 314.39099999997416
+        },
+        "observations": [
+          " 46/240 Test  #46: bounded_paged_mirrored_payloads .......................***Failed    0.09 sec",
+          "209/240 Test #209: bounded_winfsp_volume_file ............................***Failed    0.65 sec",
+          "paired_indexed_reopen logical_bytes=5242880 backing_read_bytes=11912026 backing_write_bytes=0",
+          "99% tests passed, 2 tests failed out of 240"
+        ]
+      }
+    },
+    {
+      "source_tree": "a84d18e383d1cfb9f5981d11e6f64eb81b8f161f",
+      "reason": "Initial 4,096-file test generated some trailing zero bytes in raw extent frames. The builder correctly rejected them. The final fixture uses a fixed nonzero suffix and verifies every file.",
+      "tests": {
+        "run": "local-run-d7fc8a7aaebd4a6f8bb8d6f9305d9d7b",
+        "result_sha256": "503e6dea1730b0257edcc12c0c6600bef96d03104f04025f19dff6f2945bf1de",
+        "output_sha256": "10c65333c9fee6712313bda06b40626560f30890388ac998f66cb74b781702c7",
+        "result": {
+          "exit_code": 8,
+          "tree_retired": true,
+          "exit_confirmed": true,
+          "inherited_error_mode": 32771,
+          "timed_out": false,
+          "stop_reason": null,
+          "creation_time_job": true,
+          "residual_children": 0,
+          "memory_bytes": 2842689536,
+          "peak_job_bytes": 232873984,
+          "physical_available_bytes": 24174313472,
+          "cpu_percent": 24,
+          "elapsed_seconds": 12.875
+        },
+        "observations": [
+          "4/5 Test #208: bounded_winfsp_memory_remount ............***Failed    0.32 sec",
+          "209: paired_indexed_reopen logical_bytes=5242880 backing_read_bytes=22472886 backing_write_bytes=0",
+          "209: paired_reopen_windows_admission before_repair=1 surviving_bytes=1",
+          "The following tests passed:",
+          "80% tests passed, 1 tests failed out of 5"
+        ]
+      }
+    }
+  ],
+  "research": [
+    {
+      "receipt_sha256": "acb4af32751d422bc026ea1e67773d252354f02f14de2e415b8038298d8affc7",
+      "provider": "0.9.5+flitzzip.portable2",
+      "lock_sha256": "01fbef3b628f772e4aba9724b6ced11c0f211d4d3bf51e38d1b9d0039eac997b",
+      "robots": true,
+      "timeout_seconds_per_page": 45,
+      "external_LLM": false,
+      "pages": [
+        {
+          "name": "windows-flush",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers",
+          "success": true,
+          "http_status": 200,
+          "native_success": true,
+          "markdown_bytes": 36207,
+          "markdown_sha256": "116ffcd5a6feba3539c3f668a2c969aa2e38b8f3663a704a7654e7b2a7954e4c",
+          "capture_sha256": "48cd01d86943a81e38fd12adf095c582b5685e3ea62d912944ae56698fcdf4c9",
+          "failure_category": ""
+        },
+        {
+          "name": "windows-cache",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/fileio/file-caching",
+          "success": true,
+          "http_status": 200,
+          "native_success": true,
+          "markdown_bytes": 23227,
+          "markdown_sha256": "6f6a632ded8fba3af29ee5630a4126ac5fdb5338b81c1827b3a66556d03ebf62",
+          "capture_sha256": "1f16394916bd79c91a8df609a0c2f29135c31fea22a919e3a4e934ed8cf273d4",
+          "failure_category": ""
+        },
+        {
+          "name": "fast-integrity",
+          "url": "https://www.usenix.org/conference/fast26/presentation/gupta",
+          "success": true,
+          "http_status": 200,
+          "native_success": true,
+          "markdown_bytes": 10682,
+          "markdown_sha256": "e552afe00eba9b35491780a661aa5d5395ceae186d269e37c8f456320bb03883",
+          "capture_sha256": "4da933df954161df98877c1d30f6333eb0c88f4756e76053de229d0e3465dd7d",
+          "failure_category": ""
+        },
+        {
+          "name": "osdi-ordering",
+          "url": "https://www.usenix.org/conference/osdi25/presentation/pan",
+          "success": true,
+          "http_status": 200,
+          "native_success": true,
+          "markdown_bytes": 9874,
+          "markdown_sha256": "ae3bc7601b45b6b7098894493c22588920ddb511ab6b7e6c83e636ac07e0e6d9",
+          "capture_sha256": "a708672da64cb2d578d0709b8bd1b4e61988e9e206b3ba1ffcb0634a96c5c2af",
+          "failure_category": ""
+        }
+      ]
+    },
+    {
+      "receipt_sha256": "ae9ef9c51ef8662dda02be662cfbb9935d32f46ffeeeca37c62c1cf96f9be1b7",
+      "provider": "0.9.5+flitzzip.portable2",
+      "lock_sha256": "01fbef3b628f772e4aba9724b6ced11c0f211d4d3bf51e38d1b9d0039eac997b",
+      "robots": true,
+      "timeout_seconds_per_page": 45,
+      "external_LLM": false,
+      "pages": [
+        {
+          "name": "tufazip",
+          "url": "https://tufalabs.ai/research/tufazip/",
+          "success": true,
+          "http_status": 200,
+          "native_success": true,
+          "markdown_bytes": 38515,
+          "markdown_sha256": "39b04ae1e2123cd706362081df325022a67eb807a12d63717f1c09533111e18b",
+          "capture_sha256": "c4ef8894ac237bd7af5c42280fcd5f56a3877309f3ded1af330e8b23db51b7a1",
+          "failure_category": ""
+        },
+        {
+          "name": "rubikfs",
+          "url": "https://www.usenix.org/conference/fast26/presentation/huang",
+          "success": true,
+          "http_status": 200,
+          "native_success": true,
+          "markdown_bytes": 10416,
+          "markdown_sha256": "dbc538fff3a57a4c36ef94c8a47e1737270a83880e2fb6957160b9b46f285256",
+          "capture_sha256": "ad66bfe9cca1cbc76b3db460b3c1bef694a1d356d5e3c0533e503b4e30642de8",
+          "failure_category": ""
+        },
+        {
+          "name": "rocm-core",
+          "url": "https://rocm.docs.amd.com/en/docs-10.2.0/about/release-notes.html",
+          "success": false,
+          "http_status": 0,
+          "native_success": false,
+          "markdown_bytes": 0,
+          "markdown_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "capture_sha256": "2a8420c93cd7867d664f4da44fa82d27aa2a1414297bff28e52e589d3aa3dce8",
+          "failure_category": "native_failure"
+        },
+        {
+          "name": "hip-windows",
+          "url": "https://rocm.docs.amd.com/projects/install-on-windows/en/latest/about/releasenotes.html",
+          "success": true,
+          "http_status": 200,
+          "native_success": true,
+          "markdown_bytes": 13710,
+          "markdown_sha256": "ca2ef3cf8c4341c04a478c068d10791e35baf0c1405e220b12fc7055a8200328",
+          "capture_sha256": "c105547eaa572c2ccc4408cc471d1b806619b4efa0c239ab305b00d5793b9832",
+          "failure_category": ""
+        },
+        {
+          "name": "windows-ntfs",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_compression",
+          "success": false,
+          "http_status": 200,
+          "native_success": true,
+          "markdown_bytes": 63183,
+          "markdown_sha256": "48b0bd005d9276173ea26d9d5ddfd0f6019586ea3a1cd33cb8e74730a01f060a",
+          "capture_sha256": "77ada77bc247a84b1c2d948d4cd989ad1da6061d7049b01b255e660d4507d133",
+          "failure_category": "unexpected_content"
+        },
+        {
+          "name": "diskspd",
+          "url": "https://github.com/microsoft/diskspd/releases/tag/v2.3",
+          "success": true,
+          "http_status": 200,
+          "native_success": true,
+          "markdown_bytes": 10898,
+          "markdown_sha256": "0365773817f65cbec629c1f9fd781de5dbf2021326e806d424ff0a827f6d0720",
+          "capture_sha256": "39c570f8f5224af5e24db787c2d6eb5290294c67b5e65da66e8e13be7696936f",
+          "failure_category": ""
+        },
+        {
+          "name": "aitdcc",
+          "url": "https://aitdcc.github.io/dataset.html",
+          "success": true,
+          "http_status": 200,
+          "native_success": true,
+          "markdown_bytes": 6271,
+          "markdown_sha256": "766801630c0c3f7c80304f41397c0ae265fd0cb79387c2837c920c08b8987676",
+          "capture_sha256": "3ef2a7941f709470b80ff59bcb63504dba19748e8be16e1fd998963d91579e1b",
+          "failure_category": ""
+        }
+      ]
+    },
+    {
+      "receipt_sha256": "15507d78f68a8c81c693863640713d0233c8d864026a50fd137db54a39f23024",
+      "provider": "0.9.5+flitzzip.portable2",
+      "lock_sha256": "01fbef3b628f772e4aba9724b6ced11c0f211d4d3bf51e38d1b9d0039eac997b",
+      "robots": true,
+      "timeout_seconds_per_page": 45,
+      "external_LLM": false,
+      "pages": [
+        {
+          "name": "rocm-core-history",
+          "url": "https://rocm.docs.amd.com/en/docs-10.2.0/release/versions.html",
+          "success": true,
+          "http_status": 200,
+          "native_success": true,
+          "markdown_bytes": 20200,
+          "markdown_sha256": "974c0a0b2fd0ec4f9e31b91c0ef876774c557e8045ffe3848f08315628f534c4",
+          "capture_sha256": "94c3a7db3886aa5f689296207a789a4930ec1df26d36864334e729b2196afa11",
+          "failure_category": ""
+        },
+        {
+          "name": "windows-ntfs-state",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/fileio/compression-state",
+          "success": true,
+          "http_status": 200,
+          "native_success": true,
+          "markdown_bytes": 19802,
+          "markdown_sha256": "e974daeccb546410cea8a472ca9f793c6f2206e7fc66ee921499a001bbae6bb6",
+          "capture_sha256": "59179e992aa956e459a0994d23aa4067e477d5e670326a6c0d5852d0a813747d",
+          "failure_category": ""
+        },
+        {
+          "name": "windows-ntfs-control",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_compression",
+          "success": true,
+          "http_status": 200,
+          "native_success": true,
+          "markdown_bytes": 63183,
+          "markdown_sha256": "48b0bd005d9276173ea26d9d5ddfd0f6019586ea3a1cd33cb8e74730a01f060a",
+          "capture_sha256": "5803bdfa9b5e49e3d38168a113dbdc0ad79dec4bf7432c6d22d66328663093c3",
+          "failure_category": ""
+        }
+      ]
+    }
+  ],
+  "planning": {
+    "reconciliation": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
+    "implementation": "docs/IMPLEMENTATION_PLAN.md",
+    "current_architecture": "docs/architecture/CURRENT.md",
+    "target_architecture": "docs/architecture/TARGET.md",
+    "open_release_gates": 12,
+    "remaining_person_weeks": [
+      59,
+      127
+    ],
+    "effort_confidence": "low"
+  }
+}

@@ -1,11 +1,12 @@
 # FlitzFS stable release execution plan
 
-Compare complete protected size across ordinary and byte-plane cold
-encoding in mirrored and sealed placement. Use the populated Windows
-trace to prove useful automatic AMD grouped reads and collective analysis.
-Measure writable attach on the same named workload. Qualify the
-acknowledgement and interruption contract for each persistent provider.
-[Reconciled evidence](evidence/windows-native-byte-plane-2026-11-26.json) ·
+Compare complete protected size across mirrored and sealed placement.
+Use the populated Windows trace to prove useful automatic AMD grouped
+reads and collective analysis. Compare a generation-bound ownership
+proof to the full CPU inventory and fence checks on the same named workload.
+Qualify the acknowledgement and interruption contract for each
+persistent provider.
+[Reconciled reopen evidence](evidence/windows-fenced-indexed-reopen-audit-2026-11-26.json) ·
 [Implementation sequence](RELEASE_RECONCILIATION_2026-11-26.md#implement-the-next-three-integrated-results)
 
 Use the [repository overview](REPOSITORY_OVERVIEW.md) for the product snapshot,
@@ -184,9 +185,15 @@ its roots. Saved advisory progress can resume the scan. An attach authority
 still needs the native namespace, allocator and provider proofs in this
 section. [Bounded replica verification](evidence/indexed-scrub-checkpoint-2026-11-23.json)
 
-Read the [indexed namespace contract](INODE_RECORD_NAMESPACE.md), the
-[on-disk store contract](OBJECT_STORE_FORMAT.md), and the
-[fenced recheck receipt](evidence/indexed-fenced-stored-recheck-2026-11-22.json).
+The current reference audits the full inventory before either fence and
+checks replica continuity after both fences. The owned memory store can
+reuse the observed replica checks through a matched content revision.
+First file selection can retain the audited backing after a fence failure.
+Compare shadow admission with the full CPU reference and run named churn
+through both paths.
+[Indexed namespace contract](INODE_RECORD_NAMESPACE.md) ·
+[On-disk store contract](OBJECT_STORE_FORMAT.md) ·
+[Fenced inventory evidence](evidence/windows-fenced-indexed-reopen-audit-2026-11-26.json)
 
 ## 3. Allocation, reclamation and acknowledged data
 
@@ -489,7 +496,7 @@ ordinary Radeon delivery, scale and space reuse, held-out compression
 search, local learning, lifecycle, durability and exact-candidate
 qualification. Use staged packing where its priced copy justifies an
 already funded opportunity.
-[Current release order](RELEASE_RECONCILIATION_2026-11-25.md#implementation-after-owned-range-packing) ·
+[Current release order](RELEASE_RECONCILIATION_2026-11-26.md#implement-the-next-three-integrated-results) ·
 [Packed inode migration plan](IMPLEMENTATION_PLAN.md#execution-after-packed-inode-migration)
 
 ### Next integrated qualification

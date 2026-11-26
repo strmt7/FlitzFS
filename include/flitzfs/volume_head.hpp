@@ -49,6 +49,7 @@ class NativeVolumeHeadView final {
   const NativeFilesystemSnapshot& filesystem() const;
  private:
   friend class NativeFileSession;
+  friend class NativeVolumeHeadWriter;
   void admit_writable_provider(const StoreByteIo&) const;
   static NativeVolumeHeadView open_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,
       const NativeVolumeImageResolver&,bool indexed_recovery,const detail::IndexedReopenAdmission& admission={});

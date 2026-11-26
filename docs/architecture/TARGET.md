@@ -129,6 +129,15 @@ Qualify three mechanisms separately before combining them:
    only covers payload replicas at its observed checkpoint. Retain an explicit
    full-audit recovery path and treat unverifiable overlap or changed external
    state as reasons to require it.
+   Compare against the complete CPU inventory and its fence checks. Track which mutation
+   introduced every ownership, namespace or lifetime delta. Put the
+   proof roots and ownership summaries in the same checked checkpoint
+   as the authoritative mutation. Keep the selected image usable with an
+   absent advisory model and its reserved metadata rebuilt. On initial
+   file selection keep the verified detached-backing behavior on a fence
+   failure. Validate Windows metadata before the first write fence.
+   Prove both behaviors before replacing the early audit.
+   [Fenced CPU reference](../evidence/windows-fenced-indexed-reopen-audit-2026-11-26.json)
 2. Same-layout segment repair or evacuation. First correlate the ordinary
    candidate's phase, provider calls and allocation with client demand.
    When waiting dominates, tune admission from that evidence. When moving
@@ -149,6 +158,19 @@ Qualify three mechanisms separately before combining them:
    as the new references. Model interrupted allocation, pending release,
    competing readers and recovery at each barrier before allowing a new writer
    to allocate the range.
+
+```mermaid
+flowchart LR
+    Mutation["Checked mutation and previous ownership"] --> Delta["Verify changed names, extents, dependencies and retirement"]
+    Delta --> Commit["Publish roots and bound proof together"]
+    Commit --> Fence["Keep both leases and fence the selected image and selector"]
+    Fence --> Check["Evaluate exact proof for that checkpoint"]
+    Check --> Shadow["Compare with the full CPU inventory during qualification"]
+    Check -->|Missing or inconsistent after qualification| Recover["Full CPU recovery and validated survivor"]
+    Check -->|Qualified proof and healthy provider| Own["Authorize writer and verify touched paths"]
+    Own --> Scan["Fund verification debt from measured idle headroom"]
+    Scan -->|Integrity fault| Recover
+```
 
 Use two measured costs for evacuation. The provider's releasable
 allocation is the sum of complete eligible units after relocation.
@@ -490,6 +512,13 @@ wakeups. Rebuild damaged or incompatible advice without changing the selected
 data. Prefer audit and repair when integrity evidence requires it. Give
 migration, compaction and codec trials separate quotas. Observe the impact of
 their combination before enabling their defaults.
+
+Use verified placement outcomes to label a local ranker. Keep it
+revision-scoped and compare it against the deterministic shortlist at
+the same evaluation budget. Charge bytes rewritten and normal read
+access separately from settled space. Independent CPU restore uses
+the selected representation's protected dependencies.
+[Held-out ranking plan](../RELEASE_RECONCILIATION_2026-11-26.md#implement-the-next-three-integrated-results)
 
 Record deadlines from admission through result selection and retirement.
 Windows submission priority is only one signal. ROCm documents limits on HIP

@@ -55,6 +55,10 @@ class StoreByteIo {
   // Exact reads, extent and damage observations may run beside one writer.
   // A strong provider reference must prevent retirement during those reads.
   virtual bool concurrent_reads_supported() const noexcept {return false;}
+  // A nonzero revision binds all readable bytes and extent of this backing
+  // instance. Change it for every possible mutation, including one during
+  // a failed operation. Return zero when continuity cannot be established.
+  virtual std::uint64_t content_revision() const {return 0;}
   // Providers with independent protection report observed damage and support
   // a full audit at explicit verification and writable recovery boundaries.
   virtual bool backing_degraded() const noexcept {return false;}

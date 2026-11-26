@@ -1,12 +1,11 @@
 # Current FlitzFS architecture
 
-The diagrams trace the implementation reconciled on 25 November. The
-native writable reopen audit reuses verified mirrored inode runs while
-retaining the fresh post-flush check. The Windows controller can resume
-checking an interrupted AMD reply and only publishes the complete
-verified window. Fresh indexed memory volumes use inline short data
-and both compact checkpoint layers. The persistent factory declares
-a different failure contract.
+The diagrams trace the implementation reconciled on 26 November. An owned
+Windows memory backing can carry its checked replicas through both
+writable reopen fences with an unchanged content revision. The Windows
+controller can resume checking an interrupted AMD reply and publishes only a complete verified
+window. Fresh indexed memory volumes use inline short data and both compact
+checkpoint layers. The persistent factory declares a different failure contract.
 The subsequent paired-volume planner gives a qualified private workspace
 its own memory allowance at a funded cold-seal opportunity. It retains
 the checked inactive range for the protected base and writable tail.
@@ -358,43 +357,46 @@ repair, with replacement subject to ownership and publication checks.
 
 ## 7. Reopen, repair and image switch
 
-Read-only inspection and writable resume first establish the selected image.
-The healthy indexed path takes both leases and fences. The exact checkpoint
-binds the earlier decoded audit to the stored replicas verified after the
-fences. Damaged protection and unresolved lifetimes take the checked recovery
-path. Resolver, image and selector identity establish authority for writes.
+Read-only inspection and writable resume first establish the selected image
+and check the full CPU inventory. Windows admission finishes before any
+write fence. First file selection can retain the verified backing detached
+if writing cannot proceed. Writable resume then acquires both leases,
+fences the image and selector in order, and checks exact identity and extent.
 
 ```mermaid
 flowchart TD
     Open["Open from CPU"] --> Head["Validate outer selector pair and choose checked epoch"]
     Head --> Image["Resolve exact image and checkpoint / namespace floors"]
-    Image --> Audit["Audit selected records, namespace and ownership"]
+    Image --> Audit["Audit both replicas and the complete CPU inventory"]
     Audit -->|Read-only| Reader["Return verified CPU view"]
-    Audit -->|Healthy writable reopen| Fence["Acquire both leases and flush image then selector"]
+    Audit -->|First file selection| Retain["Retain audited backing while detached"]
+    Retain -->|Healthy| Fence
+    Audit -->|Healthy closed indexed reopen| Fence["Acquire both leases and flush image then selector"]
     Fence --> Exact["Reopen and compare exact checkpoint and selector"]
-    Exact --> Mirrors["Read and verify both stored replicas and the object tree"]
-    Mirrors --> Ready["Construct authorized writable session"]
-    Mirrors -->|Unverified protection| Refusal["Refuse writable exposure"]
-    Exact -->|Changed checkpoint| Refusal
-    Audit -->|Admitted damaged or retired state| Repair["Check surviving protection and old lifetime records"]
-    Audit -->|No verified authority| Refusal
+    Exact --> Revision{"Same nonzero backing revision from before the audit?"}
+    Revision -->|No| Mirrors["Recheck checked object tree and stored replicas"]
+    Revision -->|Yes| Ready["Construct authorized writable session"]
+    Mirrors -->|Healthy| Ready
+    Exact -->|Changed checkpoint| Refusal["Refuse writable exposure"]
+    Mirrors -->|Unverified protection| Refusal
+    Audit -->|Verified degradation or unresolved lifetime| Repair["Check surviving protection and old lifetime records"]
+    Retain -->|Previously verified damaged state| Repair
     Repair --> Candidate["Repair selected state or prepare verified replacement image"]
     Candidate --> Publish["Fence and verify recovery authority and publish selector when needed"]
     Publish --> Ready
 ```
 
-Normal indexed remount requires a full native audit and a stored mirror pass.
-Both audits can read adjacent whole frames from one checked leaf and bank.
-Replica spans must match byte for byte, and each frame passes its descriptor
-and stored digest checks. The decoded pass then verifies each object on CPU.
-The selected image and selector remain bound through the fences. Reader and
-image pins constrain reclaimable storage. Repair requires a verified survivor.
-[Decoded audit and stored replica reads](../evidence/indexed-decoded-reopen-runs-2026-11-25.json)
-· [Single-frame reads](../evidence/indexed-record-read-coalescing-2026-11-23.json)
-[Selector reopen and audit](../../src/volume_head.cpp#L158)
-· [single-pass indexed audit path](../../src/native_session.cpp#L642)
-· [stored mirror recheck evidence](../evidence/indexed-fenced-stored-recheck-2026-11-22.json)
-· [mounted post-flush restart](../evidence/windows11-mounted-post-flush-recovery-2026-11-21.json)
+The owned memory provider serializes a revision change with writes and
+retirement. A matching revision brackets the full decoded audit and the
+two fences on the same backing. That proof avoids the stored replica
+reread. File and hybrid backings supply no such proof and reread their
+replicas. A newly degraded fence check refuses the current open before any
+repair. The next open independently audits the selected source. The full
+inventory remains proportional to volume population.
+[Fenced inventory evidence](../evidence/windows-fenced-indexed-reopen-audit-2026-11-26.json) ·
+[Selector and image fences](../../src/volume_head.cpp#L371) ·
+[Closed indexed resume](../../src/native_session.cpp#L719) ·
+[Mounted post-flush restart](../evidence/windows11-mounted-post-flush-recovery-2026-11-21.json)
 
 ### Background payload verification
 

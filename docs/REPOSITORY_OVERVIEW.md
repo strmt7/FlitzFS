@@ -1,12 +1,14 @@
 # FlitzFS repository overview
 
 The 26 November review follows the writable Windows path from callbacks
-to CPU recovery. Compact sealed controls reduced the grouped 24-file
-CPython image from 696,320 to 593,920 bytes, including its selector and
-shared bases. The same fixtures recovered individual controls across
-4–64 KiB failure geometries. Comparative mounted AMD service, writable
-attach at scale and supported-media recovery remain open.
+to CPU recovery. The owned Windows memory path reuses its checked
+replicas across writable reopen fences when its content revision stays
+the same. Compact sealed controls reduced the grouped CPython image
+from 696,320 to 593,920 bytes under the tested protection geometry.
+Comparative mounted AMD service, bounded writable attach and
+supported-media recovery remain open.
 [Current review and implementation order](RELEASE_RECONCILIATION_2026-11-26.md) ·
+[Writable reopen evidence](evidence/windows-fenced-indexed-reopen-audit-2026-11-26.json) ·
 [Compact controls and CPU recovery](evidence/windows-compact-sealed-controls-2026-11-26.json) ·
 [Live Radeon write](evidence/windows-amd-write-grant-growth-2026-11-26.json)
 
@@ -275,15 +277,16 @@ A 17-byte replacement in the indexed 1,024-file fixture read 202,492 backing
 bytes. It kept that read count while full scrub dropped from 160,435,457 to
 4,268,322 bytes. On a separate five-MiB paired volume, a healthy writable
 reopen read 23,036,690 bytes, down from 42,381,786, with zero backing writes.
-Both startup audits still validate the complete inventory. The retained
+Both passes in that trial validated the complete inventory. The retained
 reader, repair, typed-corruption and post-flush failure checks passed.
 [Current indexed audit evidence](evidence/indexed-reopen-single-pass-audit-2026-11-20.json)
 
 The matched 16,384-short-file fixture used a height-three object tree. Keeping
 verified branch pages across leaf lookups reduced writable-reopen reads from
 197,479,086 to 130,327,966 bytes. Acquiring both owners before the image flush
-reduced the healthy path from three backing flushes to two. The remaining
-full inventories are still proportional to volume population.
+reduced the healthy path from three backing flushes to two. The owned
+memory path can reuse the audit's replica checks under the same two
+fences. Writable startup still visits the live inventory.
 [Scale and ownership evidence](evidence/indexed-scale-reopen-2026-11-20.json)
 
 Combining each record header and payload reduced backing read calls by 47%
