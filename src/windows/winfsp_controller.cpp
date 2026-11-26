@@ -321,7 +321,8 @@ struct WinFspVolumeController::Impl {
           decltype(WinFspControllerView::file_rebuild_phases) file_rebuild_phases{};
           std::optional<PagedRewriteProgress> last_file_rebuild_entry;
           detail::MaintenanceBackingUse backing_use,file_retirement_backing;
-          bool backing_limited=false,read_ahead_prepared=false,read_ahead_backing_refused=false;
+          bool backing_limited=false,read_ahead_prepared=false,read_ahead_submitted=false;
+          bool read_ahead_backing_refused=false;
           bool read_ahead_demand_sampled=false;
           bool amd_cpu_trial_attempted=false;
           std::optional<WinFspAmdCpuTrial> amd_cpu_trial;
@@ -384,13 +385,17 @@ struct WinFspVolumeController::Impl {
                   if(!verify_before_maintenance && !observed.continued && read_worker && !interrupted())
                     read_ahead_prepared=read_worker->verify_and_publish(
                         *adapter,observed,GetTickCount64(),stop_requested);
-                  // A group duty refusal consumes no group work. A pending
-                  // read can use the remaining host window under its own
-                  // backing and memory admission.
+                  // A completed scrub step can share this opportunity with a
+                  // forecast. Repair and other storage transitions keep their
+                  // priority. The read must earn a separate continuation.
                   const bool group_yielded=step.continuation==Continuation::group &&
-                      step.progress.deferral==NativeMaintenanceDeferral::duty && !waiting_for_accelerator();
+                      step.progress.deferral==NativeMaintenanceDeferral::duty;
+                  const bool scrub_yielded=step.payload_scrub.state==Scrub::checked ||
+                      step.payload_scrub.state==Scrub::complete;
+                  const bool permits_read=step.state==WinFspMaintenanceState::unchanged ||
+                      ((group_yielded || scrub_yielded) && !waiting_for_accelerator());
                   const auto demand_sample=!read_ahead_prepared && !observed.continued &&
-                      (step.state==WinFspMaintenanceState::unchanged || group_yielded) && !interrupted()?
+                      permits_read && !interrupted()?
                       adapter->take_native_lz4_read_ahead_sample(epoch):std::nullopt;
                   if(demand_sample) {
                     read_ahead_timing.observe(*demand_sample);
@@ -406,12 +411,12 @@ struct WinFspVolumeController::Impl {
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
                       if(work && !read_worker)begin_read_acquisition(*work,*allowance);
 #endif
-                      const bool submitted=read_worker && work && read_worker->start(*work,*allowance,stop_requested);
-                      if(read_worker && !submitted)read_worker->abandon_unused_preparation(*adapter);
-                      if(work && !submitted && !work->expanded_group_window)
+                      read_ahead_submitted=read_worker && work && read_worker->start(*work,*allowance,stop_requested);
+                      if(read_worker && !read_ahead_submitted)read_worker->abandon_unused_preparation(*adapter);
+                      if(work && !read_ahead_submitted && !work->expanded_group_window)
                         read_ahead_prepared=adapter->prepare_captured_native_lz4_read(*work,stop_requested);
                       read_ahead_timing.observe(backing_use.elapsed_ns()-before);
-                      if(!submitted && !read_ahead_prepared)adapter->discard_native_lz4_read_ahead(epoch);
+                      if(!read_ahead_submitted && !read_ahead_prepared)adapter->discard_native_lz4_read_ahead(epoch);
                     } else if(read_ahead_backing_refused)adapter->discard_native_lz4_read_ahead(epoch,true);
                   }
                   return step;
@@ -448,7 +453,8 @@ struct WinFspVolumeController::Impl {
                   if(continuation==Continuation::packed_tail_retirement)++continued_packed_tail;
                 }
                 continuation=result.continuation;
-                if(disabled || continuation==WinFspMaintenanceContinuation::none ||
+                if(disabled || read_ahead_prepared || read_ahead_submitted ||
+                    continuation==WinFspMaintenanceContinuation::none ||
                     !can_continue_preparation(result.progress) || interrupted() ||
                     (gpu && !gpu->wait_ms(GetTickCount64())))break;
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD

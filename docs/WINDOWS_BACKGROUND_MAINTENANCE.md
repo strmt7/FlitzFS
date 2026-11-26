@@ -100,6 +100,15 @@ previous controller. The corrected controller delivered exact bytes on CPU
 and on a physical Radeon, while the group remained pending.
 [Read preparation during group duty](evidence/windows-read-ahead-group-duty-2026-11-25.json)
 
+A payload scrub can also share an admitted opportunity with a read forecast.
+The controller completes the current check step, then uses a separate
+continuation to recheck foreground activity, memory and backing time before
+capturing the forecast. A submitted or prepared read ends that opportunity.
+The scrub cursor stays live and the controller resumes scanning in later
+opportunities. This lets the CPU or the installed AMD read worker prepare
+bytes before a full integrity pass finishes.
+[Scrub and read scheduling evidence](evidence/windows-read-ahead-during-scrub-2026-11-26.json)
+
 The helper measures complete elapsed time across the admitted steps, including
 collection, residency checks and priority overhead. It paces subsequent work at a 1%
 elapsed-work target in addition to the core's own accounting. Foreground

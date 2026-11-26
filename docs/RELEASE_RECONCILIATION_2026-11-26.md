@@ -12,7 +12,20 @@ the gates.
 [Implementation packages](IMPLEMENTATION_PLAN.md#3-execution-order-and-dependencies) ·
 [Release gates](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
 
-The current checkpoint builds on `b880771eedfe083c38fda01ffe9187e7e59e041a`.
+The current checkpoint builds on `ba9770cdd11078a20eb3d63f3db0f0049f461f4e`.
+Source tree `92aa4331d7f6e78600091863a7243aa1f09ab531` admits a forecast
+after a completed payload scrub step if there is time and memory left in
+the paid opportunity. The prior scheduler left the forecast pending in
+the matched Windows callback test. The updated scheduler supplied the
+exact frame before the full pass completed in two runs. The remaining
+scan finished and independent CPU verification matched the file bytes.
+Existing group-duty and slow-backing controls passed. The AMD-configured
+build passed its CPU callback checks. Existing Radeon engine load deferred
+both hardware opportunities.
+[Background maintenance](WINDOWS_BACKGROUND_MAINTENANCE.md#trusted-opportunities-and-resource-priority) ·
+[Source and validation evidence](evidence/windows-read-ahead-during-scrub-2026-11-26.json)
+
+The preceding registration checkpoint builds on `b880771eedfe083c38fda01ffe9187e7e59e041a`.
 Source tree `6aa9c3e9345db7d455147f12c32121d57e963b7e` binds Attach to the
 verified WinFsp runtime in the registered side-by-side deployment.
 It checks the deployment identity and driver version before preflight.

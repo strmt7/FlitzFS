@@ -8,6 +8,16 @@
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
   "current_release_review": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
   "source_and_portability_review": "docs/architecture/RELEASE_REVIEW_2026-11-26.md",
+  "read_ahead_during_payload_scrub": {
+    "source_parent": "ba9770cdd11078a20eb3d63f3db0f0049f461f4e",
+    "tested_source_tree": "92aa4331d7f6e78600091863a7243aa1f09ab531",
+    "evidence": "docs/evidence/windows-read-ahead-during-scrub-2026-11-26.json",
+    "repeated_exact_reads_before_scrub_completed": 2,
+    "windows_cpu_ctest_groups_passed": 7,
+    "windows_amd_configured_ctest_groups_passed": 6,
+    "live_gpu_admission": "deferred by existing device load",
+    "release_qualified": false
+  },
   "windows_registered_mount_support": {
     "source_parent": "b880771eedfe083c38fda01ffe9187e7e59e041a",
     "tested_source_tree": "6aa9c3e9345db7d455147f12c32121d57e963b7e",

@@ -1,0 +1,180 @@
+{
+  "schema": 1,
+  "date_utc": "2026-11-26",
+  "scope": "Windows controller, in-memory SDK callbacks with injected mount lifecycle and real host resource telemetry",
+  "regression_command": "flitzfs_winfsp_controller_tests --live-read-ahead-during-scrub",
+  "source": {
+    "parent": "ba9770cdd11078a20eb3d63f3db0f0049f461f4e",
+    "base_tree": "c6986f42a9bda73f662f08e2752352675b690d48",
+    "tree": "92aa4331d7f6e78600091863a7243aa1f09ab531",
+    "elements": [
+      {
+        "path": "src/windows/winfsp_controller.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "3d3adcb015fdc9be041f21b01110b02435a1e25f",
+        "bytes": 71915
+      },
+      {
+        "path": "tests/test_winfsp_controller.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "15a6d1045687cf7efc2fb20c77263b5bbfeb8180",
+        "bytes": 343045
+      }
+    ]
+  },
+  "semantic_routing": {
+    "receipt_sha256": "e72f6d6b531d9a7d6b78898ba774097513d743b21bcdc5725d92308a0d4da210",
+    "actual_searches": 1,
+    "native_result_sha256": "fce833c745a1b17173eab9b3e190b44de8b88ac4109ae045060a635ae45e6b77"
+  },
+  "primary_sources": {
+    "provider": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "48e125a6f63bb3c17e9f085e271f73c1dda4fc6a2bbcae9901faf6a68e5aa1fe",
+    "pages": [
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadpriority",
+        "http_status": 200,
+        "success": true,
+        "markdown_sha256": "4f535a0b9a9f909b21bfa37d7b66735c7c6d47d13f2ba0217574c2587183c9f3",
+        "capture_sha256": "505c39f379e3a663e19840d7d2797f8efc16b874eb74798e49aafcc897f8d1b8"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/nf-dxgi1_4-idxgiadapter3-queryvideomemoryinfo",
+        "http_status": 200,
+        "success": true,
+        "markdown_sha256": "16518804a721267999be6db4ee938612d66471e0b16f1e8d82da1194235aeb89",
+        "capture_sha256": "0f5136222efda3d38539eeff822428e47a84d3dd2f9c5f1c7c4605bd3227ea76"
+      }
+    ]
+  },
+  "behavior": "After a checked or complete payload scrub step, a pending read may qualify under the existing continuation policy. The admitted read leaves future scrub and group work pending.",
+  "checks": {
+    "previous_scheduler": {
+      "exit_code": 1,
+      "retired": true,
+      "peak_job_bytes": 26046464,
+      "elapsed_seconds": 12.328,
+      "stdout_sha256": "e5c35950ffd030da5063e0ab8b88a35ddbd3bfffdae48be54f65e80e96dd2864",
+      "tail": [
+        "read-ahead admission status host=1 phase=5 deferral=5 pending=1 quanta=12 backing_refusals=0",
+        "after 23 checks: fast backing did not prepare the next frame"
+      ]
+    },
+    "updated": [
+      {
+        "exit_code": 0,
+        "retired": true,
+        "peak_job_bytes": 24899584,
+        "elapsed_seconds": 4.422,
+        "stdout_sha256": "d1b51e80d9994d30b3508dc6c4ea82f2a261a1fb76e1729c1910c4d13d3be5d6",
+        "tail": [
+          "read_ahead_during_scrub exact_hits=1 checked_before_delivery=17 completed_scrub_passes=1 retired=1 independent_cpu=exact",
+          "controller_handles before=163 after=163",
+          "PASS: 34 owned controller checks; real local telemetry and SDK callbacks; injected lifecycle; CPU mode"
+        ]
+      },
+      {
+        "exit_code": 0,
+        "retired": true,
+        "peak_job_bytes": 25190400,
+        "elapsed_seconds": 6.406,
+        "stdout_sha256": "2ccd68ffdbe725f9e94153176d5e238269c0dabc63a783cbb987bde58fe1e41e",
+        "tail": [
+          "read_ahead_during_scrub exact_hits=1 checked_before_delivery=17 completed_scrub_passes=1 retired=1 independent_cpu=exact",
+          "controller_handles before=163 after=163",
+          "PASS: 34 owned controller checks; real local telemetry and SDK callbacks; injected lifecycle; CPU mode"
+        ]
+      }
+    ],
+    "group_duty": {
+      "exit_code": 0,
+      "retired": true,
+      "peak_job_bytes": 10022912,
+      "elapsed_seconds": 13.281,
+      "stdout_sha256": "c32888b9e8adf7628ebbc8d9f4d9fa74e50b7ccc944abc31ded7e57a73a45292",
+      "tail": [
+        "read_ahead_during_group_duty exact_hits=1 duty_retained=1 owner_retired=1 verified_amd_frames=0 independent_cpu=exact",
+        "controller_handles before=163 after=163",
+        "PASS: 44 owned controller checks; real local telemetry and SDK callbacks; injected lifecycle; CPU mode"
+      ]
+    },
+    "backing_admission": {
+      "exit_code": 0,
+      "retired": true,
+      "peak_job_bytes": 10899456,
+      "elapsed_seconds": 16.5,
+      "stdout_sha256": "8ef02d86b07934a8d8eac136f3aeb2c25add27611f1ec1483417ebf6a0ed1b06",
+      "tail": [
+        "read_ahead_controller prepared=3 exact_hits=3 backing_refused=7 refused_backing_calls=0 modeled_stall_ns=47160600 demand_samples=7 slow_demand_kept_limit=1 timer_only_retries=0 demand_recovered=1 exact_cpu_fallback=1 owner_retired=1",
+        "controller_handles before=163 after=163",
+        "PASS: 95 owned controller checks; real local telemetry and SDK callbacks; injected lifecycle; CPU mode"
+      ]
+    },
+    "windows_cpu_ctest": {
+      "exit_code": 0,
+      "retired": true,
+      "peak_job_bytes": 62320640,
+      "elapsed_seconds": 19.172,
+      "stdout_sha256": "a63469c2f4c0e6e3c4eaf9774c424a7b0bd937116ba2cac5a6fc3e356a7cb512",
+      "tail": [
+        "100% tests passed out of 7"
+      ],
+      "passed": 7
+    },
+    "windows_amd_configured_ctest": {
+      "exit_code": 0,
+      "retired": true,
+      "peak_job_bytes": 40189952,
+      "elapsed_seconds": 26.812,
+      "stdout_sha256": "4974808e153292278652cfcc2178058bb07779426dbb152ee0da4c8042b4548a",
+      "tail": [
+        "100% tests passed out of 6"
+      ],
+      "passed": 6
+    },
+    "amd_configured_build": {
+      "exit_code": 0,
+      "retired": true,
+      "peak_job_bytes": 463978496,
+      "elapsed_seconds": 24.25,
+      "stdout_sha256": "909928aec5d8bb2938ee79ae97f46e22e38e89e627d1098ef2464c0569898caa"
+    }
+  },
+  "live_radeon": {
+    "adapter": "AMD Radeon RX 9070 XT",
+    "preflights": [
+      {
+        "admitted": false,
+        "reason": "Existing host load above the fixture envelope",
+        "utc": "2026-11-26T08:49:30.6564915Z",
+        "driver": "32.0.32029.2010",
+        "build": "26300",
+        "available_bytes": 21922041856,
+        "gpu_peak": 98.88078347615902,
+        "cpu_peak": 20.85815324165029,
+        "target_samples": 784
+      },
+      {
+        "admitted": false,
+        "reason": "Existing host load above the fixture envelope",
+        "utc": "2026-11-26T08:58:46.7368547Z",
+        "driver": "32.0.32029.2010",
+        "build": "26300",
+        "available_bytes": 22557638656,
+        "gpu_peak": 98.51247143430682,
+        "cpu_peak": 15.654976873586723,
+        "target_samples": 784
+      }
+    ],
+    "candidate_manifest_sha256": "10efa9c28d1d3e1186fa6466607f4c8fe6350417156c86f4b0b8ea2977758bde",
+    "executed": false,
+    "runner_retired": true,
+    "stdout_sha256": "9d249c6ce01f143d486ec6742ca8aca1b00f4867789ccc205a4c102a1033f5eb"
+  },
+  "release_scope": {
+    "mounted_amd_qualified": false,
+    "physical_recovery_qualified": false
+  }
+}

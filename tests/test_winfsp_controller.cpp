@@ -654,14 +654,18 @@ void read_capture_pins_selected_image() {
   std::cout<<"read_capture_pin retained_selected_version=1 later_write_exact=1 protected_from_retirement=1"
       <<" retired_after_release=1 reclaimed_locked_bytes="<<before.resident-after.resident<<'\n';
 }
-void live_read_ahead_admission(bool group_duty,std::optional<NativeLz4ReadWorkerProfile> worker={}) {
+enum class ReadAheadFixture {backing_pressure,group_duty,payload_scrub};
+void live_read_ahead_admission(ReadAheadFixture fixture,std::optional<NativeLz4ReadWorkerProfile> worker={}) {
   require(store_lz4_available(),"live read-ahead requires the pinned LZ4 decoder");
+  const bool group_duty=fixture==ReadAheadFixture::group_duty;
+  const bool scrub=fixture==ReadAheadFixture::payload_scrub;
   const bool device=worker.has_value();
-  if(!group_duty) {
+  if(fixture==ReadAheadFixture::backing_pressure) {
     read_capture_pins_selected_image();
     require(MemoryVolumeDomain::cleanup_healthy(),"capture fixture failed to retire its memory domain");
   }
-  constexpr std::uint64_t extent=kNativeExtentBytes,image_capacity=8ULL*1024*1024;
+  constexpr std::uint64_t extent=kNativeExtentBytes;
+  const std::uint64_t image_capacity=(scrub?16ULL:8ULL)*1024*1024;
   constexpr StoreCompressionOptions fast{StoreCompressionMode::fast,1,false};
   auto domain=MemoryVolumeDomain::create(image_capacity+kVolumeHeadBytes);
   auto head=domain.create_store(kVolumeHeadBytes);
@@ -687,8 +691,14 @@ void live_read_ahead_admission(bool group_duty,std::optional<NativeLz4ReadWorker
     std::ranges::copy(motif,frames.back().begin()+static_cast<std::ptrdiff_t>(offset));
   Bytes file;
   for(const auto& frame:frames)file.insert(file.end(),frame.begin(),frame.end());
-  callback_file(provider,0,file,kNativeExtentBytes);
-  try {
+  if(scrub) {
+    // The mirrored raw tail exceeds one scrub grant. The predicted third
+    // frame remains independently compressed and can use the read-ahead path.
+    const auto noise=data(40*extent,4717);
+    file.insert(file.end(),noise.begin(),noise.end());
+  }
+  callback_file(provider,0,file,scrub?kNativeMaxReadBytes:kNativeExtentBytes);
+  if(!scrub)try {
     await([&]{return controller.view().payload_scrub_passes>0 && !route->background_maintenance_pending();},
         12000,"initial maintenance never returned idle credit");
   }catch(...) {
@@ -733,8 +743,29 @@ void live_read_ahead_admission(bool group_duty,std::optional<NativeLz4ReadWorker
     throw;
   }
   const auto fast_sample=controller.view().maintenance_backing;
+  const auto prepared=controller.view();
   demand(2);
   require(route->native_lz4_read_ahead_hits()==1,"controller did not deliver the prepared frame");
+  if(scrub) {
+    require(prepared.payload_scrub_checks && !prepared.payload_scrub_passes && !prepared.payload_scrub_faults,
+        "controller did not prepare the read while the integrity scan was still in progress");
+    callback_cleanup_close(provider,context);
+    await([&]{return controller.view().payload_scrub_passes>prepared.payload_scrub_passes;},
+        20000,"integrity scan did not finish after read preparation");
+    {
+      const auto snapshot=route->snapshot();
+      snapshot.verify_all();
+      require(snapshot.read("f0",0,static_cast<std::uint32_t>(file.size()))==file,
+          "independent CPU read differs after interleaved read and scrub");
+    }
+    controller.stop_and_join();
+    const auto final=controller.view();
+    require(final.retired && !final.controller_failed && !final.payload_scrub_faults &&
+        provider.fs.UserContext==nullptr,"interleaved read and scrub did not retire cleanly");
+    std::cout<<"read_ahead_during_scrub exact_hits=1 checked_before_delivery="<<prepared.payload_scrub_checks
+        <<" completed_scrub_passes="<<final.payload_scrub_passes<<" retired=1 independent_cpu=exact\n";
+    return;
+  }
   if(group_duty) {
     const auto state=controller.view();
     require(state.maintenance.deferral==NativeMaintenanceDeferral::duty && !state.maintenance_quiescent &&
@@ -5366,7 +5397,7 @@ int main(int argc,char** argv){try {
   if(argc==11) {
     const std::string_view command(argv[1]);
     if(command=="--live-amd-read-ahead-group-duty") {
-      live_read_ahead_admission(true,amd_read_fixture_profile(argv,false,1));
+      live_read_ahead_admission(ReadAheadFixture::group_duty,amd_read_fixture_profile(argv,false,1));
       return 0;
     }
     if(command=="--live-amd-read-ahead" || command=="--live-amd-read-refusal")
@@ -5444,7 +5475,9 @@ int main(int argc,char** argv){try {
   const bool volume_file=argc==2 && std::string_view(argv[1])=="--volume-file";
   const bool indexed_startup=argc==2 && std::string_view(argv[1])=="--indexed-startup-profile";
   const bool read_ahead_group_duty=argc==2 && std::string_view(argv[1])=="--live-read-ahead-group-duty";
-  const bool read_ahead=read_ahead_group_duty || (argc==2 && std::string_view(argv[1])=="--live-read-ahead");
+  const bool read_ahead_scrub=argc==2 && std::string_view(argv[1])=="--live-read-ahead-during-scrub";
+  const bool read_ahead=read_ahead_group_duty || read_ahead_scrub ||
+      (argc==2 && std::string_view(argv[1])=="--live-read-ahead");
   const bool amd_cpu_replay=argc==2 && std::string_view(argv[1])=="--amd-write-cpu-replay";
   const bool amd_cpu_group=argc==2 && std::string_view(argv[1])=="--amd-write-cpu-group";
   const bool amd_write_pair=argc==2 && std::string_view(argv[1])=="--amd-write-pair";
@@ -5482,7 +5515,8 @@ int main(int argc,char** argv){try {
   }
   else if(lifetime_only)idle_until_owner_stop(31000);
   else if(selector_footprint)memory_selector_footprint();
-  else if(read_ahead)live_read_ahead_admission(read_ahead_group_duty);
+  else if(read_ahead)live_read_ahead_admission(read_ahead_scrub?ReadAheadFixture::payload_scrub:
+      read_ahead_group_duty?ReadAheadFixture::group_duty:ReadAheadFixture::backing_pressure);
   else if(amd_cpu_replay || amd_cpu_group)amd_write_cpu_replay(true,amd_cpu_group);
   else if(amd_write_arrival) {
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
