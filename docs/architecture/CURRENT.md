@@ -467,12 +467,14 @@ flowchart TD
     V["Paired selector with identity, epoch and sealed range"] --> B["Sealed base range"]
     V --> T["Writable tail range"]
     B --> R["Two isolated base roots"]
-    B --> P["Checked data units, descriptor and parity per stripe"]
+    B --> P["Checked data and separate parity per stripe"]
+    B --> D["Checked descriptors in isolated units or packed runs"]
     T --> C["Two isolated immutable tail bindings"]
     T --> M["Two isolated mutable indexed roots"]
     T --> A["Appended indexed records"]
     R --> H["Checked hybrid CPU reader"]
     P --> H
+    D --> H
     C --> H
     M --> H
     A --> H
@@ -486,9 +488,15 @@ with both bindings and roots before selector publication. An immutable
 control survivor permits independent CPU reads and fences writes until
 recovery. The current allocation, repair and unsupported-feature rules
 still govern writability.
+Owned Windows memory seals pack several 352-byte descriptors into one
+failure unit. The independent CPU reader checks the requested descriptor
+and recovers it with the corresponding data and parity if needed. A
+shared descriptor unit touches more stripes during full repair. Other
+writers keep their prior placement. The reader accepts both earlier
+sealed versions.
 [Physical layout and publication](../PERSISTENT_VOLUME_FILE.md#physical-control-records) ·
 [Selector binding](../VOLUME_HEAD.md#legacy-and-paired-file-encoding) ·
-[Recovery and named workloads](../evidence/windows-compact-sealed-controls-2026-11-26.json)
+[Packed descriptor recovery and named workloads](../evidence/windows-packed-stripe-descriptors-2026-11-26.json)
 
 ## 8. Background learning, grouping and reclamation
 

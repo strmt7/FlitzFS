@@ -1,11 +1,12 @@
 # FlitzFS stable release execution plan
 
-Compare complete protected size across mirrored and sealed placement.
 Use the populated Windows trace to prove useful automatic AMD grouped
-reads and collective analysis. Compare a generation-bound ownership
-proof to the full CPU inventory and fence checks on the same named workload.
-Qualify the acknowledgement and interruption contract for each
-persistent provider.
+reads and collective analysis. Freeze the next blind named tree and
+compare complete size with the new packed memory seal. Compare a
+generation-bound ownership proof to the full CPU inventory and fence
+checks on the same named workload. Qualify the acknowledgement,
+repair and interruption contract for each persistent provider.
+[Packed descriptor evidence](evidence/windows-packed-stripe-descriptors-2026-11-26.json) ·
 [Reconciled reopen evidence](evidence/windows-fenced-indexed-reopen-audit-2026-11-26.json) ·
 [Implementation sequence](RELEASE_RECONCILIATION_2026-11-26.md#implement-the-next-three-integrated-results)
 
@@ -19,15 +20,15 @@ preserves the earlier order and assessment.
 
 **Development qualification.** The code provides a writable WinFsp filesystem
 with a native indexed store, independent CPU recovery and protected compression
-dependencies. Compact control records reduce the settled grouped CPython
-image to 593,920 bytes from its 696,320-byte mirror. The next release risks
+dependencies. Packed stripe descriptors reduce the matched sealed
+CPython image from 598,016 to 557,056 bytes. The next release risks
 are useful automatic AMD delivery, the amount of work startup does at scale,
 the value of stronger collective compression, and recovery on persistent media.
 Installed discovery and subsequent staging or submissions now consume current
 engine capacity for the exact adapter. Advance that path through the ordinary
 Windows operation witness before extending more codec or worker variants.
 [Retained AMD evidence](evidence/windows-retained-amd-admission-2026-11-25.json) ·
-[Compact seal evidence](evidence/windows-compact-sealed-controls-2026-11-26.json) ·
+[Packed seal evidence](evidence/windows-packed-stripe-descriptors-2026-11-26.json) ·
 [Latest implementation order](RELEASE_RECONCILIATION_2026-11-26.md#detailed-implementation-order)
 
 | Subsystem | Demonstrated | Work that still determines release |
@@ -477,9 +478,9 @@ separately. [Persistence model](PERSISTENCE_MODEL.md)
 | Start order | Work package | First reviewable output | Next dependency |
 | --- | --- | --- | --- |
 | 1 | Shared E01/E02/E03/E08/E11/E12 integration trace | Reuse the populated Win32 witness. Attribute charged work, advisory cursor, continuation refusals and actual wakes through quiescence. | Common comparison and fault harness |
-| 2 | E01/E02/E11 checked attach and settled ownership | Full-audit differential with attach phase counters, preserved flush witness and allocator settlement under churn. | Generation-bound prototype and held-out scale curve |
 | 2 | E03/E08 ordinary AMD acquisition and CPU continuity | Pair the later-range candidate with the CPU witness when fresh headroom admits it. Compare initialized leases with cold startup and trace consumed, verified bytes on a winning ordinary I/O shape. | Measured offer and route outcomes by role |
-| 2 | E01/E04/E05/E06 protected-size frontier | Compare a sparse fragment shortlist to exact saved allocation on held-out revision families. Hold the verified compact placement and restart units fixed. | A candidate with demonstrable protected savings, bounded range reads and a credible migration cost |
+| 2 | E01/E04/E05/E06 protected-size frontier | Compare independent and grouped encodings on a blind named family. Hold the packed memory placement and restart units fixed and count allocation after retirement. | A candidate with demonstrable protected savings, bounded range reads and a credible migration cost |
+| 2 | E01/E02/E11 checked attach and settled ownership | Full-audit differential with attach phase counters, preserved flush witness and allocator settlement under churn. | Generation-bound prototype and held-out scale curve |
 | 3 | E06/E07/E09 collective storage, policy and upgrade | CPU-first reader, protected dependency publication, bounded migration and a measured offline policy. | Windows client, recovery and comparative qualification |
 | 3 | E08–E11 installed Windows experience | Signed artifact passes current Windows 11 installation, interaction and removal, backing lifecycle, compatibility and scoped physical-recovery campaigns. | Freeze executable, driver, format and supported platform inputs |
 | 4 | E12/E13 comparisons and stabilization | Matched real-host reports, reliability and soak evidence, and an owner decision packet for the twelve gates. | Owner approval |

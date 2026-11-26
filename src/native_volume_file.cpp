@@ -337,7 +337,7 @@ std::optional<NativeVolumeFileReclaimer::SealPlan> NativeVolumeFileReclaimer::se
     constexpr auto root_unit=static_cast<std::uint32_t>(detail::kPagedStoreCheckpointWriteBytes/2);
     const auto tail_prefix=4ULL*(std::max)(root_unit,contract.write_failure_unit_bytes);
     const auto base=ProtectedStripeImage::projected_occupied(selected.volume_identity,workspace,
-        contract.write_failure_unit_bytes,spare_->capacity,true);
+        contract.write_failure_unit_bytes,spare_->capacity,ProtectedStripeFormat::compact_roots);
     const auto staging=workspace+base+tail_prefix;
     const auto backing=allowance?base+tail_prefix:staging;
     if(backing>spare_->capacity)return {};

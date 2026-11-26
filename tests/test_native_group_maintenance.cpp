@@ -941,6 +941,76 @@ void profile_protected_layout(const std::shared_ptr<Ram>& backing,
       <<" zero_payload_layout_bytes="<<snapshot.rebuilt_size(records)+selector_bytes<<'\n';
 }
 
+bool reconcile_profile_image(Fixture& volume,const std::shared_ptr<Ram>& target) {
+  using Recompression=NativeFileSession::RecompressionProgress;
+  require(volume.session->begin_idle_compaction(target,id(5),PagedRewriteMode::reconcile_foreground),
+      "Could not start the ordinary cold copy");
+  auto state=Recompression::copying;
+  for(unsigned steps=0;steps<15000 && state==Recompression::copying;++steps)
+    state=volume.session->advance_recompression();
+  require(state==Recompression::ready,"Cold copy failed to settle in the public-file profile");
+  return volume.session->publish_idle_recompression().has_value();
+}
+
+template<class Verify,class VerifyRanges>
+void profile_group_seal(Fixture& f,NativeHybridControls controls,std::string_view arm,
+    const Verify& verify,const VerifyRanges& verify_ranges) {
+  const auto report_arm=[arm] {
+    if(arm.empty())std::cout<<"grouped_seal";
+    else std::cout<<"named_merge_seal arm="<<arm;
+  };
+  auto workspace=ram(4096),base=ram(4096),tail=ram(4096);
+  const auto retained=f.session->snapshot();
+  const auto group=retained.shared_base_info();
+  const auto selected=f.session->volume_info().selection;
+  const auto mirror=f.image->extent()+f.head->extent();
+  auto stage=NativeHybridBacking::prepare(*f.session,workspace,base,tail,id(8),
+      kStoreMaxPhysicalBytes,kStoreMaxPhysicalBytes,{StoreCompressionMode::automatic,3,true},controls);
+  try {
+    for(std::uint64_t turn=0;stage.phase()!=NativeHybridBacking::BuildPhase::ready;++turn) {
+      require(turn<1024+f.image->extent()/32,"grouped seal exceeded the declared profile work");
+      (void)stage.advance(*f.session);
+    }
+  }catch(const std::runtime_error& error) {
+    if(std::string_view(error.what())!="hybrid base and tail do not reduce the protected footprint")throw;
+  }
+  if(stage.phase()!=NativeHybridBacking::BuildPhase::ready) {
+    require(!workspace->write_bytes && !base->write_bytes && !tail->write_bytes &&
+        f.session->volume_info().selection==selected,"declined grouped seal touched staging or selection");
+    verify(retained);
+    report_arm();
+    std::cout<<" mirror_bytes="<<mirror<<" settled_bytes="<<mirror
+        <<" members="<<group.members<<" bases="<<group.bases<<" selected=0 declined_before_staging=1 cpu_exact=1\n";
+  }else {
+    std::shared_ptr<NativeHybridBacking> sealed;
+    const auto before=f.head->write_bytes;
+    require(stage.publish(*f.session,sealed) && sealed,"admitted grouped seal did not win its comparison");
+    require(f.session->volume_info().selection.parent_identity==selected.image_identity,
+        "grouped seal lost its selected source provenance");
+    auto copied_base=image(base->stable,4096),copied_tail=image(tail->stable,4096);
+    const auto reopened=NativeHybridBacking::open(copied_base,copied_tail,id(8),
+        kStoreMaxPhysicalBytes,kStoreMaxPhysicalBytes);
+    const auto view=NativeVolumeHeadView::open(image(f.head->stable,4096),id(90),
+        [&](const auto& identity)->std::shared_ptr<StoreByteIo>{return identity==id(8)?reopened:nullptr;});
+    const auto& recovered=view.filesystem();
+    require(recovered.shared_base_info().members==group.members && recovered.shared_base_info().bases==group.bases,
+        "sealed placement changed a retained group");
+    const auto initial_reads=copied_base->read_bytes+copied_tail->read_bytes;
+    verify_ranges(recovered);
+    const auto sampled_reads=copied_base->read_bytes+copied_tail->read_bytes-initial_reads;
+    verify(recovered);
+    verify(retained);
+    require(reopened->occupied()==base->extent()+tail->extent(),"missing grouped seal occupancy");
+    report_arm();
+    std::cout<<" mirror_bytes="<<mirror<<" settled_bytes="<<reopened->occupied()+f.head->extent()
+        <<" base_bytes="<<base->extent()<<" tail_bytes="<<tail->extent()<<" selector_bytes="<<f.head->extent()
+        <<" workspace_write_bytes="<<workspace->write_bytes
+        <<" backing_write_bytes="<<base->write_bytes+tail->write_bytes+f.head->write_bytes-before
+        <<" sampled_range_read_bytes="<<sampled_reads<<" members="<<group.members<<" bases="<<group.bases
+        <<" selected=1 cpu_exact=1\n";
+  }
+}
+
 void profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expected_members=0,
     bool compare_reencoding=false,NativeIndexedDataLayout layout=NativeIndexedDataLayout::extents,
     NativeVolumeHeadLayout head_layout=NativeVolumeHeadLayout::legacy,
@@ -1005,17 +1075,10 @@ void profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expect
     return result;
   };
   const auto cold_copy=[&](Fixture& volume,std::string_view order) {
-    using Recompression=NativeFileSession::RecompressionProgress;
     auto target=ram(4096);
     const auto retained=volume.session->snapshot();
     const auto reads=volume.image->read_bytes;
-    require(volume.session->begin_idle_compaction(target,id(5),PagedRewriteMode::reconcile_foreground),
-        "Could not start the ordinary cold copy");
-    auto state=Recompression::copying;
-    for(unsigned steps=0;steps<15000 && state==Recompression::copying;++steps)
-      state=volume.session->advance_recompression();
-    require(state==Recompression::ready,"Cold copy failed to settle in the public-file profile");
-    const bool selected=volume.session->publish_idle_recompression().has_value();
+    const bool selected=reconcile_profile_image(volume,target);
     const auto source_reads=volume.image->read_bytes-reads;
     const auto [bytes,range_bytes]=check_image(target);
     verify(retained);
@@ -1086,61 +1149,15 @@ void profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expect
     f.session.emplace(NativeFileSession::resume_closed_indexed_volume(f.head,id(90),1,resolve,policy));
     cold_copy(f,"group_then_cold");
   }
-  if(seal_controls) {
-    auto workspace=ram(4096),base=ram(4096),tail=ram(4096);
-    const auto retained=f.session->snapshot();
-    const auto group=retained.shared_base_info();
-    const auto selected=f.session->volume_info().selection;
-    const auto mirror=f.image->extent()+f.head->extent();
-    auto stage=NativeHybridBacking::prepare(*f.session,workspace,base,tail,id(8),
-        kStoreMaxPhysicalBytes,kStoreMaxPhysicalBytes,{StoreCompressionMode::automatic,3,true},*seal_controls);
-    try {
-      for(std::uint64_t turn=0;stage.phase()!=NativeHybridBacking::BuildPhase::ready;++turn) {
-        require(turn<1024+f.image->extent()/32,"grouped seal exceeded the declared profile work");
-        (void)stage.advance(*f.session);
-      }
-    }catch(const std::runtime_error& error) {
-      if(std::string_view(error.what())!="hybrid base and tail do not reduce the protected footprint")throw;
-    }
-    if(stage.phase()!=NativeHybridBacking::BuildPhase::ready) {
-      require(!workspace->write_bytes && !base->write_bytes && !tail->write_bytes &&
-          f.session->volume_info().selection==selected,"declined grouped seal touched staging or selection");
-      verify(retained);
-      std::cout<<"grouped_seal mirror_bytes="<<mirror<<" settled_bytes="<<mirror
-          <<" members="<<group.members<<" bases="<<group.bases<<" selected=0 declined_before_staging=1 cpu_exact=1\n";
-    }else {
-      std::shared_ptr<NativeHybridBacking> sealed;
-      const auto before=f.head->write_bytes;
-      require(stage.publish(*f.session,sealed) && sealed,"admitted grouped seal did not win its comparison");
-      require(f.session->volume_info().selection.parent_identity==selected.image_identity,
-          "grouped seal lost its selected source provenance");
-      auto copied_base=image(base->stable,4096),copied_tail=image(tail->stable,4096);
-      const auto reopened=NativeHybridBacking::open(copied_base,copied_tail,id(8),
-          kStoreMaxPhysicalBytes,kStoreMaxPhysicalBytes);
-      const auto view=NativeVolumeHeadView::open(image(f.head->stable,4096),id(90),
-          [&](const auto& identity)->std::shared_ptr<StoreByteIo>{return identity==id(8)?reopened:nullptr;});
-      const auto& recovered=view.filesystem();
-      require(recovered.shared_base_info().members==group.members && recovered.shared_base_info().bases==group.bases,
-          "sealed placement changed a retained group");
-      const auto initial_reads=copied_base->read_bytes+copied_tail->read_bytes;
+  if(seal_controls)
+    profile_group_seal(f,*seal_controls,{},verify,[&](const NativeFilesystemSnapshot& recovered) {
       for(std::size_t i=0;i<inputs.size();++i) {
         const auto length=(std::min)(std::size_t{128},inputs[i].size());
         const auto offset=(inputs[i].size()-length)/2;
         require(recovered.read(name(i),offset,length)==Bytes(inputs[i].begin()+offset,inputs[i].begin()+offset+length),
             "grouped seal changed a range");
       }
-      const auto sampled_reads=copied_base->read_bytes+copied_tail->read_bytes-initial_reads;
-      verify(recovered);
-      verify(retained);
-      require(reopened->occupied()==base->extent()+tail->extent(),"missing grouped seal occupancy");
-      std::cout<<"grouped_seal mirror_bytes="<<mirror<<" settled_bytes="<<reopened->occupied()+f.head->extent()
-          <<" base_bytes="<<base->extent()<<" tail_bytes="<<tail->extent()<<" selector_bytes="<<f.head->extent()
-          <<" workspace_write_bytes="<<workspace->write_bytes
-          <<" backing_write_bytes="<<base->write_bytes+tail->write_bytes+f.head->write_bytes-before
-          <<" sampled_range_read_bytes="<<sampled_reads<<" members="<<group.members<<" bases="<<group.bases
-          <<" selected=1 cpu_exact=1\n";
-    }
-  }
+    });
   if(expected_members) {
     require(after.first<before.first && members==expected_members && outcome.packed_reference_groups,
         "similarity ranking missed the fitting short-file families");
@@ -1213,14 +1230,15 @@ void profile_public_packs(const std::filesystem::path& filename,bool complete_fi
       fragment_nominations);
 }
 
-void profile_named_seal(const std::filesystem::path& filename,bool fragments) {
+void profile_named_seal(const std::filesystem::path& filename,bool fragments,
+    NativeHybridControls controls=NativeHybridControls::compact) {
   require(store_zstd_available(),"named seal profile requires Zstandard");
   const native_fixture::NamedCorpusFixture corpus(filename);
   std::vector<Bytes> inputs;
   inputs.reserve(corpus.files().size());
   for(const auto& file:corpus.files())inputs.push_back(corpus.read(file));
   profile_similarity_packing(inputs,0,true,NativeIndexedDataLayout::extents,NativeVolumeHeadLayout::legacy,
-      PagedStoreBankLayout::shared,true,NativeHybridControls::compact,fragments,&corpus);
+      PagedStoreBankLayout::shared,true,controls,fragments,&corpus);
 }
 
 void shifted_fragment_discovery() {
@@ -1268,17 +1286,18 @@ void shifted_fragment_discovery() {
       <<" fine_minima_matches="<<matches<<" cpu_exact=1\n";
 }
 
-enum class PairOracleProfile {first_extents,tails,named};
+enum class PairOracleProfile {first_extents,tails,named,named_seal};
 
 void profile_indexed_pair_oracle(const std::filesystem::path& filename,
     PairOracleProfile profile=PairOracleProfile::first_extents) {
   require(store_zstd_available(),"pair oracle requires Zstandard");
-  constexpr StoreCompressionOptions policy{StoreCompressionMode::automatic,3,true};
+  const bool seal=profile==PairOracleProfile::named_seal;
+  const StoreCompressionOptions policy{StoreCompressionMode::automatic,3,true,seal};
   constexpr PagedStoreLimits limits{kStoreMaxPhysicalBytes};
   constexpr NativeImageStorage storage{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes};
 
   const bool tails=profile==PairOracleProfile::tails;
-  const bool named=profile==PairOracleProfile::named;
+  const bool named=profile==PairOracleProfile::named || seal;
   // Named pricing retains every extent and the original directory structure.
   // The other profiles compare one selected extent per eligible file.
   constexpr std::size_t file_limit=32,extent_limit=64;
@@ -1320,20 +1339,28 @@ void profile_indexed_pair_oracle(const std::filesystem::path& filename,
     volume.session->cleanup(handle,false);
     volume.session->close(handle);
   }
+  const auto verify=[&](const NativeFilesystemSnapshot& checked) {
+    checked.verify_all();
+    for(const auto& file:cohort) {
+      require(checked.stat(file.path).logical_bytes==file.bytes.size() &&
+          checked.read(file.path,0,file.bytes.size())==file.bytes,"pair oracle CPU reopen differs");
+    }
+  };
+  const auto verify_ranges=[&](const NativeFilesystemSnapshot& checked) {
+    for(const auto& file:cohort) {
+      const auto length=(std::min)(std::size_t{128},file.bytes.size());
+      const auto offset=(file.bytes.size()-length)/2;
+      require(std::ranges::equal(checked.read(file.path,offset,length),
+          std::span(file.bytes).subspan(offset,length)),
+          "pair oracle CPU range differs");
+    }
+  };
   const auto occupied=[&](const std::shared_ptr<Ram>& source) {
     auto compacted=ram(4096);
     (void)NativeFilesystemWriter::compact(NativeFilesystemSnapshot::open_image(source,storage),compacted,id(20),policy);
     const auto checked=NativeFilesystemSnapshot::open_image(compacted,storage);
-    checked.verify_all();
-    for(const auto& file:cohort) {
-      const auto& expected=file.bytes;
-      const auto& path=file.path;
-      require(checked.stat(path).logical_bytes==expected.size() &&
-          checked.read(path,0,expected.size())==expected,"pair oracle CPU reopen differs");
-      const auto end=std::span(expected).last((std::min)(std::size_t{128},expected.size()));
-      require(std::ranges::equal(checked.read(path,expected.size()-end.size(),end.size()),end),
-          "pair oracle CPU range differs");
-    }
+    verify(checked);
+    verify_ranges(checked);
     return compacted->extent()+volume.head->extent();
   };
   volume.session.reset();
@@ -1369,7 +1396,8 @@ void profile_indexed_pair_oracle(const std::filesystem::path& filename,
     }
   }
 
-  const auto price=[&](const NativeContentToken& base,std::span<const NativeContentToken> members,bool pack=false)
+  const auto price=[&](const NativeContentToken& base,std::span<const NativeContentToken> members,
+      bool pack=false,std::shared_ptr<Ram>* retained_trial=nullptr)
       ->std::optional<std::uint64_t> {
     auto trial=image(volume.image->stable,4096);
     NativeSharedBaseCommit result;
@@ -1401,6 +1429,7 @@ void profile_indexed_pair_oracle(const std::filesystem::path& filename,
     if(!result.applied)return {};
     const auto bytes=occupied(trial);
     require(bytes<automatic,"pair oracle published a non-improving protected layout");
+    if(retained_trial)*retained_trial=std::move(trial);
     return bytes;
   };
 
@@ -1469,14 +1498,27 @@ void profile_indexed_pair_oracle(const std::filesystem::path& filename,
     groups[ref.base_id].push_back(token);
   }
   std::uint64_t best_merge=automatic;
+  std::shared_ptr<Ram> settled_merge;
+  const detail::NativeNameIndex group_index(frozen);
   std::size_t tried_merges=0,saved_merges=0;
   for(const auto& [base,reference]:groups) {
     for(const auto& [other,members]:groups) {
-      if(other==base || members.size()>=kNativeMaxDirtyExtents)continue;
+      if(other==base || members.size()>=kNativeMaxDirtyExtents ||
+          (seal && group_index.group_reference_count(other)!=members.size()))continue;
       ++tried_merges;
-      if(const auto bytes=price(reference.front(),members)) {
+      std::shared_ptr<Ram> trial;
+      if(const auto bytes=price(reference.front(),members,false,seal?&trial:nullptr)) {
         ++saved_merges;
-        best_merge=(std::min)(best_merge,*bytes);
+        if(*bytes>=best_merge)continue;
+        best_merge=*bytes;
+        if(!seal)continue;
+        const auto checked=PagedObjectStoreSnapshot::open(trial,limits);
+        require(checked.stat(base).has_value() && !checked.stat(other).has_value() && frozen.stat(other).has_value(),
+            "complete merge lost its retained base or left its old dependency live");
+        std::cout<<"named_merge_reference retained="<<base<<" retired="<<other
+            <<" members_moved="<<members.size()<<" mirror_bytes="<<best_merge
+            <<" merge_write_bytes="<<trial->write_bytes<<" prior_base_available=1\n";
+        settled_merge=std::move(trial);
       }
     }
   }
@@ -1490,6 +1532,17 @@ void profile_indexed_pair_oracle(const std::filesystem::path& filename,
   if(named)std::cout<<" original_paths=1 tested_packs="<<packed<<" improving_packs="<<improved
       <<" best_pack_bytes="<<best_pack;
   std::cout<<" cpu_verified=1\n";
+  if(settled_merge) {
+    verify(NativeFilesystemSnapshot::open_image(volume.image,storage));
+    const auto settle=[&](const std::shared_ptr<Ram>& backing,std::string_view arm) {
+      Fixture lane(image(volume.head->stable,4096),image(backing->stable,4096),policy);
+      auto cold=ram(4096);
+      if(reconcile_profile_image(lane,cold))lane.image=std::move(cold);
+      profile_group_seal(lane,NativeHybridControls::compact,arm,verify,verify_ranges);
+    };
+    settle(volume.image,"automatic");
+    settle(settled_merge,"merged");
+  }
 }
 
 void indexed_cross_window_pack(bool replace_retained) {
@@ -4592,10 +4645,14 @@ int main(int argc,char** argv){try{
   } else if(argc==3 && (std::string_view(argv[1])=="--profile-named-seal" ||
       std::string_view(argv[1])=="--profile-named-seal-existing-bands")) {
     profile_named_seal(argv[2],std::string_view(argv[1])=="--profile-named-seal");
+  } else if(argc==3 && std::string_view(argv[1])=="--profile-named-packed-seal") {
+    profile_named_seal(argv[2],true,NativeHybridControls::packed_descriptors);
   } else if(argc==3 && std::string_view(argv[1])=="--profile-indexed-tail-oracle") {
     profile_indexed_pair_oracle(argv[2],PairOracleProfile::tails);
   } else if(argc==3 && std::string_view(argv[1])=="--profile-indexed-named-oracle") {
     profile_indexed_pair_oracle(argv[2],PairOracleProfile::named);
+  } else if(argc==3 && std::string_view(argv[1])=="--profile-indexed-named-merge-seal") {
+    profile_indexed_pair_oracle(argv[2],PairOracleProfile::named_seal);
   } else if(argc==3 && std::string_view(argv[1])=="--profile-indexed-pair-oracle") {
     profile_indexed_pair_oracle(argv[2]);
   } else if(argc==3 && std::string_view(argv[1])=="--profile-public-compact-checkpoints") {

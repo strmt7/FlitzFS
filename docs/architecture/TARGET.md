@@ -716,6 +716,35 @@ can establish logical state transitions and precise oracles.
 [End-to-end integrity research](https://www.usenix.org/conference/fast26/presentation/gupta)
 · [Microsoft resilient filesystem repair model](https://learn.microsoft.com/en-us/windows-server/storage/refs/refs-overview)
 
+### Extend packed sealing to durable providers
+
+Keep the current provider's selected image readable while the owner
+builds a packed seal in inactive space. Require a qualified failure
+unit in the actual backing path and reserve the complete target before
+copying. Leave file layout selection with the backing owner. The grouping
+policy can provide measured savings and demand only.
+
+```mermaid
+flowchart LR
+    Live["Selected image and retained readers"] --> Staged["Private packed base and writable tail"]
+    Staged --> Verified["Check all bytes on CPU and flush provider"]
+    Verified --> Select["Publish and fence both selector peers"]
+    Select --> Reopen["CPU reopen and acknowledgement check"]
+    Reopen --> Retire["Release old allocation after readers leave"]
+    Staged -. "Failed verification or capacity withdrawn" .-> Live
+```
+
+During repair, coalesce reports for descriptors in the same failed unit
+and use a bounded stripe cursor. Read each affected stripe from its
+independent data and parity. Record verified repairs and any unresolved
+bytes in the volume health state. Stage replacements through normal
+publication and retain the old view until the new selection is secure.
+Back off when foreground use, capacity or measured repair cost requires
+it. Keep whole-device restore an independent operation with exact source
+verification. Admit the format on each provider only after the old reader
+window, cut matrix and repair measurements establish its support.
+[Implemented memory layout and reader](../SEALED_INDEXED_IMAGE.md#packed-stripe-descriptors)
+
 ## 8. Compare the whole product
 
 Define native-client workloads before optimizing. Use exact candidate

@@ -13,6 +13,7 @@ namespace {
 using namespace flitzfs;
 using namespace native_fixture;
 using detail::ProtectedStripeImage;
+using detail::ProtectedStripeFormat;
 constexpr PagedStoreLimits limits{kStoreMaxPhysicalBytes};
 constexpr NativeImageStorage sealed_storage{NativeImageKind::sealed_indexed,limits.maximum_physical_bytes};
 constexpr NativeImageStorage ordinary_storage{NativeImageKind::indexed_paged,limits.maximum_physical_bytes};
@@ -169,12 +170,62 @@ void native_stripes(std::uint32_t unit) {
       <<" image_bytes="<<stable.size()<<" exact_native_recovery=1\n";
 }
 
-void interrupted_seal() {
+void packed_descriptor_recovery(std::uint32_t unit) {
+  constexpr auto data_units=detail::kProtectedStripeDataUnits;
+  constexpr auto descriptor_bytes=352U;
+  constexpr auto format=ProtectedStripeFormat::packed_descriptors;
+  const auto slots=unit/descriptor_bytes;
+  const auto stripes=unit==4096?slots+2:3;
+  const auto data_blocks=(stripes-1)*data_units+3;
+  const auto bytes=data(data_blocks*unit-23,1797);
+  auto source=image(bytes,unit),packed=empty(unit),control=empty(unit);
+  const auto expected=(2+data_blocks+stripes+1+(stripes-1)/slots)*unit;
+  require(ProtectedStripeImage::projected_occupied(id(2),bytes.size(),unit,expected,format)==expected,
+      "packed descriptor placement estimate disagreed with the independently counted units");
+  (void)ProtectedStripeImage::seal(source,packed,id(2),expected,format);
+  (void)ProtectedStripeImage::seal(source,control,id(2),limits.maximum_physical_bytes,
+      ProtectedStripeFormat::compact_roots);
+  require(packed->extent()==expected && control->extent()==(2+data_blocks+2*stripes)*unit &&
+      packed->extent()<control->extent(),"packed descriptor seal failed to save complete allocation units");
+  auto too_small=empty(unit);
+  rejects([&]{(void)ProtectedStripeImage::seal(source,too_small,id(2),expected-1,format);},
+      "packed descriptor seal passed an undersized physical limit");
+  require(!too_small->writes && !too_small->extent(),"packed seal capacity refusal wrote backing bytes");
+  Bytes actual(bytes.size());
+  const auto verify_stream=[&](const auto& protected_image) {
+    protected_image->verify_all();
+    protected_image->read_exact(0,actual);
+    require(actual==bytes,"packed descriptor recovery changed the logical stream");
+  };
+  verify_stream(ProtectedStripeImage::open(image(packed->stable,unit),expected));
+  for(std::uint64_t offset=0;offset<expected;offset+=unit) {
+    auto lost=image(packed->stable,unit);
+    damage(*lost,offset,unit);
+    const auto survivor=ProtectedStripeImage::open(lost,expected);
+    verify_stream(survivor);
+    require(survivor->degraded() && !lost->write_bytes,"packed stripe damage went unreported or changed storage");
+  }
+  // A lost shared descriptor unit can be recovered by each stripe. Losing a
+  // data unit from one of those stripes at the same time exceeds its parity.
+  const auto first_group=(std::min)(slots,stripes);
+  const auto first_descriptor=(2+(std::min)(data_blocks,first_group*data_units)+first_group)*unit;
+  auto over_fault=image(packed->stable,unit);
+  damage(*over_fault,first_descriptor,unit);
+  damage(*over_fault,2*unit,unit);
+  rejects([&]{ProtectedStripeImage::open(over_fault,expected)->verify_all();},
+      "packed descriptors accepted simultaneous metadata and data loss in one stripe");
+  require(source->live==bytes && source->stable==bytes,"packed descriptor tests changed source data");
+  std::cout<<"packed_descriptor_recovery unit="<<unit<<" stripes="<<stripes<<" lost_units="<<expected/unit
+      <<" control_bytes="<<control->extent()<<" packed_bytes="<<expected
+      <<" exact_cpu=1 double_failure_refused=1\n";
+}
+
+void interrupted_seal(ProtectedStripeFormat format=ProtectedStripeFormat::legacy) {
   constexpr std::uint32_t unit=4096;
-  const auto bytes=data(7*unit+113,1711);
+  const auto bytes=data((format==ProtectedStripeFormat::legacy?7:17)*unit+113,1711);
   const auto source=image(bytes,unit);
   auto successful=empty(unit);
-  const auto sealed=ProtectedStripeImage::seal(source,successful,id(2),limits.maximum_physical_bytes);
+  const auto sealed=ProtectedStripeImage::seal(source,successful,id(2),limits.maximum_physical_bytes,format);
   const auto calls=successful->calls;
   const auto verify_stream=[&](const ProtectedStripeImage& read) {
     read.verify_all();
@@ -188,7 +239,7 @@ void interrupted_seal() {
     auto target=empty(unit);
     target->failure=failure;
     target->fail_at=cut;
-    rejects([&]{(void)ProtectedStripeImage::seal(source,target,id(2),limits.maximum_physical_bytes);},
+    rejects([&]{(void)ProtectedStripeImage::seal(source,target,id(2),limits.maximum_physical_bytes,format);},
         "sealing returned success after a failing write or flush");
     require(source->live==bytes && source->stable==bytes,"interrupted sealing modified the source");
     auto replay=image(target->stable,unit);
@@ -198,7 +249,7 @@ void interrupted_seal() {
     if(recovered){verify_stream(*recovered);++complete;}
   }
   auto full=empty(unit);
-  rejects([&]{(void)ProtectedStripeImage::seal(source,full,id(3),prefix+unit);},
+  rejects([&]{(void)ProtectedStripeImage::seal(source,full,id(3),3*unit,format);},
       "sealing exceeded admission");
   require(!full->extent() && !full->writes && unavailable && complete,"publication cut coverage");
   std::cout<<"sealed_cuts attempts="<<3*calls<<" unavailable="<<unavailable<<" complete="<<complete
@@ -352,7 +403,7 @@ std::size_t apply_hybrid_patch(std::shared_ptr<StoreByteIo> head,std::shared_ptr
 void hybrid_faults(std::uint32_t unit,NativeHybridControls controls=NativeHybridControls::legacy) {
   const std::array files{data(713'821,810),data(263'482,183)};
   HybridFixture f(files,unit,raw,controls);
-  const auto slot=controls==NativeHybridControls::compact?unit:kStoreCommitUnit;
+  const auto slot=controls==NativeHybridControls::legacy?kStoreCommitUnit:unit;
   const auto base_prefix=2*slot;
   const auto frozen=f.base->stable;
   const auto initial_tail=f.tail->stable;
@@ -478,13 +529,16 @@ void hybrid_faults(std::uint32_t unit,NativeHybridControls controls=NativeHybrid
       <<" exact_fold_verified=1 folded_capacity_admitted=1\n";
 }
 
-void compact_control_recovery(std::uint32_t unit) {
+void compact_control_recovery(std::uint32_t unit,NativeHybridControls controls=NativeHybridControls::compact) {
   const std::array files{data(713'821,810),data(263'482,183)};
-  HybridFixture f(files,unit,raw,NativeHybridControls::compact);
+  HybridFixture f(files,unit,raw,controls);
+  const auto format=controls==NativeHybridControls::packed_descriptors?
+      ProtectedStripeFormat::packed_descriptors:ProtectedStripeFormat::compact_roots;
   const auto implicit_legacy=unit==kStoreCommitUnit;
   require(f.tail->extent()==4ULL*unit &&
       f.base->extent()==ProtectedStripeImage::projected_occupied(id(2),f.workspace->extent(),unit,
-          limits.maximum_physical_bytes,true),"compact control allocation differs from the provider geometry");
+          limits.maximum_physical_bytes,format),
+      "compact control allocation differs from the provider geometry");
   for(unsigned slot=0;slot<6;++slot) {
     auto base=image(f.base->stable,unit),tail=image(f.tail->stable,unit);
     if(slot<2)damage(*base,std::uint64_t{slot}*unit,unit);
@@ -1105,6 +1159,17 @@ int main(int argc,char** argv) {
       hybrid_faults(4096U,NativeHybridControls::compact);
       interrupted_hybrid_binding(NativeHybridControls::compact);
       live_hybrid_selection_faults(4096U,NativeHybridControls::compact);
+      return 0;
+    }
+    if(argc==2 && std::string_view(argv[1])=="--packed-descriptors"){
+      for(const auto unit:{4096U,8192U,16384U,32768U,65536U}) {
+        packed_descriptor_recovery(unit);
+        compact_control_recovery(unit,NativeHybridControls::packed_descriptors);
+      }
+      interrupted_seal(ProtectedStripeFormat::packed_descriptors);
+      hybrid_faults(4096U,NativeHybridControls::packed_descriptors);
+      interrupted_hybrid_binding(NativeHybridControls::packed_descriptors);
+      live_hybrid_selection_faults(4096U,NativeHybridControls::packed_descriptors);
       return 0;
     }
     require(argc==1,"invalid protected image fixture options");

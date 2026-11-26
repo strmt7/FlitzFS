@@ -357,6 +357,18 @@ The cold-packing pilot isolates backing-byte changes in the native engine.
 Use mounted DiskSpd and ordinary file operations for comparative latency and
 throughput.
 
+Use `--profile-named-seal` and `--profile-named-packed-seal` on the same
+frozen named tree to compare compact roots with separate descriptors and
+compact roots with packed descriptors. Hold the live object set,
+protection unit, selector, tail and range sample constant. Record
+complete occupied bytes, the temporary workspace and its writes,
+backing writes, and sampled backing reads. Recover and verify CPU
+content independently before comparing sizes. Use
+`--profile-indexed-named-merge-seal` to price a prospective whole-group
+merge through base retirement, ordinary settlement and the same compact
+seal. The two merge arms tied on final size on the Khronos holdout.
+[Matched profiles and input digests](evidence/windows-packed-stripe-descriptors-2026-11-26.json)
+
 ### Idle cold compression and unit size
 
 Run the same staged fixtures through the WinFsp SDK controller test with

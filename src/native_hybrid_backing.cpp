@@ -16,6 +16,7 @@ namespace flitzfs {
 namespace {
 using detail::Digest;
 using detail::ProtectedStripeImage;
+using detail::ProtectedStripeFormat;
 using Bytes=std::vector<std::byte>;
 constexpr std::uint64_t roots=detail::kFoldedMirrorRoots;
 static_assert(kNativeHybridTailPrefixBytes==2*roots);
@@ -40,7 +41,12 @@ struct Binding {
 };
 
 constexpr std::uint64_t slot_bytes(std::uint64_t unit,NativeHybridControls controls) noexcept {
-  return controls==NativeHybridControls::compact?unit:kStoreCommitUnit;
+  return controls==NativeHybridControls::legacy?kStoreCommitUnit:unit;
+}
+
+constexpr ProtectedStripeFormat stripe_format(NativeHybridControls controls,std::uint64_t slot) noexcept {
+  if(controls==NativeHybridControls::packed_descriptors)return ProtectedStripeFormat::packed_descriptors;
+  return slot<kStoreCommitUnit?ProtectedStripeFormat::compact_roots:ProtectedStripeFormat::legacy;
 }
 
 std::uint64_t get64(std::span<const std::byte> bytes,std::size_t offset) noexcept {
@@ -144,23 +150,23 @@ std::uint64_t check_empty_backings(const std::shared_ptr<StoreByteIo>& workspace
 }
 
 std::uint64_t seal_footprint(StoreIdentity identity,std::uint64_t end,
-    std::uint32_t base_unit,std::uint64_t limit,std::uint64_t slot) {
+    std::uint32_t base_unit,std::uint64_t limit,std::uint64_t slot,ProtectedStripeFormat format) {
   const auto tail_prefix=4*slot;
   if(limit<=tail_prefix)fail("hybrid seal capacity");
   const auto occupied=ProtectedStripeImage::projected_occupied(identity,detail::folded_mirror_extent(end),
-      base_unit,limit-tail_prefix,slot<kStoreCommitUnit);
+      base_unit,limit-tail_prefix,format);
   if(occupied+tail_prefix>=end)fail("hybrid base and tail do not reduce the protected footprint");
   return occupied;
 }
 
 Binding bind_workspace(const detail::FoldedCheckpoint& packed,const StoreByteIo& workspace,StoreIdentity identity,
     std::uint64_t virtual_limit,std::uint64_t unit,std::uint32_t base_unit,std::uint64_t physical_limit,
-    std::uint64_t slot) {
+    std::uint64_t slot,ProtectedStripeFormat format) {
   Binding binding{packed.unit,packed.virtual_end,0,identity,packed.roots,virtual_limit,slot};
   check_geometry(binding);
   if(binding.unit!=unit || binding.folded_extent()!=workspace.extent())
     fail("hybrid folded workspace checkpoint differs");
-  binding.base_occupied=seal_footprint(identity,binding.base_end,base_unit,physical_limit,slot);
+  binding.base_occupied=seal_footprint(identity,binding.base_end,base_unit,physical_limit,slot,format);
   return binding;
 }
 
@@ -268,11 +274,14 @@ NativeHybridBacking::NativeHybridBacking(std::unique_ptr<Impl> state) noexcept:i
 NativeHybridBacking::~NativeHybridBacking()=default;
 
 std::uint64_t NativeHybridBacking::workspace_capacity(StoreIdentity identity,StoreIoContract storage,
-    std::uint64_t packed_end_bound,std::uint64_t staging_bytes,std::uint64_t private_workspace_bytes) {
+    std::uint64_t packed_end_bound,std::uint64_t staging_bytes,std::uint64_t private_workspace_bytes,
+    NativeHybridControls controls) {
   if(!valid_store_io_contract(storage) || packed_end_bound<=roots || packed_end_bound>maximum_io ||
       staging_bytes>maximum_io)return 0;
   const auto alignment=(std::max<std::uint64_t>)(root_size,storage.write_failure_unit_bytes);
-  const auto tail_prefix=4*alignment;
+  const auto slot=slot_bytes(alignment,controls);
+  const auto format=stripe_format(controls,slot);
+  const auto tail_prefix=4*slot;
   if(staging_bytes<=tail_prefix)return 0;
   const auto budget=staging_bytes-tail_prefix;
   // A file workspace overlaps its candidate's allocation budget. A
@@ -280,7 +289,7 @@ std::uint64_t NativeHybridBacking::workspace_capacity(StoreIdentity identity,Sto
   const auto workspace_limit=private_workspace_bytes?private_workspace_bytes:budget/2;
   std::uint64_t low=0,high=(std::min)(detail::folded_mirror_extent(packed_end_bound),workspace_limit)/alignment;
   const auto base_bytes=[&](std::uint64_t workspace) {
-    return ProtectedStripeImage::projected_occupied(identity,workspace,storage.write_failure_unit_bytes,maximum_io,true);
+    return ProtectedStripeImage::projected_occupied(identity,workspace,storage.write_failure_unit_bytes,maximum_io,format);
   };
   while(low<high) {
     const auto middle=low+(high-low+1)/2;
@@ -337,11 +346,12 @@ std::shared_ptr<NativeHybridBacking> NativeHybridBacking::create(const NativeFil
     fail("hybrid creation needs a closed indexed source and a new identity");
   const auto unit=check_empty_backings(workspace,base,tail);
   const auto slot=slot_bytes(unit,controls);
+  const auto format=stripe_format(controls,slot);
   const auto packed=source.build_folded_workspace(workspace,identity,compression);
   const auto binding=bind_workspace(packed,*workspace,identity,source_storage.maximum_physical_bytes,unit,
-      base->contract().write_failure_unit_bytes,physical_limit,slot);
+      base->contract().write_failure_unit_bytes,physical_limit,slot,format);
   const auto sealed=ProtectedStripeImage::seal(workspace,base,identity,physical_limit-binding.tail_prefix(),
-      binding.compact());
+      format);
   if(sealed->occupied()!=binding.base_occupied || root_binding(*sealed)!=binding.frozen_roots)
     fail("hybrid checked base differs from the staged checkpoint");
   {
@@ -361,14 +371,15 @@ std::shared_ptr<NativeHybridBacking> NativeHybridBacking::create(const NativeFil
 struct NativeHybridBacking::Build::Impl {
   Impl(PagedObjectStoreWriter::Rewrite rewrite,std::shared_ptr<StoreByteIo> workspace,
       StoreIoContract base_contract,NativeImageStorage storage,StoreIdentity identity,std::uint64_t unit,
-      std::uint64_t candidate_limit,std::uint64_t staging_limit,bool owned_file_target,std::uint64_t control_slot)
+      std::uint64_t candidate_limit,std::uint64_t staging_limit,bool owned_file_target,std::uint64_t control_slot,
+      ProtectedStripeFormat format)
       :rewrite(std::move(rewrite)),workspace(std::move(workspace)),base_contract(base_contract),
        storage(storage),identity(identity),unit(unit),candidate_limit(candidate_limit),staging_limit(staging_limit),
-       control_slot(control_slot),owned_file_target(owned_file_target) {}
+       control_slot(control_slot),format(format),owned_file_target(owned_file_target) {}
 
   void begin_seal() {
     seal.emplace(ProtectedStripeImage::begin_seal(workspace,base,identity,candidate_limit-binding.tail_prefix(),
-        binding.compact()));
+        format));
     phase=BuildPhase::sealing;
   }
 
@@ -384,7 +395,7 @@ struct NativeHybridBacking::Build::Impl {
         detail::FoldedCheckpoint packed;
         if(!source.advance_folded_recompression(rewrite,packed))return false;
         binding=bind_workspace(packed,*workspace,identity,storage.maximum_physical_bytes,unit,
-            base_contract.write_failure_unit_bytes,candidate_limit,control_slot);
+            base_contract.write_failure_unit_bytes,candidate_limit,control_slot,format);
         check_staging(binding.folded_extent(),binding.base_occupied,binding.tail_prefix(),staging_limit);
         generation=packed.generation;
         phase=BuildPhase::awaiting_base;
@@ -433,6 +444,7 @@ struct NativeHybridBacking::Build::Impl {
   NativeImageStorage storage;
   StoreIdentity identity;
   std::uint64_t unit,candidate_limit,staging_limit,control_slot;
+  ProtectedStripeFormat format;
   const bool owned_file_target;
   BuildPhase phase=BuildPhase::workspace;
   Binding binding;
@@ -481,16 +493,17 @@ NativeHybridBacking::Build NativeHybridBacking::prepare_impl(const NativeFileSes
   check_limits(identity,storage.maximum_physical_bytes,candidate_limit);
   const auto unit=(std::max<std::uint64_t>)(root_size,workspace->contract().write_failure_unit_bytes);
   const auto slot=slot_bytes(unit,controls);
+  const auto format=stripe_format(controls,slot);
   if(storage.kind!=NativeImageKind::indexed_paged || identity==source.identity() || staging_limit<4*slot)
     fail("invalid managed source or hybrid staging budget");
   const auto base_unit=base_contract.write_failure_unit_bytes;
-  auto admission=[identity,base_unit,candidate_limit,staging_limit,slot](std::uint64_t end) {
-    check_staging(detail::folded_mirror_extent(end),seal_footprint(identity,end,base_unit,candidate_limit,slot),
+  auto admission=[identity,base_unit,candidate_limit,staging_limit,slot,format](std::uint64_t end) {
+    check_staging(detail::folded_mirror_extent(end),seal_footprint(identity,end,base_unit,candidate_limit,slot,format),
         4*slot,staging_limit);
   };
   auto rewrite=writer.prepare_folded_recompression(workspace,identity,compression,admission);
   return Build(std::make_unique<Build::Impl>(std::move(rewrite),std::move(workspace),base_contract,
-      storage,identity,unit,candidate_limit,staging_limit,owned_file_target,slot));
+      storage,identity,unit,candidate_limit,staging_limit,owned_file_target,slot,format));
 }
 
 NativeHybridBacking::Build::Build(std::unique_ptr<Impl> state) noexcept:impl_(std::move(state)) {}

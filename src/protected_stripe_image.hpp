@@ -8,25 +8,29 @@
 namespace flitzfs::detail {
 
 inline constexpr std::size_t kProtectedStripeDataUnits=8;
+enum class ProtectedStripeFormat { legacy, compact_roots, packed_descriptors };
 
 // A complete immutable native byte stream. Only the outer image is durable.
 // Stripe writes and decoded records are controlled by the CPU.
 struct ProtectedStripeLayout {
   StoreIdentity identity{};
   std::uint64_t logical_bytes=0,physical_bytes=0,unit=0,root_slot_bytes=0;
+  ProtectedStripeFormat format=ProtectedStripeFormat::legacy;
   bool operator==(const ProtectedStripeLayout&) const=default;
 };
 
 class ProtectedStripeImage final:public StoreByteIo {
  public:
   static std::uint64_t projected_occupied(StoreIdentity,std::uint64_t logical_bytes,
-      std::uint32_t failure_unit,std::uint64_t physical_limit,bool compact_roots=false);
+      std::uint32_t failure_unit,std::uint64_t physical_limit,ProtectedStripeFormat=ProtectedStripeFormat::legacy);
   static std::shared_ptr<ProtectedStripeImage> open(std::shared_ptr<StoreByteIo>,std::uint64_t physical_limit);
   class SealWork;
   static SealWork begin_seal(std::shared_ptr<StoreByteIo> closed_source,
-      std::shared_ptr<StoreByteIo> empty_output,StoreIdentity,std::uint64_t physical_limit,bool compact_roots=false);
+      std::shared_ptr<StoreByteIo> empty_output,StoreIdentity,std::uint64_t physical_limit,
+      ProtectedStripeFormat=ProtectedStripeFormat::legacy);
   static std::shared_ptr<ProtectedStripeImage> seal(std::shared_ptr<StoreByteIo> closed_source,
-      std::shared_ptr<StoreByteIo> empty_output,StoreIdentity,std::uint64_t physical_limit,bool compact_roots=false);
+      std::shared_ptr<StoreByteIo> empty_output,StoreIdentity,std::uint64_t physical_limit,
+      ProtectedStripeFormat=ProtectedStripeFormat::legacy);
   std::uint64_t extent() const override {return layout_.logical_bytes;}
   std::uint64_t occupied() const noexcept {return layout_.physical_bytes;}
   StoreIdentity identity() const noexcept {return layout_.identity;}

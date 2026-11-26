@@ -5,15 +5,17 @@ reuse checked replicas when its content revision is unchanged across the
 full audit and both fences. The full inventory remains the reference for
 the generation-bound ownership proof. Compare the proof in shadow mode
 across named churn and interrupted publication.
-The related short-extent trial captured an 8 KiB compacted-mirror gain
-on the named Khronos holdout. Price the remaining complete-group merge
-and its destination seal using the same bounded oracle.
+The remaining complete-group merge saved 8 KiB in the compacted mirror
+and tied after ordinary settlement and sealing. Packed stripe descriptors
+saved 64 KiB on that same sealed Khronos holdout with the same references
+and failure-unit model. Qualify provider-specific recovery before emitting
+this layout on persistent media.
 Join automatic AMD demand to consumed results in the
 populated Windows client. Set release scope from those measurements,
 provider recovery and the signed Windows compatibility matrix.
 The E01–E13 contracts below define the individual release exits.
 [Current assessment](RELEASE_RECONCILIATION_2026-11-26.md) ·
-[Short-extent source, tests and research](evidence/windows-short-pack-affinity-2026-11-26.json) ·
+[Packed seal, group-merge comparison and research](evidence/windows-packed-stripe-descriptors-2026-11-26.json) ·
 [Writable reopen evidence](evidence/windows-fenced-indexed-reopen-audit-2026-11-26.json) ·
 [Ordered implementation steps](RELEASE_RECONCILIATION_2026-11-26.md#implement-the-next-three-integrated-results)
 
@@ -798,14 +800,15 @@ contracts supply the wider acceptance matrices.
 
 ### Next implementation tickets
 
-**Current execution order.** Start from the signed ordinary trace that
-reached 4.5 MiB occupied backing before detach. Carry the retained CPU tile
-control into an ordinary AMD comparison. Distinguish physical settlement
-from cold work still deferred by duty. Then advance the protected-size
-frontier and shadow writable attach in parallel where they share only
-read-only measurements. Promote each independently against S1–S12.
-[Current reconciliation and execution order](RELEASE_RECONCILIATION_2026-11-25.md#current-round-and-release-decisions) ·
-[Current verification and research](evidence/windows-cpu-tile-and-ordinary-settlement-2026-11-25.json)
+**Current execution order.** Start from the ordinary Windows trace and
+carry the retained CPU tile control into a matched mounted AMD comparison.
+Use verified device output consumed by a client as the admission measure.
+Freeze one new blind mixed named tree for protected-size comparisons.
+Independently price writable attach with the full audit as authority.
+Advance provider proof, compatibility and the exact installer together
+before comparing the supported candidate to plain and compressed NTFS.
+[Current reconciliation and execution order](RELEASE_RECONCILIATION_2026-11-26.md#implement-the-next-three-integrated-results) ·
+[Previous ordinary settlement fixture](evidence/windows-cpu-tile-and-ordinary-settlement-2026-11-25.json)
 
 Use one frozen application trace and select one production change per
 decision. The expanded [decision table](RELEASE_RECONCILIATION_2026-11-25.md#decisions-to-carry-into-the-package-plan)
@@ -865,7 +868,7 @@ ordinary controller stops. Then use one paired client trace to price automatic
 AMD service and a protected cohort oracle to identify compression gains.
 Plan the writable-attach differential independently with its complete-audit
 reference and a held-out file-count tier.
-[Current priorities and decisions](RELEASE_RECONCILIATION_2026-11-25.md#ordered-implementation-and-decision-points) ·
+[Current priorities and decisions](RELEASE_RECONCILIATION_2026-11-26.md#implement-the-next-three-integrated-results) ·
 [Implementation packets and exit decisions](RELEASE_RECONCILIATION_2026-11-25.md#implementation-packets-and-exit-decisions)
 
 #### E03 and E08. Qualify ordinary AMD foreground I/O

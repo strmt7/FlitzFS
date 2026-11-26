@@ -15,7 +15,10 @@ using Bytes=std::vector<std::byte>;
 using Layout=ProtectedStripeLayout;
 constexpr std::uint64_t stripe_data_units=kProtectedStripeDataUnits,minimum_unit=4096;
 constexpr std::size_t root_bytes=128,descriptor_hashes=64;
-constexpr std::string_view root_magic="FLTXSP01",compact_root_magic="FLTXSP02",descriptor_magic="FLTXSD01";
+constexpr std::size_t packed_descriptor_bytes=descriptor_hashes+(stripe_data_units+1)*Digest{}.size();
+static_assert(packed_descriptor_bytes<=minimum_unit);
+constexpr std::string_view root_magic="FLTXSP01",compact_root_magic="FLTXSP02",packed_root_magic="FLTXSP03";
+constexpr std::string_view descriptor_magic="FLTXSD01";
 constexpr auto maximum_io=static_cast<std::uint64_t>((std::numeric_limits<std::int64_t>::max)());
 
 [[noreturn]] void fail(const char* why) {throw std::runtime_error(why);}
@@ -56,14 +59,23 @@ std::uint64_t blocks(const Layout& layout) noexcept {
 std::uint64_t stripes(const Layout& layout) noexcept {
   return 1+(blocks(layout)-1)/stripe_data_units;
 }
-Layout make_layout(StoreIdentity id,std::uint64_t logical,std::uint64_t unit,std::uint64_t limit,bool compact) {
+bool packs_descriptors(const Layout& layout) noexcept {
+  return layout.format==ProtectedStripeFormat::packed_descriptors;
+}
+std::uint64_t descriptors_per_unit(const Layout& layout) noexcept {
+  return packs_descriptors(layout)?layout.unit/packed_descriptor_bytes:1;
+}
+Layout make_layout(StoreIdentity id,std::uint64_t logical,std::uint64_t unit,std::uint64_t limit,
+    ProtectedStripeFormat format) {
   if(id==StoreIdentity{} || !logical || limit>maximum_io ||
       unit<minimum_unit || unit>kStoreCommitUnit || !std::has_single_bit(unit))
     fail("invalid protected image geometry");
-  Layout layout{id,logical,0,unit,compact?unit:kStoreCommitUnit};
+  if(format==ProtectedStripeFormat::compact_roots && unit==kStoreCommitUnit)format=ProtectedStripeFormat::legacy;
+  Layout layout{id,logical,0,unit,format==ProtectedStripeFormat::legacy?kStoreCommitUnit:unit,format};
   const auto prefix=2*layout.root_slot_bytes;
   if(limit<prefix)fail("protected image capacity");
-  const auto data=blocks(layout),extra=2*stripes(layout);
+  const auto stripe_count=stripes(layout);
+  const auto data=blocks(layout),extra=stripe_count+1+(stripe_count-1)/descriptors_per_unit(layout);
   const auto available=(limit-prefix)/unit;
   if(data>available || extra>available-data)fail("protected image capacity");
   layout.physical_bytes=prefix+(data+extra)*unit;
@@ -83,7 +95,8 @@ bool read_copy(const StoreByteIo& io,std::uint64_t offset,std::span<std::byte> b
 }
 std::array<std::byte,root_bytes> make_root(const Layout& layout) {
   std::array<std::byte,root_bytes> root{};
-  write_magic(root,layout.root_slot_bytes==kStoreCommitUnit?root_magic:compact_root_magic);
+  write_magic(root,packs_descriptors(layout)?packed_root_magic:
+      layout.format==ProtectedStripeFormat::compact_roots?compact_root_magic:root_magic);
   put64(root,8,layout.unit);
   put64(root,16,layout.logical_bytes);
   put64(root,24,layout.physical_bytes);
@@ -97,13 +110,16 @@ std::optional<Layout> read_root(const StoreByteIo& io,std::uint64_t offset,std::
   if(!read_copy(io,offset,root) || !matches_checksum(root))return {};
   if(probing && !has_magic(root,"FLTXSP"))return {};
   const auto unit=get64(root,8);
-  const bool compact=has_magic(root,compact_root_magic),legacy=has_magic(root,root_magic);
-  const auto spacing=compact?unit:kStoreCommitUnit;
-  if(probing && (compact || legacy) && offset!=spacing)return {};
-  if((!legacy && !compact) || (compact && unit>=kStoreCommitUnit) || (offset && offset!=spacing) ||
+  const bool compact=has_magic(root,compact_root_magic),legacy=has_magic(root,root_magic),
+      packed=has_magic(root,packed_root_magic);
+  const auto spacing=compact || packed?unit:kStoreCommitUnit;
+  if(probing && (compact || legacy || packed) && offset!=spacing)return {};
+  if((!legacy && !compact && !packed) || (compact && unit>=kStoreCommitUnit) || (offset && offset!=spacing) ||
       !zero(std::span(root).subspan(48,48)))
     fail("unsupported intact protected image root");
-  const auto candidate=make_layout(field<16>(root,32),get64(root,16),unit,limit,compact);
+  const auto format=packed?ProtectedStripeFormat::packed_descriptors:
+      compact?ProtectedStripeFormat::compact_roots:ProtectedStripeFormat::legacy;
+  const auto candidate=make_layout(field<16>(root,32),get64(root,16),unit,limit,format);
   if(candidate.physical_bytes!=get64(root,24) || candidate.physical_bytes!=io.extent())
     fail("protected image root extent differs");
   return candidate;
@@ -134,10 +150,23 @@ struct Stripe {
   std::uint64_t first_data() const noexcept {return index*stripe_data_units;}
   std::uint64_t count() const noexcept {return (std::min)(stripe_data_units,blocks(layout)-first_data());}
   std::uint64_t data_at(std::uint64_t slot) const noexcept {
-    return 2*layout.root_slot_bytes+(index*(stripe_data_units+2)+slot)*layout.unit;
+    return 2*layout.root_slot_bytes+
+        (index*(stripe_data_units+1)+index/descriptors_per_unit(layout)+slot)*layout.unit;
   }
-  std::uint64_t descriptor_at() const noexcept {return data_at(count());}
-  std::uint64_t parity_at() const noexcept {return data_at(count()+1);}
+  std::uint64_t parity_at() const noexcept {return data_at(count()+!packs_descriptors(layout));}
+  std::size_t descriptor_bytes() const noexcept {return packs_descriptors(layout)?packed_descriptor_bytes:layout.unit;}
+  std::uint64_t descriptor_offset() const noexcept {
+    return index%descriptors_per_unit(layout)*packed_descriptor_bytes;
+  }
+  std::uint64_t descriptor_at() const noexcept {
+    if(!packs_descriptors(layout))return data_at(count());
+    const auto slots=descriptors_per_unit(layout);
+    const auto end=(std::min)(stripes(layout),(index/slots+1)*slots);
+    return Stripe{layout,end-1}.parity_at()+layout.unit+descriptor_offset();
+  }
+  bool ends_descriptor_unit() const noexcept {
+    return packs_descriptors(layout) && (index+1==stripes(layout) || (index+1)%descriptors_per_unit(layout)==0);
+  }
   std::uint64_t logical_at(std::uint64_t slot) const noexcept {return (first_data()+slot)*layout.unit;}
 };
 
@@ -161,14 +190,17 @@ bool check_data(std::span<const std::byte> bytes,std::span<const std::byte> desc
   return record_digest(bytes)==data_digest(descriptor,slot);
 }
 bool read_descriptor(const StoreByteIo& io,const Stripe& stripe,std::span<std::byte> descriptor,Bytes& scratch) {
-  if(read_copy(io,stripe.descriptor_at(),descriptor) && valid_descriptor(descriptor,stripe))return false;
+  auto record=descriptor.first(stripe.descriptor_bytes());
+  const auto padding=descriptor.subspan(record.size());
+  std::ranges::fill(padding,std::byte{});
+  if(read_copy(io,stripe.descriptor_at(),record) && valid_descriptor(record,stripe))return false;
   read_backing(io,stripe.parity_at(),descriptor);
   scratch.resize(stripe.layout.unit);
   for(std::uint64_t i=0;i<stripe.count();++i) {
     read_backing(io,stripe.data_at(i),scratch);
     merge_xor(descriptor,scratch);
   }
-  if(!valid_descriptor(descriptor,stripe))fail("unrecoverable protected stripe descriptor");
+  if(!valid_descriptor(record,stripe) || !zero(padding))fail("unrecoverable protected stripe descriptor");
   return true;
 }
 void recover_data(const StoreByteIo& io,const Stripe& stripe,std::uint64_t missing,
@@ -232,9 +264,9 @@ ProtectedStripeImage::ProtectedStripeImage(std::shared_ptr<StoreByteIo> backing,
     physical_limit_(maximum),degraded_(degraded) {}
 
 std::uint64_t ProtectedStripeImage::projected_occupied(StoreIdentity id,std::uint64_t logical,
-    std::uint32_t failure_unit,std::uint64_t physical_limit,bool compact_roots) {
+    std::uint32_t failure_unit,std::uint64_t physical_limit,ProtectedStripeFormat format) {
   return make_layout(id,logical,(std::max<std::uint64_t>)(minimum_unit,failure_unit),
-      physical_limit,compact_roots).physical_bytes;
+      physical_limit,format).physical_bytes;
 }
 std::shared_ptr<ProtectedStripeImage> ProtectedStripeImage::open(std::shared_ptr<StoreByteIo> backing,
     std::uint64_t physical_limit) {
@@ -247,16 +279,17 @@ struct ProtectedStripeImage::SealWork::Impl {
   enum class Phase { reserve,copy,flush,verify,first_root,second_root,ready };
 
   static Layout prepare_layout(const StoreByteIo& source,const StoreByteIo& output,
-      StoreIdentity id,std::uint64_t maximum,bool compact_roots) {
+      StoreIdentity id,std::uint64_t maximum,ProtectedStripeFormat format) {
     if(output.extent() || !valid_store_io_contract(output.contract()))
       fail("protected image requires an empty qualified target");
     return make_layout(id,source.extent(),(std::max<std::uint64_t>)(minimum_unit,output.contract().write_failure_unit_bytes),
-        maximum,compact_roots);
+        maximum,format);
   }
   Impl(std::shared_ptr<StoreByteIo> source,std::shared_ptr<StoreByteIo> target,StoreIdentity id,std::uint64_t maximum,
-      bool compact_roots)
+      ProtectedStripeFormat format)
       :input(std::move(source)),output(std::move(target)),input_lease(*input,false),output_lease(*output,true),
-       limit(maximum),layout(prepare_layout(*input,*output,id,maximum,compact_roots)),buffers(layout.unit) {}
+       limit(maximum),layout(prepare_layout(*input,*output,id,maximum,format)),buffers(layout.unit),
+       descriptor_unit(packs_descriptors(layout)?layout.unit:0) {}
 
   void copy_stripe(const Stripe& stripe) {
     auto& descriptor=buffers.descriptor;
@@ -273,10 +306,16 @@ struct ProtectedStripeImage::SealWork::Impl {
       merge_xor(parity,data);
       output->write_exact(stripe.data_at(i),data);
     }
-    write_checksum(descriptor);
+    const auto record=std::span(descriptor).first(stripe.descriptor_bytes());
+    write_checksum(record);
     merge_xor(parity,descriptor);
-    output->write_exact(stripe.descriptor_at(),descriptor);
+    if(packs_descriptors(layout)) {
+      const auto offset=stripe.descriptor_offset();
+      if(!offset)std::ranges::fill(descriptor_unit,std::byte{});
+      std::ranges::copy(record,descriptor_unit.begin()+offset);
+    }else output->write_exact(stripe.descriptor_at(),descriptor);
     output->write_exact(stripe.parity_at(),parity);
+    if(stripe.ends_descriptor_unit())output->write_exact(stripe.parity_at()+layout.unit,descriptor_unit);
   }
 
   bool step() {
@@ -294,7 +333,7 @@ struct ProtectedStripeImage::SealWork::Impl {
       }
       case Phase::copy: {
         const Stripe stripe{layout,next_stripe};
-        output->admit_write(stripe.parity_at()+layout.unit);
+        output->admit_write(stripe.parity_at()+(1+stripe.ends_descriptor_unit())*layout.unit);
         copy_stripe(stripe);
         if(++next_stripe==stripes(layout))phase=Phase::flush;
         break;
@@ -334,6 +373,7 @@ struct ProtectedStripeImage::SealWork::Impl {
   std::uint64_t limit;
   Layout layout;
   StripeBuffers buffers;
+  Bytes descriptor_unit;
   std::uint64_t next_stripe=0;
   Phase phase=Phase::reserve;
   std::shared_ptr<ProtectedStripeImage> published;
@@ -345,9 +385,9 @@ ProtectedStripeImage::SealWork& ProtectedStripeImage::SealWork::operator=(SealWo
 ProtectedStripeImage::SealWork::~SealWork()=default;
 
 ProtectedStripeImage::SealWork ProtectedStripeImage::begin_seal(std::shared_ptr<StoreByteIo> source,
-    std::shared_ptr<StoreByteIo> target,StoreIdentity id,std::uint64_t physical_limit,bool compact_roots) {
+    std::shared_ptr<StoreByteIo> target,StoreIdentity id,std::uint64_t physical_limit,ProtectedStripeFormat format) {
   if(!source || !target || source==target)fail("protected sealing requires separate owned backings");
-  return SealWork(std::make_unique<SealWork::Impl>(std::move(source),std::move(target),id,physical_limit,compact_roots));
+  return SealWork(std::make_unique<SealWork::Impl>(std::move(source),std::move(target),id,physical_limit,format));
 }
 bool ProtectedStripeImage::SealWork::advance() {
   if(!impl_)fail("protected sealing is unavailable");
@@ -365,8 +405,8 @@ std::shared_ptr<ProtectedStripeImage> ProtectedStripeImage::SealWork::finish() {
 }
 
 std::shared_ptr<ProtectedStripeImage> ProtectedStripeImage::seal(std::shared_ptr<StoreByteIo> source,
-    std::shared_ptr<StoreByteIo> target,StoreIdentity id,std::uint64_t physical_limit,bool compact_roots) {
-  auto build=begin_seal(std::move(source),std::move(target),id,physical_limit,compact_roots);
+    std::shared_ptr<StoreByteIo> target,StoreIdentity id,std::uint64_t physical_limit,ProtectedStripeFormat format) {
+  auto build=begin_seal(std::move(source),std::move(target),id,physical_limit,format);
   while(!build.advance()) {}
   return build.finish();
 }

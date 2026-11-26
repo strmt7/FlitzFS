@@ -11,6 +11,7 @@ namespace flitzfs {
 namespace {
 constexpr auto unit=kStoreCommitUnit;
 constexpr auto minimum_image=3*unit; // Two root slots and the aligned first object pages.
+constexpr auto sealed_layout=NativeHybridControls::packed_descriptors;
 void require(bool ok,const char* why){if(!ok)throw std::runtime_error(why);}
 bool unselected(const std::shared_ptr<StoreByteIo>& backing) noexcept {
   return backing && backing.use_count()==1;
@@ -88,7 +89,7 @@ std::uint64_t MemoryVolumeBacking::seal_workspace_bytes(const NativeFileSession&
   if(!input.enabled || input.committed_input_bytes<=attempted_seal_input_ ||
       input.committed_input_bytes-attempted_seal_input_<seal_retry_input_)return 0;
   return NativeHybridBacking::workspace_capacity(volume_identity,image->contract(),
-      session.packed_folded_end_bound(image->contract().write_failure_unit_bytes),staging_bytes,0);
+      session.packed_folded_end_bound(image->contract().write_failure_unit_bytes),staging_bytes,0,sealed_layout);
 }
 bool MemoryVolumeBacking::selected_image_sealed() const noexcept {
   return dynamic_cast<const NativeHybridBacking*>(image.get())!=nullptr;
@@ -198,7 +199,7 @@ MemoryCompactionStep MemoryVolumeBacking::advance_compaction(NativeFileSession& 
         alternate_identity_=fresh_volume_identity();
         workspace_=domain->create_store(reserve);
         hybrid_.emplace(NativeHybridBacking::prepare(session,workspace_,image->contract(),alternate_identity_,
-            layout.image_capacity,staging,{},NativeHybridControls::compact));
+            layout.image_capacity,staging,{},sealed_layout));
         phase_=CompactionPhase::copying;
         return MemoryCompactionStep::copying;
       }

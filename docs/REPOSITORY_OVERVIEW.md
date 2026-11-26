@@ -3,13 +3,14 @@
 The 26 November review follows the writable Windows path from callbacks
 to CPU recovery. The owned Windows memory path reuses its checked
 replicas across writable reopen fences when its content revision stays
-the same. Compact sealed controls reduced the grouped CPython image
-from 696,320 to 593,920 bytes under the tested protection geometry.
+the same. Packing the sealed stripe descriptors reduced the latest
+Khronos holdout from 864,256 to 798,720 bytes and the CPython revision
+control from 598,016 to 557,056 bytes at the same protection geometry.
 Comparative mounted AMD service, bounded writable attach and
 supported-media recovery remain open.
 [Current review and implementation order](RELEASE_RECONCILIATION_2026-11-26.md) ·
 [Writable reopen evidence](evidence/windows-fenced-indexed-reopen-audit-2026-11-26.json) ·
-[Compact controls and CPU recovery](evidence/windows-compact-sealed-controls-2026-11-26.json) ·
+[Packed descriptors and CPU recovery](evidence/windows-packed-stripe-descriptors-2026-11-26.json) ·
 [Live Radeon write](evidence/windows-amd-write-grant-growth-2026-11-26.json)
 
 FlitzFS is in development qualification. The writable Windows helper uses

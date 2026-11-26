@@ -57,6 +57,36 @@ intact roots must agree. The checksums detect damaged bytes and the parity
 covers one lost unit per stripe. Recovered damage is reported through
 `degraded_checkpoint`. The inner paged store keeps its checked metadata.
 
+### Packed stripe descriptors
+
+`FLTXSP03` uses the same root fields, with the two roots at offsets zero
+and one failure unit. The stripe descriptor remains independently checked.
+Its record is 352 bytes, including all eight checksum slots and the final
+checksum of bytes 0–319. Unused checksum slots in the final stripe are
+zero. Each parity unit covers the data units and that stripe's descriptor
+record zero-extended to a full unit.
+
+With failure unit `U`, one descriptor unit can hold `P = floor(U / 352)`
+records. A group contains up to `P` consecutive stripes, each storing its
+data followed by its parity. One shared descriptor unit follows the group.
+Records start at multiples of 352 within that unit. The writer clears
+unused space. The defined checks cover each referenced record.
+
+For `D = ceil(inner_length / U)` data units and `S = ceil(D / 8)` stripes,
+the complete sealed length is
+`2 * U + U * (D + S + ceil(S / P))`. All data and parity units remain
+separately aligned. Losing a descriptor unit can affect several stripes.
+Each affected stripe reconstructs its own descriptor from its independent
+parity and data. Two lost units in the same stripe can exceed recovery
+coverage. The reader independently verifies the reconstructed record and
+refuses unverifiable bytes.
+
+Version 3 is selected by its checked root. The current CPU reader also
+opens versions 1 and 2. A reader without version 3 support refuses the new
+root. The owned Windows memory factory selects version 3 during ordinary
+cold sealing. The detached copy and paired file creation paths retain their
+existing format choices while persistent-provider qualification proceeds.
+
 ## Publication and restoration
 
 1. Open the closed mirrored checkpoint. Admit a new identity and two separate

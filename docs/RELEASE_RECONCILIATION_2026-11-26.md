@@ -10,7 +10,36 @@ detailed package contracts and the release execution plan retains the gates.
 [Implementation packages](IMPLEMENTATION_PLAN.md#3-execution-order-and-dependencies) ·
 [Release gates](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
 
-The current checkpoint builds on `4608e8f505730b5ecb279f7fafa3bb8c96b046d9`.
+The current checkpoint builds on `225c3a3b6fe8d712abe32875bc5c767dcfcdcae0`.
+Source tree `c8ebb42e1f9dda7a0c4fdd5ddc9da80d3af30b03` packs
+independently checked stripe descriptors into full failure units. The
+owned Windows memory volume uses the layout automatically when it
+seals. Each stripe keeps its own parity and reconstructs its descriptor
+from its own data when a shared descriptor unit fails.
+
+| Named dataset | Prior sealed bytes | Packed descriptor bytes | Saved |
+| --- | ---: | ---: | ---: |
+| Khronos holdout, 15 files | 864,256 | 798,720 | 65,536 (7.6%) |
+| Khronos calibration, 13 files | 1,257,472 | 1,159,168 | 98,304 (7.8%) |
+| CPython revisions, 24 files | 598,016 | 557,056 | 40,960 (6.8%) |
+
+Both arms include the writable tail and selector and retain the same
+shared members. Independent CPU reads verified names and contents.
+The fixed holdout range sample requested 739,424 backing bytes, down
+from 892,928. The preceding group-merge experiment retired its old
+base and reduced the compacted mirror by 8 KiB. The full seal tied
+at 844 KiB after settlement and the merge issued 104 KiB of extra writes.
+Keep that merge out of ordinary maintenance until another cohort
+shows an occupied-size win after retirement and sealing.
+The full Windows suite passed all 241 tests. Modeled recovery included
+216 distinct single-unit losses and 87 interrupted seal boundaries.
+The installed Radeon served two independently verified frames through
+the automatically sealed WinFsp callback fixture. The next request
+continued on CPU. Shutdown retired pending work, and writable reopen
+followed by independent CPU verification preserved the exact bytes.
+[Complete size, recovery and Windows evidence](evidence/windows-packed-stripe-descriptors-2026-11-26.json)
+
+The preceding short-extent checkpoint builds on `4608e8f505730b5ecb279f7fafa3bb8c96b046d9`.
 Source tree `85016044749749cd459396653115eb8ea611c164` gives related standalone
 short extents a packing trial before the regular fill order. Each pair
 comes from one funded window and uses the current encoder and checked
@@ -107,8 +136,8 @@ remains a separate gate.
 | --- | --- | --- |
 | Windows and volume ownership | The helper and WinFsp callbacks use exclusive memory and file-backed volume ownership. Signed guest clients covered populated operations, cached and mapped flush interruption, reclaim and writable reopen. | Qualify the ordinary signed helper and driver together on current Windows 11. Verify Explorer behavior, lifecycle, sharing and the advertised file semantics. |
 | Indexed store and scale | Copy-on-write names, inodes, extent maps and payload ownership are queryable in pages. Read callbacks reuse checked metadata. Owned Windows memory carries the replica audit through both fences when the backing revision is unchanged. | Put a durable bound on normal attach I/O while preserving namespace, allocation and dependency invariants. Measure named-file growth and memory on held-out distributions. |
-| Space reuse and recovery | Protected append, paired selectors, staged compaction, reader pins, alternate peer recovery and independently readable sealed parity are implemented. The paired owner can isolate compact controls using the provider's declared failure unit. | Qualify continuous settlement under churn and pressure, all relevant publication cuts and each advertised storage medium. Prove the bounds on delay from pinned readers and incomplete work. |
-| Compression | Foreground CPU codecs, verified device candidates, protected small-file packing and shared bases exist. A window-local packing trial captured the held-out compacted-mirror pair gain. Standalone byte planes helped named AITDCC inputs. | Compare group merges and transforms at equal failure coverage on unseen file families. Price mirror and seal separately and charge model, dependency, allocation and rewrite costs. |
+| Space reuse and recovery | Protected append, paired selectors, staged compaction, reader pins, alternate peer recovery and CPU sealed parity are implemented. Packed descriptors keep separate parity for each stripe in the owned memory provider. | Qualify shared-descriptor repair debt and the failure domain of each durable provider. Exercise continuous settlement under churn and pressure, interrupted publication and pinned readers. |
+| Compression | Foreground CPU codecs, verified device candidates, protected small-file packing and shared bases exist. Descriptor packing lowered complete size across all three named controls. The priced whole-group merge tied after sealing. | Freeze unseen file families and compare promising transforms and group candidates at equal protection. Include physical allocation, model, dependency, access and rewrite costs. |
 | AMD | HIP workers can use a nonblocking stream when stream priority is unavailable. Radeon callbacks delivered verified read and write bytes. The foreground write service wakes on worker exit, adapts burst depth to headroom and can revisit a larger grant. The latest public-source write fixture favored CPU on occupied size, 240 versus 264 KiB. | Establish winning workloads on the ordinary mount, by role. Bind retained preparation to measured demand and account for discovery, readiness, validation, committed size, misses and idle residency. Target predictable grouped reads and collective search before more small uniform-write tuning. |
 | Autonomous policy | Persistent sparse candidates, revision guards, input-funded maintenance and live contention/resource gates already exist. | Test drift, restart, fairness, idle recovery and write cost with ordinary workloads. Qualify the full chain from offline advice to independently verified net savings. |
 | Evolution and deployment | CPU readers, required features, format checks and pinned setup exist. Format and provider evidence is distributed across historical fixtures. | Freeze the supported compatibility window, run interrupted gradual migration, and qualify private dependency setup, the exact signed installer and offline recovery. |
@@ -219,6 +248,25 @@ flowchart LR
   rounding. The 16-member tie in this round illustrates why a smaller
   encoded representation alone gives an incomplete answer.
   [EROFS deduplication and fragment comparison](https://erofs.docs.kernel.org/en/latest/comparison/dedupe.html)
+- **Use an oracle for both savings and replacement cost.** FAST 2026
+  DOGI uses an oracle for garbage-collection cost to inform a
+  lightweight placement policy. WARP reports that outcomes vary by
+  device and by how object lifetimes cross allocation groups.
+  For FlitzFS, label each candidate by occupied bytes after retirement,
+  and preserve actual rewrite, temporary allocation and access costs as
+  separate observations. Train optional advice on shadow opportunities
+  only after the blind cohort shows enough remaining gain. Do not infer
+  device wear from host write counters.
+  [DOGI](https://www.usenix.org/conference/fast26/presentation/kim-jeeyun) ·
+  [WARP](https://www.usenix.org/conference/fast26/presentation/song)
+- **Qualify storage protection end to end.** The FAST 2026 FS-PI
+  prototype evaluates where integrity metadata is carried through
+  Linux and device I/O. FlitzFS independently checks each packed
+  descriptor and its data. Test Windows provider behavior separately
+  at the flush boundary and verify recovery with the CPU reader from
+  the surviving source. Device alignment alone gives no isolation
+  measurement for the effective failure unit.
+  [FS-PI](https://www.usenix.org/conference/fast26/presentation/gupta)
 - **Keep a current public control and a named-file holdout.** The public
   2026 AITDCC release provides checksums and separate A–H training and
   I–P testing sets. Use those files for byte-exact codec comparisons.
@@ -559,6 +607,34 @@ are implementation evidence. The 4 KiB failure assumptions still need
 qualification for each physical provider.
 [Exact input, byte and recovery evidence](evidence/windows-compact-sealed-controls-2026-11-26.json)
 
+Packing changes layout overhead while keeping the encoded objects and
+per-stripe redundancy fixed. A 4 KiB descriptor unit covers at most
+11 stripes. A 64 KiB unit covers at most 186. A single lost descriptor
+unit is recoverable with the separate data and parity in each affected
+stripe. A second lost unit in one of those stripes can exhaust its parity.
+The wider descriptor repair can touch more stripes in one pass. Measure
+that work, health reporting and foreground interference before adopting
+the layout on persistent media.
+
+1. Keep writes to the descriptor unit and all corresponding parity
+   units in the private inactive range until full CPU comparison and
+   flush succeed. Bind the CPU-readable base and writable tail in the
+   selector before releasing the prior generation. Use the current
+   memory path as the reference.
+2. Verify the provider's ordering, allocator reservation and effective
+   failure unit. Exercise the first and last descriptor runs, device
+   partial writes, failed flushes and recovery across a generation
+   switch. Verify old and new readers, an open snapshot and the
+   acknowledgement log after every modeled cut. Use disposable media
+   for physical durability evidence.
+3. Quantify healthy reads and the repair cost of a shared descriptor
+   loss under concurrent access. Stage a checked successor only when
+   reserve and provider conditions allow it. Preserve the last readable
+   generation on refusal. For persistent migration, require ordinary
+   old-format reopen, independent v3 recovery and a tested export to
+   the supported prior format before shipping the new layout.
+   [Packed format and recovery](SEALED_INDEXED_IMAGE.md#packed-stripe-descriptors)
+
 Microsoft exposes a physical sector for alignment and documents explicit
 file-buffer flushes. These interfaces inform the provider contract.
 Qualify that contract separately for torn or reordered writes and for
@@ -894,11 +970,11 @@ be matched on all arms.
 
 | Priority and decision | Next deliverable | Acceptance and follow-through |
 | --- | --- | --- |
-| 1. Minimize complete protected size | Use the named cohort oracle to price retained group mergers and the destination seal. The measured short-extent pair gain is now captured by the current window. | Show that a proposed merge retires its prior base safely. Require a smaller settled placement and measure access, repair and rewrite costs on a wider held-out family. |
-| 2. Consume automatic AMD work through Windows | Join actual client demand, worker readiness, verified results and consumption in the populated Win32 witness. Start with grouped sequential reads and collective candidate search. Use short writes as the matched CPU reference and add larger recurring cohorts. | Alternate matched lanes. Report verified and consumed bytes, CPU continuity, occupied size, p99, idle residency and retirement on the observed installation. A device result earns a policy only when the useful path gains after all overhead. |
+| 1. Consume automatic AMD work through Windows | Join actual client demand, worker readiness, verified results and consumption in the populated Win32 witness. Start with grouped sequential reads and collective candidate search. Use short writes as the matched CPU reference and add larger recurring cohorts. | Alternate matched lanes on the real host. Report verified and consumed bytes, CPU continuity, occupied size, p99, idle residency and retirement. A device result earns a policy only when the useful path gains after all overhead. |
+| 2. Extend the complete protected-size advantage | Freeze one blind mixed file tree and attribute settled cost after the new packing layout. Use the same objects, restart units and per-stripe coverage in both arms. Compare strong independent Zstandard, current groups and the best remaining admitted candidate. | Require a smaller settled layout after retiring old dependencies. Charge the range-read, repair, workspace and rewrite costs. Qualify descriptor sharing for each durable provider before enabling it there. |
 | 3. Bound writable attach and recovery | Compare a generation-bound ownership summary with the full CPU inventory and fence checks in shadow mode. Replay named churn and reserve a larger scale tier and different distribution. | Agree on namespace admission, encodings, ownership and recovery. Price proof writes, attach reads, background audit debt and failures. Qualify each provider boundary before adopting the proof. |
 
-**1. Compression and placement.**
+**Compression and placement.**
 
 1. Extend the public reencoding fixture's `protected_layout` report.
    It already separates mirrored object bytes, metadata and rounding.
@@ -907,7 +983,8 @@ be matched on all arms.
    temporary peak. Reconcile the categories to observed backing length
    or physical allocation. Hold each comparison to one input generation
    and a deliberate placement geometry.
-2. Use compact sealing where the provider covers its declared geometry.
+2. Use the packed descriptor layout in matched memory comparisons and
+   keep the qualified layout for each provider.
    Hold the selector, group references, restart units and failure coverage
    fixed across new encoder arms. Compare exact footprint, restart and
    repair work after retirement. Retain a mirror where the verified seal
@@ -933,10 +1010,12 @@ be matched on all arms.
    The current named oracle priced 216 ordered pairs, four eligible
    packs and 132 mergers on the fixed holdout. The new packing path
    captured the 8 KiB single-pair gain on the complete mirror. A
-   complete group merge still saved another 8 KiB on a fresh trial
-   copy. Measure the exact reverse references and both retirement
-   outcomes before using that signal to schedule background work.
-   [Named cohort evidence](evidence/windows-short-pack-affinity-2026-11-26.json)
+   complete-group merge retired the original base and saved another
+   8 KiB in its first compacted mirror. Both arms converged after
+   ordinary settlement and sealing. The merge increased sampled range
+   reads by 28 KiB. Retain the result as a negative control when
+   deciding whether more nominations deserve maintenance work.
+   [Named cohort and merge evidence](evidence/windows-packed-stripe-descriptors-2026-11-26.json)
 5. Admit background rewrites from live host and backing observations
    and use the volume owner's existing staged verification protocol.
    Count committed backing bytes, reclaim delay with readers and
@@ -956,7 +1035,7 @@ be matched on all arms.
    bounded reference to recover a requested range. Loss of the catalog
    or a model must leave every retained format independently readable.
 
-**2. AMD service and ordinary Windows I/O.**
+**AMD service and ordinary Windows I/O.**
 
 1. Use `WinFspVolumeController` and the grouped read path to bind an
    operation key to demand lead, exact checked revision and adapter
@@ -988,7 +1067,7 @@ be matched on all arms.
    observed workload. Run denied, late, failed and next-qualified
    requests through the same mounted client before enabling a policy.
 
-**3. Checkpoint proof, provider recovery and scale.**
+**Checkpoint proof, provider recovery and scale.**
 
 1. Enumerate the current `IndexedVolumeView::verify_inventory` checks.
    Classify local page checks, ordered ownership intervals, cross-tree
@@ -1035,12 +1114,12 @@ signed artifacts and explicitly declared compatibility window.
 
 The existing package estimate remains **59–127 person-weeks** at low
 confidence, with an open research tail for stronger collective compression.
-The compact control layout opens a previously unprofitable placement. The
-owned memory revision lowers reopen work while retaining the startup
-inventory. The package estimates still reflect the work to bound
-full-volume startup on persistent media. The sustained mounted path and
-physical recovery campaign still
-determine release advancement. All twelve
+Packed descriptors improve the existing sealed placement on three named
+cohorts. The owned memory revision lowers reopen work while retaining the
+startup inventory. The estimate still includes bounded startup,
+provider-level recovery and durable format migration. Useful automatic
+AMD work through the mounted path and the physical recovery campaign
+remain on the critical path. All twelve
 formal gates remain open for a stable candidate. Reprice after the first
 ordinary automatic AMD comparison, proof-versus-audit attach curve,
 blind complete-size comparison and backed interruption campaign. Close
